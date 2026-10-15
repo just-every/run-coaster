@@ -53,7 +53,8 @@ try {
   assert.equal((await fetch(server.origin + '/health')).status, 200)
   assert.equal((await fetch(server.origin + '/api/coaster/state')).status, 401)
   await server.close(); server = undefined
-  await command(root, ['deploy', '--dry-run'])
+  // Deploy refuses an installation whose owner cannot sign in; this owner has configured Resend (deploy.json).
+  await command(root, ['deploy', '--dry-run'], { env: { MAIL_API_KEY: 'test-mail-api-key-synthetic' } })
   const archive = join(evidence, 'installation.rer')
   await rm(archive, { force: true })
   await command(root, ['export', '--output', 'exports/installation.rer'])
