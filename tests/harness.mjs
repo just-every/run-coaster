@@ -1,5 +1,5 @@
 // A real Coaster Worker (production API + native auth) on workerd and D1 with
-// every migration applied. People sign in through the real invitation mail.
+// every migration applied. Only the external Resend transport is faked.
 import assert from 'node:assert/strict'
 import { createServer } from 'node:net'
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
@@ -14,7 +14,14 @@ const freePort = async () => { const s = createServer(); await new Promise(r => 
 export async function harness() {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(join(tmpdir(), 'coaster-test-'))
   const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023' })
-  const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: { DB: 'coaster' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'development', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>' } }), resourcePersistencePath: dir })
+  const messages = []
+  const mailTransport = async request => {
+    assert.equal(request.url, 'https://api.resend.com/emails')
+    assert.equal(request.method, 'POST')
+    messages.push(await request.json())
+    return Response.json({ id: crypto.randomUUID() })
+  }
+  const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], outboundService: mailTransport, d1Databases: { DB: 'coaster' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'resend', MAIL_API_KEY: 'test-mail-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>' } }), resourcePersistencePath: dir })
   try {
     const db = await mf.getD1Database('DB')
     for (const file of (await readdir('migrations/core')).filter(f => f.endsWith('.sql')).sort())
@@ -32,8 +39,7 @@ export async function harness() {
     const post = async (path, body, cookie = owner, status = 200) => { const r = await send('/api/coaster/' + path, body, cookie); assert.equal(r.status, status, `${path}: ${JSON.stringify(r.value)}`); return r.value }
     const get = async (path, cookie = owner, status = 200) => { const r = await send('/api/coaster/' + path, undefined, cookie); assert.equal(r.status, status, `${path}: ${JSON.stringify(r.value)}`); return r.value }
     const confirmMail = async email => {
-      const rows = await db.prepare('SELECT message FROM rer_mail_development_outbox ORDER BY sequence DESC').all()
-      const message = rows.results.map(r => JSON.parse(r.message)).find(m => m.to.includes(email))
+      const message = messages.findLast(m => m.to.includes(email))
       assert.ok(message, `mail for ${email}`)
       const token = new URL(message.text.match(/http:\/\/[^\s]+\/auth\/confirm\?token=[^\s]+/)[0]).searchParams.get('token')
       const confirmed = await send('/auth/confirm', { token })
@@ -46,7 +52,7 @@ export async function harness() {
       await post('settings/members/invite', { email })
       return confirmMail(email)
     }
-    return { db, mf, origin, owner, send, post, get, person, async close() { await mf.dispose(); await rm(dir, { recursive: true, force: true }) } }
+    return { db, mf, origin, owner, send, post, get, person, confirmMail, async close() { await mf.dispose(); await rm(dir, { recursive: true, force: true }) } }
   } catch (error) { await mf.dispose(); await rm(dir, { recursive: true, force: true }); throw error }
 }
 

@@ -34,7 +34,7 @@ owner exists; a workspace that already has a business keeps its own records.
 
 | Path | Where it goes | In a demo |
 |---|---|---|
-| Sign-in links, member invitations and step-up confirmations (`src/mail.server.mjs`) | People's inboxes, through the mail provider | Mocked success: `demoEffect` answers as the provider accepting it; nothing is sent or stored |
+| Sign-in links, member invitations and step-up confirmations (`src/mail.server.mjs`) | People's inboxes, through the mail provider | Mocked success: Base accepts suppressed development delivery under its demo guard; nothing is sent or stored |
 | Linking an identity provider (`IDENTITY_PROVIDER`, `/auth/dependencies/*`) | The provider's discovery and token endpoints | Not configured in a demo |
 
 Coaster has no public reads or checks: it never fetches a page, feed or URL a

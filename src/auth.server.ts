@@ -2,9 +2,8 @@ import { createDependencies } from './modules/dependencies/index.mjs'
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/owner-claim/index.mjs'
 import { firstRunResponse } from './base/setup'
 import { fontDocumentResponse } from './base/font-response'
-import { createOperatorAuth, createAuthHandler, createSignInHandler, devGate, devNotFound, type AuthConfig } from './modules/operator-auth/index.mjs'
+import { createOperatorAuth, createAuthHandler, createSignInHandler, type AuthConfig } from './modules/operator-auth/index.mjs'
 import { operatorMail } from './mail.server.mjs'
-import { createD1DevelopmentOutbox, createDevelopmentOutboxHandler } from './modules/mail/src/development/index.mjs'
 import branding from './branding.json'
 
 // The edition's declared theme (public/rer-theme.css), as Base frames link it.
@@ -63,20 +62,10 @@ export async function authResponse(request: Request, original: Bindings): Promis
   return fontDocumentResponse((await claim(request))!)
  }
  if (url.pathname === '/auth/owner-claim') return createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:req=>req.headers.get('CF-Connecting-IP')??''})(request)
- // The outbox and key exchange answer only a local runtime holding RER_DEV_KEY;
- // the outbox also needs the key gate's cookie (or the rer harness's header).
- if (url.pathname === '/__dev/outbox' || url.pathname === '/__dev/key') {
-  const gate = env.MAIL_PROVIDER === 'development' ? devGate({ key: env.RER_DEV_KEY, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true' }) : null
-  if (!gate) return devNotFound()
-  if (url.pathname === '/__dev/key') return await gate.exchange(request) ?? devNotFound()
-  if (!await gate.admits(request)) return devNotFound()
-  return await createDevelopmentOutboxHandler({ local: true, origin: env.AUTH_ORIGIN, outbox: createD1DevelopmentOutbox({ db: env.DB }), theme: theme.href })(request) ?? devNotFound()
- }
  // The shared server-rendered sign-in page: plain forms that work before any script.
  if (url.pathname === '/signin') {
   const page = await createSignInHandler(operatorAuth(env), {
    defaultReturnTo: '/setup',
-   links: () => env.MAIL_PROVIDER === 'development' && env.AUTH_LOCAL === 'true' ? [{ href: '/__dev/outbox', label: 'Open the local development outbox' }] : [],
   })(request)
   if (page) return fontDocumentResponse(page)
  }
