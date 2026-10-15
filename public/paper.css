@@ -1,0 +1,46 @@
+/* Coaster's paper: the tokens every Coaster page shares and the two pieces the landing and the app both draw, the
+   receipt slip and the status chip. Link it after /rer-theme.css, which defines the fonts and core colours this file
+   names. Thermal till-roll slips with serrated edges, crisp black print, dotted rules and one coral second ink. */
+:root {
+  --paper: var(--rer-page);
+  --ink: var(--rer-text);
+  --muted: var(--rer-muted);
+  --slip: var(--rer-surface);
+  --slip-shade: #F2F1EE;
+  --rule: #D9D7D2;
+  --coral: #F2664E;
+  --coral-fill: var(--rer-accent);
+  --coral-tint: #FDE4DE;
+  --coral-ink: #B7341C;
+  --focus: var(--rer-focus);
+  --serif: var(--rer-font-heading);
+  --sans: var(--rer-font-body);
+  --dotted: 1px dotted var(--rule);
+  --slip-shadow: drop-shadow(0 1px 1px #00000014) drop-shadow(0 16px 20px #00000022);
+  --panel-shadow: drop-shadow(0 1px 1px #0000000D) drop-shadow(0 8px 14px #00000012);
+  /* The serrated edge, torn like till roll: an 8px-deep tooth every 14px, cut by two repeating conic gradients. */
+  --tooth: 14px;
+  --tooth-depth: 8px;
+  --edge-top: conic-gradient(from 138.8deg at top, #0000, #000 1deg 81.4deg, #0000 82.4deg) top / var(--tooth) 51% repeat-x;
+  --edge-bottom: conic-gradient(from -41.2deg at bottom, #0000, #000 1deg 81.4deg, #0000 82.4deg) bottom / var(--tooth) 51% repeat-x;
+}
+
+/* A receipt slip: the shadow sits on the element and the paper, masked to its teeth, on a layer behind the content. */
+.slip { position: relative; isolation: isolate; filter: var(--slip-shadow); }
+.slip::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: 2px;
+  background: linear-gradient(to bottom, var(--slip) 80%, #F7F6F3);
+  -webkit-mask: var(--edge-top), var(--edge-bottom); mask: var(--edge-top), var(--edge-bottom);
+}
+/* A long slip torn only at its foot (claim and batch detail). */
+.slip-foot::before {
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth-depth) + 1px) no-repeat, var(--edge-bottom);
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth-depth) + 1px) no-repeat, var(--edge-bottom);
+}
+
+/* A status chip: words with a shape, never colour alone. */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 10px; border-radius: 999px;
+  background: var(--coral-tint); color: var(--coral-ink); font: 600 13px/18px var(--sans); white-space: nowrap;
+}
+.chip svg { width: 15px; height: 15px; flex-shrink: 0; }

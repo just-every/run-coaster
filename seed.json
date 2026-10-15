@@ -1,0 +1,140 @@
+{
+  "id": "coaster",
+  "name": "Coaster",
+  "version": "0.1.0",
+  "maturity": "first-release-local",
+  "category": "expenses",
+  "spine": {
+    "id": "claim-to-reimbursement",
+    "record": "Claim revision \u2192 Decision \u2192 Reimbursement batch \u2192 Accounting CSV"
+  },
+  "description": "Employee expense claims with receipt evidence, manager approval, duplicate-safe reimbursement batches, an accounting CSV and an Expensify move-in kit, on the owner's own Cloudflare account.",
+  "capabilities": [
+    {
+      "id": "business-people",
+      "clauses": [
+        "COA-001"
+      ]
+    },
+    {
+      "id": "claims-receipts",
+      "clauses": [
+        "COA-002",
+        "COA-003"
+      ]
+    },
+    {
+      "id": "policy-duplicates",
+      "clauses": [
+        "COA-004",
+        "COA-005"
+      ]
+    },
+    {
+      "id": "approval-history",
+      "clauses": [
+        "COA-006",
+        "COA-007"
+      ]
+    },
+    {
+      "id": "role-access",
+      "clauses": [
+        "COA-008"
+      ]
+    },
+    {
+      "id": "reimbursement-batches",
+      "clauses": [
+        "COA-009"
+      ]
+    },
+    {
+      "id": "agent-preparation",
+      "clauses": [
+        "COA-010"
+      ]
+    },
+    {
+      "id": "move-in-restore",
+      "clauses": [
+        "COA-011",
+        "COA-012"
+      ]
+    },
+    {
+      "id": "native-runtime",
+      "clauses": [
+        "COA-013"
+      ]
+    }
+  ],
+  "nonGoals": [
+    "Card issuing or card feeds",
+    "Moving money or payment files",
+    "Payroll and travel booking",
+    "Multi-currency claims",
+    "OCR or model receipt reading",
+    "Accounting software sync",
+    "Tax determination"
+  ],
+  "externals": [
+    {
+      "id": "cloudflare",
+      "required": true,
+      "why": "Worker hosting",
+      "data": [
+        "HTTP requests"
+      ],
+      "adapters": []
+    }
+  ],
+  "env": [],
+  "deploy": {
+    "healthPath": "/health",
+    "publicPaths": [
+      "/",
+      "/health",
+      "/signin"
+    ],
+    "notes": "Native sessions guard /app and every /api/coaster route; agent keys reach only /api/coaster/agent; unknown paths return real 404s; the development outbox is local-only."
+  },
+  "extensionPoints": {
+    "contributions": [],
+    "policies": [],
+    "events": [],
+    "slots": [],
+    "adapters": []
+  },
+  "limits": {
+    "status": "unmeasured"
+  },
+  "accessibility": {
+    "level": "WCAG 2.2 AA",
+    "status": "target; unaudited"
+  },
+  "operatingCost": {
+    "status": "unmeasured"
+  },
+  "composition": {
+    "base": "base",
+    "family": "expenses",
+    "edition": "coaster",
+    "modules": [
+      "job-queue",
+      "release",
+      "deploy-kit",
+      "container",
+      "demo-host",
+      "integrations",
+      "mail",
+      "ai",
+      "portability",
+      "erasure",
+      "dependencies",
+      "operator-auth",
+      "owner-claim",
+      "import-kit"
+    ]
+  }
+}

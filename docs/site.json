@@ -1,0 +1,84 @@
+{
+  "sections": [
+    {
+      "title": "Start here",
+      "pages": [
+        {
+          "slug": "overview",
+          "title": "What Coaster does",
+          "file": "overview.md",
+          "summary": "How a claim goes from receipt to reimbursed, who does what, and what Coaster keeps."
+        },
+        {
+          "slug": "install",
+          "title": "Run Coaster on your computer",
+          "file": "install.md",
+          "summary": "Install rer, get Coaster and start it with rer dev, then finish setup."
+        },
+        {
+          "slug": "setup",
+          "title": "Set up your business",
+          "file": "setup.md",
+          "summary": "Name the business, set its policy, add the expense categories and invite your people."
+        }
+      ]
+    },
+    {
+      "title": "Everyday work",
+      "pages": [
+        {
+          "slug": "claims",
+          "title": "Claims and receipts",
+          "file": "claims.md",
+          "summary": "Start a claim, add receipts, mileage and per diem, explain exceptions and submit."
+        },
+        {
+          "slug": "approvals",
+          "title": "Approving claims",
+          "file": "approvals.md",
+          "summary": "Review each expense and its receipt, then approve, return or reject the claim."
+        },
+        {
+          "slug": "batches",
+          "title": "Reimbursement batches",
+          "file": "batches.md",
+          "summary": "Batch approved claims, check they add up, download the files and record the payment."
+        },
+        {
+          "slug": "agents",
+          "title": "Agent keys",
+          "file": "agents.md",
+          "summary": "Let your own agent draft claims or propose batches that you accept."
+        }
+      ]
+    },
+    {
+      "title": "Move in",
+      "pages": [
+        {
+          "slug": "moving-in",
+          "title": "Moving in from Expensify",
+          "file": "moving-in.md",
+          "summary": "Preview your Expensify history, import exactly what you saw, and undo it if you change your mind."
+        }
+      ]
+    },
+    {
+      "title": "Look after it",
+      "pages": [
+        {
+          "slug": "backup-and-restore",
+          "title": "Backup and restore",
+          "file": "backup-and-restore.md",
+          "summary": "Export the whole installation to one file and restore it into a new one."
+        },
+        {
+          "slug": "deploy",
+          "title": "Your own Cloudflare account",
+          "file": "deploy.md",
+          "summary": "Put Coaster on your own Cloudflare account so your team can reach it."
+        }
+      ]
+    }
+  ]
+}

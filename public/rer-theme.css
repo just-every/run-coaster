@@ -1,0 +1,53 @@
+/* Coaster's declared theme, the one place its fonts and core colours are defined. Base's sign-in,
+   confirmation, /setup, Lobby, Run page and outbox read these --rer-* tokens; the app and the run site
+   link this file first and public/tokens.css names Coaster's own tokens from it. Newsreader (headings)
+   and Instrument Sans (everything else) are SIL Open Font License 1.1, self-hosted under public/fonts.
+   --rer-accent is the deeper coral that carries white button text at 4.8:1; the brighter coral in
+   tokens.css is for marks, discs and arrows only. */
+@font-face {
+  font-family: Newsreader;
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/newsreader/newsreader-latin-opsz-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: Newsreader;
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/newsreader/newsreader-latin-ext-opsz-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/instrument-sans/instrument-sans-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/instrument-sans/instrument-sans-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+:root {
+  --rer-font-body: 'Instrument Sans', Arial, sans-serif;
+  --rer-font-heading: Newsreader, Georgia, serif;
+  --rer-page: #FCFBF7;
+  --rer-surface: #FFFFFF;
+  --rer-text: #1C1C1E;
+  --rer-muted: #6B6A6E;
+  --rer-border: #8E8B85;
+  --rer-focus: #1C1C1E;
+  --rer-link: #1C1C1E;
+  --rer-accent: #CC4128;
+  --rer-accent-text: #FFFFFF;
+  --rer-radius: 14px;
+  --rer-logo: url("/brand/mark.svg");
+}

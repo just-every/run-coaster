@@ -1,0 +1,47 @@
+/* The run site's chrome on Coaster's paper (/rer-theme.css then /paper.css): ink on warm paper, colour only in the
+   drawings. Shared by the homepage and the docs. */
+body:has(> .site) { margin: 0; background: var(--paper); }
+.site { min-height: 100vh; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); font: 18px/1.55 var(--sans); font-variant-numeric: lining-nums; -webkit-font-smoothing: antialiased; }
+.site *, .site *::before, .site *::after { box-sizing: border-box; }
+.site main { flex: 1; }
+.site a { color: var(--ink); }
+.site :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+.site .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.site-wrap { width: 100%; max-width: 1248px; margin: 0 auto; padding: 0 24px; }
+
+.site-header-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 84px; }
+.site-brand { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 600; letter-spacing: -.01em; text-decoration: none; }
+.site-nav { display: flex; gap: 8px; }
+.site-nav a, .site-footer-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: 16px; text-decoration: none; }
+.site-nav a:hover, .site-footer-links a:hover, .site-nav a[aria-current] { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px; }
+
+.site-actions-block { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.site-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px 36px; }
+.site .site-pill { display: inline-flex; align-items: center; gap: 12px; min-height: 52px; padding: 14px 28px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 16px; font-weight: 600; text-decoration: none; }
+.site .site-pill:hover { background: #000; }
+.site-pill .icon { width: 18px; height: 18px; stroke-width: 2; }
+.site-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 16px; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.site-link:hover { text-decoration-thickness: 2px; }
+.site-eyebrow { display: flex; align-items: center; gap: 16px; margin: 0 0 18px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.site-eyebrow::after { content: ''; flex: 1; max-width: 360px; border-top: 1px solid var(--rule); }
+.site-eyebrow-centre { justify-content: center; }
+.site-eyebrow-centre::after { display: none; }
+.site-small { margin: 0; color: var(--muted); font-size: 14px; }
+
+.site-footer { padding: 28px 0 32px; border-top: 1px solid var(--rule); }
+.site-footer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; }
+.site-footer .site-brand { font-size: 18px; }
+.site-footer-line { margin: 0; flex: 1; color: var(--muted); font-size: 14px; }
+.site-footer-links { display: flex; flex-wrap: wrap; }
+.site-footer-links a { font-size: 14px; }
+
+@media (max-width: 640px) {
+  .site { font-size: 17px; }
+  .site-wrap { padding: 0 16px; }
+  .site-header-row { min-height: 68px; }
+  .site-nav { gap: 0; margin-right: -12px; }
+  .site-actions { flex-direction: column; align-items: stretch; width: 100%; gap: 12px; }
+  .site .site-pill, .site-actions .site-link { justify-content: center; }
+  .site-footer-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .site-footer-links { margin-left: -12px; }
+}

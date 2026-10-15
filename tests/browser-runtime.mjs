@@ -1,0 +1,17 @@
+import { fileURLToPath as __rerTestEntryPath } from 'node:url';
+const __rerTestEntry = __rerTestEntryPath(import.meta.resolve('@runeditrun/rer/internal/global/rer.mjs'));
+const __rerTestEntryArgs = args => args[1] === 'dev' && !args.some(arg => ['--foreground', '--detach', '--stop', '--help'].includes(arg)) ? [...args, '--foreground'] : args;
+import {promisify} from 'node:util'
+import {spawn,execFile} from 'node:child_process'
+import {mkdtemp,cp,readFile,writeFile,mkdir,readdir,rm} from 'node:fs/promises'
+import {join,resolve} from 'node:path'
+import {tmpdir} from 'node:os'
+import {createServer} from 'node:net'
+const source=resolve(new URL('..',import.meta.url).pathname)
+const excluded=new Set(['.git','node_modules','.wrangler','.rer','.seed','.cache','.tanstack','dist','.output','exports','test-results'])
+export async function fresh({sourceCopy=false}={}){const root=await mkdtemp(join(tmpdir(),'coaster-installation-'));let committed=false;try{await promisify(execFile)('git',['rev-parse','--verify','HEAD'],{cwd:source});committed=true}catch{}if(committed&&!sourceCopy){await promisify(execFile)('git',['clone','--no-hardlinks','--quiet',source,root]);return root;}for(const name of await readdir(source)){if(excluded.has(name)||name.startsWith('.dev.vars')||name.startsWith('.env')||name.endsWith('.tsbuildinfo'))continue;await cp(join(source,name),join(root,name),{recursive:true})}return root}
+export async function freePort(){const s=createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p}
+const clean=s=>s.replace(/^RER_OPEN .*$/gm,'RER_OPEN [private sign-in URL omitted]').replace(/([?&]token=)[^\s&]+/g,'$1[redacted]')
+export async function command(root,args,{expected=0}={}){const child=spawn(process.execPath,__rerTestEntryArgs([__rerTestEntry,...args]),{cwd:root,env:{...process.env,WRANGLER_SEND_METRICS:'false',RER_SERVER_JOURNEY:'1'},stdio:['ignore','pipe','pipe']});let log='';for(const stream of [child.stdout,child.stderr])stream.on('data',c=>{log+=c});const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('close',resolve)});if(code!==expected)throw new Error(`rer ${args[0]} exited ${code}:\n${clean(log).slice(-6000)}`);console.log(`rer ${args.join(' ')}: exit ${code}`);return clean(log)}
+export async function start(root,port,mode='dev'){const child=spawn(process.execPath,__rerTestEntryArgs([__rerTestEntry,mode,'--port',String(port)]),{cwd:root,env:{...process.env,WRANGLER_SEND_METRICS:'false',RER_SERVER_JOURNEY:'1'},stdio:['ignore','pipe','pipe']});let output='';for(const stream of [child.stdout,child.stderr])stream.on('data',c=>{output+=c});const deadline=Date.now()+20*60*1000;while(!output.includes('RER_READY')&&Date.now()<deadline){if(child.exitCode!==null)throw new Error(`${mode} exited: ${clean(output).slice(-4000)}`);await new Promise(r=>setTimeout(r,250))}if(!output.includes('RER_READY')){await command(root,[mode,'--stop']);child.kill('SIGTERM');throw new Error(mode+' admission/readiness timed out')}return {origin:`http://127.0.0.1:${port}`,async close(){await command(root,[mode,'--stop']);if(child.exitCode===null){child.kill('SIGTERM');await new Promise(r=>child.once('exit',r))}}}}
+export async function report(path,value){await mkdir(path,{recursive:true});await writeFile(join(path,'result.json'),JSON.stringify(value,null,2)+'\n')}
