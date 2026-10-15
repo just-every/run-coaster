@@ -13,7 +13,7 @@ const freePort = async () => { const s = createServer(); await new Promise(r => 
 
 export async function harness() {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(join(tmpdir(), 'coaster-test-'))
-  const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', conditions: ['workerd', 'worker', 'browser'], external: ['node:*'], target: 'es2023' })
+  const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023' })
   const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: { DB: 'coaster' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'development', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>' } }), resourcePersistencePath: dir })
   try {
     const db = await mf.getD1Database('DB')

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "domain": "run-coaster.com",
+  "name": "Coaster",
+  "settings": {
+    "MAIL_PROVIDER": "development",
+    "MAIL_FROM": "Coaster demo <demo@demo.invalid>"
+  },
+  "instanceType": "basic"
+}

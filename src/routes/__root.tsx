@@ -8,7 +8,7 @@ import { HydrationUnit } from '../base/hydration/unit'
 // root chrome sits in a HydrationUnit. Never set shellComponent, wrapInSuspense
 // or pendingComponent on this root route.
 export const Route = createRootRoute({
-  head: () => ({ meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }], title: 'Coaster' }),
+  head: () => ({ meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: 'Coaster' }] }),
   notFoundComponent: () => <HydrationUnit><main className="app not-found"><h1>Page not found</h1><p><a href="/app">Open Coaster</a></p></main></HydrationUnit>,
   component: () => <html lang="en"><head>
     {fontLinks.map(link => <link key={link.href} {...link} />)}

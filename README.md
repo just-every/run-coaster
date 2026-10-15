@@ -22,6 +22,10 @@ rer setup --owner-email you@example.com
 rer dev
 ```
 
+`rer demo` opens a throwaway copy signed in as the owner, with Harbour & Finch
+Studio's sample claims, and deletes it when it stops; [DEMO.md](DEMO.md) covers
+the sample data and the hosted demo at https://demo.run-coaster.com/.
+
 Commands that run project work select the exact Node version declared by the
 project. They use an exact matching installed runtime or a checksum-verified
 copy cached at `~/.rer/node/node-vVERSION-PLATFORM-ARCH/`; when needed on

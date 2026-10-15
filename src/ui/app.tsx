@@ -28,7 +28,7 @@ function Masthead({ actor }: { actor?: D }) {
   const roles = actor ? ['employee', 'manager', 'finance'].filter(r => actor.roles[r]).map(r => r[0].toUpperCase() + r.slice(1)) : [];
   const who = actor && <><span className="account-email">{actor.email}</span><span className="muted"> · {actor.roles.owner ? 'Owner, ' : ''}{roles.join(', ')}</span></>;
   return <header className="app-header">
-    <a className="brand" href="/app#/claims"><img className="brand-mark" src="/brand/mark.svg" alt="" /><span>Coaster</span></a>
+    <a className="brand" href="/app#/claims"><img className="brand-mark" src="/brand/mark.svg" alt="" /><span data-rer-name>Coaster</span></a>
     {actor && <p className="account">{who}</p>}
     {actor && <details className="account-menu"><summary aria-label={`Signed in as ${actor.email}`}><span aria-hidden="true">{(actor.name || actor.email)[0].toUpperCase()}</span></summary><p className="account-card">{who}</p></details>}
   </header>;

@@ -1,3 +1,6 @@
+// First: under RER_DEMO the demo guard must replace fetch before any other module can keep it.
+import { withDemo } from './modules/demo/index.mjs'
+import { seedDemo } from './demo'
 import start from '@tanstack/react-start/server-entry'
 import { dispatch } from './base/dispatch'
 import { staticAssetResponse } from './base/static-assets'
@@ -16,7 +19,7 @@ function noTransform(response: Response): Response {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
 }
 
-export default {
+const worker = {
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
@@ -31,3 +34,6 @@ export default {
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))
   },
 } satisfies ExportedHandler<Bindings>
+
+// Demo mode only under RER_DEMO=1 (`rer demo`, a hosted demo); otherwise the worker is unchanged.
+export default withDemo(worker, { seed: seedDemo })
