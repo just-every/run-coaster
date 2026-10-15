@@ -6,5 +6,5 @@
     "MAIL_PROVIDER": "development",
     "MAIL_FROM": "Coaster demo <demo@demo.invalid>"
   },
-  "instanceType": "standard-3"
+  "instanceType": "standard-4"
 }
