@@ -1,6 +1,7 @@
 // Observe the test host through run-demo's account-scoped credential before a
 // fresh-start cohort. Keep admission metadata only, never headers or cookies.
 import { readFile, writeFile } from 'node:fs/promises';
+import WebSocket from 'ws';
 
 const account = process.env.CLOUDFLARE_ACCOUNT_ID;
 if (account !== 'b20c0ca9cab0c2b70e13d7cf724b89bd' || process.env.DEMO_ENVIRONMENT !== 'demo-test') throw Error('Test host only');
@@ -11,7 +12,7 @@ const response = await fetch(endpoint, { method: 'POST', headers, body: '{}' });
 const value = await response.json();
 if (!response.ok || !value.success) throw Error(`Tail refused (${response.status})`);
 const tail = value.result, started = Date.now(), admissions = [];
-let socket, closed = false, observedAt;
+let socket, closed = false, observedAt, ping, closeCode, closedAt;
 try {
   socket = new WebSocket(tail.url, 'trace-v1');
   socket.binaryType = 'arraybuffer';
@@ -25,20 +26,34 @@ try {
       console.log(JSON.stringify(admission));
     }
   });
-  socket.addEventListener('close', () => { closed = true; });
+  socket.addEventListener('close', event => { closed = true; closeCode = event.code; closedAt = new Date().toISOString(); });
   await new Promise((resolve, reject) => {
     socket.addEventListener('open', resolve, { once: true });
     socket.addEventListener('error', () => reject(Error('Tail connection failed')), { once: true });
   });
+  // Match Wrangler's trace-v1 handshake and ping/pong keepalive. A dropped
+  // connection invalidates the observation instead of silently leaving a gap.
+  socket.send(JSON.stringify({ debug: false }), { binary: false, compress: false, mask: false, fin: true });
   observedAt = Date.now();
   console.log('Observing test host admissions for 15 minutes');
-  await new Promise(resolve => setTimeout(resolve, 15 * 60_000));
+  await new Promise((resolve, reject) => {
+    let waitingForPong = false;
+    const timer = setTimeout(resolve, 15 * 60_000);
+    socket.on('pong', () => { waitingForPong = false; });
+    socket.once('close', () => { clearTimeout(timer); reject(Error('Tail disconnected during observation')); });
+    ping = setInterval(() => {
+      if (waitingForPong) { socket.terminate(); return; }
+      waitingForPong = true;
+      socket.ping('Coaster demo observation');
+    }, 10_000);
+  });
   if (closed) throw Error('Tail closed before the observation finished');
 } finally {
   const continuous = !closed && Boolean(observedAt), ended = new Date().toISOString();
+  clearInterval(ping);
   socket?.close();
   const removed = await fetch(`${endpoint}/${tail.id}`, { method: 'DELETE', headers });
-  const result = { started: new Date(started).toISOString(), observedAt: observedAt && new Date(observedAt).toISOString(), ended, continuous, admissions, tailRemoved: removed.ok };
+  const result = { started: new Date(started).toISOString(), observedAt: observedAt && new Date(observedAt).toISOString(), ended, continuous, closeCode, closedAt, admissions, tailRemoved: removed.ok };
   await writeFile('demo-admissions.json', JSON.stringify(result, null, 2) + '\n');
   if (!removed.ok) throw Error('Tail removal failed');
 }
