@@ -12,6 +12,10 @@ on:
         description: 'Remove that demo (rer deploy --demo --remove --yes) instead of deploying it'
         type: boolean
         default: false
+      observe:
+        description: 'Observe test-host admissions for 15 minutes before a fresh-start cohort'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -81,3 +85,14 @@ jobs:
             sleep 15
           done
           ! curl --silent --show-error --doh-url "$doh" -D - -o /dev/null "https://$domain/" | grep -qi '^set-cookie:'
+      - name: Observe test host admissions
+        if: inputs.test_only && inputs.observe && !inputs.remove
+        run: node scripts/demo-observe.mjs
+        env:
+          CLOUDFLARE_ACCOUNT_ID: b20c0ca9cab0c2b70e13d7cf724b89bd
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && inputs.test_only && inputs.observe && !inputs.remove
+        with:
+          name: demo-admissions
+          path: demo-admissions.json

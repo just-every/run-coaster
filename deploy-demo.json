@@ -4,7 +4,8 @@
   "name": "Coaster",
   "settings": {
     "MAIL_PROVIDER": "development",
-    "MAIL_FROM": "Coaster demo <demo@demo.invalid>"
+    "MAIL_FROM": "Coaster <maya@harbourfinch.example>"
   },
-  "instanceType": "standard-4"
+  "instanceType": "basic",
+  "ownerEmail": "maya@harbourfinch.example"
 }

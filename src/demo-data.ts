@@ -3,6 +3,7 @@
 // `owner` is whoever signs in to the demo.
 
 export const business = { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', mileageRateMinor: 88, perDiemMinor: 7500, receiptThresholdMinor: 0 };
+export const ownerName = 'Maya Finch';
 
 export const categories = [
   { id: 'demo-cat-meals', name: 'Meals', account: '6300', tax: 'GST', limitMinor: 12000 },
