@@ -1,28 +1,12 @@
 Coaster runs on your own computer with the `rer` command. You need Git and Node 22 or later, on macOS, Linux or Windows with WSL2. rer installs the pnpm and Node versions Coaster pins by itself.
 
-## Install rer
-
-`rer` is the Run Edit Run command. Install it once per computer:
-
-```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-Or install it with npm:
-
-```sh
-npm install -g @runeditrun/rer
-```
-
 ## Get Coaster and start it
 
 ```sh
-git clone https://github.com/just-every/run-coaster.git coaster
-cd coaster && rer dev
+npx -y @runeditrun/rer dev just-every/run-coaster
 ```
 
-`rer dev` installs everything Coaster needs, makes you the owner of this copy and starts it. A first launch can take a few minutes. When it is ready it prints a line that starts with `RER_OPEN`: open that link on this computer and Coaster opens signed in as you. Treat that link like a password.
+That one line installs `rer`, the Run Edit Run command, and clones Coaster; to start it again later, run `cd run-coaster && rer dev`. `rer dev` installs everything Coaster needs, makes you the owner of this copy and starts it. A first launch can take a few minutes. When it is ready it prints a line that starts with `RER_OPEN`: open that link on this computer and Coaster opens signed in as you. Treat that link like a password.
 
 ## Finish setup
 

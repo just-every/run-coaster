@@ -13,7 +13,7 @@
           "slug": "install",
           "title": "Run Coaster on your computer",
           "file": "install.md",
-          "summary": "Install rer, get Coaster and start it with rer dev, then finish setup."
+          "summary": "Get Coaster and start it with one line, then finish setup."
         },
         {
           "slug": "setup",

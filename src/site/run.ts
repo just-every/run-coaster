@@ -4,8 +4,8 @@ import type { RunData } from '../base/run-site';
 export const run: RunData = {
   name: 'Coaster',
   repository: 'https://github.com/just-every/run-coaster',
-  clone: 'git clone https://github.com/just-every/run-coaster.git coaster',
-  folder: 'coaster',
+  clone: 'npx -y @runeditrun/rer dev just-every/run-coaster',
+  folder: 'run-coaster',
   requirements: 'Needs Git and Node 22 or later, on macOS, Linux or Windows with WSL2. rer installs the pnpm and Node versions Coaster pins by itself.',
   licence: 'MIT',
   docs: true,
