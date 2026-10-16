@@ -6,6 +6,5 @@
     "MAIL_PROVIDER": "development",
     "MAIL_FROM": "Coaster <maya@harbourfinch.example>"
   },
-  "instanceType": "basic",
   "ownerEmail": "maya@harbourfinch.example"
 }

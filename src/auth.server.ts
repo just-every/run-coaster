@@ -27,7 +27,7 @@ export interface Bindings {
  RER_DEV_IDENTITY?: string
  RER_INSTALLATION_ID?: string
  RER_MANAGEMENT_ORIGIN?: string
- /** A hosted demo's front signs its visitor in as the owner with a claim it signs for that one container. */
+ /** A hosted demo's front signs its visitor in as the owner with a claim it signs for that one visitor copy. */
  RER_OWNER_CLAIM_ISSUER?: string
  RER_OWNER_CLAIM_INSTALLATION_ID?: string
  RER_OWNER_CLAIM_PUBLIC_KEYS?: string
