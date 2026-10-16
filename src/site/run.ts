@@ -6,7 +6,7 @@ export const run: RunData = {
   repository: 'https://github.com/just-every/run-coaster',
   clone: 'npx -y @runeditrun/rer dev just-every/run-coaster',
   folder: 'run-coaster',
-  requirements: 'Needs Git and Node 22 or later, on macOS, Linux or Windows with WSL2. rer installs the pnpm and Node versions Coaster pins by itself.',
+  requirements: 'Runs on macOS, Linux or Windows with WSL2, with git. The installer brings Node when it is missing, and rer brings pnpm.',
   licence: 'MIT',
   docs: true,
   hosted: [],

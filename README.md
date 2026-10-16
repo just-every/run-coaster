@@ -8,11 +8,14 @@ Source code: [just-every/run-coaster](https://github.com/just-every/run-coaster)
 
 ## Run it locally
 
-Run one line to clone Coaster, install the `rer` command and start it:
+Run two lines to install the `rer` command, clone Coaster and start it:
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-coaster
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-coaster
 ```
+
+The first line installs `rer` for you alone, with its own Node if you have none. It changes no shell settings: if it prints an `export PATH=…` line, run that line before the second. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-coaster` does both lines in one.
 
 To start it again later, run `cd run-coaster && rer dev`.
 This edition is runnable after composition. From the composed edition's

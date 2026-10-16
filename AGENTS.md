@@ -21,8 +21,8 @@ rer dev
 - Stop the app with `rer dev --stop`. If a start is refused, the message names
   the cause and the next command: run that command.
 
-Without `rer` on PATH, install it once with `npx -y @runeditrun/rer cli install`
-or the installer script: `curl -fsSL https://runeditrun.com/install.sh | sh`.
+Without `rer` on PATH, install it once with the installer script, which brings its own Node when there is none:
+`curl -fsSL https://runeditrun.com/install.sh | sh`. With Node 22 or later already installed, `npx -y @runeditrun/rer cli install` does the same.
 For the current shell, run `export PATH="$HOME/.local/bin:$PATH"` after installing.
 
 ## Run it locally
