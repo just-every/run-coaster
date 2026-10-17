@@ -4,9 +4,9 @@
     {
       "path": ".github/workflows/run-demo.yml",
       "originPath": "export/run-demo.yml",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
-        ".github/workflows/run-demo.yml": "f2dd68dbfaff33615a0cfb1d4cfa7deed6b9f496c143a9676bba8a9227ddb1df"
+        ".github/workflows/run-demo.yml": "41365ec7c002e9451166313b085f9e64ed2e3ea002c27f3d5ead845bc9c302b2"
       },
       "modes": {
         ".github/workflows/run-demo.yml": "100644"
@@ -15,9 +15,9 @@
     {
       "path": "DEMO.md",
       "originPath": "default-seed/DEMO.md",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
-        "DEMO.md": "621697c92d195c70abff95783134720098b1827f40ae4bfd55a10daa9cbc6aba"
+        "DEMO.md": "d5f7fdbc21247b01a705bfcba0911c3222e995a1e1f2e4c7b343dc9a31309c08"
       },
       "modes": {
         "DEMO.md": "100644"
@@ -26,7 +26,7 @@
     {
       "path": "LICENSE",
       "originPath": "LICENSE",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "LICENSE": "2f5076ef027045b9e0e72df8aa61ca8551e54b1877d531656d6e7985b2c32324"
       },
@@ -37,7 +37,7 @@
     {
       "path": "migrations/core/0001_owner.sql",
       "originPath": "modules/operator-auth/accounts/schema/operator-auth.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0001_owner.sql": "389e6fc3201a73ab5e7280bbe4fdb793b652b84f157e444bab48cc3c25eb8c41"
       },
@@ -48,7 +48,7 @@
     {
       "path": "migrations/core/0002_outbox.sql",
       "originPath": "modules/mail/src/development/schema.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0002_outbox.sql": "45d6b03eadfe1e91737763ae85cdff74e7216f859869e34431550bba48294996"
       },
@@ -59,7 +59,7 @@
     {
       "path": "migrations/core/0003_portability.sql",
       "originPath": "modules/portability/schema/portability.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0003_portability.sql": "c7db9042f6d5c571e10297c02df858ad2f3466beb4fa85649fee407cc228747b"
       },
@@ -70,7 +70,7 @@
     {
       "path": "migrations/core/0004_first_run.sql",
       "originPath": "default-seed/migrations/core/0006_first_run.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0004_first_run.sql": "aef92de36233195e5a03cce67b192c5c0c38033b695f7ebce6062fc89152c2a9"
       },
@@ -81,7 +81,7 @@
     {
       "path": "migrations/core/0005_identity_providers.sql",
       "originPath": "modules/operator-auth/identity/oidc/schema/oidc.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0005_identity_providers.sql": "f879fb86b079e591dfe4a8513752a8e0394e252b940aa35d3f7430f27b7382c6"
       },
@@ -92,7 +92,7 @@
     {
       "path": "migrations/core/0006_provider_control.sql",
       "originPath": "modules/operator-auth/accounts/schema/provider-control.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0006_provider_control.sql": "f19cc7a792538a8ff36d87760a3cad58fccab0316984488d1834af14fbf37cfe"
       },
@@ -103,7 +103,7 @@
     {
       "path": "migrations/core/0007_dependencies.sql",
       "originPath": "modules/dependencies/schema/dependencies.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0007_dependencies.sql": "3481d8aef870a9eda153a1617e99bb71a408e61a25dea92bb132efa7dd1c2526"
       },
@@ -114,7 +114,7 @@
     {
       "path": "migrations/core/0008_owner_claim.sql",
       "originPath": "modules/owner-claim/schema/owner-claim.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0008_owner_claim.sql": "c3ffe653727bb4867b064dc2489df5013613f08f4b5998d2fe2b6a8485cdb815"
       },
@@ -125,7 +125,7 @@
     {
       "path": "migrations/core/0009_idp_owner.sql",
       "originPath": "modules/owner-claim/schema/idp.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0009_idp_owner.sql": "a870102648a2226b18a2fe8168d096389b698af88333d112fa8137e582fc2b33"
       },
@@ -136,7 +136,7 @@
     {
       "path": "migrations/core/0010_provider_pins.sql",
       "originPath": "modules/operator-auth/accounts/schema/provider-pins.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0010_provider_pins.sql": "f0cfb6b3740869fd098ee449efb25807f8b1ef51c353fd07bafeb00ce38aeb63"
       },
@@ -147,7 +147,7 @@
     {
       "path": "migrations/core/0011_dependency_setup.sql",
       "originPath": "modules/operator-auth/accounts/schema/dependency-setup.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0011_dependency_setup.sql": "7b36f7e1fb0991fe3e808613d911393bbad3386ead06427082c69a48c5738108"
       },
@@ -158,7 +158,7 @@
     {
       "path": "migrations/core/0011_erasure.sql",
       "originPath": "modules/erasure/schema/erasure.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0011_erasure.sql": "44fd4fac1aee4fda0d1d580373cbed9ef3da837e0186e7fe2130fb68dfceadbe"
       },
@@ -169,7 +169,7 @@
     {
       "path": "migrations/core/0012_dependency_approval.sql",
       "originPath": "modules/dependencies/schema/approval-attempt.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0012_dependency_approval.sql": "7d3742369189b69ea28bdc000097f150f83221c6474f7e177c7b5590691b67e9"
       },
@@ -180,7 +180,7 @@
     {
       "path": "migrations/core/0015_owner_signin.sql",
       "originPath": "modules/operator-auth/accounts/schema/owner-signin.sql",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "migrations/core/0015_owner_signin.sql": "98da904e768e35b43fb1be83d9dcc9c9b5d86ab3a795234ed5223c4fddc567d9"
       },
@@ -191,7 +191,7 @@
     {
       "path": "scripts/installer/seed.mjs",
       "originPath": "foundation/template/scripts/installer/seed.mjs",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "scripts/installer/seed.mjs": "7bd4e291b926f9744cf262a2bb119502fe7506a8f142a67409c0b32293c949f9"
       },
@@ -202,7 +202,7 @@
     {
       "path": "scripts/installer/ui/background.svg",
       "originPath": "default-seed/scripts/installer/ui/background.svg",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "scripts/installer/ui/background.svg": "b234f98362d278ad8fb176ede8a88b8bd66d016147ab758ecb81a096c7115d26"
       },
@@ -213,7 +213,7 @@
     {
       "path": "scripts/operations-config.mjs",
       "originPath": "foundation/template/scripts/operations-config.mjs",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "scripts/operations-config.mjs": "decbd8619e40c741708b49639d54282bd19edc4581a782b240d96a423ad47f01"
       },
@@ -224,7 +224,7 @@
     {
       "path": "src/base/contract-filter.ts",
       "originPath": "foundation/runtime/contract-filter.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/contract-filter.ts": "eec5be7da15653b69dd343fb3cf9f7a2e695eb215c5ee118f3508090e9c29232"
       },
@@ -235,7 +235,7 @@
     {
       "path": "src/base/contract-page.ts",
       "originPath": "foundation/runtime/contract-page.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/contract-page.ts": "8fff886df5869401818c0a3422a9a9cb73f3f1c4cb100d46f2a315176102b64f"
       },
@@ -246,7 +246,7 @@
     {
       "path": "src/base/contract-style.ts",
       "originPath": "foundation/runtime/contract-style.ts",
-      "revision": "48a25993963a4ce0c687afbe076c7d4676e93395",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/contract-style.ts": "4325f4eeabac2bef722808576605d7b657858b918729097c3412393fc6e4941f"
       },
@@ -257,7 +257,7 @@
     {
       "path": "src/base/deployment-health.ts",
       "originPath": "foundation/runtime/deployment-health.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/deployment-health.ts": "49f4dac80429ea7d9477b40799a6242f9af4870f3229df70d0ac1f635476b8b7"
       },
@@ -268,7 +268,7 @@
     {
       "path": "src/base/dispatch.ts",
       "originPath": "foundation/runtime/dispatch.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/dispatch.ts": "695ff1bf5bdcf65a429e3853eb80bcb477297c29e55221f6cad08dcff6ba610c"
       },
@@ -279,7 +279,7 @@
     {
       "path": "src/base/font-response.ts",
       "originPath": "foundation/runtime/font-response.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/font-response.ts": "55abc935a78085735ae5b7f2d441ee7a5a67d9c797417f9b5ac3c2449f8c91a8"
       },
@@ -290,7 +290,7 @@
     {
       "path": "src/base/hydration/intro-guard.ts",
       "originPath": "foundation/runtime/hydration/intro-guard.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/hydration/intro-guard.ts": "abc289d53537b631ad6de323b9123c843aea7498aa50d429a4786d7819194fcd"
       },
@@ -301,7 +301,7 @@
     {
       "path": "src/base/hydration/report.ts",
       "originPath": "foundation/runtime/hydration/report.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/hydration/report.ts": "38792ad67dc33c9ccd9537bcfc41b7f21a57f0d6f6266d045cb71d70630cf3d7"
       },
@@ -312,7 +312,7 @@
     {
       "path": "src/base/hydration/unit.tsx",
       "originPath": "foundation/runtime/hydration/unit.tsx",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/hydration/unit.tsx": "932bf2aa40a05c76f3a2c25a121db282e17c7bc839f9c37cd102ffe7f4e7ceca"
       },
@@ -323,9 +323,9 @@
     {
       "path": "src/base/identity.ts",
       "originPath": "foundation/runtime/identity.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
-        "src/base/identity.ts": "14b41b6f427e20d0aa15a7c4c9f8f2bfd51ea0c2fefab25bb7c5111b5c61217b"
+        "src/base/identity.ts": "0bc7faa1ce3d7fe3839a6a68135160be45387b052e4699dc7b45d13f67cb2106"
       },
       "modes": {
         "src/base/identity.ts": "100644"
@@ -334,7 +334,7 @@
     {
       "path": "src/base/lobby.ts",
       "originPath": "foundation/runtime/lobby.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/lobby.ts": "876f708136f0001b6e23871c54f4a1c7fc9c78f29882a55b9a9c7c793ad4466d"
       },
@@ -345,7 +345,7 @@
     {
       "path": "src/base/page-style.ts",
       "originPath": "foundation/runtime/page-style.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/page-style.ts": "58211f173d3b6d9245e80f217c2f3e4e743d59a559e63817865644a991215111"
       },
@@ -356,7 +356,7 @@
     {
       "path": "src/base/rejected-response.ts",
       "originPath": "foundation/runtime/rejected-response.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/rejected-response.ts": "4aa9861a20497b9dde6f95951dcbecf60cee69e8dad1923c1110ef35abc10686"
       },
@@ -367,9 +367,9 @@
     {
       "path": "src/base/run-site.ts",
       "originPath": "foundation/runtime/run-site.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
-        "src/base/run-site.ts": "608a6b61630ee1cddfa4bd797f2b6c1880ab699b89c82e37bba18f4690b5ca01"
+        "src/base/run-site.ts": "25fcd744b2f46b4280bcb7bc62bd7ef40fbaee43075e7504f73bf3c3bc8e26f4"
       },
       "modes": {
         "src/base/run-site.ts": "100644"
@@ -378,7 +378,7 @@
     {
       "path": "src/base/seed-contract.d.mts",
       "originPath": "foundation/runtime/seed-contract.d.mts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/seed-contract.d.mts": "2add6b0252ab6cb78051c7c5c2754daaebada6d7bea411df85eb8b0cb8a0ce09"
       },
@@ -389,7 +389,7 @@
     {
       "path": "src/base/seed-contract.mjs",
       "originPath": "foundation/runtime/seed-contract.mjs",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/seed-contract.mjs": "fe40fa189caf33b7531b6d02e31616275f324d5727b9b0db7ddf35998712dd7c"
       },
@@ -400,7 +400,7 @@
     {
       "path": "src/base/setup-state.ts",
       "originPath": "foundation/runtime/setup-state.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/setup-state.ts": "e4be71efeeec308d7a1ace213a2d58001cfdab2488140aac807bc71d70e47403"
       },
@@ -411,9 +411,9 @@
     {
       "path": "src/base/setup.ts",
       "originPath": "foundation/runtime/setup.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
-        "src/base/setup.ts": "5599d7b1953d093e33c2d3cb8914b2b761547310d2ef0c40699573b439a33516"
+        "src/base/setup.ts": "151782b3a1d0984ef1e2d5938bba013a63a5fb679d7fd76e3c42632d47b5061f"
       },
       "modes": {
         "src/base/setup.ts": "100644"
@@ -422,7 +422,7 @@
     {
       "path": "src/base/static-assets.ts",
       "originPath": "foundation/runtime/static-assets.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/base/static-assets.ts": "d6ed4098fbee2dc6d557eb1365e9a56b5f5435ad869357cb7d8472a8d0c70e76"
       },
@@ -433,9 +433,9 @@
     {
       "path": "src/base/theme-frame.ts",
       "originPath": "foundation/runtime/theme-frame.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
-        "src/base/theme-frame.ts": "adb66c1805f7683aa090e85e5881a8137342941e59e973ee264843bd57f7ba62"
+        "src/base/theme-frame.ts": "013414b6cf564f0157efb7939d74ea3900bc4ce0b74217dfcf0dd309356ea70c"
       },
       "modes": {
         "src/base/theme-frame.ts": "100644"
@@ -444,7 +444,7 @@
     {
       "path": "src/client.tsx",
       "originPath": "foundation/template/src/client.tsx",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/client.tsx": "4fee14f6b63bceec0df77131ffd959fc4d02e3c501982a1f4b5b30c96c1d936a"
       },
@@ -455,7 +455,7 @@
     {
       "path": "src/mail.server.d.mts",
       "originPath": "foundation/template/src/mail.server.d.mts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/mail.server.d.mts": "2e3eaa0588f12f6f04b565b948a0b8b823c201f349cdf9dd75c42c2d2413732b"
       },
@@ -466,7 +466,7 @@
     {
       "path": "src/modules/ai",
       "originPath": "modules/ai",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/ai/client.mjs": "ab2d451f20bb618646e8cd56711ee5b665e7a639374b40af8e79543026045ab1",
         "src/modules/ai/config.mjs": "04b1f03a17c9268ce222f25fda041b049bf623b2f5fb4155e7c5c9af775e62ab",
@@ -501,7 +501,7 @@
     {
       "path": "src/modules/d1-transport",
       "originPath": "modules/d1-transport",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/d1-transport/index.d.mts": "b1dcfba529210c9237fa257faa0da8c9062bef946961ba8edeb8af7e171611f3",
         "src/modules/d1-transport/index.mjs": "a8a79a0c2673536e221facd892e688000bfae71485d864b4fff9801eb7aaf4a9"
@@ -514,7 +514,7 @@
     {
       "path": "src/modules/demo",
       "originPath": "modules/demo",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/demo/effects.mjs": "e74d46fec165fdb5eafc62e53d6691e3064d5b9b5257c53f3cd6dd9a40386226",
         "src/modules/demo/index.d.mts": "71caa39f5001ab8bd2891ae5bdb9bf1ab4910c121fb038d83ae549adaf8fcf10",
@@ -543,18 +543,18 @@
     {
       "path": "src/modules/dependencies",
       "originPath": "modules/dependencies",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/dependencies/approval.mjs": "7398c2f5ec6c8505f7fa24d5fab7848967dfb3f61720892d1f31494a68237a69",
         "src/modules/dependencies/auth.mjs": "c1e864461c204731395555b0235a9cb058a8979fde84ae58abce559053ba27f0",
         "src/modules/dependencies/authority.mjs": "fe89cd1fb7da306cf145b8ef3ebe160902f4e4a82284681eccb97193c68e8750",
         "src/modules/dependencies/crypto.mjs": "8dc3397e90b6f8ec1dad81ba68da6e1a5e966ddd8c1b9ace943e964098fea950",
         "src/modules/dependencies/index.d.mts": "667f8fd42fb7319b5d43c5cced539ad0ad13bfca46887c45b52c1bee19ef7a22",
-        "src/modules/dependencies/index.mjs": "05bd5e88ebd246cc495c3245cfffe030b83fc31d34f80bc86ff7571816faaac6",
+        "src/modules/dependencies/index.mjs": "6ce61db101b89b60fd69ea1eaa62da4226b18fcea5dd1ec46e42a73282309e89",
         "src/modules/dependencies/logout.mjs": "d2760dc2d9143094ddf9a883cf54f98ed7818c471e7ca99d5e195f524b2ae8b1",
         "src/modules/dependencies/native.mjs": "746b101f850bbf8ab18070352bb4920e2ab7252978b2594e9b4aa66e021534ce",
-        "src/modules/dependencies/protocol.mjs": "851fedce4fbf2840fd75ace7b0216677d3d9f36cebe885dd39be0902009d2816",
-        "src/modules/dependencies/README.md": "0360447fa552c02ebcd86053fe29dbf9ca386bdaf280012c5ff29a9fc8ef812d",
+        "src/modules/dependencies/protocol.mjs": "9d51f351d80d30b37f771110b3f6cb97d383d8128229314ad59cc17947666f14",
+        "src/modules/dependencies/README.md": "ff06f55a151d4757615fee4db858f531eb99d76fa0b6f068fe9e29c575d4dce3",
         "src/modules/dependencies/schema/approval-attempt.sql": "7d3742369189b69ea28bdc000097f150f83221c6474f7e177c7b5590691b67e9",
         "src/modules/dependencies/schema/dependencies.sql": "3481d8aef870a9eda153a1617e99bb71a408e61a25dea92bb132efa7dd1c2526",
         "src/modules/dependencies/store.mjs": "1d102b080d60634fe28da383c80d32a191b9b99cd94600168d6071ac25f0a606"
@@ -578,7 +578,7 @@
     {
       "path": "src/modules/import-kit/CONTRACT.md",
       "originPath": "modules/import-kit/CONTRACT.md",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/import-kit/CONTRACT.md": "bd72b1541b7d3644099205b3e69de233fd8c5144da76a1cb3a4084378443f1b5"
       },
@@ -589,7 +589,7 @@
     {
       "path": "src/modules/import-kit/README.md",
       "originPath": "modules/import-kit/README.md",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/import-kit/README.md": "01da58977a16d8d5cdfea669d186e5629f8a3343c18e0262c4ac2c78af660277"
       },
@@ -600,7 +600,7 @@
     {
       "path": "src/modules/import-kit/schema",
       "originPath": "modules/import-kit/schema",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/import-kit/schema/importer-verification-receipt.schema.json": "710740a418fbd1fda5dd7a9017c247040c2bef98a6eadbec2a59220a5afa0ae7",
         "src/modules/import-kit/schema/importers.schema.json": "70ffac46763ab493388cad8fb0bc40946be819b8e8036274a7bff30cf3b4d9c3"
@@ -613,7 +613,7 @@
     {
       "path": "src/modules/import-kit/src",
       "originPath": "modules/import-kit/src",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/import-kit/src/d1/apply.ts": "97190e9e8924fd0751d5f31c94f2a227705a6c5f3edda8672b70168fac2f6d8e",
         "src/modules/import-kit/src/d1/budget.ts": "98d13384a76b0d42fc3cd25bbaa4a6063250d6baa20ab5c8823eed55957ef0ec",
@@ -779,7 +779,7 @@
         "src/modules/import-kit/src/readers/records.ts": "f8fab783215ba04596f6ef698f5f2fde15916e9e6370f799ebb5eccc50a09fb1",
         "src/modules/import-kit/src/reconcile/index.ts": "0d73e5867657405de295b20e3aaaf659062a4f2e357b3a3ae18d1b5289d54f54",
         "src/modules/import-kit/src/status/encoding.ts": "27c23888a400c38e63fad8febda18d339d9a6114a3f2fa6db79d3e1c7e18c49d",
-        "src/modules/import-kit/src/status/evidence.ts": "81bb217cf905da35c687ae9ed8d1da50b3da76731872cca2ced6fcbc5f2e535c",
+        "src/modules/import-kit/src/status/evidence.ts": "f253b3e73ba183fec6c9a15da2f476bac35e9bdf70778cd081b00cdc9ef7f362",
         "src/modules/import-kit/src/status/index.ts": "ae8a6d4e5081f29407a407d0d028f030ad5a8abffade573bd3985a80830aa225",
         "src/modules/import-kit/src/status/schema.ts": "00a0255dd540b42140218f6b4832590d8be18ad8f7f70b6c414310d257d33f17",
         "src/modules/import-kit/src/status/types.ts": "c77fdb0801f3b49fefa302540cfb42bccd421dc94e61fa047e511a252d4d4138",
@@ -972,7 +972,7 @@
     {
       "path": "src/modules/mail",
       "originPath": "modules/mail",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/mail/.gitignore": "bac5cb305c3cbf6aa42e50e7f2c0f5331a71d70dac15f239b8ec6746afed0db5",
         "src/modules/mail/doctor.mjs": "861a2be20c051247d590cc14d173037f648666fc28ac39f826d69e38e5e2f5d9",
@@ -1111,11 +1111,12 @@
     {
       "path": "src/modules/operator-auth",
       "originPath": "modules/operator-auth",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/operator-auth/accounts/adapter.mjs": "989fca51e86ecc80cb150661b6d6cb8b6a57f82a85eb408d1fa6286a8372a3aa",
         "src/modules/operator-auth/accounts/admin.mjs": "ad164e6b03136b67407e6f0b9ac7089dbcad505f65c07ac05c991705e17c69b1",
         "src/modules/operator-auth/accounts/credentials.mjs": "2f3d762e2e16145d56d45ab1ce53797a2a05fa818f2a796f086effe4c49f3e02",
+        "src/modules/operator-auth/accounts/display-name.mjs": "f4134112fb448f2baa75e9f7f4a4a54b90594ba14d64cc3bbcd0858afdaaadbb",
         "src/modules/operator-auth/accounts/editor-owner.mjs": "ed47e235de1fc52aa4b92e9ab60be5f7fbb07d8f29a5fc3d3c0b3e86702c4da7",
         "src/modules/operator-auth/accounts/email-change.mjs": "882d20980978bdb739d5d335d250feedb98cc393b91f121bad7bf806f649ce4b",
         "src/modules/operator-auth/accounts/index.d.mts": "bea6399182774eaa7a2269aa1575679af98ec5d3340325098edac4aac2445cc0",
@@ -1171,7 +1172,7 @@
         "src/modules/operator-auth/identity/index.d.mts": "5c7b8c2bf70f7a1e57dd53110ab88e4be8a46297d8838405763a3e95870a0b88",
         "src/modules/operator-auth/identity/index.mjs": "0b68a78d59ecf553a1cacc182e280071f9554b37271249cfc037afcbf2d54cfb",
         "src/modules/operator-auth/identity/oidc/client-auth.mjs": "061ac35699976c075b120891f7eacb4b1c893b9081faff1e5b3bd0a5834d97ef",
-        "src/modules/operator-auth/identity/oidc/config.mjs": "f4823ac3eca574fb14acb17b2cc2f83fd3b3c6f54fce2069c896f4bb84d5f1b8",
+        "src/modules/operator-auth/identity/oidc/config.mjs": "008b3b62ed186be001ada722a50292837c51672cc50958995bae23aad8538083",
         "src/modules/operator-auth/identity/oidc/crypto.mjs": "968787aa4d88b2d5323ef55dce0755d50e32502a6753505eaf3f6a0298078ff8",
         "src/modules/operator-auth/identity/oidc/errors.mjs": "09b4452714fdbd7382d1ce71162c17cf41fd7a3e6c2ea74be768a156ec1e138d",
         "src/modules/operator-auth/identity/oidc/index.d.mts": "db7179a81563b8b34e85b580cfcbbe8522b1a19994132f701f7c333c36245dfd",
@@ -1183,7 +1184,7 @@
         "src/modules/operator-auth/identity/oidc/schema/oidc.sql": "f879fb86b079e591dfe4a8513752a8e0394e252b940aa35d3f7430f27b7382c6",
         "src/modules/operator-auth/identity/oidc/store.mjs": "2f00ef6ac516528cdb468dca96744b16a843cc6bbbec847bba9716cfa80eb22c",
         "src/modules/operator-auth/identity/principal.mjs": "6b949a826dab8f63d70da4603e4da9d50d9071faf0e18684a66f86beec63ab03",
-        "src/modules/operator-auth/index.d.mts": "ad37bcd7c0b1a80f187e9e51a49ff7af3b35fb85c79491a40e3c4f4b3bbf5faa",
+        "src/modules/operator-auth/index.d.mts": "aa4d07e1a3794d88586d8211de5cde90471580d57ff1d688967da1b2088627d3",
         "src/modules/operator-auth/index.mjs": "d788203c0e82f4d4e22df8884f592bc9134bdbedaee29bb416f7eee9fc82b0c1",
         "src/modules/operator-auth/input.mjs": "0b668bdbdce75d31acc6a2918ed8131d6baeff948d91048bde9fd58fb52a91e8",
         "src/modules/operator-auth/local-cli.mjs": "b10dafbf33fc4f342e2c3c6db343afd353c3e6264208216a6155d50e71d1f19a",
@@ -1192,18 +1193,19 @@
         "src/modules/operator-auth/page.mjs": "5a6e74e3e1861dbe6906ab2e0219b498f1943c11e9c88a779819563ec32e7322",
         "src/modules/operator-auth/policy.d.mts": "c0e46fcab9ce8626b8da53f88561eb00a1e83e9460fd91407a32a2daf605c4cf",
         "src/modules/operator-auth/policy.mjs": "d535aba35621d333cd6faae49fc3c6cb72e1d5718741f02d363cbe3e8eaf153c",
-        "src/modules/operator-auth/README.md": "4c1dd9be73834e9195236893b37c80ea51a68e5a3e050a412c17119dadb23413",
+        "src/modules/operator-auth/README.md": "e946a97bdb9eedffb5af8f6eb05f45b0d14f8fa21903216167915417172502c4",
         "src/modules/operator-auth/rejected-response.mjs": "38c4e7621901173d0bca9bc62587486951ce24d2e0e31e97f26e1dfe406c9726",
-        "src/modules/operator-auth/routes.mjs": "eefbd9f62f1926e927cadc63162db37c6d9a6ed38ca3fa96a498cf19777d1959",
-        "src/modules/operator-auth/service.mjs": "08389c58754ca340ace9f67944c17d56f07fbf962a9469350cdc39cf28879c69",
+        "src/modules/operator-auth/routes.mjs": "2e37eee6b45e5a85b3625b36ec390f9383784301c811bcefb1d60158be32875f",
+        "src/modules/operator-auth/service.mjs": "1d535e605731b0edddcf0cdcc8fd84559a2069b95d98bff821676a1dea5f28a7",
         "src/modules/operator-auth/signin/index.d.mts": "9acad80108b974454b1473c761222ba7daaeceb13b7c9842107cbf1b15745c10",
-        "src/modules/operator-auth/signin/index.mjs": "a0a5f0aca761c7752caef4bd161aaf7c4db7bf614e7d070ec67e1a44d3c99266",
+        "src/modules/operator-auth/signin/index.mjs": "65731ce39d042a57301692773180878ebb76fff89e30fcb5d86253d9c138b9e7",
         "src/modules/operator-auth/signin/one-click.mjs": "5fcd0e2432314f5910b3bd55e1226f0d3a5402639896a88bf9faf130369f30b3"
       },
       "modes": {
         "src/modules/operator-auth/accounts/adapter.mjs": "100644",
         "src/modules/operator-auth/accounts/admin.mjs": "100644",
         "src/modules/operator-auth/accounts/credentials.mjs": "100644",
+        "src/modules/operator-auth/accounts/display-name.mjs": "100644",
         "src/modules/operator-auth/accounts/editor-owner.mjs": "100644",
         "src/modules/operator-auth/accounts/email-change.mjs": "100644",
         "src/modules/operator-auth/accounts/index.d.mts": "100644",
@@ -1292,7 +1294,7 @@
     {
       "path": "src/modules/owner-claim",
       "originPath": "modules/owner-claim",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/modules/owner-claim/idp.mjs": "edb09dfeb0b66849cd84b651099d46c6420d1dc3f270446ae96595d91754d3e6",
         "src/modules/owner-claim/index.d.mts": "33fc8d1b756cb2c0a4317ea4dbc29ae704dd137f76993278859d98ae5e9ad184",
@@ -1321,7 +1323,7 @@
     {
       "path": "src/router.tsx",
       "originPath": "default-seed/src/router.tsx",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/router.tsx": "8e28d274af3e0490efcc0de2537d6808583814cc1f18298f2d9516f30cdc1af4"
       },
@@ -1332,7 +1334,7 @@
     {
       "path": "src/server.dev.ts",
       "originPath": "foundation/template/src/server.dev.ts",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "src/server.dev.ts": "4892545be3afaf55d1a45b99933f017baa43512d7152f56b21422010aa70b8a5"
       },
@@ -1343,7 +1345,7 @@
     {
       "path": "tests/incremental-typecheck.test.mjs",
       "originPath": "foundation/template/tests/incremental-typecheck.test.mjs",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "tests/incremental-typecheck.test.mjs": "a11d6b89e7219137540c7052683c5f4d9ba7ddf16f66d34c1f56ae34029c0a95"
       },
@@ -1354,7 +1356,7 @@
     {
       "path": "VERIFY-WORKFLOW.md",
       "originPath": "export/VERIFY-WORKFLOW.md",
-      "revision": "9eb83c85a9088c16ffe94a3af43e8a2e95acc377",
+      "revision": "7831aa95b6f41e4d4533f429ee67f8ad7d7b8134",
       "files": {
         "VERIFY-WORKFLOW.md": "97d25a60dabe02ab4c30efbe226c8967b8fbac25b39f61467c2ef5a26186261d"
       },
