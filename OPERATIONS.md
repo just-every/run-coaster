@@ -1,9 +1,10 @@
 # Coaster operations
 
 Run all first-party operations from the composed, runnable edition checkout
-with `rer`. Without it, install it once with
-`npx -y @runeditrun/rer cli install`, or the installer script on the RER site
-(`curl -fsSL https://runeditrun.com/install.sh | sh`). `rer dev` alone launches
+with `rer`. Without it, start with
+`npx -y @runeditrun/rer dev just-every/run-coaster` (set up only:
+`npx -y @runeditrun/rer setup just-every/run-coaster`; without Node:
+`curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-coaster`). `rer dev` alone launches
 a fresh checkout for review. The detailed flags and effects are in
 `RUN-LOCALLY.md` and `SEED-COMMAND-CONTRACT.md`.
 

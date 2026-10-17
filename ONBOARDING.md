@@ -1,8 +1,9 @@
 # Coaster setup adapter
 
-First-party setup runs through `rer setup` (install `rer` once with
-`npx -y @runeditrun/rer cli install`, or the installer script on the RER site:
-`curl -fsSL https://runeditrun.com/install.sh | sh`). The public
+First-party setup runs through `rer setup` (start with
+`npx -y @runeditrun/rer dev just-every/run-coaster`, or only set up with
+`npx -y @runeditrun/rer setup just-every/run-coaster`; without Node:
+`curl -fsSL https://runeditrun.com/install.sh | sh -s -- setup just-every/run-coaster`). The public
 command's flags, effects, state handling and exits are defined in
 `SEED-COMMAND-CONTRACT.md`; use `RUN-LOCALLY.md` for the owner workflow. The
 onboarding package supplies the shared lifecycle used by the command adapter.

@@ -1,15 +1,14 @@
-Coaster runs on your own computer with the `rer` command. You need Git, on macOS, Linux or Windows with WSL2; the installer brings Node when it is missing. rer installs the pnpm and Node versions Coaster pins by itself.
+Coaster runs on your own computer with the `rer` command. You need Git, on macOS, Linux or Windows with WSL2, and Node 22 or later (the installer form below brings its own Node). rer installs the pnpm and Node versions Coaster pins by itself.
 
 ## Get Coaster and start it
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
-rer dev just-every/run-coaster
+npx -y @runeditrun/rer dev just-every/run-coaster
 ```
 
-The first line installs `rer` for you alone, with its own Node if you have none. It changes no shell settings: if it prints an `export PATH=…` line, run that line before the second. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-coaster` does both lines in one.
+No Node? `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-coaster` does the same and brings its own Node; it changes no shell settings, so if it prints an `export PATH=…` line, run that line to use `rer` again later. To set Coaster up without starting it, use `setup` in place of `dev`.
 
-The two lines install `rer`, the Run Edit Run command, and clone Coaster; to start it again later, run `cd run-coaster && rer dev`. `rer dev` installs everything Coaster needs, makes you the owner of this copy and starts it. A first launch can take a few minutes. When it is ready it prints a line that starts with `RER_OPEN`: open that link on this computer and Coaster opens signed in as you. Treat that link like a password.
+The line installs `rer`, the Run Edit Run command, and clones Coaster; to start it again later, run `cd run-coaster && rer dev`. `rer dev` installs everything Coaster needs, makes you the owner of this copy and starts it. A first launch can take a few minutes. When it is ready it prints a line that starts with `RER_OPEN`: open that link on this computer and Coaster opens signed in as you. Treat that link like a password.
 
 ## Finish setup
 

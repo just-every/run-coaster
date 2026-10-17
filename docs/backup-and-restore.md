@@ -17,8 +17,8 @@ The archive does not include sign-in accounts, sessions, the local outbox or pri
 Restore into an empty installation, for example a fresh copy on a new computer:
 
 ```sh
-git clone https://github.com/just-every/run-coaster.git coaster
-cd coaster && rer setup
+npx -y @runeditrun/rer setup just-every/run-coaster
+cd run-coaster
 rer import --input exports/installation.rer --yes
 rer dev
 ```
