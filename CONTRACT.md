@@ -317,20 +317,20 @@ The commit the Status section was judged at is the `main` commit the `contract-t
 
 ## Status
 
-Judged from the code and tests at commit `2d12e42cea8d82cbc1cb880eca53577608ec246b` (17 October 2026).
+Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5bcb` (17 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 13 | 0 | 0 | 13 |
-| Target and push further | 1 | 23 | 66 | 90 |
-| All | 14 | 23 | 66 | 103 |
+| Published | 12 | 1 | 0 | 13 |
+| Target and push further | 1 | 24 | 65 | 90 |
+| All | 13 | 25 | 65 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
 | `COA-001` | Business, categories and people set by the owner | published | done | `src/coaster/settings.ts`; `tests/coaster.test.mjs` (COA-001) |  |
 | `COA-002` | Receipt, mileage and per-diem expenses with receipt provenance | published | done | `src/coaster/claims.ts`; `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002) |  |
 | `COA-003` | Exact splits across categories and cost centres | published | done | `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-003) |  |
-| `COA-004` | Policy exceptions explained, acknowledged and carried to the books | published | done | `src/coaster/exceptions.ts`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-004) |  |
+| `COA-004` | Policy exceptions explained, acknowledged and carried to the books | published | partial | `src/coaster/exceptions.ts`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-004) | Same-date, merchant and amount expenses within one claim are not flagged when they have distinct receipts; same-claim detection covers repeated receipt bytes and receipt-less exact duplicates only. |
 | `COA-005` | An exact duplicate is never reimbursed twice | published | done | `src/coaster/exceptions.ts`; `src/coaster/batches.ts`; `tests/coaster.test.mjs` (COA-005) |  |
 | `COA-006` | The assigned approver decides the exact submitted revision | published | done | `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-006) |  |
 | `COA-007` | Corrections never erase evidence | published | done | `src/coaster/claims.ts`; `src/coaster/events.ts`; `tests/coaster.test.mjs` (COA-007) |  |
@@ -413,7 +413,7 @@ Judged from the code and tests at commit `2d12e42cea8d82cbc1cb880eca53577608ec24
 | `MOVE-004` | Ramp, Brex and Navan move-in | target | missing |  | No Ramp, Brex or Navan importer. |
 | `MOVE-005` | Cutover without double counting | target | partial | `src/coaster/exceptions.ts`; `tests/coaster.test.mjs` (COA-011) | Re-claims of imported Expensify expenses are flagged as possible duplicates; no feed deduplication, open-item carry-over or cutover report. |
 | `INTEG-001` | Travel booking context | target | missing |  | No travel tool connection. |
-| `SIBLING-001` | Handoffs to neighbouring products | target | missing |  | No sibling product handoffs. |
+| `SIBLING-001` | Handoffs to neighbouring products | target | partial | `src/auth.server.ts`; `src/modules/dependencies/auth.mjs` (Auth OIDC sign-in dependency) | No Pantry, Purse, Willow, Gauge, Nook or Crank handoffs, or tested cross-product outcome and failure journeys. |
 | `AUDIT-001` | Append-only history of every action | target | partial | `src/coaster/events.ts`; `tests/coaster.test.mjs` (COA-007); `tests/browser.mjs` (archive section) | Append-only numbered history covers settings, claims, decisions, batches, agent keys and imports and survives restore; provider, payment and sync actions do not exist yet. |
 | `ERASURE-001` | Personal-data erasure with financial-record retention | target | missing |  | No Coaster entity erasure route; Base erasure tables cover import-kit records only. |
 | `RETAIN-001` | Record retention and legal hold | target | partial | `src/coaster/claims.ts`; `tests/coaster.test.mjs` (COA-007) | Receipts and history are never deleted; no retention period, confirmed expiry or legal hold. |
