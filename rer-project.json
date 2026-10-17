@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "projectId": "just-every/run-coaster",
+  "name": "Coaster",
+  "sourceRepository": "https://github.com/just-every/run-coaster",
+  "license": "MIT"
+}
