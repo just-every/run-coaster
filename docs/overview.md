@@ -27,7 +27,7 @@ One person can hold several roles. Every employee has one approving manager, and
 
 ## Where to go next
 
-- [Run Coaster on your computer](/docs/install) takes two commands.
+- [Run Coaster on your computer](/docs/install) takes one command.
 - [Set up your business](/docs/setup) covers the policy, categories and people.
 - [Moving in from Expensify](/docs/moving-in) brings your past reports with you.
 - The Coaster site is at https://run-coaster.com.
