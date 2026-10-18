@@ -4,7 +4,7 @@ import { batchNumber } from './coaster/batches';
 import { exactKey, findExceptions } from './coaster/exceptions';
 import { itemInput, type Category } from './coaster/items';
 import { sha256Hex } from './coaster/session';
-import { business, batches, categories, claims, firstClaimNumber, ownerApprover, ownerName, people, proposal, type DemoClaim, type Expense, type Person } from './demo-data';
+import { business, batches, categories, claims, firstClaimNumber, ownerApprover, ownerName, people, proposal, signIns, type DemoClaim, type Expense, type Person } from './demo-data';
 import { receiptPdf } from './demo-receipt';
 import type { Data } from './coaster/types';
 
@@ -21,15 +21,22 @@ type Event = { id: string; at: string; actor: string; action: string; claim?: st
  */
 export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail: string; now: Date }) {
   const db = env.DB, ownerAddress = ownerEmail.toLowerCase();
-  // Every day counts back from 8:00 AM in the business's own timezone on the day the demo starts.
-  const clock = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: business.timezone, hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(now).map(p => [p.type, p.value]));
+  // Every day counts back from 8:00 AM in the business's own timezone on the day the demo starts, in working days:
+  // day n is the nth weekday before that day, so visits, submissions and approvals never land on a weekend.
+  const clock = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: business.timezone, weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(now).map(p => [p.type, p.value]));
   const t = now.getTime() - (Number(clock.hour) * 60 + Number(clock.minute)) * 60_000 - now.getSeconds() * 1000 - now.getMilliseconds() + 8 * 3_600_000;
-  const at = (days: number, minutes = 0) => new Date(t - days * DAY + minutes * 60_000).toISOString();
+  const startDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(clock.weekday);
+  const calendarDays = (workingDays: number) => {
+    let days = 0;
+    for (let left = workingDays; left > 0;) { days += 1; const weekday = (startDay - days % 7 + 7) % 7; if (weekday !== 0 && weekday !== 6) left -= 1; }
+    return days;
+  };
+  const at = (days: number, minutes = 0) => new Date(t - calendarDays(days) * DAY + minutes * 60_000).toISOString();
   const date = (days: number) => at(days).slice(0, 10);
   const email = (p: Person) => p === 'owner' ? ownerAddress : people[p].email;
   const owner = await db.prepare('SELECT id FROM oa_operators WHERE lower(email)=? AND role=\'owner\'').bind(ownerAddress).first<{ id: string }>();
   if (!owner) throw new Error('The demo owner does not exist yet');
-  const policy = { name: business.name, currency: business.currency, timezone: business.timezone, mileage_rate_minor: business.mileageRateMinor, per_diem_minor: business.perDiemMinor, receipt_threshold_minor: business.receiptThresholdMinor };
+  const policy = { name: business.name, currency: business.currency, timezone: business.timezone, mileage_rate_thousandths: business.mileageRateThousandths, per_diem_minor: business.perDiemMinor, receipt_threshold_minor: business.receiptThresholdMinor };
   const known: Category[] = categories.map(c => ({ id: c.id, name: c.name, account_code: c.account, tax_code: c.tax, limit_minor: c.limitMinor, active: 1 }));
   const raw = (e: Expense) => ({ kind: e.kind, date: date(e.day), merchant: e.merchant, description: e.description, explanation: e.explanation,
     amount: e.kind === 'receipt' ? e.amount : undefined, distance: e.kind === 'mileage' ? e.miles : undefined, days: e.kind === 'per_diem' ? e.days : undefined,
@@ -48,11 +55,13 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   if (!await db.prepare('SELECT 1 FROM c_business WHERE id=1').first()) {
     const setup: D1PreparedStatement[] = [
       db.prepare('UPDATE oa_operators SET display_name=? WHERE id=?').bind(ownerName, owner.id),
-      db.prepare('INSERT INTO c_business(id,name,currency,timezone,mileage_rate_minor,per_diem_minor,receipt_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(business.name, business.currency, business.timezone, business.mileageRateMinor, business.perDiemMinor, business.receiptThresholdMinor, at(42)),
+      db.prepare('INSERT INTO c_business(id,name,currency,timezone,mileage_rate_thousandths,per_diem_minor,receipt_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(business.name, business.currency, business.timezone, business.mileageRateThousandths, business.perDiemMinor, business.receiptThresholdMinor, at(31)),
       ...known.map(c => db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active) VALUES(?,?,?,?,?,1) ON CONFLICT DO NOTHING').bind(c.id, c.name, c.account_code, c.tax_code, c.limit_minor)),
-      db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,1,1,1,?,1,?) ON CONFLICT DO NOTHING').bind(ownerAddress, ownerName, people[ownerApprover].email, at(42)),
-      ...Object.values(people).map(p => db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(p.email, p.name, +p.employee, +p.manager, +p.finance, p.approver && email(p.approver), +p.active, at(42))),
-      db.prepare('INSERT INTO oa_first_run(singleton,completed_by,completed_at) VALUES(1,?,?) ON CONFLICT DO NOTHING').bind(owner.id, t - 42 * DAY),
+      db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,1,1,1,?,1,?) ON CONFLICT DO NOTHING').bind(ownerAddress, ownerName, people[ownerApprover].email, at(31)),
+      ...Object.values(people).map(p => db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(p.email, p.name, +p.employee, +p.manager, +p.finance, p.approver && email(p.approver), +p.active, at(31))),
+      // Jordan, Dana and Ruth sign in as themselves from the demo's sign-in page (one-click, as invited people do).
+      ...signIns.map((p, i) => db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES(?,?,?,'member','active',?) ON CONFLICT(email) DO NOTHING").bind(`demo-operator-${p}`, people[p].email, people[p].name, Date.parse(at(31)) + i)),
+      db.prepare('INSERT INTO oa_first_run(singleton,completed_by,completed_at) VALUES(1,?,?) ON CONFLICT DO NOTHING').bind(owner.id, Date.parse(at(31))),
     ];
     for (const c of claims) {
       const employee = email(c.employee), items = c.expenses.map(e => itemInput(raw(e), policy, known));
@@ -119,7 +128,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
 
   // The owner's agent key and the claim its agent has prepared for them to accept or decline.
   const agentFor = `${proposal.agent} for ${ownerAddress}`, keyHash = await sha256Hex(`demo-agent-key:${crypto.randomUUID()}`);
-  history.push(db.prepare('INSERT INTO c_agent_keys(id,member_email,label,token_hash,created_at) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING').bind(proposal.key, ownerAddress, proposal.agent, keyHash, at(14)));
+  history.push(db.prepare('INSERT INTO c_agent_keys(id,member_email,label,token_hash,created_at) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING').bind(proposal.key, ownerAddress, proposal.agent, keyHash, at(11)));
   const proposalReceipts: D1PreparedStatement[] = [];
   const proposed = await Promise.all(proposal.items.map(async (item, i) => {
     const bytes = receiptPdf(['Lyft', 'Kansas City, MO', `Ride receipt  ${receiptDay(date(item.day))}`, `${item.description}  $${item.amount}`, `Total  $${item.amount}`]);
@@ -129,7 +138,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     return { kind: 'receipt', date: date(item.day), merchant: item.merchant, amount: item.amount, description: item.description, category: `demo-cat-${item.category}`, receiptId: id, amountMinor };
   }));
   history.push(db.prepare("INSERT INTO c_proposals(id,kind,agent_label,for_email,payload,status,created_at) VALUES(?,'claim',?,?,?,'proposed',?) ON CONFLICT DO NOTHING").bind(proposal.id, proposal.agent, ownerAddress, JSON.stringify({ title: proposal.title, note: proposal.note, items: proposed }), at(proposal.created)), ...proposalReceipts);
-  event('agent-key', at(14), ownerAddress, 'agent-key-created', {}, { key: proposal.key, label: proposal.agent });
+  event('agent-key', at(11), ownerAddress, 'agent-key-created', {}, { key: proposal.key, label: proposal.agent });
   event('proposal', at(proposal.created), ownerAddress, 'claim-proposed', {}, { proposal: proposal.id, title: proposal.title, expenses: proposed.length, agent: proposal.agent });
 
   // History lines are numbered in the order they happened.

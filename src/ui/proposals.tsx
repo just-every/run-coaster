@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { call, claimNumber, money, moment, type D } from './api';
+import { call, claimNumber, money, moment, plural, type D } from './api';
 import { go } from './app';
 
 /** The pick's agent strip: the mark, what each agent prepared for this person in one sentence, and the person's two
@@ -23,8 +23,8 @@ export function AgentStrip({ proposals, reload, claims = [], idle }: { proposals
       return <div className="agent-row" key={p.id}>
         <img className="agent-mark" src="/brand/mark.svg" alt="" />
         <p className="agent-text"><strong>{p.agent_label}:</strong> {p.kind === 'claim'
-          ? <>prepared “{p.payload.title}”, {count} expense{count === 1 ? '' : 's'} for {money(total)}, for you to check.</>
-          : <>proposed a batch of {count} approved claim{count === 1 ? '' : 's'} ({batched.map(c => claimNumber(c.number)).join(', ')}) for {money(total)}.</>}
+          ? <>prepared “{p.payload.title}”, {plural(count, 'expense')} for {money(total)}, for you to check.</>
+          : <>proposed a batch of {plural(count, 'approved claim')} ({batched.map(c => claimNumber(c.number)).join(', ')}) for {money(total)}.</>}
           {' '}<span className="muted">{p.payload.note ? `“${p.payload.note}” · ` : ''}{moment(p.created_at)}</span></p>
         <div className="agent-actions"><button className="agent-pill" onClick={() => decide(p, true)}>{p.kind === 'claim' ? 'Accept as draft' : 'Accept as draft batch'}</button><button className="link-button" onClick={() => decide(p, false)}>Decline</button></div>
       </div>;

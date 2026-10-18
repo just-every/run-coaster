@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { amount, call, claimNumber, day, exceptionWords, money, moment, type D } from './api';
+import { amount, call, claimNumber, day, exceptionWords, money, moment, plural, rate, type D } from './api';
 import { Badge, Details, Empty, Form, Warning } from './parts';
 import { Icon } from './icons';
 import { ItemForm } from './item-form';
@@ -20,20 +20,21 @@ function split(item: D, currency: string) {
 }
 
 function merchantLine(item: D, currency: string) {
-  if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${money(item.rate_minor, currency)}`;
-  if (item.kind === 'per_diem') return `${item.merchant} · ${item.days} day${item.days === 1 ? '' : 's'} at ${money(item.rate_minor, currency)}`;
+  if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${rate(item.rate_thousandths, currency)}`;
+  if (item.kind === 'per_diem') return `${item.merchant} · ${plural(item.days, 'day')} at ${rate(item.rate_thousandths, currency)}`;
   return item.merchant;
 }
 
 /** One claim in the panel, as the pick's exception panel: who and how much, the red banner for a return or a policy
     exception, the facts, each expense with its receipt, the action this person can take, then the history. */
-export function ClaimPanel({ id, state, reload, back }: { id: string; state: D; reload: () => Promise<D>; back: string }) {
+export function ClaimPanel({ id, state, reload, back, closable = true }: { id: string; state: D; reload: () => Promise<D>; back: string; closable?: boolean }) {
   const [detail, setDetail] = useState<D>(), [error, setError] = useState(''), [editing, setEditing] = useState<string | null>(null);
   const load = useCallback(async () => { try { setDetail(await call(`claims/${id}`)); setError(''); } catch (e) { setError((e as Error).message); } }, [id]);
   useEffect(() => { load(); }, [load]);
   // Show the saved claim (and its new version) before closing the form, so the next action never uses a stale version.
   const done = async () => { await Promise.all([load(), reload()]); setEditing(null); };
-  const close = <a className="panel-close" href={`#/${back}`} aria-label={`Back to ${back === 'approvals' ? 'approvals' : 'claims'}`}><Icon name="cross" /></a>;
+  // The claim a screen opens on by itself has nothing to close back to.
+  const close = closable && <a className="panel-close" href={`#/${back}`} aria-label={`Back to ${back === 'approvals' ? 'approvals' : 'claims'}`}><Icon name="cross" /></a>;
   if (error && !detail) return <aside className="side detail"><div className="panel-head"><h2>Claim</h2>{close}</div><p role="alert">{error}</p></aside>;
   if (!detail) return <aside className="side detail"><p className="muted">Opening claim…</p></aside>;
   const { claim, items, exceptions } = detail, me = state.actor.email, currency = claim.currency;
@@ -50,7 +51,7 @@ export function ClaimPanel({ id, state, reload, back }: { id: string; state: D; 
     <p className="panel-date">{claimNumber(claim.number)} · {submitted ? `submitted ${day(submitted.submitted_at)}` : `started ${day(claim.created_at)}`}</p>
     {claim.status === 'returned' && lastReturn && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>Returned for correction:</strong> “{lastReturn.reason}”{editable ? <> Fix the expenses below and submit again; the earlier revision stays in the history.</> : null}</p></div>}
     {exceptions.length > 0 && <div className="banner"><span className="banner-mark" aria-hidden="true">!</span><div>
-      <p><strong>{exceptions.length} policy exception{exceptions.length === 1 ? '' : 's'}</strong>{claim.status === 'draft' || claim.status === 'returned' ? ', sent to the approver with the explanations' : ' on this revision'}</p>
+      <p><strong>{plural(exceptions.length, 'policy exception')}</strong>{claim.status === 'draft' || claim.status === 'returned' ? ', sent to the approver with the explanations' : ' on this revision'}</p>
       <ul className="ruled-list banner-list">{exceptions.map((x: D, i: number) => <li key={i}>{merchantOf(x.item) ? `${merchantOf(x.item)}: ` : ''}{x.message}</li>)}</ul>
     </div></div>}
     <section className="panel-block" aria-label="Details">
@@ -86,7 +87,7 @@ export function ClaimPanel({ id, state, reload, back }: { id: string; state: D; 
         : <div className="claim-actions">
             <button className="button wide" onClick={() => setEditing('new')}><Icon name="plus" />Add expense</button>
             <Form label={claim.status === 'returned' ? 'Resubmit for approval' : 'Submit for approval'} className="record-form-inline submit-form" onSubmit={async () => { await call(`claims/${claim.id}/submit`, { version: claim.version }); await done(); }}>
-              {exceptions.length > 0 && <p className="muted field-wide">{exceptions.length} policy exception{exceptions.length === 1 ? '' : 's'} will go to your approver with your explanations.</p>}
+              {exceptions.length > 0 && <p className="muted field-wide">{plural(exceptions.length, 'policy exception')} will go to your approver with your explanations.</p>}
             </Form>
           </div>)}
     </section>
@@ -120,7 +121,7 @@ function Decision({ claim, exceptions, onDone, back }: { claim: D; exceptions: D
       {Object.entries(choices).map(([value, label]) => <label key={value} className="choice"><input type="radio" name="decision" value={value} checked={choice === value} onChange={() => setChoice(value)} />{label}</label>)}
     </fieldset>
     <label className="field"><span className="field-label">Reason (required if returning or rejecting)</span><textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Add a reason…" maxLength={1000} /></label>
-    {exceptions.length > 0 && <label className="check"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} /> I reviewed the {exceptions.length} policy exception{exceptions.length === 1 ? '' : 's'} and the employee’s explanations</label>}
+    {exceptions.length > 0 && <label className="check"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} /> I reviewed the {plural(exceptions.length, 'policy exception')} and the employee’s explanations</label>}
     <button className="button go" disabled={busy} onClick={decide}>{choices[choice]}</button>
     <a className="button wide" href={`#/${back}`}>Decide later</a>
     {error && <p className="form-error" role="alert">{error}</p>}

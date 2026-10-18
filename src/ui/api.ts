@@ -14,6 +14,12 @@ export const amount = (minor: number) => { const [whole, fraction] = (minor / 10
 /** Exact minor units as "$1,284.60" in dollars, or "EUR 1,284.60" in any other currency. */
 export const money = (minor: number, currency = 'USD') => currency === 'USD' ? `${minor < 0 ? '−' : ''}$${amount(Math.abs(minor))}` : `${currency} ${amount(minor)}`;
 export const amountText = (minor?: number | null) => minor == null ? '' : (minor / 100).toFixed(2);
+/** A rate kept in thousandths of the currency unit, with three places only when it needs them: "0.725", "68.00". */
+export const rateText = (thousandths: number) => (thousandths / 1000).toFixed(thousandths % 10 ? 3 : 2);
+/** A rate as "$0.725" a mile or "$68.00" a day, or "EUR 0.725" in any other currency. */
+export const rate = (thousandths: number, currency = 'USD') => { const [whole, fraction] = rateText(thousandths).split('.'); return `${currency === 'USD' ? '$' : `${currency} `}${grouped(whole)}.${fraction}`; };
+/** "1 claim", "3 claims"; `many` for a word that does not take an s ("person", "people"). */
+export const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
 export const claimNumber = (n: number) => `CL-${String(n).padStart(4, '0')}`;
 export const batchNumber = (n: number) => `RB-${String(n).padStart(4, '0')}`;
 

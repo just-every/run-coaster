@@ -54,6 +54,13 @@ export function amount(value: unknown, label = 'Amount'): number {
   requireThat(Number.isSafeInteger(minor) && minor <= 1e11, `${label} is too large`);
   return minor;
 }
+/** A rate per unit with up to three places, "0.725" → 725 thousandths of the currency unit. */
+export function rate(value: unknown, label: string): number {
+  const raw = typeof value === 'number' ? String(value) : value;
+  requireThat(typeof raw === 'string' && /^\d{1,7}(\.\d{1,3})?$/.test(raw.trim()), `${label} must be a rate like 0.725`);
+  const [whole, fraction = ''] = raw.trim().split('.');
+  return Number(whole) * 1000 + Number(fraction.padEnd(3, '0'));
+}
 export function optionalAmount(value: unknown, label: string): number | null {
   return value === undefined || value === null || value === '' ? null : amount(value, label);
 }
@@ -68,5 +75,5 @@ export function distance(value: unknown): number {
   requireThat(hundredths > 0, 'Distance must be more than zero');
   return hundredths;
 }
-/** Round half up once: distance (hundredths of a mile) × rate per mile. */
-export const mileageMinor = (hundredths: number, rateMinor: number) => Math.floor((hundredths * rateMinor + 50) / 100);
+/** Round half up once: distance (hundredths of a mile) × rate per mile (thousandths), in minor units. */
+export const mileageMinor = (hundredths: number, rateThousandths: number) => Math.floor((hundredths * rateThousandths + 500) / 1000);

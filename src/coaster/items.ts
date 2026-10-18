@@ -5,7 +5,7 @@ export type Category = { id: string; name: string; account_code: string; tax_cod
 export type Allocation = { category_id: string; cost_centre: string; amount_minor: number };
 export type ItemInput = {
   kind: 'receipt' | 'mileage' | 'per_diem'; spent_on: string; merchant: string; description: string; amount_minor: number;
-  distance_hundredths: number | null; days: number | null; rate_minor: number | null; explanation: string; allocations: Allocation[];
+  distance_hundredths: number | null; days: number | null; rate_thousandths: number | null; explanation: string; allocations: Allocation[];
 };
 
 export async function categories(db: D1Database): Promise<Category[]> {
@@ -17,22 +17,22 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
   requireThat(['receipt', 'mileage', 'per_diem'].includes(b.kind), 'Choose a receipt, mileage or per diem expense');
   const kind = b.kind as ItemInput['kind'];
   const spent_on = isoDate(b.date, 'Expense date');
-  let amount_minor: number, distance_hundredths: number | null = null, days: number | null = null, rate_minor: number | null = null, merchant: string;
+  let amount_minor: number, distance_hundredths: number | null = null, days: number | null = null, rate_thousandths: number | null = null, merchant: string;
   if (kind === 'receipt') {
     merchant = text(b.merchant, 'Merchant', 200);
     amount_minor = amount(b.amount, 'Amount');
   } else if (kind === 'mileage') {
-    requireThat(business.mileage_rate_minor > 0, 'Mileage is not enabled for this business');
+    requireThat(business.mileage_rate_thousandths > 0, 'Mileage is not enabled for this business');
     distance_hundredths = distance(b.distance);
-    rate_minor = business.mileage_rate_minor;
-    amount_minor = mileageMinor(distance_hundredths, rate_minor);
+    rate_thousandths = business.mileage_rate_thousandths;
+    amount_minor = mileageMinor(distance_hundredths, rate_thousandths);
     merchant = optionalText(b.merchant, 'Route', 200) || 'Mileage';
   } else {
     requireThat(business.per_diem_minor > 0, 'Per diem is not enabled for this business');
     requireThat(Number.isSafeInteger(Number(b.days)) && Number(b.days) >= 1 && Number(b.days) <= 60, 'Per diem days must be a whole number from 1 to 60');
     days = Number(b.days);
-    rate_minor = business.per_diem_minor;
-    amount_minor = days * rate_minor;
+    rate_thousandths = business.per_diem_minor * 10;
+    amount_minor = days * business.per_diem_minor;
     merchant = optionalText(b.merchant, 'Location', 200) || 'Per diem';
   }
   requireThat(amount_minor > 0, 'Amount must be more than zero');
@@ -47,5 +47,5 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
   });
   const sum = allocations.reduce((n, a) => n + a.amount_minor, 0);
   requireThat(sum === amount_minor, 'The split must add up exactly to the expense amount');
-  return { kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_minor, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations };
+  return { kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_thousandths, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations };
 }

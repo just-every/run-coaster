@@ -1,16 +1,15 @@
 import { useState } from 'react';
-import { call, claimNumber, money, type D } from './api';
+import { call, claimNumber, money, plural, type D } from './api';
 import { Choice, Empty, Field, Form, PageHead, Tiles } from './parts';
 import { Icon } from './icons';
 import { ClaimPanel } from './claim-panel';
 import { ClaimsTable } from './claims-table';
 import { AgentStrip } from './proposals';
-import { Work } from './shell';
-import { go } from './app';
+import { useDesktop, Work } from './shell';
+import { go, oldestWaiting, waitingFor } from './app';
 
 export type ViewProps = { state: D; reload: () => Promise<D>; id?: string; query: string };
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const sum = (claims: D[]) => claims.reduce((n, c) => n + c.total_minor, 0);
 /** A claim matches the top bar's search on its number, title or person. */
 export const matches = (c: D, query: string) => `${claimNumber(c.number)} ${c.title} ${c.employee_name}`.toLowerCase().includes(query.trim().toLowerCase());
@@ -36,10 +35,16 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
   const approved = scoped.filter((c: D) => ['approved', 'batched', 'reimbursed'].includes(c.status)), paid = scoped.filter((c: D) => c.status === 'reimbursed');
   const proposals = state.proposals.filter((p: D) => p.kind === 'claim' && p.status === 'proposed');
   const whose = scope === 'all' ? `at ${state.business.name}` : 'of yours';
+  // At desktop widths, with no claim chosen, the panel opens on the oldest claim waiting for this person's decision,
+  // as the pick does; on phones the list comes first and a claim replaces it only when chosen.
+  const desktop = useDesktop();
+  const landing = !id && !creating && desktop ? oldestWaiting(state, shown) : undefined;
+  const open: string | undefined = id ?? landing?.id, elsewhere = waitingFor(state).filter((c: D) => !shown.includes(c)).length;
   const panel = creating ? <NewClaim reload={reload} onClose={() => onCreating(false)} />
-    : id ? <ClaimPanel key={id} id={id} state={state} reload={reload} back="claims" />
-    : <aside className="side side-empty"><Empty large title="Choose a claim">Its expenses, receipts, policy exceptions, decision and history open here.</Empty></aside>;
-  return <Work panel={scoped.length || creating || id ? panel : undefined} selected={creating || !!id}>
+    : open ? <ClaimPanel key={open} id={open} state={state} reload={reload} back="claims" closable={!!id} />
+    : elsewhere ? <aside className="side side-empty"><Empty large title={`${plural(elsewhere, 'claim')} waiting for your decision`}><a href="#/approvals">Open Approvals</a> to decide; a claim you choose here opens in this panel.</Empty></aside>
+    : <aside className="side side-empty"><Empty large title="Nothing is waiting for your decision">Choose a claim to see its expenses, receipts, policy exceptions and history here.</Empty></aside>;
+  return <Work panel={scoped.length || creating || id || elsewhere ? panel : undefined} selected={creating || !!id}>
     <PageHead title="Claims" line={`${plural(scoped.length, 'claim')} ${whose}, ${waiting.length} waiting for approval, ${ready.length} approved and ready to pay`}
       action={onNewClaim && <button className="button primary head-action" onClick={onNewClaim}><Icon name="plus-circle" />New claim</button>} />
     <Tiles label="Claim totals" tiles={[
@@ -49,7 +54,7 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
     ]} />
     {state.actor.roles.employee && <AgentStrip proposals={proposals} reload={reload} idle={<><strong>Agents:</strong> nothing prepared for you right now. An agent with your key turns receipts into draft claims here for you to accept; it never submits, approves or pays. <a href="#/settings">Agent keys</a></>} />}
     {shown.length
-      ? <ClaimsTable claims={shown} selected={id} view="claims" label="Claims" foot={<>
+      ? <ClaimsTable claims={shown} selected={open} view="claims" label="Claims" foot={<>
           <span>Showing {shown.length} of {plural(scoped.length, 'claim')}{query ? ` matching “${query.trim()}”` : ''}</span>
           {wide && <Choice label="Show" hideLabel className="field" value={scope} onChange={(e: any) => setScope(e.target.value)}><option value="all">All claims</option><option value="mine">My claims</option></Choice>}
         </>} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { call, day, money, type D } from './api';
+import { call, day, money, plural, type D } from './api';
 import { Choice, Empty, PageHead, Section } from './parts';
 import { Work } from './shell';
 import type { ViewProps } from './claims';
@@ -42,7 +42,7 @@ export function MoveIn({ state }: ViewProps) {
             <p>{s.reports} reports · {s.expenses} expenses · {money(s.totalMinor, currency)}</p>
             <div className="record-form">{s.statuses.map((status: string) => <Choice key={status} label={`Expensify “${status}” becomes`} value={statuses[status] ?? ''} onChange={(e: any) => setStatuses({ ...statuses, [status]: e.target.value })}><option value="">Choose…</option>{HISTORY.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Choice>)}</div>
             <div className="actions"><button className="button" disabled={busy} onClick={() => run(() => look())}>Preview again with this mapping</button>
-            <button className="button primary" disabled={busy || s.errors.length > 0} onClick={() => run(async () => { const r = await call('import/commit', { ...input(), fingerprint: preview!.fingerprint }); setNotice(r.job.state === 'completed' ? `Imported ${s.reports} report${s.reports === 1 ? '' : 's'} with ${s.expenses} expense${s.expenses === 1 ? '' : 's'}.` : `Imported ${r.job.checkpoint} of ${r.job.total} records; resume to finish.`); setPreview(undefined); await refresh(); })}>Import {s.reports} reports</button></div>
+            <button className="button primary" disabled={busy || s.errors.length > 0} onClick={() => run(async () => { const r = await call('import/commit', { ...input(), fingerprint: preview!.fingerprint }); setNotice(r.job.state === 'completed' ? `Imported ${plural(s.reports, 'report')} with ${plural(s.expenses, 'expense')}.` : `Imported ${r.job.checkpoint} of ${r.job.total} records; resume to finish.`); setPreview(undefined); await refresh(); })}>Import {plural(s.reports, 'report')}</button></div>
             {s.errors.length > 0 && <><h3>Fix these first</h3><ul className="ruled-list">{s.errors.map((m: string) => <li key={m} className="form-error">{m}</li>)}</ul></>}
             {s.warnings.map((m: string) => <p key={m} className="muted">{m}</p>)}
           </div>}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, shortDay, today, type D } from './api';
+import { batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, plural, shortDay, today, type D } from './api';
 import { Badge, Empty, Field, Form, Initials, PageHead, Section, Tiles, Warning } from './parts';
 import { Icon } from './icons';
 import { AgentStrip } from './proposals';
@@ -22,7 +22,7 @@ export function Batches({ state, reload, id, query }: ViewProps) {
   const panel = id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} />
     : <aside className="side side-empty"><Empty large title="Choose a batch">Review its totals, download the accounting and reimbursement files, and record the payment.</Empty></aside>;
   return <Work panel={panel} wide selected={!!id} className="batches-work">
-    <PageHead title="Batches" line={`${ready.length} approved claim${ready.length === 1 ? '' : 's'} ready to batch, ${drafts.length} batch${drafts.length === 1 ? '' : 'es'} to review, ${reviewed.length} ready to pay`} />
+    <PageHead title="Batches" line={`${plural(ready.length, 'approved claim')} ready to batch, ${plural(drafts.length, 'batch', 'batches')} to review, ${reviewed.length} ready to pay`} />
     <Tiles label="Batch totals" tiles={[
       { label: 'To review or pay', value: drafts.length + reviewed.length, note: money(sum([...drafts, ...reviewed]), currency) },
       { label: 'Paid', value: paid.length, note: paid[0] ? `Last paid ${shortDay(paid[0].paid_on)} · ${money(sum(paid), currency)}` : 'None yet' },
@@ -73,11 +73,11 @@ function BatchPanel({ id, reload, names }: { id: string; reload: () => Promise<D
   const flagged = lines.filter((l: D) => l.exceptions);
   return <aside className="side detail batch-detail" aria-label={`Batch ${batchNumber(batch.number)}`}>
     <div className="panel-head"><h2>{batchNumber(batch.number)} · {money(batch.total_minor, c)}</h2>{close}</div>
-    <p className="panel-amount">{claims.length} claim{claims.length === 1 ? '' : 's'} · {people.length} {people.length === 1 ? 'person' : 'people'}{batch.prepared_by ? ` · prepared by ${batch.prepared_by}` : ''}</p>
+    <p className="panel-amount">{plural(claims.length, 'claim')} · {plural(people.length, 'person', 'people')}{batch.prepared_by ? ` · prepared by ${batch.prepared_by}` : ''}</p>
     <p className="panel-date">Created {day(batch.created_at)}</p>
     <div className="metadata panel-block"><Badge status={batchStatus(batch)} tone={batch.status === 'draft' ? 'wait' : 'done'} words={batchWords[batch.status]} /></div>
     {reconciled
-      ? <p className="reconciled" role="status"><Icon name="check" /><span>Reconciled: {lines.length} accounting line{lines.length === 1 ? '' : 's'} and {people.length} reimbursement{people.length === 1 ? '' : 's'} {lines.length === 1 && people.length === 1 ? 'both add' : 'each add'} up to {money(batch.total_minor, c)}.</span></p>
+      ? <p className="reconciled" role="status"><Icon name="check" /><span>Reconciled: {plural(lines.length, 'accounting line')} and {plural(people.length, 'reimbursement')} {lines.length === 1 && people.length === 1 ? 'both add' : 'each add'} up to {money(batch.total_minor, c)}.</span></p>
       : <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>These totals do not reconcile.</strong> Do not pay this batch.</p></div>}
     <section className="panel-block" aria-label="Reimbursements">
       <h3>Reimbursements</h3>

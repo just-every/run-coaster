@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { amountText, call, fileBase64, money, today, type D } from './api';
+import { amountText, call, fileBase64, money, rate, today, type D } from './api';
 import { Choice, Field, Form } from './parts';
 
 type Part = { category: string; costCentre: string; amount: string };
@@ -10,7 +10,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
   const [kind, setKind] = useState<string>(item?.kind ?? 'receipt');
   const [split, setSplit] = useState<Part[] | null>(item && item.allocations.length > 1 ? item.allocations.map((a: D) => ({ category: a.category_id, costCentre: a.cost_centre, amount: amountText(a.amount_minor) })) : null);
   const categoryOptions = active.map((c: D) => ({ value: c.id, label: c.name }));
-  const kinds = [{ value: 'receipt', label: 'Purchase with receipt' }, ...(business.mileage_rate_minor ? [{ value: 'mileage', label: `Mileage at ${money(business.mileage_rate_minor, business.currency)} per mile` }] : []), ...(business.per_diem_minor ? [{ value: 'per_diem', label: `Per diem at ${money(business.per_diem_minor, business.currency)} a day` }] : [])];
+  const kinds = [{ value: 'receipt', label: 'Purchase with receipt' }, ...(business.mileage_rate_thousandths ? [{ value: 'mileage', label: `Mileage at ${rate(business.mileage_rate_thousandths, business.currency)} per mile` }] : []), ...(business.per_diem_minor ? [{ value: 'per_diem', label: `Per diem at ${money(business.per_diem_minor, business.currency)} a day` }] : [])];
   async function save(v: D) {
     let version = claim.version, receipt = item?.receipt_id ?? null;
     const file = v.receiptFile as File | undefined;

@@ -9,7 +9,7 @@ In **Settings**, under **Business**:
 | Business name | The name people see. |
 | Currency | One currency for every claim, for example `USD`. It is fixed once claims exist. |
 | Timezone | For example `America/Chicago`. |
-| Mileage rate per mile | Mileage is priced at miles times this rate. The IRS standard business rate for 2025 was 0.70 a mile. |
+| Mileage rate per mile | Mileage is priced at miles times this rate, to a tenth of a cent. The IRS standard business rate for 2026 is 72.5¢ a mile (0.725). |
 | Per diem per day | Leave it empty if you do not pay per diems. |
 | Receipts required above | A purchase above this amount needs a receipt. Leave it empty to require a receipt for every purchase. |
 

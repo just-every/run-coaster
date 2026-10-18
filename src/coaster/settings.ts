@@ -1,11 +1,11 @@
 import { authority, commit, need } from './session';
 import { event } from './events';
-import { amount, email, now, optionalAmount, requireThat, text, uid, type Actor, type Data } from './types';
+import { email, now, optionalAmount, rate, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Business = { name: string; currency: string; timezone: string; mileage_rate_minor: number; per_diem_minor: number; receipt_threshold_minor: number };
+export type Business = { name: string; currency: string; timezone: string; mileage_rate_thousandths: number; per_diem_minor: number; receipt_threshold_minor: number };
 
 export async function business(db: D1Database): Promise<Business | null> {
-  return db.prepare('SELECT name,currency,timezone,mileage_rate_minor,per_diem_minor,receipt_threshold_minor FROM c_business WHERE id=1').first<Business>();
+  return db.prepare('SELECT name,currency,timezone,mileage_rate_thousandths,per_diem_minor,receipt_threshold_minor FROM c_business WHERE id=1').first<Business>();
 }
 export async function requireBusiness(db: D1Database) {
   const found = await business(db);
@@ -24,10 +24,10 @@ export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
   }
   const timezone = text(b.timezone, 'Timezone', 64);
   try { new Intl.DateTimeFormat('en', { timeZone: timezone }); } catch { requireThat(false, 'Timezone must be an IANA name such as America/Chicago'); }
-  const values = [text(b.name, 'Business name', 200), currency, timezone, amount(b.mileageRate, 'Mileage rate per mile'), optionalAmount(b.perDiem, 'Per diem') ?? 0, optionalAmount(b.receiptThreshold, 'Receipt threshold') ?? 0, now()];
+  const values = [text(b.name, 'Business name', 200), currency, timezone, rate(b.mileageRate, 'Mileage rate per mile'), optionalAmount(b.perDiem, 'Per diem') ?? 0, optionalAmount(b.receiptThreshold, 'Receipt threshold') ?? 0, now()];
   await commit(db, authority(actor, 'owner'), [
-    db.prepare('INSERT INTO c_business(id,name,currency,timezone,mileage_rate_minor,per_diem_minor,receipt_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,mileage_rate_minor=excluded.mileage_rate_minor,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,updated_at=excluded.updated_at').bind(...values),
-    event(db, actor, 'business-saved', {}, { name: values[0], currency, mileageRateMinor: values[3], perDiemMinor: values[4], receiptThresholdMinor: values[5] }),
+    db.prepare('INSERT INTO c_business(id,name,currency,timezone,mileage_rate_thousandths,per_diem_minor,receipt_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,mileage_rate_thousandths=excluded.mileage_rate_thousandths,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,updated_at=excluded.updated_at').bind(...values),
+    event(db, actor, 'business-saved', {}, { name: values[0], currency, mileageRateThousandths: values[3], perDiemMinor: values[4], receiptThresholdMinor: values[5] }),
   ]);
   return business(db);
 }

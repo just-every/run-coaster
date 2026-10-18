@@ -29,7 +29,7 @@ const approve = async (h, cookie, c, extra = {}) => h.post(`claims/${c.id}/decis
 test('COA-001 the owner sets up the business, categories and people; nobody else can', () => withAgency(async (h, t) => {
   const state = await h.get('state')
   assert.equal(state.business.currency, 'AUD')
-  assert.equal(state.business.mileage_rate_minor, 88)
+  assert.equal(state.business.mileage_rate_thousandths, 880)
   assert.deepEqual(state.categories.map(c => c.name), ['Car', 'Meals', 'Office supplies', 'Travel'])
   assert.equal(state.members.find(m => m.email === 'sam@harbourfinch.example').approver_email, 'priya@harbourfinch.example')
   await h.post('settings/business', { name: 'Taken over', currency: 'AUD', timezone: 'Australia/Sydney', mileageRate: '1.00' }, t.morgan, 403)

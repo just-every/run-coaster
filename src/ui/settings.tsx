@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { amountText, call, money, moment, type D } from './api';
+import { amountText, call, money, moment, rate, rateText, type D } from './api';
 import { Badge, Empty, Field, Form, PageHead, Section } from './parts';
 import { Work } from './shell';
 import type { ViewProps } from './claims';
@@ -11,7 +11,7 @@ export function Settings({ state, reload }: ViewProps) {
   const saved = async (message: string) => { setNotice(message); await reload(); };
   const managers = state.members.filter((m: D) => m.is_manager && m.active);
   return <Work className="settings">
-    <PageHead title="Settings" line={owner ? b ? `${b.name} · ${b.currency} · ${b.timezone} · mileage ${money(b.mileage_rate_minor, b.currency)} a mile` : 'Name the business first; categories and people follow.' : 'Your agent keys. The owner manages the business, categories and people.'} />
+    <PageHead title="Settings" line={owner ? b ? `${b.name} · ${b.currency} · ${b.timezone} · mileage ${rate(b.mileage_rate_thousandths, b.currency)} a mile` : 'Name the business first; categories and people follow.' : 'Your agent keys. The owner manages the business, categories and people.'} />
     <p className="notice" role="status" aria-live="polite">{notice}</p>
     <div className="cards">
     <div className="cards-2">
@@ -20,7 +20,7 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Business name" name="name" defaultValue={b?.name} />
         <Field label="Currency" name="currency" defaultValue={b?.currency ?? 'USD'} maxLength={3} hint="Fixed once claims exist" />
         <Field label="Timezone" name="timezone" defaultValue={b?.timezone ?? 'America/Chicago'} />
-        <Field label="Mileage rate per mile" name="mileageRate" inputMode="decimal" defaultValue={b ? amountText(b.mileage_rate_minor) : '0.70'} hint="The IRS standard business rate for 2025 was 0.70 a mile" />
+        <Field label="Mileage rate per mile" name="mileageRate" inputMode="decimal" defaultValue={b ? rateText(b.mileage_rate_thousandths) : '0.725'} hint="The IRS standard business rate for 2026 is 72.5¢ a mile (0.725)" />
         <Field label="Per diem per day" name="perDiem" inputMode="decimal" required={false} defaultValue={b?.per_diem_minor ? amountText(b.per_diem_minor) : ''} hint="Leave empty if you do not pay per diems" />
         <Field label="Receipts required above" name="receiptThreshold" inputMode="decimal" required={false} defaultValue={b?.receipt_threshold_minor ? amountText(b.receipt_threshold_minor) : ''} hint="Leave empty to require a receipt for every purchase" />
       </Form>

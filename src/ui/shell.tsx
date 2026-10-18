@@ -48,6 +48,18 @@ export function Topbar({ state, query, onSearch, onNewClaim }: { state: D; query
   </header>;
 }
 
+/** True at the widths where the panel sits beside the work (shell.css: 1024 px and wider). */
+export function useDesktop() {
+  const query = '(min-width: 1024px)';
+  const [desktop, setDesktop] = useState(() => typeof matchMedia === 'function' && matchMedia(query).matches);
+  useEffect(() => {
+    const media = matchMedia(query), update = () => setDesktop(media.matches);
+    update(); media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  return desktop;
+}
+
 /** The work area: the main column and, when there is one, the panel at its right (the pick's exception panel). On
     phones a selected panel replaces the column. */
 export function Work({ children, panel, wide = false, selected = false, className = '' }: { children: ReactNode; panel?: ReactNode; wide?: boolean; selected?: boolean; className?: string }) {

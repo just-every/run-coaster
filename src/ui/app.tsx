@@ -15,6 +15,9 @@ export const go = (view: string, id?: string) => { location.hash = `/${view}${id
 
 /** Claims routed to this person for a decision, the count the rail's Approvals badge shows. */
 export const waitingFor = (state: D) => state.claims.filter((c: D) => c.status === 'submitted' && c.approver_email === state.actor.email && c.employee_email !== state.actor.email);
+/** The claim a screen opens on by itself at desktop widths: of the claims it lists, the one waiting longest for this
+    person's decision. */
+export const oldestWaiting = (state: D, listed: D[]): D | undefined => waitingFor(state).filter((c: D) => listed.includes(c)).sort((a: D, b: D) => a.updated_at.localeCompare(b.updated_at) || a.number - b.number)[0];
 
 function destinations(state: D): Destination[] {
   const roles = state.actor.roles;
