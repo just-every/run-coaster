@@ -112,6 +112,8 @@ body:has(> main > .intro) .step { border-radius: var(--radius-card); border-colo
 body:has(> main > .intro) .num { background: var(--ink); color: #fff; font-weight: 800; }
 body:has(> main > .intro) .step h2 { font-weight: 800; letter-spacing: -.03em; word-spacing: .1em; }
 body:has(> main > .intro) .code { background: var(--rer-code-background); }
+/* Base's /contract page: its card headings keep the same open word spaces as the site's. */
+body:has(#progress) h2 { word-spacing: .08em; }
 /* The one-line start keeps the repository whole: on its own line, scrolling sideways where the line cannot fit. */
 body:has(> main > .intro) .alt code { display: block; width: fit-content; max-width: 100%; margin: 6px 0 0; overflow-x: auto; white-space: nowrap; }
 body:has(> main > .intro) .btn, body:has(> main > .hero) .btn { background: var(--button); }

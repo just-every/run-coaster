@@ -22,7 +22,7 @@
 .head-center .lead { margin-inline: auto; }
 
 /* Card titles in the heavy face keep the same open word spaces. */
-.ap-pay-title, .ch-card-title, .ch-table-title, .cl-title, .cl-accrual-title, .po-card-title, .mv-title { word-spacing: .14em; }
+.ap-pay-title, .ch-card-title, .ch-table-title, .cl-title, .cl-accrual-title, .po-card-title, .mv-title, .mt-claim-title { word-spacing: .14em; }
 
 /* Cards: white, a hairline and a soft shadow. */
 .card { position: relative; background: #fff; border: 1px solid var(--line); border-radius: calc(18 * var(--p)); box-shadow: var(--shadow-card); }
