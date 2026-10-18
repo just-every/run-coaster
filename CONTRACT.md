@@ -311,7 +311,7 @@ Every agent here acts through the COA-010 authority model: it works for a named 
 
 ## Current implementation detail
 
-Current code is the distance to the target, not a limit on it. It runs one business in one currency with Australian defaults in the settings screen (AUD, Australia/Sydney, A$0.88 per km), a flat per-diem rate, receipts up to 1.5 MB stored in D1, one approving manager per employee with no delegation, manual entry with no receipt reading, no feeds or provider calls, outside payment recorded by finance, and accounting by CSV. The Status section below marks each clause against that code.
+Current code is the distance to the target, not a limit on it. It runs one business in one currency with US defaults (USD, a US time zone, IRS mileage rates by trip date, the $75/lodging receipt rule), a flat per-diem rate, receipts up to 1.5 MB stored in D1, one approving manager per employee with no delegation, manual entry with no receipt reading, no feeds or provider calls, outside payment recorded by finance, and accounting by CSV. The Status section below marks each clause against that code.
 
 The commit the Status section was judged at is the `main` commit the `contract-target` branch is based on; the branch changes only CONTRACT.md and ACCEPTANCE.md, so its code is identical. The supplied code audit was taken at `9a9543c203ac20a177b3ad60bf11997a74fd1668`; since then main changed only Base sign-in, mail, demo and run-site files and nothing under `src/coaster`, `src/ui` or `tests`, so every row was re-read at the judged commit. `done` means the bounded clause has cited code and a public-door test; `partial` names the shipped subset in Evidence and what is open in Gap; `missing` means no implementation. Kind `published` marks the clauses of Coaster's released contract (COA-001 to COA-013), `target` the clauses this target contract adds and `push-further` the agent clauses under [Push further with agents](#push-further-with-agents). Citations were read, not re-run, in this documentation round.
 
@@ -382,8 +382,8 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 1 | 24 | 65 | 90 |
-| All | 14 | 24 | 65 | 103 |
+| Target and push further | 2 | 23 | 65 | 90 |
+| All | 15 | 23 | 65 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -400,7 +400,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `COA-011` | Expensify report history move-in | published | done | `src/coaster/imports/expensify.ts`; `src/coaster/imports/jobs.ts`; `tests/coaster.test.mjs` (COA-011) |  |
 | `COA-012` | Whole-installation export and restore | published | done | `tests/browser.mjs` (archive section); `tests/browser-archive.mjs` |  |
 | `COA-013` | Fresh-clone install and runtime | published | done | `tests/browser.mjs`; rer check; rer verify |  |
-| `LOCALE-001` | US-first defaults | target | partial | `src/coaster/settings.ts`; `tests/coaster.test.mjs` (COA-001) | Currency, timezone, mileage rate and receipt threshold are owner-set, but the settings screen defaults to AUD, Australia/Sydney and a per-km rate; no miles, effective-dated IRS rate table, $75/lodging default or separate sales-tax field. |
+| `LOCALE-001` | US-first defaults | target | done | `src/coaster/settings.ts`; `src/coaster/mileage.ts`; `src/coaster/items.ts`; `src/coaster/batches.ts`; `src/ui/settings.tsx`; `tests/coaster.test.mjs` (LOCALE-001) |  |
 | `CAPTURE-001` | Photo, file and bulk receipt upload | target | partial | `src/ui/item-form.tsx`; `src/coaster/claims.ts`; `tests/browser.mjs`; `tests/coaster.test.mjs` (COA-002) | Camera/file capture of JPEG, PNG, WebP, HEIC and PDF ships one receipt per expense up to 1.5 MB in D1; no bulk upload, receipt inbox, processing states or R2 storage for 10 MB files. |
 | `CAPTURE-002` | Email-in receipts | target | missing |  | No inbound receipts address or mail intake. |
 | `CAPTURE-003` | Automatic receipt reading with a correction path | target | missing |  | No receipt reading and no labeled receipt corpus; every field is typed by hand. |
@@ -416,7 +416,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `FEED-006` | Individual-liability corporate cards | target | missing |  | No card feeds, so no individual-liability handling. |
 | `CARD-001` | Company cards through an issuing partner | target | missing |  | No issuing partner integration. |
 | `CARD-002` | Personal spend on company cards | target | missing |  | No personal-spend repayment. |
-| `CLAIM-001` | US mileage | target | partial | `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002) | Mileage is distance × one business rate with exact rounding; no miles default, address routing, multi-stop, commute deduction, odometer or GPS trips. |
+| `CLAIM-001` | US mileage | target | partial | `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002) | Mileage is miles × the IRS rate in force on its date (LOCALE-001) with exact rounding; no miles default, address routing, multi-stop, commute deduction, odometer or GPS trips. |
 | `CLAIM-002` | GSA per diem by location | target | partial | `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002) | Per diem is days × one flat business rate; no GSA location tables, 75% travel days, meal deductions or fiscal-year rates. |
 | `CLAIM-003` | Foreign-currency expenses | target | missing |  | One currency per installation; no conversion. |
 | `CLAIM-004` | Cash advances | target | missing |  | No cash advances. |

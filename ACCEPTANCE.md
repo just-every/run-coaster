@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 14 done, 24 partial, 65 missing.** Statuses describe `main` at `2d12e42cea8d82cbc1cb880eca53577608ec246b`; new target clauses are build
+**103 clauses: 15 done, 23 partial, 65 missing.** Statuses describe `main` at `2d12e42cea8d82cbc1cb880eca53577608ec246b`; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -81,7 +81,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **COA-013 — Fresh-clone install and runtime. Status: done.** `tests/browser.mjs`, `rer check` and `rer verify` on the exact commit. Existing evidence: `tests/browser.mjs`; `rer check`; `rer verify`.
 
-- **LOCALE-001 — US-first defaults. Status: partial.** Set up a fresh installation and see USD, miles, a US zone and the $75/lodging rule; enter mileage dated either side of a January rate change and see each priced at its year's rate; capture a receipt's sales tax and see it on its own accounting line. Existing evidence: `src/coaster/settings.ts`; `tests/coaster.test.mjs` (COA-001). Open scope: Currency, timezone, mileage rate and receipt threshold are owner-set, but the settings screen defaults to AUD, Australia/Sydney and a per-km rate; no miles, effective-dated IRS rate table, $75/lodging default or separate sales-tax field.
+- **LOCALE-001 — US-first defaults. Status: done.** Set up a fresh installation and see USD, miles, a US zone and the $75/lodging rule; enter mileage dated either side of a January rate change and see each priced at its year's rate; capture a receipt's sales tax and see it on its own accounting line. Existing evidence: `src/coaster/settings.ts`; `src/coaster/mileage.ts`; `src/coaster/items.ts`; `src/coaster/batches.ts`; `src/ui/settings.tsx`; `tests/coaster.test.mjs` (LOCALE-001).
 
 - **CAPTURE-001 — Photo, file and bulk receipt upload. Status: partial.** At 390 px photograph a receipt; at 1440 px drop 30 mixed files including an 8 MB three-page hotel folio PDF and a HEIC; see each appear in the inbox with state, exact bytes and hash, and a 12 MB file refused with a reason. Existing evidence: `src/ui/item-form.tsx`; `src/coaster/claims.ts`; `tests/browser.mjs`; `tests/coaster.test.mjs` (COA-002). Open scope: Camera/file capture of JPEG, PNG, WebP, HEIC and PDF ships one receipt per expense up to 1.5 MB in D1; no bulk upload, receipt inbox, processing states or R2 storage for 10 MB files.
 
@@ -113,7 +113,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **CARD-002 — Personal spend on company cards. Status: missing.** Mark a sandbox charge personal, repay by netting against a reimbursement and by ACH debit; see both settle and clear the balance; leave one overdue and see the reminder and, for an issued card, the freeze. Open scope: No personal-spend repayment.
 
-- **CLAIM-001 — US mileage. Status: partial.** Enter a three-stop round trip from addresses and see the calculated miles and route; apply a commute deduction; record a GPS trip on the mobile build; see each priced at its date's rate and the distance source retained. Existing evidence: `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002). Open scope: Mileage is distance × one business rate with exact rounding; no miles default, address routing, multi-stop, commute deduction, odometer or GPS trips.
+- **CLAIM-001 — US mileage. Status: partial.** Enter a three-stop round trip from addresses and see the calculated miles and route; apply a commute deduction; record a GPS trip on the mobile build; see each priced at its date's rate and the distance source retained. Existing evidence: `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002). Open scope: Mileage is miles × the IRS rate in force on its date (LOCALE-001) with exact rounding; no miles default, address routing, multi-stop, commute deduction, odometer or GPS trips.
 
 - **CLAIM-002 — GSA per diem by location. Status: partial.** Claim a four-day trip to Chicago with a provided lunch; see M&IE at the location's rate, 75% on travel days and the lunch deducted; claim a trip spanning 1 October and see each day at its fiscal year's rate. Existing evidence: `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002). Open scope: Per diem is days × one flat business rate; no GSA location tables, 75% travel days, meal deductions or fiscal-year rates.
 

@@ -3,6 +3,7 @@ import { deploymentHealth } from '../base/deployment-health';
 import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server';
 import { agent, need, person } from './session';
 import { saveBusiness, saveCategory, saveMember } from './settings';
+import { saveMileageRate } from './mileage';
 import { createClaim, removeItem, renameClaim, saveItem, submitClaim, uploadReceipt } from './claims';
 import { decide } from './decisions';
 import { approveBatch, batchFile, createBatch, markReimbursed, removeFromBatch } from './batches';
@@ -52,6 +53,7 @@ api.post('/api/coaster/claims/:id/decision', as(async (a, c) => decide(db(c), a,
 api.get('/api/coaster/receipts/:id', as(async (a, c) => receiptFile(db(c), a, param(c, 'id'), c.req.query('inline') === '1')));
 
 api.post('/api/coaster/settings/business', as(async (a, c) => saveBusiness(db(c), a, await body(c))));
+api.post('/api/coaster/settings/mileage-rates', as(async (a, c) => saveMileageRate(db(c), a, await body(c))));
 api.post('/api/coaster/settings/categories', as(async (a, c) => saveCategory(db(c), a, await body(c))));
 api.post('/api/coaster/settings/members', as(async (a, c) => saveMember(db(c), a, await body(c))));
 api.post('/api/coaster/settings/members/invite', as(async (a, c) => {

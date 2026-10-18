@@ -22,7 +22,7 @@ function split(item: D, currency: string) {
 function merchantLine(item: D, currency: string) {
   if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${rate(item.rate_thousandths, currency)}`;
   if (item.kind === 'per_diem') return `${item.merchant} · ${plural(item.days, 'day')} at ${rate(item.rate_thousandths, currency)}`;
-  return item.merchant;
+  return item.sales_tax_minor ? `${item.merchant} · ${money(item.sales_tax_minor, currency)} sales tax` : item.merchant;
 }
 
 /** One claim in the panel, as the pick's exception panel: who and how much, the red banner for a return or a policy

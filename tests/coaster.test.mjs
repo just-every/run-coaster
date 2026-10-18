@@ -29,11 +29,13 @@ const approve = async (h, cookie, c, extra = {}) => h.post(`claims/${c.id}/decis
 test('COA-001 the owner sets up the business, categories and people; nobody else can', () => withAgency(async (h, t) => {
   const state = await h.get('state')
   assert.equal(state.business.currency, 'AUD')
-  assert.equal(state.business.mileage_rate_thousandths, 880)
+  assert.deepEqual(state.business.mileage_rates, [{ effective_from: '2026-01-01', rate_thousandths: 880 }], 'a non-USD business starts with no IRS table and adds its own rate')
   assert.deepEqual(state.categories.map(c => c.name), ['Car', 'Meals', 'Office supplies', 'Travel'])
   assert.equal(state.members.find(m => m.email === 'sam@harbourfinch.example').approver_email, 'priya@harbourfinch.example')
   await h.post('settings/business', { name: 'Taken over', currency: 'AUD', timezone: 'Australia/Sydney', mileageRate: '1.00' }, t.morgan, 403)
   await h.post('settings/members', { email: 'sam@harbourfinch.example', name: 'Sam', employee: true, finance: true }, t.sam, 403)
+  await h.post('settings/mileage-rates', { effectiveFrom: '2026-01-01', rate: '2.00' }, t.jordan, 403)
+  assert.equal((await h.get('state')).business.mileage_rates[0].rate_thousandths, 880, 'refused writes changed nothing')
   await h.post('settings/members', { email: 'self@harbourfinch.example', name: 'Self', employee: true, approver: 'self@harbourfinch.example' }, h.owner, 400)
   await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'AUDX', timezone: 'Australia/Sydney', mileageRate: '0.88' }, h.owner, 400)
   await claim(h, t.sam, 'First', [])
@@ -298,3 +300,47 @@ test('COA-011 the Expensify move-in kit previews without writing, imports exactl
   assert.equal(again.job.state, 'completed', 'the same file imports again after an undo')
   assert.equal((await h.get('import')).history.filter(r => r.kind === 'report').length, 3)
 }))
+
+test('LOCALE-001 a new business starts on US defaults: USD, a US zone, IRS mileage by trip date, the $75/lodging rule and sales tax on its own line', async () => {
+  const h = await harness()
+  try {
+    await h.post('settings/business', { name: 'Tallgrass Outdoor Co.', timezone: 'America/Chicago', perDiem: '' })
+    let { business } = await h.get('state')
+    assert.equal(business.currency, 'USD'); assert.equal(business.timezone, 'America/Chicago'); assert.equal(business.receipt_threshold_minor, 7500)
+    assert.deepEqual(business.mileage_rates.slice(-2), [{ effective_from: '2025-01-01', rate_thousandths: 700 }, { effective_from: '2026-01-01', rate_thousandths: 725 }], 'seeded with the IRS standard business rate for each year')
+    const category = async (name, extra = {}) => (await h.post('settings/categories', { name, accountCode: '6000', taxCode: 'TAX', ...extra })).id
+    const c = { lodging: await category('Lodging', { receiptAlways: false }), meals: await category('Meals'), car: await category('Mileage', { taxCode: 'NON' }) }
+    assert.deepEqual((await h.get('state')).categories.map(x => [x.name, x.receipt_always]), [['Lodging', 1], ['Meals', 0], ['Mileage', 0]], 'lodging always needs a receipt')
+    const dana = await h.person('dana@tallgrass.example', { employee: true, manager: true })
+    const jordan = await h.person('jordan@tallgrass.example', { employee: true, finance: true }, 'dana@tallgrass.example')
+    const taxed = { kind: 'receipt', date: '2026-01-05', merchant: 'Office Depot', amount: '107.25', salesTax: '7.25', allocations: [{ category: c.meals }], receiptFixture: 'officeworks' }
+    const early = await h.post('claims', { title: 'Too early' }, jordan)
+    await h.post(`claims/${early.id}/items`, { version: early.version, ...taxed, receiptFixture: undefined }, jordan, 400)
+    await h.post('settings/business', { name: 'Tallgrass Outdoor Co.', timezone: 'America/Chicago', perDiem: '', salesTaxAccount: '2200', salesTaxCode: 'TAX' })
+    business = (await h.get('state')).business
+    assert.equal(business.receipt_threshold_minor, 7500, 'saving again keeps the threshold')
+    await h.post(`claims/${early.id}/items`, { version: early.version, ...taxed, allocations: [{ category: c.meals, amount: '107.25' }], receiptFixture: undefined }, jordan, 400)
+    const d = await claim(h, jordan, 'Omaha trip', [
+      { kind: 'mileage', date: '2025-12-30', merchant: 'Kansas City to Omaha', distance: '186', allocations: [{ category: c.car }] },
+      { kind: 'mileage', date: '2026-01-02', merchant: 'Omaha to Kansas City', distance: '186', allocations: [{ category: c.car }] },
+      { kind: 'receipt', date: '2026-01-02', merchant: 'Corner Cafe', amount: '60.00', allocations: [{ category: c.meals }] },
+      { kind: 'receipt', date: '2026-01-02', merchant: 'Steakhouse', amount: '80.00', allocations: [{ category: c.meals }] },
+      { kind: 'receipt', date: '2026-01-01', merchant: 'Hampton Inn', amount: '50.00', allocations: [{ category: c.lodging }] },
+      taxed,
+    ])
+    assert.deepEqual(d.items.map(i => [i.rate_thousandths, i.amount_minor]).slice(0, 2), [[700, 13020], [725, 13485]], 'each trip at its year\'s IRS rate')
+    assert.deepEqual(d.exceptions.map(e => [d.items.find(i => i.id === e.item).merchant, e.message]), [['Steakhouse', 'No receipt for an expense over $75.00'], ['Hampton Inn', 'Lodging always needs a receipt']])
+    assert.equal(d.items[5].sales_tax_minor, 725); assert.equal(d.items[5].allocations[0].amount_minor, 10000)
+    let x = d.claim
+    for (const item of d.items.filter(i => d.exceptions.some(e => e.item === i.id)))
+      x = await h.post(`claims/${x.id}/items`, { version: x.version, item: item.id, kind: 'receipt', date: item.spent_on, merchant: item.merchant, amount: (item.amount_minor / 100).toFixed(2), allocations: [{ category: item.allocations[0].category_id }], explanation: 'Receipt lost' }, jordan)
+    x = await approve(h, dana, await h.post(`claims/${x.id}/submit`, { version: x.version }, jordan), { acknowledge: true })
+    const batch = await h.post('batches', { claims: [x.id] }, jordan)
+    await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: x.total_minor }, h.owner)
+    const csv = (await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, h.owner)).text
+    assert.match(csv, /"Office Depot","","receipt","Meals","6000","TAX","","100.00"/); assert.match(csv, /"Office Depot","","receipt","Sales tax","2200","TAX","","7.25"/)
+    assert.equal(sum(csv, 'amount'), x.total_minor, 'the sales tax line keeps the export equal to the batch total')
+    await h.post('settings/mileage-rates', { effectiveFrom: '2027-01-01', rate: '0.75' })
+    assert.equal((await h.get('state')).business.mileage_rates.at(-1).rate_thousandths, 750, 'the owner adds next year\'s rate')
+  } finally { await h.close() }
+})

@@ -3,6 +3,7 @@ import { claimItems, claimNumber, insertItem } from './coaster/claims';
 import { batchNumber } from './coaster/batches';
 import { exactKey, findExceptions } from './coaster/exceptions';
 import { itemInput, type Category } from './coaster/items';
+import { IRS_MILEAGE_RATES, seedIrsRates } from './coaster/mileage';
 import { sha256Hex } from './coaster/session';
 import { business, batches, categories, claims, firstClaimNumber, ownerApprover, ownerName, people, proposal, signIns, type DemoClaim, type Expense, type Person } from './demo-data';
 import { receiptPdf } from './demo-receipt';
@@ -36,8 +37,8 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   const email = (p: Person) => p === 'owner' ? ownerAddress : people[p].email;
   const owner = await db.prepare('SELECT id FROM oa_operators WHERE lower(email)=? AND role=\'owner\'').bind(ownerAddress).first<{ id: string }>();
   if (!owner) throw new Error('The demo owner does not exist yet');
-  const policy = { name: business.name, currency: business.currency, timezone: business.timezone, mileage_rate_thousandths: business.mileageRateThousandths, per_diem_minor: business.perDiemMinor, receipt_threshold_minor: business.receiptThresholdMinor };
-  const known: Category[] = categories.map(c => ({ id: c.id, name: c.name, account_code: c.account, tax_code: c.tax, limit_minor: c.limitMinor, active: 1 }));
+  const policy = { name: business.name, currency: business.currency, timezone: business.timezone, per_diem_minor: business.perDiemMinor, receipt_threshold_minor: business.receiptThresholdMinor, sales_tax_account: '', sales_tax_code: '', mileage_rates: IRS_MILEAGE_RATES };
+  const known: Category[] = categories.map(c => ({ id: c.id, name: c.name, account_code: c.account, tax_code: c.tax, limit_minor: c.limitMinor, active: 1, receipt_always: +(c.id === 'demo-cat-lodging') }));
   const raw = (e: Expense) => ({ kind: e.kind, date: date(e.day), merchant: e.merchant, description: e.description, explanation: e.explanation,
     amount: e.kind === 'receipt' ? e.amount : undefined, distance: e.kind === 'mileage' ? e.miles : undefined, days: e.kind === 'per_diem' ? e.days : undefined,
     allocations: e.split ? e.split.map(([category, costCentre, amount]) => ({ category: `demo-cat-${category}`, costCentre, amount })) : [{ category: `demo-cat-${e.category}`, costCentre: e.costCentre }] });
@@ -55,8 +56,9 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   if (!await db.prepare('SELECT 1 FROM c_business WHERE id=1').first()) {
     const setup: D1PreparedStatement[] = [
       db.prepare('UPDATE oa_operators SET display_name=? WHERE id=?').bind(ownerName, owner.id),
-      db.prepare('INSERT INTO c_business(id,name,currency,timezone,mileage_rate_thousandths,per_diem_minor,receipt_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(business.name, business.currency, business.timezone, business.mileageRateThousandths, business.perDiemMinor, business.receiptThresholdMinor, at(31)),
-      ...known.map(c => db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active) VALUES(?,?,?,?,?,1) ON CONFLICT DO NOTHING').bind(c.id, c.name, c.account_code, c.tax_code, c.limit_minor)),
+      db.prepare('INSERT INTO c_business(id,name,currency,timezone,per_diem_minor,receipt_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(business.name, business.currency, business.timezone, business.perDiemMinor, business.receiptThresholdMinor, at(31)),
+      ...seedIrsRates(db),
+      ...known.map(c => db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always) VALUES(?,?,?,?,?,1,?) ON CONFLICT DO NOTHING').bind(c.id, c.name, c.account_code, c.tax_code, c.limit_minor, c.receipt_always)),
       db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,1,1,1,?,1,?) ON CONFLICT DO NOTHING').bind(ownerAddress, ownerName, people[ownerApprover].email, at(31)),
       ...Object.values(people).map(p => db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(p.email, p.name, +p.employee, +p.manager, +p.finance, p.approver && email(p.approver), +p.active, at(31))),
       // Jordan, Dana and Ruth sign in as themselves from the demo's sign-in page (one-click, as invited people do).

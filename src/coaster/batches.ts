@@ -119,7 +119,10 @@ export async function batchLines(db: D1Database, id: string) {
     const snapshot = JSON.parse(row.snapshot);
     for (const item of snapshot.items) {
       const flags = snapshot.exceptions.filter((e: Data) => e.item === item.id).map((e: Data) => e.code).join(' ');
-      for (const part of item.allocations) lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: item.description, kind: item.kind, category: part.category_name, account: part.account_code, tax: part.tax_code, costCentre: part.cost_centre, amountMinor: part.amount_minor, receipt: item.receipt?.sha256 ?? '', exceptions: flags, explanation: flags ? item.explanation : '', approver: row.approver, approvedAt: row.approved_at });
+      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number) => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: item.description, kind: item.kind, category, account, tax, costCentre, amountMinor, receipt: item.receipt?.sha256 ?? '', exceptions: flags, explanation: flags ? item.explanation : '', approver: row.approver, approvedAt: row.approved_at });
+      for (const part of item.allocations) line(part.category_name, part.account_code, part.tax_code, part.cost_centre, part.amount_minor);
+      // A receipt's sales tax posts on its own line to the sales tax account and code copied onto the expense.
+      if (item.sales_tax_minor) line('Sales tax', item.sales_tax_account, item.sales_tax_code, '', item.sales_tax_minor);
     }
     const person = people.get(row.employee_email) ?? { email: row.employee_email, name: row.employee_name ?? row.employee_email, claims: [] as string[], amountMinor: 0 };
     person.claims.push(claimNumber(row.number)); person.amountMinor += row.amount_minor;

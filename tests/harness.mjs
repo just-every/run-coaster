@@ -58,7 +58,8 @@ export async function harness() {
 
 /** The synthetic Harbour & Finch Studio: business, categories and a small team with managers and finance. */
 export async function agency(h) {
-  await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', mileageRate: '0.88', perDiem: '75.00', receiptThreshold: '' })
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', perDiem: '75.00', receiptThreshold: '' })
+  await h.post('settings/mileage-rates', { effectiveFrom: '2026-01-01', rate: '0.88' })
   const category = async (name, accountCode, taxCode, limit) => (await h.post('settings/categories', { name, accountCode, taxCode, limit })).id
   const c = { meals: await category('Meals', '6300', 'GST', '120.00'), travel: await category('Travel', '6200', 'GST'), car: await category('Car', '6400', 'GST Free'), office: await category('Office supplies', '6500', 'GST') }
   const priya = await h.person('priya@harbourfinch.example', { employee: true, manager: true })

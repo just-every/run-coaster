@@ -18,8 +18,9 @@ export async function findExceptions(db: D1Database, claim: { id: string; employ
   const found: PolicyException[] = [];
   const byId = new Map(known.map(c => [c.id, c]));
   for (const item of items) {
-    if (item.kind === 'receipt' && !item.receipt_id && item.amount_minor > business.receipt_threshold_minor)
-      found.push({ item: item.id, code: 'missing-receipt', message: business.receipt_threshold_minor ? `No receipt for an expense over ${money(business.receipt_threshold_minor, business.currency)}` : 'No receipt attached' });
+    const always = item.allocations.map(part => byId.get(part.category_id)).find(c => c?.receipt_always);
+    if (item.kind === 'receipt' && !item.receipt_id && (always || item.amount_minor > business.receipt_threshold_minor))
+      found.push({ item: item.id, code: 'missing-receipt', message: always ? `${always.name} always needs a receipt` : business.receipt_threshold_minor ? `No receipt for an expense over ${money(business.receipt_threshold_minor, business.currency)}` : 'No receipt attached' });
     // A category's limit applies to the expense's whole amount in it, however many parts it is split into.
     const perCategory = new Map<string, number>();
     for (const part of item.allocations) perCategory.set(part.category_id, (perCategory.get(part.category_id) ?? 0) + part.amount_minor);

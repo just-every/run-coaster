@@ -4,7 +4,7 @@
 // signs in to the demo, who plays Megan Ortiz, the finance and operations lead. Jordan Pike's Denver client trip is
 // the homepage's claim (C-1186 there, CL-1186 here): his two out-of-pocket receipts, $448.80, paid by ACH.
 
-export const business = { name: 'Tallgrass Outdoor Co.', currency: 'USD', timezone: 'America/Chicago', mileageRateThousandths: 725, perDiemMinor: 6800, receiptThresholdMinor: 7500 };
+export const business = { name: 'Tallgrass Outdoor Co.', currency: 'USD', timezone: 'America/Chicago', perDiemMinor: 6800, receiptThresholdMinor: 7500 };
 export const ownerName = 'Megan Ortiz';
 /** Claim numbers continue the business's own sequence, so Jordan's trip is CL-1186 as on the homepage. */
 export const firstClaimNumber = 1184;

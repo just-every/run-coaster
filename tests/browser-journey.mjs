@@ -32,7 +32,8 @@ export async function api(context, origin, path, body) {
 
 /** The synthetic Harbour & Finch Studio: policy, categories and three dev personas with roles. */
 export async function setUp(owner, origin) {
-  await api(owner.context, origin, 'settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', mileageRate: '0.88', perDiem: '', receiptThreshold: '' })
+  await api(owner.context, origin, 'settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', perDiem: '', receiptThreshold: '' })
+  await api(owner.context, origin, 'settings/mileage-rates', { effectiveFrom: '2000-01-01', rate: '0.88' })
   for (const [name, accountCode, taxCode, limit] of [['Meals', '6300', 'GST', '120.00'], ['Travel', '6200', 'GST', ''], ['Car', '6400', 'GST Free', ''], ['Office supplies', '6500', 'GST', '']])
     await api(owner.context, origin, 'settings/categories', { name, accountCode, taxCode, limit })
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.manager, name: 'Priya Nair', employee: true, manager: true })
@@ -89,7 +90,7 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     await page.getByRole('heading', { name: title }).waitFor()
     await addExpense(page, { merchant: 'Harbour View Bistro', amount: plan.bistro, category: 'Meals', receipt: await variant('bistro', width) })
     await addExpense(page, { merchant: 'Rockpool Dining', amount: plan.rockpool, category: 'Meals', receipt: await variant('hotel', width), explanation: 'Client dinner for four, agreed with Priya' })
-    await addExpense(page, { kind: 'Mileage at AUD 0.88 per mile', merchant: 'Studio to client', distance: plan.km, category: 'Car' })
+    await addExpense(page, { kind: 'Mileage at the rate for its date', merchant: 'Studio to client', distance: plan.km, category: 'Car' })
     await page.getByText('Over the Meals limit of AUD 120.00').waitFor()
     await page.getByRole('button', { name: 'Submit for approval' }).click()
     await page.locator('.detail .badge', { hasText: 'Submitted' }).waitFor()

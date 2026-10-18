@@ -17,7 +17,7 @@ export async function validateCoasterArchive(read) {
   }
   for (const item of items) {
     check(claimIds.has(item.claim_id), 'item_claim');
-    check(allocations.filter(a => a.item_id === item.id).reduce((n, a) => n + a.amount_minor, 0) === item.amount_minor, 'item_split');
+    check(allocations.filter(a => a.item_id === item.id).reduce((n, a) => n + a.amount_minor, 0) === item.amount_minor - (item.sales_tax_minor ?? 0), 'item_split');
   }
   for (const a of allocations) check(itemIds.has(a.item_id), 'allocation_item');
   for (const r of receipts) {
