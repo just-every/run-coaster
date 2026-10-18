@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 14 done, 23 partial, 66 missing.** Statuses describe `main` at `2d12e42cea8d82cbc1cb880eca53577608ec246b`; new target clauses are build
+**103 clauses: 14 done, 24 partial, 65 missing.** Statuses describe `main` at `2d12e42cea8d82cbc1cb880eca53577608ec246b`; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -227,7 +227,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **INTEG-001 — Travel booking context. Status: missing.** Forward a TravelPerk confirmation and import a Navan trip through its API sandbox; see trips with dates and locations, matching card charges grouped under them and per diem prefilled. Open scope: No travel tool connection.
 
-- **SIBLING-001 — Handoffs to neighboring products. Status: missing.** With test installations of each sibling, run each handoff once; hand a supplier invoice to Purse and see it leave the claim with a link; break one sibling's connection and see the failure owned in Coaster. Open scope: No sibling product handoffs.
+- **SIBLING-001 — Handoffs to neighboring products. Status: partial.** With test installations of each sibling, run each handoff once; hand a supplier invoice to Purse and see it leave the claim with a link; break one sibling's connection and see the failure owned in Coaster. Existing evidence: `src/auth.server.ts`; `src/modules/dependencies/auth.mjs` (Auth OIDC sign-in dependency). Open scope: No Pantry, Purse, Willow, Gauge, Nook or Crank handoffs, or tested cross-product outcome and failure journeys.
 
 - **AUDIT-001 — Append-only history of every action. Status: partial.** Perform one action of each kind through its public door, read the history and see each line in order; try to alter or delete a line through every route and see refusal; export, restore and see identical history. Existing evidence: `src/coaster/events.ts`; `tests/coaster.test.mjs` (COA-007); `tests/browser.mjs` (archive section). Open scope: Append-only numbered history covers settings, claims, decisions, batches, agent keys and imports and survives restore; provider, payment and sync actions do not exist yet.
 

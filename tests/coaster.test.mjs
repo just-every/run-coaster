@@ -100,6 +100,16 @@ test('COA-004 policy exceptions need an explanation and stay visible to the mana
   assert.deepEqual(split.exceptions.map(e => e.message), ['Over the Meals limit of AUD 120.00'], 'splitting one expense within a category never slips under its limit')
   await submit(h, t.sam, split).catch(() => {})
   assert.equal((await h.get(`claims/${split.claim.id}`, t.sam)).claim.status, 'draft', 'the over-limit split still needs an explanation')
+  const lunches = await claim(h, t.sam, 'Two lunches', [
+    { kind: 'receipt', date: '2026-05-06', merchant: 'Rockpool', amount: '45.00', allocations: [{ category: t.c.meals }], receiptFixture: 'uber' },
+    { kind: 'receipt', date: '2026-05-06', merchant: ' rockpool ', amount: '45.00', allocations: [{ category: t.c.meals }], receiptFixture: 'officeworks' },
+  ])
+  assert.deepEqual(lunches.exceptions.map(e => [e.code, e.message]), [0, 1].map(() => ['possible-duplicate', 'Same date, merchant and amount as another expense in this claim']), 'distinct receipts with the same date, merchant and amount on one claim are flagged')
+  await submit(h, t.sam, lunches).catch(() => {})
+  assert.equal((await h.get(`claims/${lunches.claim.id}`, t.sam)).claim.status, 'draft', 'the possible duplicates need explanations')
+  let l = lunches.claim
+  for (const item of lunches.items) l = await h.post(`claims/${l.id}/items`, { version: l.version, item: item.id, kind: 'receipt', date: item.spent_on, merchant: item.merchant, amount: '45.00', receipt: item.receipt_id, allocations: [{ category: t.c.meals }], explanation: 'Two separate client lunches that day' }, t.sam)
+  assert.equal((await h.post(`claims/${l.id}/submit`, { version: l.version }, t.sam)).status, 'submitted', 'a possible duplicate is explained, not blocked')
 }))
 
 test('COA-005 an exact duplicate expense can never be reimbursed twice', () => withAgency(async (h, t) => {

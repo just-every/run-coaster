@@ -381,16 +381,16 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Published | 12 | 1 | 0 | 13 |
+| Published | 13 | 0 | 0 | 13 |
 | Target and push further | 1 | 24 | 65 | 90 |
-| All | 13 | 25 | 65 | 103 |
+| All | 14 | 24 | 65 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
 | `COA-001` | Business, categories and people set by the owner | published | done | `src/coaster/settings.ts`; `tests/coaster.test.mjs` (COA-001) |  |
 | `COA-002` | Receipt, mileage and per-diem expenses with receipt provenance | published | done | `src/coaster/claims.ts`; `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002) |  |
 | `COA-003` | Exact splits across categories and cost centers | published | done | `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-003) |  |
-| `COA-004` | Policy exceptions explained, acknowledged and carried to the books | published | partial | `src/coaster/exceptions.ts`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-004) | Same-date, merchant and amount expenses within one claim are not flagged when they have distinct receipts; same-claim detection covers repeated receipt bytes and receipt-less exact duplicates only. |
+| `COA-004` | Policy exceptions explained, acknowledged and carried to the books | published | done | `src/coaster/exceptions.ts`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-004) |  |
 | `COA-005` | An exact duplicate is never reimbursed twice | published | done | `src/coaster/exceptions.ts`; `src/coaster/batches.ts`; `tests/coaster.test.mjs` (COA-005) |  |
 | `COA-006` | The assigned approver decides the exact submitted revision | published | done | `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-006) |  |
 | `COA-007` | Corrections never erase evidence | published | done | `src/coaster/claims.ts`; `src/coaster/events.ts`; `tests/coaster.test.mjs` (COA-007) |  |
