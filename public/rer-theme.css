@@ -121,6 +121,9 @@
   --paper-grid: linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 64px 64px, #ffffff;
 }
 
+/* The product name wherever Base or the app sets it ("Coaster Dev", "Coaster Demo") keeps an open word space in its tight tracking. */
+[data-rer-name] { word-spacing: .16em; }
+
 /* Sign-in, confirmation and first-run setup: one white card on the grid paper, the lockup centred, the ink pill. */
 html.rer-themed { min-height: 100%; background: var(--app-grid); background-attachment: fixed; }
 html.rer-themed body { background: none; color: var(--ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }

@@ -53,8 +53,13 @@ try {
   assert.equal((await fetch(server.origin + '/health')).status, 200)
   assert.equal((await fetch(server.origin + '/api/coaster/state')).status, 401)
   await server.close(); server = undefined
-  // Deploy refuses an installation whose owner cannot sign in; this owner has configured Resend (deploy.json).
-  await command(root, ['deploy', '--dry-run'], { env: { MAIL_API_KEY: 'synthetic-test-mail-api-key' } })
+  // Deploy refuses an installation whose owner cannot sign in; this owner has configured Resend (deploy.json). The dry
+  // run builds and checks everything local, then, with no Cloudflare credentials, refuses rather than claim it read the
+  // target's secrets (rer 0.2.58): what it still needs is only those credentials, never the owner's sign-in mail.
+  const dry = await command(root, ['deploy', '--dry-run'], { expected: 3, env: { MAIL_API_KEY: 'synthetic-test-mail-api-key' } })
+  assert.match(dry, /Your application is built/)
+  assert.match(dry, /cannot read the target secret bindings without Cloudflare credentials/)
+  assert.doesNotMatch(dry.slice(dry.indexOf('Needed for a real deploy')), /sign-in mail|MAIL_API_KEY/)
   const archive = join(evidence, 'installation.rer')
   await rm(archive, { force: true })
   await command(root, ['export', '--output', 'exports/installation.rer'])

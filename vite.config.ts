@@ -3,6 +3,7 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { archiveOutputGuard } from '@runeditrun/rer/archive-output'
+import { seedIcons } from '@runeditrun/rer/seed-icons'
 import { demoSockets } from './src/modules/demo/vite.mjs'
 
 // Only `vite dev` loads the local-only entry and the checkout's dev key; a build
@@ -15,4 +16,4 @@ const serve = { main: './src/server.dev.ts', vars: { ...local('RER_DEV_ORIGIN'),
 // key, installer state), export archives, settings or local data.
 const server = { fs: { allow: ['src', 'public', 'node_modules', 'deploy-site.json'], deny: ['**/.rer/**', '**/.seed/**', '**/exports/**', '**/*.rer'] } }
 
-export default defineConfig(({ command, isPreview }) => ({ server, plugins: [demoSockets(), cloudflare({ inspectorPort: false, viteEnvironment: { name: 'ssr' }, persistState: { path: process.env.RER_STATE_DIR ?? '.wrangler/state' }, ...(command === 'serve' && !isPreview ? { config: serve } : process.env.RER_DEV_ORIGIN ? { config: { vars: local('RER_DEV_ORIGIN') } } : {}) }), tanstackStart(), react(), archiveOutputGuard()] }))
+export default defineConfig(({ command, isPreview }) => ({ server, plugins: [seedIcons(), demoSockets(), cloudflare({ inspectorPort: false, viteEnvironment: { name: 'ssr' }, persistState: { path: process.env.RER_STATE_DIR ?? '.wrangler/state' }, ...(command === 'serve' && !isPreview ? { config: serve } : process.env.RER_DEV_ORIGIN ? { config: { vars: local('RER_DEV_ORIGIN') } } : {}) }), tanstackStart(), react(), archiveOutputGuard()] }))
