@@ -14,14 +14,14 @@ export function Read() {
         <div className="rd-sheet print" aria-hidden="true">
           <p className="rd-name">Blake Street Hotel</p>
           <p>Denver, CO</p>
-          <p className="rd-field"><span>Guest:</span><mark>Jordan Pike <Tick /></mark></p>
-          <p className="rd-field"><span>Arrive</span><mark>Tue Oct 6 · Depart Thu Oct 8 <Tick /></mark></p>
+          <p className="rd-field"><span>Guest:</span><mark><span>Jordan Pike <Tick /></span></mark></p>
+          <p className="rd-field"><span>Arrive</span><mark><span>Tue Oct 6 · Depart Thu Oct 8 <Tick /></span></mark></p>
           <ul className="rd-lines">
             {LINES.map(([day, what, amount], i) => <li key={i}><span className="rd-day">{day}</span><mark><span>{what}</span><span>{amount} <Tick /></span></mark></li>)}
           </ul>
           <svg className="rd-brackets" viewBox="0 0 60 150" aria-hidden="true"><path d="M2 8h14v74H2M24 44h14v74H24" /></svg>
-          <p className="rd-total"><mark><span>Balance</span><b>$412.80 <Tick /></b></mark></p>
-          <p className="rd-paid"><mark>Paid Visa ••4417 <Tick /></mark></p>
+          <p className="rd-total"><mark><span>Balance</span><b><span>$412.80 <Tick /></span></b></mark></p>
+          <p className="rd-paid"><mark><span>Paid Visa ••4417 <Tick /></span></mark></p>
           <p className="rd-page">Page 1 of 2</p>
         </div>
       </div>

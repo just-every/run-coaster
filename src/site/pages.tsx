@@ -7,11 +7,13 @@ import { identity } from '../identity';
 import { DocsArticle } from './docs/DocsArticle';
 import { DocsIndex } from './docs/DocsIndex';
 import { docsLead, docsPages } from './docs/pages';
+import { keepWhole } from './landing/keep-whole';
 import { Landing } from './landing/Landing';
 import { run } from './run';
 
-// Code cards get their Copy button only when script runs; without it the command is still there to select.
-const COPY = "document.querySelectorAll('.docs-copy').forEach(b=>{b.hidden=false;b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(b.closest('.docs-code').querySelector('code').textContent);b.textContent='Copied';setTimeout(()=>{b.textContent='Copy'},1600)}catch{}})})";
+// Code cards get their Copy button only when script runs; without it the command is still there to select. A card
+// whose shown code carries a prompt or comment names the exact command in data-copy.
+const COPY = "document.querySelectorAll('.docs-copy').forEach(b=>{b.hidden=false;b.addEventListener('click',async()=>{const c=b.closest('[data-copy]');try{await navigator.clipboard.writeText(c?c.dataset.copy:b.closest('.docs-code').querySelector('code').textContent);b.textContent='Copied';setTimeout(()=>{b.textContent='Copy'},1600)}catch{}})})";
 
 const SHARE_IMAGE = `${identity.runSite}/site/share.jpg`;
 
@@ -19,7 +21,7 @@ const SHARE_IMAGE = `${identity.runSite}/site/share.jpg`;
  * The run site (run-coaster.com), written by `rer build --site`: the homepage, whose Run Coaster opens the Run page at
  * `/run`; the docs at `/docs` and `/docs/<slug>`, rendered from the repository's docs/*.md; `/contract`, rendered from
  * CONTRACT.md; and the not-found page. Every page is static and links to no instance-only route; only the docs pages
- * carry a script, for Copy.
+ * and the homepage carry a script, for Copy.
  */
 export function sitePages({ styles, contract }: SiteContext): SiteBuild {
   const document = (title: string, description: string, body: ReactElement, script = '') => '<!doctype html>' + renderToStaticMarkup(
@@ -39,7 +41,7 @@ export function sitePages({ styles, contract }: SiteContext): SiteBuild {
         <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
-        <link rel="icon" type="image/svg+xml" href="/brand/favicon-32.svg" />
+        <link rel="icon" type="image/svg+xml" href="/favicon-32.svg" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         {fontLinks.map(link => <link key={link.href} {...link} />)}
         <link rel="stylesheet" href={identity.theme} />
@@ -50,13 +52,13 @@ export function sitePages({ styles, contract }: SiteContext): SiteBuild {
   );
   return {
     pages: [
-      { path: '/', html: document('Coaster: snap the receipt, Coaster does the rest', 'Free, open source expense management: receipts read, cards matched, approvals chased, employees paid by ACH and the books synced. An alternative to Expensify, SAP Concur and Emburse.', <Landing />) },
+      { path: '/', html: keepWhole(document('Coaster: snap the receipt, Coaster does the rest', 'Free, open source expense management: receipts read, cards matched, approvals chased, employees paid by ACH and the books synced. An alternative to Expensify, SAP Concur and Emburse.', <Landing />, COPY)) },
       { path: '/run', html: runPageHtml(identity, run, contract) },
       ...(contract ? [{ path: '/contract', html: contractPageHtml(identity, run, contract) }] : []),
       { path: '/docs', html: document('Docs · Coaster', docsLead, <DocsIndex />) },
       ...docsPages.map(page => ({ path: `/docs/${page.slug}`, html: document(`${page.title} · Coaster docs`, page.summary, <DocsArticle slug={page.slug} />, COPY) })),
       { path: '/404', html: siteNotFoundHtml(identity, run, contract) },
     ],
-    assets: ['rer-theme.css', 'fonts', 'brand', 'site', 'favicon.ico', 'apple-touch-icon.png'],
+    assets: ['rer-theme.css', 'fonts', 'brand', 'site', 'favicon.ico', 'favicon-32.svg', 'favicon-32.png', 'apple-touch-icon.png'],
   };
 }

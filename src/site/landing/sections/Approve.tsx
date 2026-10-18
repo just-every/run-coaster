@@ -15,7 +15,7 @@ export function Approve() {
           <p className="ap-claim"><b>Jordan Pike</b><span className="sep">·</span><b>Denver client trip</b><span className="sep">·</span>Oct 6–8<span className="sep">·</span>C-1186</p>
           <p className="quiet">$907.75<span className="sep">·</span>5 expenses<span className="sep">·</span>$448.80 to reimburse</p>
         </div></div>
-        <p className="ap-rule"><Dot />Lyft $38.60<span className="sep">·</span>approved by rule <Tick /></p>
+        <p className="ap-rule"><Dot /><span>Lyft $38.60<span className="sep">·</span>approved by rule <Tick /></span></p>
         <p className="ap-exception"><Dot tone="alert" /><span><b>1 exception, explained:</b> Lodging $179/night over the $175 cap</span></p>
         <p className="ap-quote">“Jordan: Closest hotel to Pikes Trail; lowest rate that week.”</p>
         <p className="ap-buttons"><span className="btn-kelly">Approve</span><span className="btn-line">Hold</span><span className="btn-line">Open</span><Cursor who="Dana" className="ap-cur-dana" /></p>

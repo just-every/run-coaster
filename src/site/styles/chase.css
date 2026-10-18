@@ -24,7 +24,7 @@
 .ch-note { display: block; font-size: calc(16.5 * var(--p)); }
 .ch-more { width: fit-content; padding: calc(18 * var(--p)) calc(4 * var(--p)) calc(16 * var(--p)); color: #4b5260; font-size: calc(19 * var(--p)); }
 .ch-foot { display: grid; grid-template-columns: calc(758 * var(--p)) calc(378 * var(--p)); gap: calc(18 * var(--p)); align-items: center; }
-.ch-schedule { display: flex; align-items: center; gap: calc(18 * var(--p)); padding: calc(18 * var(--p)) calc(20 * var(--p)); border: 1px solid var(--line); border-radius: calc(12 * var(--p)); background: var(--row); color: #4b5260; font-size: calc(16 * var(--p)); white-space: nowrap; letter-spacing: -.01em; }
+.ch-schedule { display: flex; align-items: center; gap: calc(14 * var(--p)); padding: calc(18 * var(--p)) calc(16 * var(--p)); border: 1px solid var(--line); border-radius: calc(12 * var(--p)); background: var(--row); color: #4b5260; font-size: calc(15 * var(--p)); white-space: nowrap; letter-spacing: -.015em; }
 .ch-schedule .icon { width: calc(28 * var(--p)); height: calc(28 * var(--p)); }
 .ch-closed { display: flex; align-items: center; gap: calc(16 * var(--p)); padding: calc(18 * var(--p)) calc(20 * var(--p)); rotate: -3deg; font-size: calc(18.5 * var(--p)); white-space: nowrap; letter-spacing: -.015em; box-shadow: var(--shadow-float); }
 .ch-closed .dot { width: calc(52 * var(--p)); height: calc(52 * var(--p)); }
@@ -47,10 +47,9 @@
   .ch-sticky { position: relative; right: auto; bottom: auto; margin: 22px 0 0 auto; }
   .chs-2 { display: none; }
 }
-/* Phones: each chased charge is one block, its labels beside the values. */
-@media (max-width: 760px) {
-  .ch-top { grid-template-columns: minmax(0, 1fr); }
-  .chs-1 { display: none; }
+/* Below 860 px the six columns no longer fit with whole dates: each chased charge becomes one block, its labels beside
+   the values. */
+@media (max-width: 860px) {
   .ch-table { padding: 22px 16px 34px; }
   .ch-table thead { display: none; }
   .ch-table table, .ch-table tbody, .ch-table tr, .ch-table td { display: block; }
@@ -60,6 +59,11 @@
   .ch-table td:nth-child(5) { flex-wrap: wrap; }
   .ch-note { flex-basis: 100%; padding-left: 98px; font-size: 14px; }
   .ch-table .pill { font-size: 15px; }
+}
+/* Phones. */
+@media (max-width: 760px) {
+  .ch-top { grid-template-columns: minmax(0, 1fr); }
+  .chs-1 { display: none; }
   .ch-schedule { align-items: flex-start; font-size: 15px; }
   .ch-closed { font-size: 16px; rotate: -1.5deg; }
   .ch-cur { right: 6px; bottom: -16px; }

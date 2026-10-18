@@ -15,7 +15,7 @@ export function TripMap() {
       <Spark className="mps-1" turn={-80} /><Spark className="mps-2" turn={30} />
       <div className="mp-mascot" aria-hidden="true"><Mark /><span className="mp-shadow" /></div>
       <Connector className="mpk" w={140} h={50} d="M4 26C40 2 96 2 132 34" head="M118 32l14 2 0-14" />
-      <p className="card mp-tag" id="map-tag">Denver client trip<span className="sep">·</span>Oct 6–8<span className="sep">·</span>5 receipts<span className="sep">·</span>$907.75<span className="sep">·</span>paid <Tick /></p>
+      <p className="card mp-tag" id="map-tag"><span>Denver client trip<span className="sep">·</span>Oct 6–8<span className="sep">·</span>5 receipts<span className="sep">·</span>$907.75<span className="sep">·</span>paid <Tick /></span></p>
       <div className="card mp-card">
         <div className="mp-map" role="img" aria-label="Map of Colorado, Kansas and Missouri: the route from Denver International (DEN) to Kansas City International (MCI), with Union Station Grill, Blake Street Hotel and Pikes Trail Supply at Denver and MCI Economy Parking at Kansas City.">
           <svg viewBox="0 0 1442 484" aria-hidden="true">

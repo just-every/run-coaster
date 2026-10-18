@@ -1,5 +1,5 @@
 /* Page 10: the close checklist at left, the copy and the tilted accrual card at right. */
-.sec-close { --h2: 64; --lead: 26; padding-top: 72px; }
+.sec-close { --h2: 60; --lead: 26; padding-top: 72px; }
 .cl-grid { display: grid; grid-template-columns: calc(834 * var(--p)) minmax(0, 1fr); gap: calc(54 * var(--p)); align-items: start; padding-left: calc(22 * var(--p)); }
 .cl-sheet { padding: calc(32 * var(--p)) calc(32 * var(--p)) calc(26 * var(--p)); border-radius: calc(26 * var(--p)); font-size: calc(18.5 * var(--p)); letter-spacing: -.01em; }
 .cl-title { font: 800 calc(39 * var(--p))/1.08 var(--font-head); font-stretch: 85%; letter-spacing: -.025em; }

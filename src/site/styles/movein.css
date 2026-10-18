@@ -4,7 +4,10 @@
 .mv-copy { padding-top: calc(108 * var(--p)); }
 .mv-copy .lead { margin-top: calc(40 * var(--p)); line-height: 1.45; color: #3d4450; }
 .mv-term { margin-top: calc(48 * var(--p)); padding: calc(16 * var(--p)) calc(22 * var(--p)) calc(24 * var(--p)); border-radius: calc(16 * var(--p)); background: #1d2025; color: #eef3ea; box-shadow: var(--shadow-float); }
+.mv-term { position: relative; }
 .mv-lights { display: flex; gap: calc(9 * var(--p)); }
+.mv-term .mv-copy-btn { position: absolute; top: calc(10 * var(--p)); right: calc(12 * var(--p)); min-height: 32px; padding: 0 14px; border: 1px solid rgba(238, 243, 234, .28); border-radius: 999px; background: transparent; color: #eef3ea; font: 600 14px/1 var(--font-body); cursor: pointer; }
+.mv-term .mv-copy-btn:hover { background: rgba(238, 243, 234, .12); }
 .mv-lights i { width: calc(15 * var(--p)); height: calc(15 * var(--p)); border-radius: 50%; background: #ff5f57; }
 .mv-lights i:nth-child(2) { background: #febc2e; }
 .mv-lights i:nth-child(3) { background: #28c840; }
@@ -30,8 +33,10 @@
 .mv-review { font-size: calc(15.5 * var(--p)); font-weight: 600; padding: calc(6 * var(--p)) calc(12 * var(--p)); }
 .mv-cutover { margin-top: calc(22 * var(--p)); padding: calc(16 * var(--p)) calc(20 * var(--p)); border-radius: 999px; background: #edf8e2; color: #155e2c; font-size: calc(18.5 * var(--p)); font-weight: 600; }
 .mv-preview li { position: relative; }
-.mv-cur { right: calc(-60 * var(--p)); top: calc(22 * var(--p)); }
-.mv-cur > span { font-size: calc(17 * var(--p)); }
+/* Megan's arrow points up at the review pill from the row below, in the space between that row's count and its check. */
+.mv-review-wrap { position: relative; display: inline-flex; }
+.mv-cur { left: calc(60 * var(--p)); top: calc(100% - 2 * var(--p)); }
+.mv-cur > span { font-size: calc(15 * var(--p)); }
 
 @media (max-width: 1199px) {
   .mv-grid { --p: .9375px; grid-template-columns: minmax(0, 1fr); gap: 40px; max-width: 700px; margin: 0 auto; padding: 0; }
@@ -39,14 +44,14 @@
   .mv-side .conn, .mv-side .spark { display: none; }
 }
 @media (max-width: 760px) {
-  .mv-term pre { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .mv-term pre { font-size: 14px; white-space: pre-wrap; }
   .mv-preview { padding: 20px 14px; }
   .mv-title { font-size: 24px; padding-left: 4px; }
   .mv-from { padding-left: 4px; }
   .mv-preview li { grid-template-columns: minmax(0, 1fr) auto auto; padding-left: 4px; font-size: 15px; }
   .mv-preview li:nth-child(5) { grid-template-columns: minmax(0, 1fr) auto; }
-  .mv-preview li:nth-child(5) .mv-review { grid-column: 1 / -1; justify-self: start; }
+  .mv-preview li:nth-child(5) .mv-review-wrap { grid-column: 1 / -1; justify-self: start; }
   .mv-cutover { border-radius: 14px; font-size: 15px; }
-  .mv-cur { right: auto; left: 200px; top: auto; bottom: -10px; }
+  .mv-cur { left: calc(100% + 2px); top: 2px; }
   .mv-preview li:nth-child(5) { padding-bottom: 14px; }
 }

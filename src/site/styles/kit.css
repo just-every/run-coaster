@@ -8,7 +8,8 @@
 
 /* Headings: eyebrow, the heavy two-line H2 (second line kelly to lime), and the lead. */
 .eyebrow { margin-bottom: 18px; color: #4b5260; font: 600 16px/1.3 var(--font-body); letter-spacing: .24em; text-transform: uppercase; }
-.head h2, .hero h1 { font: 850 80px/.98 var(--font-head); font-stretch: 80%; letter-spacing: -.035em; color: var(--ink); text-wrap: balance; }
+/* The tight tracking would close the word spaces up; word-spacing gives them back (about a quarter em, as the desk sets them). */
+.head h2, .hero h1 { font: 850 80px/.98 var(--font-head); font-stretch: 80%; letter-spacing: -.035em; word-spacing: .16em; color: var(--ink); text-wrap: balance; }
 /* Each section sets its heading and lead in the desk's own sizes (--h2, --lead in desk pixels). */
 .head h2 { font-size: calc(var(--h2, 86) * var(--p)); font-stretch: 77%; letter-spacing: -.04em; }
 @media (min-width: 1200px) { .head h2 > span { white-space: nowrap; } }
@@ -19,6 +20,9 @@
 .head-center h2 > span { margin-inline: auto; }
 .lead { margin-top: 22px; max-width: 36em; color: var(--body); font-size: 23px; line-height: 1.45; letter-spacing: -.005em; text-wrap: pretty; }
 .head-center .lead { margin-inline: auto; }
+
+/* Card titles in the heavy face keep the same open word spaces. */
+.ap-pay-title, .ch-card-title, .ch-table-title, .cl-title, .cl-accrual-title, .po-card-title, .mv-title { word-spacing: .14em; }
 
 /* Cards: white, a hairline and a soft shadow. */
 .card { position: relative; background: #fff; border: 1px solid var(--line); border-radius: calc(18 * var(--p)); box-shadow: var(--shadow-card); }

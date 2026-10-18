@@ -315,6 +315,66 @@ Current code is the distance to the target, not a limit on it. It runs one busin
 
 The commit the Status section was judged at is the `main` commit the `contract-target` branch is based on; the branch changes only CONTRACT.md and ACCEPTANCE.md, so its code is identical. The supplied code audit was taken at `9a9543c203ac20a177b3ad60bf11997a74fd1668`; since then main changed only Base sign-in, mail, demo and run-site files and nothing under `src/coaster`, `src/ui` or `tests`, so every row was re-read at the judged commit. `done` means the bounded clause has cited code and a public-door test; `partial` names the shipped subset in Evidence and what is open in Gap; `missing` means no implementation. Kind `published` marks the clauses of Coaster's released contract (COA-001 to COA-013), `target` the clauses this target contract adds and `push-further` the agent clauses under [Push further with agents](#push-further-with-agents). Citations were read, not re-run, in this documentation round.
 
+## Homepage claims
+
+Every capability claim the homepage (run-coaster.com, `src/site/landing/`) states or draws, mapped to the clauses that promise it and judged against this commit's code: `done` when the claimed form runs today, `partial` when a narrower form is in code and the rest is contract, `missing` when it is contract only. The homepage shows the product being built toward (owner, 17 October 2026); this table and the Status table show how far the code has come. `OWN` is the MIT licence and the public repository.
+
+**51 claims: 3 done, 11 partial, 37 missing.**
+
+| # | Section | Claim | Clause(s) | Status |
+| --- | --- | --- | --- | --- |
+| 1 | Hero | "Coaster reads every receipt" (Union Station Grill receipt "read ✓") | CAPTURE-003 | missing |
+| 2 | Hero | "matches it to the card charge" (Amex ••1008 "matched to receipt") | FEED-004 | missing |
+| 3 | Hero | "chases approvals" | FOLLOWUP-001 | missing |
+| 4 | Hero | "pays employees by ACH" | PAY-001 | missing |
+| 5 | Hero | "syncs it all to QuickBooks or Xero" (QuickBooks Online card) | ACCT-001, ACCT-002 | missing |
+| 6 | Hero | "100% free, open source alternative to Expensify, SAP Concur and Emburse" | OWN | done |
+| 7 | Hero | Slack: "Who was at the $101.95 dinner?" and "$33.98 a person · under $75" | AGENT-002, CLAIM-007, CAPTURE-006 | missing |
+| 8 | Hero, 06 | "Approved by Dana Kim … from Slack" | APPROVE-003 | partial |
+| 9 | Hero, 07 | ACH "returned R03 … Bank updated · resent … settled" | PAY-001, PAY-002 | missing |
+| 10 | 02 Trip | One claim from first receipt to paid back (C-1186, 5 receipts, $907.75) | COA-002, COA-006, COA-009 | partial |
+| 11 | 02, 03 | "Jordan never typed an amount!" | CAPTURE-003 | missing |
+| 12 | 03 Capture | Forwarded from Gmail, original message kept | CAPTURE-002 | missing |
+| 13 | 03 | Camera snaps of receipts | CAPTURE-001 | partial |
+| 14 | 03 | Hotel folio PDF dropped in Slack | CAPTURE-006 | missing |
+| 15 | 03 | Lyft Business receipt "arrived on its own" | CAPTURE-007 | missing |
+| 16 | 03 | Jordan's receipt inbox (Received / Reading / Read) | CAPTURE-004 | missing |
+| 17 | 03, 06 | "$179 a night is over the $175 cap. Why this hotel?" and the explained exception | COA-004, POLICY-001 | partial |
+| 18 | 03 | "add my Denver trip" builds draft claim C-1186 | AGENT-007, COA-010 | partial |
+| 19 | 04 Read | Two-page folio read as one stay: the balance, not night 1; room split from tax | CAPTURE-003, CLAIM-007 | missing |
+| 20 | 04 | Faded date marked unclear; Jordan's correction and the reading kept | CAPTURE-003 | missing |
+| 21 | 04 | Itemized Lodging · Room / Lodging · Tax | CLAIM-007, COA-003 | partial |
+| 22 | 05 Match | Amex daily file, 61 new charges, 58 matched | FEED-002, FEED-004 | missing |
+| 23 | 05 | Attendees added, per-person limit checked | CLAIM-007, AGENT-002 | missing |
+| 24 | 05 | Coding by rule, past coding and merchant category | CODE-002 | missing |
+| 25 | 05 | Card $458.95 · out of pocket $448.80 · claim $907.75 | FEED-004, FEED-006 | missing |
+| 26 | 05 | Submit inside Jordan's Slack thread (claim submitted 9:31 am) | COA-006, AGENT-007 | partial |
+| 27 | 06 Approve | Lyft "approved by rule" | APPROVE-004 | missing |
+| 28 | 06 | Friday reimbursements: 23 people, reviewed, Release | COA-009, PAY-004 | partial |
+| 29 | 06 | Standard ACH, settles Tue Oct 13 (bank holiday) | PAY-001, PAY-004 | missing |
+| 30 | 06 | QuickBooks: 23 bills paid, receipts attached; card purchases posted | ACCT-001 | missing |
+| 31 | 07 Return | R03 return detected and explained in plain words in Slack | PAY-001, NOTIFY-001 | missing |
+| 32 | 07 | New account verified, notice to previous email, payments held 2 days | PAY-002 | missing |
+| 33 | 07 | QuickBooks bill payment reversed and re-posted, 0 errors | ACCT-001, ACCT-006 | missing |
+| 34 | 08 Map | The trip assembled: Oct 6–8, 5 receipts, $907.75, paid | AGENT-009 | missing |
+| 35 | 09 Chase | Amex daily file health (last, next, holiday) | FEED-003 | missing |
+| 36 | 09 | October Amex feed: 412 charges, 398 matched, 14 chased | FEED-004 | missing |
+| 37 | 09 | Reminders after 2, 5 and 10 business days, quiet hours, then manager, then Megan | FOLLOWUP-001, FOLLOWUP-002 | missing |
+| 38 | 09 | Chases stop when the receipt arrives (27 closed) | FOLLOWUP-003 | missing |
+| 39 | 10 Close | Amex corporate statement balanced to the cent | FEED-005 | missing |
+| 40 | 10 | QuickBooks Amex account tie-out with accruals | ACCT-001, ACCT-006 | missing |
+| 41 | 10 | "hands Megan an accrual ready to post" | AGENT-008 | missing |
+| 42 | 10 | 42 reimbursements paid, all cleared in QuickBooks | ACCT-001, PAY-001 | missing |
+| 43 | 11 Policy | Coaster spots an exception everyone approves and proposes a fix | AGENT-005, AGENT-003 | missing |
+| 44 | 11 | Replay on 12 months; adopt; v8 effective, past decisions keep v7 | AGENT-003, POLICY-001 | missing |
+| 45 | 12 Moving in | "Your Expensify history" moves in | COA-011, MOVE-001 | partial |
+| 46 | 12 | Preview reviewed before anything moves | COA-011 | done |
+| 47 | 12 | People from Gusto, approvers, categories → QuickBooks, tags, rules, 21,870 receipt images, 38 Amex cards | MOVE-001, ADMIN-002 | missing |
+| 48 | 12 | Nothing paid twice (47 overlapping charges, 0 doubled; open reports reimbursable once) | MOVE-005 | partial |
+| 49 | 12 | `npx -y @runeditrun/rer dev just-every/run-coaster` starts Coaster on your computer | COA-013 | partial |
+| 50 | 12 | "Also moves in from SAP Concur, Emburse, Ramp, Brex and Navan" | MOVE-002, MOVE-003, MOVE-004 | missing |
+| 51 | 13 Closing | "100% free and open source. MIT licensed." | OWN | done |
+
 ## Status
 
 Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5bcb` (17 October 2026).

@@ -97,7 +97,7 @@ html.rer-themed body { background: none; color: var(--ink); font-family: var(--f
 html.rer-themed main { border: 1px solid var(--line); box-shadow: var(--shadow-float); }
 html.rer-themed .brand, html.rer-themed .rer-brand { justify-content: center; font: 800 28px/1 var(--font-head); letter-spacing: -.04em; color: var(--ink); }
 html.rer-themed .brand::before, html.rer-themed .rer-brand::before { width: 34px; height: 34px; }
-html.rer-themed h1 { font: 800 34px/1.08 var(--font-head); letter-spacing: -.04em; text-align: center; }
+html.rer-themed h1 { font: 800 34px/1.08 var(--font-head); letter-spacing: -.04em; word-spacing: .17em; text-align: center; }
 html.rer-themed button, html.rer-themed .action { border-radius: var(--radius-chip); background: var(--button); color: #fff; font-weight: 600; }
 html.rer-themed button:hover, html.rer-themed .action:hover { background: var(--button-hover); }
 html.rer-themed button.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line-strong); }
@@ -107,11 +107,13 @@ html.rer-themed button.secondary { background: #fff; color: var(--ink); border: 
 body:has(> main > .intro), body:has(> main > .hero) { background: var(--paper-grid); }
 body:has(> main) .bar .brand span { font-weight: 800; letter-spacing: -.04em; }
 body:has(> main) .bar nav { font-weight: 500; }
-body:has(> main > .intro) h1, body:has(> main > .hero) h1 { font-weight: 850; letter-spacing: -.045em; }
+body:has(> main > .intro) h1, body:has(> main > .hero) h1 { font-weight: 850; letter-spacing: -.045em; word-spacing: .14em; }
 body:has(> main > .intro) .step { border-radius: var(--radius-card); border-color: var(--line); background: #fff; box-shadow: var(--shadow-card); backdrop-filter: none; }
 body:has(> main > .intro) .num { background: var(--ink); color: #fff; font-weight: 800; }
-body:has(> main > .intro) .step h2 { font-weight: 800; letter-spacing: -.03em; }
+body:has(> main > .intro) .step h2 { font-weight: 800; letter-spacing: -.03em; word-spacing: .1em; }
 body:has(> main > .intro) .code { background: var(--rer-code-background); }
+/* The one-line start keeps the repository whole: on its own line, scrolling sideways where the line cannot fit. */
+body:has(> main > .intro) .alt code { display: block; width: fit-content; max-width: 100%; margin: 6px 0 0; overflow-x: auto; white-space: nowrap; }
 body:has(> main > .intro) .btn, body:has(> main > .hero) .btn { background: var(--button); }
 body:has(> main) .bar .brand { font-size: 36px; gap: 10px; }
 body:has(> main) .bar .brand img { width: 44px; height: 44px; margin-top: -4px; }

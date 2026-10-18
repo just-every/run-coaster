@@ -1,5 +1,5 @@
 /* Page 07: the vertical timeline at left, the copy, the plain-words Slack notice and the green settled bar at right. */
-.sec-return { --h2: 82; --lead: 25; padding-top: 72px; }
+.sec-return { --h2: 76; --lead: 25; padding-top: 72px; }
 .rt-grid { display: grid; grid-template-columns: calc(680 * var(--p)) minmax(0, 1fr); gap: calc(56 * var(--p)); align-items: start; }
 .rt-date { margin: 0 0 calc(14 * var(--p)) calc(4 * var(--p)); color: #4b5260; font-size: calc(17 * var(--p)); font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
 .rt-day + .rt-day { margin-top: calc(26 * var(--p)); }
@@ -51,7 +51,8 @@
   .rt-note { max-width: 100%; }
   .rt-note { margin-left: 4px; font-size: 14px; }
   .rt-br { display: none; }
-  .rt-chat { font-size: 17px; padding: 20px 18px; }
+  .rt-chat { font-size: 17px; padding: 20px 18px 58px; }
+  .rt-cur-jordan { bottom: 6px; }
   .rt-chat .av { width: 52px; height: 52px; font-size: 19px; }
   .rt-chat .msg { gap: 14px; }
   .rt-done { align-items: flex-start; gap: 14px; padding: 16px 18px; font-size: 16px; }

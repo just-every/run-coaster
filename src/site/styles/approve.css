@@ -14,15 +14,15 @@
 .ap-claim { font-size: calc(17.5 * var(--p)); letter-spacing: -.02em; }
 .ap-rule, .ap-exception { display: flex; align-items: center; gap: calc(12 * var(--p)); margin: calc(14 * var(--p)) 0 0 calc(96 * var(--p)); }
 .ap-rule .dot { width: calc(28 * var(--p)); height: calc(28 * var(--p)); }
-.ap-exception { margin-left: calc(96 * var(--p)); padding: calc(10 * var(--p)) calc(16 * var(--p)); border: 1.5px solid #f4c064; border-radius: calc(10 * var(--p)); background: #fff6e2; font-size: calc(15 * var(--p)); white-space: nowrap; letter-spacing: -.015em; }
+.ap-exception { width: fit-content; margin-left: calc(76 * var(--p)); padding: calc(10 * var(--p)) calc(14 * var(--p)); gap: calc(10 * var(--p)); border: 1.5px solid #f4c064; border-radius: calc(10 * var(--p)); background: #fff6e2; font-size: calc(14.5 * var(--p)); white-space: nowrap; letter-spacing: -.02em; }
 .ap-exception .dot { width: calc(22 * var(--p)); height: calc(22 * var(--p)); }
 .ap-exception .dot circle { fill: var(--amber); }
 .ap-quote { margin: calc(12 * var(--p)) 0 0 calc(96 * var(--p)); color: var(--soft); font-size: calc(15.5 * var(--p)); white-space: nowrap; letter-spacing: -.015em; }
 .ap-buttons { display: flex; gap: calc(14 * var(--p)); margin: calc(18 * var(--p)) 0 0 calc(96 * var(--p)); }
 .ap-buttons .btn-kelly { min-height: calc(50 * var(--p)); font-size: calc(18 * var(--p)); padding: 0 calc(30 * var(--p)); }
 .ap-buttons, .ap-release { position: relative; }
-.ap-cur-dana { left: calc(84 * var(--p)); top: calc(24 * var(--p)); }
-.ap-approved { display: flex; align-items: center; gap: calc(12 * var(--p)); margin: calc(26 * var(--p)) 0 0 calc(80 * var(--p)); padding: calc(12 * var(--p)) calc(16 * var(--p)); border-radius: calc(10 * var(--p)); background: var(--mint); color: #1d4a2a; font-size: calc(14.5 * var(--p)); letter-spacing: -.015em; }
+.ap-cur-dana { left: calc(108 * var(--p)); top: calc(30 * var(--p)); }
+.ap-approved { display: flex; align-items: center; gap: calc(12 * var(--p)); margin: calc(46 * var(--p)) 0 0 calc(80 * var(--p)); padding: calc(12 * var(--p)) calc(16 * var(--p)); border-radius: calc(10 * var(--p)); background: var(--mint); color: #1d4a2a; font-size: calc(14.5 * var(--p)); letter-spacing: -.015em; }
 .ap-approved .dot { width: calc(26 * var(--p)); height: calc(26 * var(--p)); }
 .apk { left: calc(768 * var(--p)); top: calc(330 * var(--p)); z-index: 3; }
 
@@ -36,8 +36,8 @@
 .ap-total { display: flex; justify-content: space-between; margin-top: calc(10 * var(--p)); padding-top: calc(10 * var(--p)); font-size: calc(19 * var(--p)); }
 .ap-release { margin-top: calc(14 * var(--p)); }
 .ap-release .btn-kelly { min-height: calc(52 * var(--p)); padding: 0 calc(42 * var(--p)); font-size: calc(19 * var(--p)); }
-.ap-cur-megan { left: calc(128 * var(--p)); top: calc(18 * var(--p)); }
-.ap-released { margin-top: calc(12 * var(--p)); font-size: calc(14.5 * var(--p)) !important; line-height: 1.45; }
+.ap-cur-megan { left: calc(132 * var(--p)); top: calc(12 * var(--p)); }
+.ap-pay > .ap-released { margin-top: calc(24 * var(--p)); font-size: calc(14.5 * var(--p)) !important; line-height: 1.45; }
 .ap-books { left: calc(1214 * var(--p)); top: calc(742 * var(--p)); width: calc(250 * var(--p)); display: flex; gap: calc(10 * var(--p)); padding: calc(14 * var(--p)) calc(12 * var(--p)); font-size: calc(14.5 * var(--p)); letter-spacing: -.01em; line-height: 1.45; z-index: 2; }
 .ap-books .icon { width: calc(34 * var(--p)); height: calc(34 * var(--p)); color: #4b5260; }
 
@@ -58,4 +58,5 @@
   .ap-exception, .ap-approved { align-items: flex-start; }
   .ap-buttons { gap: 8px; }
   .ap-buttons .btn-kelly, .ap-buttons .btn-line { padding: 0 16px; min-height: 44px; font-size: 16px; }
+  .ap-cur-dana { left: 82px; top: 26px; }
 }

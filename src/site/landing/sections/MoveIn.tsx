@@ -13,15 +13,18 @@ const ROWS: [string, string, 'ok' | 'review'][] = [
   ['Overlapping Amex charges Sep 28–30', '47 · 0 doubled', 'ok'],
 ];
 
+const START = 'npx -y @runeditrun/rer dev just-every/run-coaster';
+
 /** Page 12: how Tallgrass moved off Expensify, and the one line that starts Coaster on your own computer. */
 export function MoveIn() {
   return <Section id="move-in">
     <div className="mv-grid stage">
       <div className="mv-copy">
         <Heading id="move-in-title" eyebrow="Moving in · Sat Sep 26 – Thu Oct 1" first="Your Expensify history," second="receipts and all." lead="Coaster read Tallgrass's Expensify account, showed what would move, and took over on Oct 1 with nothing paid twice." />
-        <div className="mv-term" role="group" aria-label="Start Coaster on your computer">
+        <div className="mv-term" role="group" aria-label="Start Coaster on your computer" data-copy={START}>
           <p className="mv-lights" aria-hidden="true"><i /><i /><i /></p>
-          <pre><code><span className="mv-prompt" aria-hidden="true">$ </span>npx -y @runeditrun/rer dev just-every/run-coaster{'\n'}<span className="mv-comment"># clones, installs and starts Coaster on your computer</span></code></pre>
+          <button className="docs-copy mv-copy-btn" type="button" hidden>Copy</button>
+          <pre><code><span className="mv-prompt" aria-hidden="true">$ </span>npx -y @runeditrun/rer dev <span className="nowrap">just-every/run-coaster</span>{'\n'}<span className="mv-comment"># clones, installs and starts Coaster on your computer</span></code></pre>
         </div>
         <p className="mv-also">Also moves in from SAP Concur, Emburse, Ramp, Brex and Navan.</p>
       </div>
@@ -31,7 +34,7 @@ export function MoveIn() {
         <div className="card mv-preview">
           <p className="mv-title">Import preview<span className="sep">·</span>reviewed Sat Sep 26</p>
           <p className="quiet mv-from">From Expensify</p>
-          <ul>{ROWS.map(([what, count, state]) => <li key={what}><span>{what}</span><span className="num">{count}</span>{state === 'ok' ? <Dot className="mv-ok" /> : <><Pill tone="amber" className="mv-review">10 mapped + 1 to review</Pill><Cursor who="Megan" className="mv-cur" /></>}</li>)}</ul>
+          <ul>{ROWS.map(([what, count, state]) => <li key={what}><span>{what}</span><span className="num">{count}</span>{state === 'ok' ? <Dot className="mv-ok" /> : <span className="mv-review-wrap"><Pill tone="amber" className="mv-review">10 mapped + 1 to review</Pill><Cursor who="Megan" className="mv-cur" /></span>}</li>)}</ul>
           <p className="mv-cutover">Cutover Thu Oct 1, 12:00 am<span className="sep">·</span>Amex daily file live <Tick /></p>
         </div>
         <Connector dotted className="mvk-2" w={210} h={60} d="M204 6C180 50 60 66 8 8" head="M4 22l4-14 14 4" />

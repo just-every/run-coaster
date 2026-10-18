@@ -17,7 +17,7 @@
 .docs-toc a:hover { border-left-color: var(--green); color: var(--ink); }
 
 .docs-eyebrow { margin-bottom: 14px; color: #4b5260; font-size: 14px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; }
-.docs-title { font: 850 64px/1 var(--font-head); font-stretch: 80%; letter-spacing: -.035em; color: var(--ink); text-wrap: balance; }
+.docs-title { font: 850 64px/1 var(--font-head); font-stretch: 80%; letter-spacing: -.035em; word-spacing: .15em; color: var(--ink); text-wrap: balance; }
 .docs-title-mark { display: flex; gap: 6px; margin-top: 18px; }
 .docs-title-mark i { display: block; width: 36px; height: 6px; border-radius: 3px; background: var(--roll); }
 .docs-title-mark i:nth-child(2) { background: var(--roll-cap); }
@@ -27,7 +27,7 @@
 .docs-prose { max-width: 780px; color: #2b3038; font-size: 18px; line-height: 1.65; }
 .docs-prose > p:first-child { margin-top: 22px; color: var(--body); font-size: 21px; line-height: 1.5; }
 .docs-prose p, .docs-prose ul, .docs-prose ol { margin: 0 0 18px; }
-.docs-prose h2 { margin: 48px 0 16px; font: 800 38px/1.05 var(--font-head); font-stretch: 85%; letter-spacing: -.03em; color: var(--ink); scroll-margin-top: 16px; }
+.docs-prose h2 { margin: 48px 0 16px; font: 800 38px/1.05 var(--font-head); font-stretch: 85%; letter-spacing: -.03em; word-spacing: .12em; color: var(--ink); scroll-margin-top: 16px; }
 .docs-prose h3 { margin: 32px 0 10px; font: 700 23px/1.2 var(--font-head); letter-spacing: -.02em; color: var(--ink); }
 .docs-prose ul > li { position: relative; padding-left: 24px; margin: 8px 0; }
 .docs-prose ul > li::before { content: ''; position: absolute; left: 4px; top: .62em; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
@@ -56,7 +56,7 @@
 .docs-pager-next { grid-column: 2; grid-template-columns: 1fr auto; text-align: right; }
 .docs-pager-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .docs-pager-label { color: #4b5260; font-size: 13px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
-.docs-pager-title { font: 800 23px/1.12 var(--font-head); font-stretch: 85%; letter-spacing: -.02em; }
+.docs-pager-title { font: 800 23px/1.12 var(--font-head); font-stretch: 85%; letter-spacing: -.02em; word-spacing: .12em; }
 .docs-pager-card .icon, .docs-index-card .icon { width: 24px; height: 24px; color: var(--kelly); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .docs-back { display: inline-flex; transform: scaleX(-1); }
 
