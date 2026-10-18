@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { amount, call, claimNumber, day, exceptionWords, money, moment, plural, rate, type D } from './api';
-import { Badge, Details, Empty, Form, Warning } from './parts';
+import { Badge, Details, Empty, Field, Form, Warning } from './parts';
 import { Icon } from './icons';
 import { ItemForm } from './item-form';
 import { describe } from './history';
@@ -59,9 +59,9 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       <div className="metadata"><Badge status={claim.status} />{claim.revision > 0 && <span className="muted">Revision {claim.revision}</span>}</div>
       <ul className="facts">
         <li><Icon name="person" /><span>{names[claim.employee_email] ?? claim.employee_email}</span></li>
-        <li><Icon name="users" /><span className="approver">Approver: {claim.approver_email ? names[claim.approver_email] ?? claim.approver_email : 'set at submission'}</span></li>
+        <li><Icon name="users" /><span className="approver">Approver: {claim.approver_email ? names[claim.approver_email] ?? claim.approver_email : 'set at submission'}{claim.on_behalf_of ? ` on behalf of ${names[claim.on_behalf_of] ?? claim.on_behalf_of}` : ''}</span></li>
         {categories.length > 0 && <li><Icon name="tag" /><span>{categories.join(', ')}</span></li>}
-        {lastDecision && <li><Icon name="send" /><span>{lastDecision.decision === 'approved' ? 'Approved' : lastDecision.decision === 'returned' ? 'Returned' : 'Rejected'} by {names[lastDecision.actor_email] ?? lastDecision.actor_email} {day(lastDecision.at)}</span></li>}
+        {lastDecision && <li><Icon name="send" /><span>{lastDecision.decision === 'approved' ? 'Approved' : lastDecision.decision === 'returned' ? 'Returned' : 'Rejected'} by {names[lastDecision.actor_email] ?? lastDecision.actor_email}{lastDecision.on_behalf_of ? ` on behalf of ${names[lastDecision.on_behalf_of] ?? lastDecision.on_behalf_of}` : ''} {day(lastDecision.at)}</span></li>}
         {claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}
       </ul>
     </section>
@@ -79,7 +79,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
             {editable && <span className="line-actions"><button className="button small" onClick={() => setEditing(item.id)} aria-label={`Change ${item.merchant}`}>Change</button><button className="button small" aria-label={`Remove ${item.merchant}`} onClick={async () => { try { await call(`claims/${claim.id}/items/remove`, { version: claim.version, item: item.id }); await done(); } catch (e) { setError((e as Error).message); } }}>Remove</button></span>}
           </span>}
         </li>;
-      })}</ul> : <Empty title="No expenses yet">{editable ? 'Add each expense with its receipt; mileage is priced from the business rate.' : null}</Empty>}
+      })}</ul> : <Empty title="No expenses yet">{editable ? 'Add each expense with its receipt; mileage is priced at the rate for its date.' : null}</Empty>}
       <div className="total"><span>Claim total ({currency})</span><span>{money(claim.total_minor, currency)}</span></div>
       {error && <p className="form-error" role="alert">{error}</p>}
       {editable && (editing
@@ -92,6 +92,13 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
           </div>)}
     </section>
     {deciding && <Decision claim={claim} exceptions={exceptions} onDone={done} back={back} />}
+    {state.actor.roles.owner && claim.status === 'submitted' && <section className="panel-block" aria-label="Reassign">
+      <h3>Reassign</h3>
+      <Form label="Reassign claim" onSubmit={async v => { await call(`claims/${claim.id}/reassign`, { version: claim.version, approver: v.approver, reason: v.reason }); await done(); }}>
+        <Field label="New approver" name="approver" options={state.members.filter((m: D) => m.is_manager && m.active && m.email !== claim.employee_email && m.email !== claim.approver_email).map((m: D) => ({ value: m.email, label: m.name }))} />
+        <Field label="Reason" name="reason" required={false} placeholder="For example, on leave" />
+      </Form>
+    </section>}
     <section className="panel-block history" aria-label="History">
       <h3>History</h3>
       <ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol>

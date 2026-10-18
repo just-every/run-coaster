@@ -5,7 +5,8 @@ import { agent, need, person } from './session';
 import { saveBusiness, saveCategory, saveMember } from './settings';
 import { saveMileageRate } from './mileage';
 import { createClaim, removeItem, renameClaim, saveItem, submitClaim, uploadReceipt } from './claims';
-import { decide } from './decisions';
+import { decide, reassign } from './decisions';
+import { revokeDelegation, saveDelegation } from './delegation';
 import { approveBatch, batchFile, createBatch, markReimbursed, removeFromBatch } from './batches';
 import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
@@ -50,6 +51,9 @@ api.post('/api/coaster/claims/:id/items/remove', as(async (a, c) => removeItem(d
 api.post('/api/coaster/claims/:id/receipts', as(async (a, c) => uploadReceipt(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/submit', as(async (a, c) => submitClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/decision', as(async (a, c) => decide(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/claims/:id/reassign', as(async (a, c) => reassign(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/delegations', as(async (a, c) => saveDelegation(db(c), a, await body(c))));
+api.post('/api/coaster/delegations/:id/revoke', as(async (a, c) => revokeDelegation(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/receipts/:id', as(async (a, c) => receiptFile(db(c), a, param(c, 'id'), c.req.query('inline') === '1')));
 
 api.post('/api/coaster/settings/business', as(async (a, c) => saveBusiness(db(c), a, await body(c))));

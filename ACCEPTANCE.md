@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 15 done, 23 partial, 65 missing.** Statuses describe `main` at `2d12e42cea8d82cbc1cb880eca53577608ec246b`; new target clauses are build
+**103 clauses: 16 done, 23 partial, 64 missing.** Statuses describe `main` at `2d12e42cea8d82cbc1cb880eca53577608ec246b`; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -143,7 +143,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **APPROVE-001 — Multi-step conditional approval workflows. Status: partial.** Configure "over $1,000 adds the department head; any exception adds finance review"; submit claims of $200, $1,400 and $300-with-exception and see three different paths; the department head cannot approve their own claim at any step. Existing evidence: `src/coaster/settings.ts`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-006). Open scope: One owner-assigned approving manager per employee; no conditions, multiple or parallel steps or finance review step.
 
-- **APPROVE-002 — Delegation, out of office and reassignment. Status: missing.** Set a delegation for next week and see a claim route to the delegate with "on behalf of" recorded; deactivate an approver and see their queue move with a history line. Open scope: No delegation or reassignment.
+- **APPROVE-002 — Delegation, out of office and reassignment. Status: done.** Set a delegation for next week and see a claim route to the delegate with "on behalf of" recorded; deactivate an approver and see their queue move with a history line. Existing evidence: `src/coaster/delegation.ts`; `src/coaster/decisions.ts`; `src/coaster/claims.ts`; `src/ui/approvals.tsx`; `tests/coaster.test.mjs` (APPROVE-002).
 
 - **APPROVE-003 — Approve anywhere. Status: partial.** Approve one claim at 390 px, one from an email link (a reused or expired link is refused), one from Slack and one from Teams test workspaces, and bulk-approve three; each records its channel and refuses a stale revision. Existing evidence: `src/ui/approvals.tsx`; `tests/browser.mjs`. Open scope: Approval works in the phone-width web app; no email-link, Slack, Teams, native or bulk approval.
 

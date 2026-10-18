@@ -1,6 +1,7 @@
 import { authority, commit, need } from './session';
 import { event } from './events';
 import { mileageRates, seedIrsRates, type MileageRate } from './mileage';
+import { queueMoves } from './delegation';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; mileage_rates: MileageRate[] };
@@ -76,9 +77,13 @@ export async function saveMember(db: D1Database, actor: Actor, b: Data) {
   }
   const active = b.active === false || b.active === 'false' ? 0 : 1;
   const name = text(b.name, 'Name', 120);
+  // Deactivating an approver moves their waiting claims to their own manager.
+  const was = await db.prepare('SELECT active FROM c_members WHERE email=?').bind(address).first<{ active: number }>();
+  const moves = was?.active === 1 && !active ? await queueMoves(db, actor, address, approver) : [];
   await commit(db, authority(actor, 'owner'), [
     db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,approver_email=excluded.approver_email,active=excluded.active,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, approver, active, now()),
     event(db, actor, 'member-saved', {}, { email: address, roles, approver, active: active === 1 }),
+    ...moves,
   ]);
   return db.prepare('SELECT * FROM c_members WHERE email=?').bind(address).first();
 }

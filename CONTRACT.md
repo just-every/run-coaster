@@ -311,7 +311,7 @@ Every agent here acts through the COA-010 authority model: it works for a named 
 
 ## Current implementation detail
 
-Current code is the distance to the target, not a limit on it. It runs one business in one currency with US defaults (USD, a US time zone, IRS mileage rates by trip date, the $75/lodging receipt rule), a flat per-diem rate, receipts up to 1.5 MB stored in D1, one approving manager per employee with no delegation, manual entry with no receipt reading, no feeds or provider calls, outside payment recorded by finance, and accounting by CSV. The Status section below marks each clause against that code.
+Current code is the distance to the target, not a limit on it. It runs one business in one currency with US defaults (USD, a US time zone, IRS mileage rates by trip date, the $75/lodging receipt rule), a flat per-diem rate, receipts up to 1.5 MB stored in D1, one approving manager per employee (with dated delegation and owner reassignment), manual entry with no receipt reading, no feeds or provider calls, outside payment recorded by finance, and accounting by CSV. The Status section below marks each clause against that code.
 
 The commit the Status section was judged at is the `main` commit the `contract-target` branch is based on; the branch changes only CONTRACT.md and ACCEPTANCE.md, so its code is identical. The supplied code audit was taken at `9a9543c203ac20a177b3ad60bf11997a74fd1668`; since then main changed only Base sign-in, mail, demo and run-site files and nothing under `src/coaster`, `src/ui` or `tests`, so every row was re-read at the judged commit. `done` means the bounded clause has cited code and a public-door test; `partial` names the shipped subset in Evidence and what is open in Gap; `missing` means no implementation. Kind `published` marks the clauses of Coaster's released contract (COA-001 to COA-013), `target` the clauses this target contract adds and `push-further` the agent clauses under [Push further with agents](#push-further-with-agents). Citations were read, not re-run, in this documentation round.
 
@@ -382,8 +382,8 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 2 | 23 | 65 | 90 |
-| All | 15 | 23 | 65 | 103 |
+| Target and push further | 3 | 23 | 64 | 90 |
+| All | 16 | 23 | 64 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -431,7 +431,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `POLICY-002` | Duplicate and fraud signals | target | partial | `src/coaster/exceptions.ts`; `tests/coaster.test.mjs` (COA-004, COA-005) | Same-receipt detection across all claims and same-employee possible duplicates ship; no near-duplicate images, edited-receipt detection, split-charge or pattern signals, and no clean-set false-positive measurement. |
 | `POLICY-003` | Finance exception queue and audit sampling | target | partial | `src/ui/approvals.tsx`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-004) | Approvers review exceptions per claim; no finance-wide exception queue, risk ordering or audit sampling. |
 | `APPROVE-001` | Multi-step conditional approval workflows | target | partial | `src/coaster/settings.ts`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-006) | One owner-assigned approving manager per employee; no conditions, multiple or parallel steps or finance review step. |
-| `APPROVE-002` | Delegation, out of office and reassignment | target | missing |  | No delegation or reassignment. |
+| `APPROVE-002` | Delegation, out of office and reassignment | target | done | `src/coaster/delegation.ts`; `src/coaster/decisions.ts`; `src/coaster/claims.ts`; `src/ui/approvals.tsx`; `tests/coaster.test.mjs` (APPROVE-002) |  |
 | `APPROVE-003` | Approve anywhere | target | partial | `src/ui/approvals.tsx`; `tests/browser.mjs` | Approval works in the phone-width web app; no email-link, Slack, Teams, native or bulk approval. |
 | `APPROVE-004` | Rule-based auto-approval | target | missing |  | No auto-approval. |
 | `APPROVE-005` | Hold one expense, approve the rest | target | missing |  | COA-006 decides the whole revision only (`src/coaster/decisions.ts`); no per-expense hold or claim split. |

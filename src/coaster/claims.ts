@@ -3,9 +3,10 @@ import { event } from './events';
 import { categories, itemInput, type Allocation, type ItemInput } from './items';
 import { findExceptions, repeatedInClaim, type ClaimItem } from './exceptions';
 import { requireBusiness } from './settings';
+import { localDay, routeFor } from './delegation';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string };
+export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null };
 
 export const claimNumber = (n: number) => `CL-${String(n).padStart(4, '0')}`;
 export const RECEIPT_LIMIT = 1_500_000;
@@ -17,11 +18,11 @@ export async function loadClaim(db: D1Database, id: unknown): Promise<Claim> {
   return claim;
 }
 
-/** Who may see a claim: its employee always; once submitted, its approver, finance and the owner. */
+/** Who may see a claim: its employee always; once submitted, its approver (and the approver a delegate acts for), finance and the owner. */
 export function canSee(actor: Actor, claim: Claim) {
   if (claim.employee_email === actor.email) return true;
   if (claim.status === 'draft') return false;
-  return (actor.roles.manager && claim.approver_email === actor.email) || actor.roles.finance || actor.roles.owner;
+  return (actor.roles.manager && (claim.approver_email === actor.email || claim.on_behalf_of === actor.email)) || actor.roles.finance || actor.roles.owner;
 }
 export function visible(actor: Actor, claim: Claim) {
   requireThat(canSee(actor, claim), 'This claim is outside your access', 403);
@@ -153,19 +154,19 @@ export async function submitClaim(db: D1Database, actor: Actor, id: string, b: D
   const items = await claimItems(db, claim.id);
   requireThat(items.length > 0, 'Add at least one expense before submitting');
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(claim.employee_email).first<{ approver_email: string | null }>();
-  const approver = member?.approver_email;
-  requireThat(approver && approver !== claim.employee_email, 'Ask the owner to set your approving manager before submitting', 409);
+  requireThat(member?.approver_email && member.approver_email !== claim.employee_email, 'Ask the owner to set your approving manager before submitting', 409);
+  const business = await requireBusiness(db), { approver, onBehalfOf } = await routeFor(db, member.approver_email, claim.employee_email, localDay(business.timezone));
   const repeated = repeatedInClaim(claim.employee_email, items);
   requireThat(!repeated.length, `${repeated.map(i => i.merchant).join(', ')} appears twice on this claim with the same ${repeated.some(i => i.receipt_sha256) ? 'receipt' : 'date, merchant and amount and no receipt'}; only one could be reimbursed. Attach each one's own receipt, or correct or remove one, before submitting`, 409);
-  const business = await requireBusiness(db), exceptions = await findExceptions(db, claim, items, business, await categories(db));
+  const exceptions = await findExceptions(db, claim, items, business, await categories(db));
   const unexplained = exceptions.filter(e => !items.find(i => i.id === e.item)?.explanation);
   requireThat(!unexplained.length, `Explain each policy exception before submitting: ${unexplained.map(e => e.message).join('; ')}`, 409);
   const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();
-  const snapshot = { title: claim.title, approver, currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  const snapshot = { title: claim.title, approver, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
   await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, actor.email, at, total, JSON.stringify(snapshot)),
-    db.prepare("UPDATE c_claims SET status='submitted',revision=?,approver_email=?,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(revision, approver, total, at, claim.id),
-    event(db, actor, revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { claim: claim.id }, { revision, totalMinor: total, exceptions: exceptions.length, note: optionalText(b.note, 'Note', 1000) }),
+    db.prepare("UPDATE c_claims SET status='submitted',revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(revision, approver, onBehalfOf, total, at, claim.id),
+    event(db, actor, revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { claim: claim.id }, { revision, totalMinor: total, exceptions: exceptions.length, note: optionalText(b.note, 'Note', 1000), approver, onBehalfOf }),
   ]);
   return loadClaim(db, id);
 }

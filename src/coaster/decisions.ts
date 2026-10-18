@@ -1,7 +1,7 @@
 import { all, authority, commit, need } from './session';
 import { event } from './events';
 import { claimState, loadClaim } from './claims';
-import { now, optionalText, requireThat, uid, type Actor, type Data } from './types';
+import { email, now, optionalText, requireThat, uid, type Actor, type Data } from './types';
 
 /** The assigned manager approves, returns or rejects the exact submitted revision. */
 export async function decide(db: D1Database, actor: Actor, id: string, b: Data) {
@@ -21,9 +21,27 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data) 
   requireThat(b.decision !== 'approved' || !exceptions.length || b.acknowledge === true, 'Review and acknowledge the policy exceptions before approving', 409);
   const at = now();
   await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['submitted']), { sql: 'EXISTS(SELECT 1 FROM c_claims WHERE id=? AND approver_email=? AND revision=?)', params: [claim.id, actor.email, claim.revision] }), [
-    db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions) VALUES(?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, reason, actor.email, at, JSON.stringify(exceptions)),
+    db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, reason, actor.email, at, JSON.stringify(exceptions), claim.on_behalf_of),
     db.prepare('UPDATE c_claims SET status=?,version=version+1,updated_at=? WHERE id=?').bind(b.decision, at, claim.id),
-    event(db, actor, `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, reason, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0 }),
+    event(db, actor, `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, reason, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf: claim.on_behalf_of }),
+  ]);
+  return loadClaim(db, id);
+}
+
+/** The owner moves a stuck claim to another active manager; the move is a history line and COA-006 still holds for the new approver. */
+export async function reassign(db: D1Database, actor: Actor, id: string, b: Data) {
+  need(actor, 'owner');
+  const claim = await loadClaim(db, id);
+  requireThat(claim.status === 'submitted', 'Only a claim waiting for a decision can be reassigned', 409);
+  requireThat(b.version === claim.version, 'The claim changed since you opened it; reload and try again', 409);
+  const to = email(b.approver, 'New approver');
+  requireThat(to !== claim.employee_email, 'Nobody approves their own claim');
+  requireThat(to !== claim.approver_email, 'The claim is already waiting for that person');
+  requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_manager=1').bind(to).first(), 'The new approver must be an active member with the manager role');
+  const reason = optionalText(b.reason, 'Reason', 500);
+  await commit(db, all(authority(actor, 'owner'), claimState(claim.id, claim.version, ['submitted'])), [
+    db.prepare('UPDATE c_claims SET approver_email=?,on_behalf_of=NULL,version=version+1,updated_at=? WHERE id=?').bind(to, now(), claim.id),
+    event(db, actor, 'claim-reassigned', { claim: claim.id }, { from: claim.approver_email, to, reason }),
   ]);
   return loadClaim(db, id);
 }
