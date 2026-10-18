@@ -2,17 +2,17 @@ A claim is a set of expenses an employee paid for and wants back, with a receipt
 
 ## Start a claim
 
-Open **Claims**, choose **New claim**, give it a title such as "Sydney client workshop" and choose **Start claim**.
+Open **Claims**, choose **New claim**, give it a title such as "Denver client trip" and choose **Start claim**.
 
 ## Add expenses
 
 Choose **Add expense** and pick the **Type**:
 
 - **Purchase with receipt**: the date, merchant and amount, and a **Receipt photo or PDF** (JPEG, PNG, WebP, HEIC or PDF, up to 1.5 MB).
-- **Mileage**: the route and the distance in km. Coaster prices it at the business's rate per km.
+- **Mileage**: the route and the distance in miles. Coaster prices it at the business's rate per mile.
 - **Per diem**: the location and the number of days, priced at the business's daily rate (only when the business pays one).
 
-Choose a **Category**, and a **Cost centre** if you use them. One receipt can be split: choose **Split across categories** and give each part its category, cost centre and amount. The parts must add up exactly to the expense.
+Choose a **Category**, and a **Cost center** if you use them. One receipt can be split: choose **Split across categories** and give each part its category, cost center and amount. The parts must add up exactly to the expense.
 
 ## Explain exceptions
 
@@ -23,7 +23,7 @@ Coaster flags anything outside the policy before you submit:
 - the same receipt as another expense,
 - the same date, merchant and amount as another claim or an imported Expensify report.
 
-Write an **Explanation for your approver** on each flagged expense, for example "Client dinner for four, agreed with Priya". The explanation stays with the claim, the batch and the accounting file.
+Write an **Explanation for your approver** on each flagged expense, for example "Dinner with two guests from Pikes Trail Supply, agreed with Dana". The explanation stays with the claim, the batch and the accounting file.
 
 A claim cannot hold the same expense twice. If two expenses have the same date, merchant and amount and no receipt, or the same receipt, attach each one's own receipt, or correct or remove one, before you submit.
 

@@ -1,0 +1,52 @@
+/* Page 12: the copy, the one-line start and the other incumbents at left; Tallgrass's import preview at right. */
+.sec-move-in { --h2: 72; --lead: 27; padding-top: 72px; }
+.mv-grid { display: grid; grid-template-columns: calc(660 * var(--p)) calc(666 * var(--p)); justify-content: space-between; gap: calc(60 * var(--p)); align-items: start; padding: 0 calc(22 * var(--p)) 0 calc(46 * var(--p)); }
+.mv-copy { padding-top: calc(108 * var(--p)); }
+.mv-copy .lead { margin-top: calc(40 * var(--p)); line-height: 1.45; color: #3d4450; }
+.mv-term { margin-top: calc(48 * var(--p)); padding: calc(16 * var(--p)) calc(22 * var(--p)) calc(24 * var(--p)); border-radius: calc(16 * var(--p)); background: #1d2025; color: #eef3ea; box-shadow: var(--shadow-float); }
+.mv-lights { display: flex; gap: calc(9 * var(--p)); }
+.mv-lights i { width: calc(15 * var(--p)); height: calc(15 * var(--p)); border-radius: 50%; background: #ff5f57; }
+.mv-lights i:nth-child(2) { background: #febc2e; }
+.mv-lights i:nth-child(3) { background: #28c840; }
+.mv-term pre { margin: calc(18 * var(--p)) 0 0; overflow-x: auto; font: 500 calc(19 * var(--p))/1.75 var(--font-mono); white-space: pre; }
+.mv-prompt { color: #9aa1ab; }
+.mv-comment { color: #8fd07c; }
+.mv-also { margin-top: calc(32 * var(--p)); color: var(--soft); font-size: calc(18.5 * var(--p)); }
+.mv-side { position: relative; }
+.mvk-1 { left: calc(-120 * var(--p)); top: calc(-34 * var(--p)); }
+.mvk-2 { right: calc(10 * var(--p)); bottom: calc(-64 * var(--p)); }
+.mvs-1 { right: calc(-8 * var(--p)); top: calc(-56 * var(--p)); width: calc(56 * var(--p)); height: calc(56 * var(--p)); }
+.mvs-2 { left: calc(-50 * var(--p)); bottom: calc(-40 * var(--p)); width: calc(52 * var(--p)); height: calc(52 * var(--p)); }
+.mv-preview { padding: calc(26 * var(--p)) calc(24 * var(--p)) calc(24 * var(--p)); border-radius: calc(22 * var(--p)); font-size: calc(18 * var(--p)); }
+.mv-title { padding-left: calc(12 * var(--p)); font: 800 calc(31 * var(--p))/1.12 var(--font-head); font-stretch: 85%; letter-spacing: -.025em; }
+.mv-title .sep { color: var(--ink); }
+.mv-from { padding: calc(6 * var(--p)) 0 calc(14 * var(--p)) calc(12 * var(--p)); font-size: calc(19 * var(--p)); }
+.mv-preview ul { border-top: 1px solid var(--line); }
+.mv-preview li { display: grid; grid-template-columns: minmax(0, 1fr) calc(150 * var(--p)) auto; align-items: center; gap: calc(12 * var(--p)); min-height: calc(51 * var(--p)); padding: calc(6 * var(--p)) calc(8 * var(--p)) calc(6 * var(--p)) calc(12 * var(--p)); border-bottom: 1px solid var(--line); }
+.mv-preview li:nth-child(5) { grid-template-columns: minmax(0, 1fr) calc(30 * var(--p)) auto; }
+.mv-ok { width: calc(36 * var(--p)); height: calc(36 * var(--p)); }
+.mv-ok circle { fill: var(--mint); }
+.mv-ok path { stroke: var(--kelly); stroke-width: 2.4; }
+.mv-review { font-size: calc(15.5 * var(--p)); font-weight: 600; padding: calc(6 * var(--p)) calc(12 * var(--p)); }
+.mv-cutover { margin-top: calc(22 * var(--p)); padding: calc(16 * var(--p)) calc(20 * var(--p)); border-radius: 999px; background: #edf8e2; color: #155e2c; font-size: calc(18.5 * var(--p)); font-weight: 600; }
+.mv-preview li { position: relative; }
+.mv-cur { right: calc(-60 * var(--p)); top: calc(22 * var(--p)); }
+.mv-cur > span { font-size: calc(17 * var(--p)); }
+
+@media (max-width: 1199px) {
+  .mv-grid { --p: .9375px; grid-template-columns: minmax(0, 1fr); gap: 40px; max-width: 700px; margin: 0 auto; padding: 0; }
+  .mv-copy { padding-top: 0; }
+  .mv-side .conn, .mv-side .spark { display: none; }
+}
+@media (max-width: 760px) {
+  .mv-term pre { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .mv-preview { padding: 20px 14px; }
+  .mv-title { font-size: 24px; padding-left: 4px; }
+  .mv-from { padding-left: 4px; }
+  .mv-preview li { grid-template-columns: minmax(0, 1fr) auto auto; padding-left: 4px; font-size: 15px; }
+  .mv-preview li:nth-child(5) { grid-template-columns: minmax(0, 1fr) auto; }
+  .mv-preview li:nth-child(5) .mv-review { grid-column: 1 / -1; justify-self: start; }
+  .mv-cutover { border-radius: 14px; font-size: 15px; }
+  .mv-cur { right: auto; left: 200px; top: auto; bottom: -10px; }
+  .mv-preview li:nth-child(5) { padding-bottom: 14px; }
+}

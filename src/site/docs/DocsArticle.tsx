@@ -4,7 +4,8 @@ import { DocsMenu, DocsSidebar } from './DocsNav';
 import { DocsPager } from './DocsPager';
 import { DocsToc, DocsTocCompact } from './DocsToc';
 import { docsNeighbours, getDocsPage } from './pages';
-import './styles.css';
+import '../styles/site.css';
+import '../styles/docs.css';
 
 /** One docs page: the section sidebar, the article rendered from Markdown at build time, and "On this page". */
 export function DocsArticle({ slug }: { slug: string }) {
@@ -12,7 +13,7 @@ export function DocsArticle({ slug }: { slug: string }) {
   if (!page) throw new Error(`docs/site.json has no page "${slug}"`);
   const { previous, next } = docsNeighbours(slug);
   return (
-    <div className="site docs">
+    <>
       <SiteHeader current="docs" />
       <div className="site-wrap docs-shell">
         <DocsSidebar current={slug} />
@@ -20,8 +21,9 @@ export function DocsArticle({ slug }: { slug: string }) {
           <DocsMenu current={slug} label={page.title} />
           <article className="docs-article" aria-labelledby="docs-title">
             <header className="docs-page-head">
-              <p className="site-eyebrow docs-eyebrow">{page.section}</p>
+              <p className="docs-eyebrow">{page.section}</p>
               <h1 id="docs-title" className="docs-title">{page.title}</h1>
+              <p className="docs-title-mark" aria-hidden="true"><i /><i /><i /></p>
             </header>
             <DocsTocCompact toc={page.toc} />
             <div className="docs-prose" dangerouslySetInnerHTML={{ __html: page.html }} />
@@ -31,6 +33,6 @@ export function DocsArticle({ slug }: { slug: string }) {
         <DocsToc toc={page.toc} />
       </div>
       <SiteFooter />
-    </div>
+    </>
   );
 }

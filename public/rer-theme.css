@@ -1,53 +1,119 @@
-/* Coaster's declared theme, the one place its fonts and core colours are defined. Base's sign-in,
-   confirmation, /setup, Lobby, Run page and outbox read these --rer-* tokens; the app and the run site
-   link this file first and public/tokens.css names Coaster's own tokens from it. Newsreader (headings)
-   and Instrument Sans (everything else) are SIL Open Font License 1.1, self-hosted under public/fonts.
-   --rer-accent is the deeper coral that carries white button text at 4.8:1; the brighter coral in
-   tokens.css is for marks, discs and arrows only. */
-@font-face {
-  font-family: Newsreader;
-  font-style: normal;
-  font-weight: 200 800;
-  font-display: swap;
-  src: url("/fonts/newsreader/newsreader-latin-opsz-normal.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: Newsreader;
-  font-style: normal;
-  font-weight: 200 800;
-  font-display: swap;
-  src: url("/fonts/newsreader/newsreader-latin-ext-opsz-normal.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-@font-face {
-  font-family: 'Instrument Sans';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("/fonts/instrument-sans/instrument-sans-latin-wght-normal.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Instrument Sans';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("/fonts/instrument-sans/instrument-sans-latin-ext-wght-normal.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
+/* Coaster's declared theme, the one place its faces and tokens are defined. Base's sign-in, confirmation,
+   /setup, Lobby, Run page and not-found page read the --rer-* tokens; the app (paper.css, coaster.css) and
+   the run site (src/site/styles) name everything else from here.
+   The look (design desk, approved 18 Oct 2026): a crisp white page with a faint square grid, ink #14171b,
+   a heavy grotesk whose second line runs kelly green to lime, white hairline cards, mint done pills, one
+   soft red failure, lime and sunflower cursor pills and pale yellow stickies.
+   Faces, all SIL Open Font License 1.1 and self-hosted under public/fonts (licences beside the files):
+   Archivo (headings, condensed, and the wordmark), Inter (text), JetBrains Mono (code), Courier Prime (printed
+   receipts) and Kalam (handwritten stickies). The page makes no third-party request. */
+@font-face { font-family: Archivo; font-style: normal; font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; src: url('/fonts/archivo/archivo-latin-wdth-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: Archivo; font-style: normal; font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; src: url('/fonts/archivo/archivo-latin-ext-wdth-normal.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: Inter; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/fonts/inter/inter-latin-wght-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: Inter; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/fonts/inter/inter-latin-ext-wght-normal.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 100 800; font-display: swap; src: url('/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/courier-prime/courier-prime-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/courier-prime/courier-prime-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: Kalam; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/kalam/kalam-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: Kalam; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/kalam/kalam-latin-700-normal.woff2') format('woff2'); }
+
 :root {
-  --rer-font-body: 'Instrument Sans', Arial, sans-serif;
-  --rer-font-heading: Newsreader, Georgia, serif;
-  --rer-page: #FCFBF7;
-  --rer-surface: #FFFFFF;
-  --rer-text: #1C1C1E;
-  --rer-muted: #6B6A6E;
-  --rer-border: #8E8B85;
-  --rer-focus: #1C1C1E;
-  --rer-link: #1C1C1E;
-  --rer-accent: #CC4128;
-  --rer-accent-text: #FFFFFF;
-  --rer-radius: 14px;
-  --rer-logo: url("/brand/mark.svg");
+  --rer-font-body: Inter, 'Helvetica Neue', Arial, sans-serif;
+  --rer-font-heading: Archivo, Inter, 'Helvetica Neue', Arial, sans-serif;
+  --rer-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --rer-page: #ffffff;
+  --rer-surface: #ffffff;
+  --rer-text: #14171b;
+  --rer-muted: #5b6270;
+  --rer-border: #8a909c;
+  --rer-focus: #0e8a3a;
+  --rer-link: #14171b;
+  --rer-accent: #14171b;
+  --rer-accent-text: #ffffff;
+  --rer-radius: 16px;
+  --rer-button-radius: 999px;
+  --rer-code-background: #16191e;
+  --rer-code-text: #eef3ea;
+  --rer-wordmark-weight: 800;
+  --rer-wordmark-tracking: -.04em;
+  --rer-logo: url('/brand/mark.svg');
+  /* Base's /contract page: done in the check's green, partial in the roll's gold, missing quiet. */
+  --rer-done: #1faf4a;
+  --rer-done-ink: #157a34;
+  --rer-on-done: #14171b;
+  --rer-partial: #fec326;
+  --rer-partial-ink: #8a5a00;
+  --rer-missing: #9aa1ab;
+  --rer-missing-ink: #5b6270;
+
+  --ink: var(--rer-text);
+  --body: #3d4450;
+  --soft: #5b6270;
+  --faint: #8a909c;
+  --line: #e4e7eb;
+  --line-strong: #d3d7dd;
+  --row: #f4f6f8;
+  --tile: #f1f3f5;
+  --grid: rgba(20, 23, 27, .05);
+  --kelly: #0e8a3a;
+  --lime: #9dcc1a;
+  --gradient: linear-gradient(90deg, #0e8a3a 0%, #2fa22f 45%, #9dcc1a 100%);
+  --green: #1faf4a;
+  --green-ink: #157a34;
+  --mint: #e2f6e1;
+  --mint-strong: #cdeecb;
+  --red: #e5383b;
+  --red-ink: #c4232a;
+  --red-tint: #fdeaea;
+  --amber: #f39c12;
+  --amber-ink: #8a5a00;
+  --amber-tint: #ffe7b3;
+  --lime-pill: #cff493;
+  --sun-pill: #ffe58a;
+  --sticky: #fff7ae;
+  --sticky-edge: #f3e58a;
+  --roll: #fec326;
+  --roll-cap: #e19c02;
+  --mark-ink: #2e1d00;
+  --button: #14171b;
+  --button-hover: #000000;
+
+  --font-head: var(--rer-font-heading);
+  --font-body: var(--rer-font-body);
+  --font-mono: var(--rer-font-mono);
+  --font-print: 'Courier Prime', 'Courier New', ui-monospace, monospace;
+  --font-hand: Kalam, 'Comic Sans MS', cursive;
+
+  --radius-card: 18px;
+  --radius-chip: 999px;
+  --shadow-card: 0 1px 2px rgba(20, 23, 27, .05), 0 14px 34px -18px rgba(20, 23, 27, .22);
+  --shadow-float: 0 2px 4px rgba(20, 23, 27, .05), 0 22px 46px -22px rgba(20, 23, 27, .30);
+  --paper-grid: linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 64px 64px, linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 64px 64px, #ffffff;
 }
+
+/* Sign-in, confirmation and first-run setup: one white card on the grid paper, the lockup centred, the ink pill. */
+html.rer-themed { min-height: 100%; background: var(--paper-grid); background-attachment: fixed; }
+html.rer-themed body { background: none; color: var(--ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+html.rer-themed main { border: 1px solid var(--line); box-shadow: var(--shadow-float); }
+html.rer-themed .brand, html.rer-themed .rer-brand { justify-content: center; font: 800 28px/1 var(--font-head); letter-spacing: -.04em; color: var(--ink); }
+html.rer-themed .brand::before, html.rer-themed .rer-brand::before { width: 34px; height: 34px; }
+html.rer-themed h1 { font: 800 34px/1.08 var(--font-head); letter-spacing: -.04em; text-align: center; }
+html.rer-themed button, html.rer-themed .action { border-radius: var(--radius-chip); background: var(--button); color: #fff; font-weight: 600; }
+html.rer-themed button:hover, html.rer-themed .action:hover { background: var(--button-hover); }
+html.rer-themed button.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line-strong); }
+
+/* Base's Run page (/run) and not-found page in the homepage's look: grid paper, heavy display type with a gradient
+   second line where there is one, white step cards with hairlines, ink numerals and a dark code card. */
+body:has(> main > .intro), body:has(> main > .hero) { background: var(--paper-grid); }
+body:has(> main) .bar .brand span { font-weight: 800; letter-spacing: -.04em; }
+body:has(> main) .bar nav { font-weight: 500; }
+body:has(> main > .intro) h1, body:has(> main > .hero) h1 { font-weight: 850; letter-spacing: -.045em; }
+body:has(> main > .intro) .step { border-radius: var(--radius-card); border-color: var(--line); background: #fff; box-shadow: var(--shadow-card); backdrop-filter: none; }
+body:has(> main > .intro) .num { background: var(--ink); color: #fff; font-weight: 800; }
+body:has(> main > .intro) .step h2 { font-weight: 800; letter-spacing: -.03em; }
+body:has(> main > .intro) .code { background: var(--rer-code-background); }
+body:has(> main > .intro) .btn, body:has(> main > .hero) .btn { background: var(--button); }
+body:has(> main) .bar .brand { font-size: 36px; gap: 10px; }
+body:has(> main) .bar .brand img { width: 44px; height: 44px; margin-top: -4px; }
+body:has(> main) .bar nav { font-size: 18px; }
+@media (max-width: 760px) { body:has(> main) .bar .brand { font-size: 26px; gap: 7px; } body:has(> main) .bar .brand img { width: 32px; height: 32px; } body:has(> main) .bar nav { font-size: 15.5px; gap: 16px; } }

@@ -1,0 +1,84 @@
+/* Page 04: the copy top left, the folio blown up in the middle with its handwritten reading, the itemized card at
+   right and the faded MCI parking receipt at lower left. */
+.sec-read { --h2: 97; --lead: 28; padding-top: 64px; }
+.rd-stage { position: relative; height: calc(930 * var(--p)); }
+.rd-stage > * { position: absolute; }
+.rd-head { left: calc(34 * var(--p)); top: 0; width: calc(900 * var(--p)); }
+.rd-head .lead { max-width: none; margin-top: calc(14 * var(--p)); line-height: 1.36; }
+.rds-1 { left: calc(304 * var(--p)); top: calc(388 * var(--p)); width: calc(54 * var(--p)); height: calc(54 * var(--p)); }
+.rds-2 { left: calc(1300 * var(--p)); top: calc(205 * var(--p)); width: calc(56 * var(--p)); height: calc(56 * var(--p)); }
+
+.rd-folio { left: calc(380 * var(--p)); top: calc(338 * var(--p)); width: calc(600 * var(--p)); height: calc(580 * var(--p)); }
+.rd-sheet { position: absolute; inset: 0 calc(30 * var(--p)) calc(16 * var(--p)) 0; padding: calc(38 * var(--p)) calc(40 * var(--p)); background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow-float); rotate: 2deg; font-size: calc(19 * var(--p)); line-height: 1.3; }
+.rd-sheet-back { inset: calc(14 * var(--p)) 0 0 calc(14 * var(--p)); rotate: 4deg; box-shadow: var(--shadow-card); }
+.rd-sheet mark { display: inline-flex; align-items: center; gap: calc(8 * var(--p)); padding: calc(4 * var(--p)) calc(10 * var(--p)); border-radius: calc(4 * var(--p)); background: #e3f6dc; color: #1d2b20; }
+.rd-name { font-size: calc(24 * var(--p)); font-weight: 700; letter-spacing: -.02em; }
+.rd-field { display: flex; align-items: center; gap: calc(10 * var(--p)); margin-top: calc(14 * var(--p)); }
+.rd-field + .rd-field { margin-top: calc(6 * var(--p)); }
+.rd-lines { margin-top: calc(18 * var(--p)); padding: calc(14 * var(--p)) 0; border-block: 1.5px dashed #b4b8be; width: calc(390 * var(--p)); }
+.rd-lines li { display: flex; align-items: center; gap: calc(10 * var(--p)); height: calc(36 * var(--p)); }
+.rd-day { width: calc(62 * var(--p)); flex: none; }
+.rd-lines mark { flex: 1; justify-content: space-between; }
+.rd-brackets { position: absolute; left: calc(436 * var(--p)); top: calc(222 * var(--p)); width: calc(44 * var(--p)); height: calc(110 * var(--p)); fill: none; stroke: #148a36; stroke-width: 2.4; stroke-linejoin: round; overflow: visible; }
+.rd-note { color: #148a36; font: 400 calc(19 * var(--p))/1.2 var(--font-hand); white-space: nowrap; }
+.rd-note-room { left: calc(870 * var(--p)); top: calc(566 * var(--p)); rotate: 2deg; }
+.rd-note-tax { left: calc(870 * var(--p)); top: calc(636 * var(--p)); rotate: 2deg; }
+.rd-total { margin-top: calc(16 * var(--p)); width: calc(366 * var(--p)); }
+.rd-total mark { width: 100%; justify-content: space-between; font-size: calc(20 * var(--p)); }
+.rd-total b { display: inline-flex; align-items: center; gap: calc(8 * var(--p)); }
+.rd-paid { margin-top: calc(8 * var(--p)); }
+.rd-page { margin-top: calc(10 * var(--p)); color: var(--soft); font-size: calc(15 * var(--p)); }
+.rd-note-balance { left: calc(960 * var(--p)); top: calc(730 * var(--p)); font-size: calc(21 * var(--p)); }
+.rd-note-pocket { left: calc(780 * var(--p)); top: calc(812 * var(--p)); font-size: calc(21 * var(--p)); }
+.rdk-1 { left: calc(790 * var(--p)); top: calc(742 * var(--p)); }
+.rdk-2 { left: calc(632 * var(--p)); top: calc(790 * var(--p)); }
+.rdk-1 path, .rdk-2 path { stroke: #148a36; stroke-dasharray: none; stroke-width: 2.2; }
+
+.rd-items { left: calc(985 * var(--p)); top: calc(262 * var(--p)); width: calc(424 * var(--p)); padding: calc(34 * var(--p)) calc(40 * var(--p)) calc(30 * var(--p)) calc(36 * var(--p)); rotate: 4deg; font-size: calc(21 * var(--p)); line-height: 1.3; box-shadow: var(--shadow-float); }
+.rd-items p { display: flex; justify-content: space-between; gap: 16px; margin-top: calc(10 * var(--p)); }
+.rd-items .rd-items-title { margin: 0 0 calc(14 * var(--p)); font: 800 calc(28 * var(--p))/1 var(--font-head); font-stretch: 88%; letter-spacing: -.02em; }
+.rd-items-total { margin-top: calc(20 * var(--p)) !important; padding-top: calc(18 * var(--p)); border-top: 1px solid var(--line-strong); font-size: calc(24 * var(--p)); font-weight: 650; }
+.rd-items .pill { margin-top: calc(18 * var(--p)); font-size: calc(20 * var(--p)); padding: calc(8 * var(--p)) calc(18 * var(--p)); }
+.rd-cursor { left: calc(1278 * var(--p)); top: calc(528 * var(--p)); }
+
+.rd-mci .paper { padding: calc(30 * var(--p)) calc(22 * var(--p)) calc(42 * var(--p)) calc(28 * var(--p)); }
+.rd-mci { left: calc(74 * var(--p)); top: calc(592 * var(--p)); width: calc(268 * var(--p)); rotate: -6deg; filter: drop-shadow(0 12px 16px rgba(20, 23, 27, .18)); font-size: calc(20 * var(--p)); line-height: 1.45; }
+
+.rd-mci-total { font-size: calc(21 * var(--p)); }
+.rd-mci-date { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: calc(12 * var(--p)); padding-top: calc(12 * var(--p)); border-top: 1.5px dashed #b4b8be; }
+.faded { color: #b9bdc4; letter-spacing: .02em; white-space: nowrap; }
+.rd-mci .pill { font-family: var(--font-body); font-size: calc(15 * var(--p)); }
+.rdk-3 { left: calc(148 * var(--p)); top: calc(800 * var(--p)); }
+.rd-confirm { left: calc(290 * var(--p)); top: calc(836 * var(--p)); width: max-content; display: flex; align-items: center; gap: calc(16 * var(--p)); padding: calc(14 * var(--p)) calc(20 * var(--p)); }
+.rd-confirm .pill { font-size: calc(15 * var(--p)); }
+.rd-confirm .quiet { margin: calc(4 * var(--p)) 0 0 calc(10 * var(--p)); font-size: calc(14.5 * var(--p)); }
+
+/* Under 1200 px: the copy, the folio with its reading set under the lines, the itemized card, then the parking receipt. */
+@media (max-width: 1199px) {
+  .rd-stage { --p: .9375px; height: auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 24px; max-width: 900px; margin: 0 auto; align-items: start; }
+  .rd-stage > * { position: relative; left: auto !important; top: auto !important; }
+  .rd-stage > .conn, .rd-stage > .spark, .rd-stage > .cursor, .rd-note-balance, .rd-note-pocket { display: none; }
+  .rd-note-room, .rd-note-tax { grid-column: 1 / -1; margin-top: -14px; white-space: normal; rotate: 0deg; font-size: 19px; }
+  .rd-note-room br, .rd-note-tax br { display: none; }
+  .rd-head { grid-column: 1 / -1; width: auto; }
+  .rd-br { display: none; }
+  .rd-folio { grid-column: 1 / -1; width: auto; height: auto; max-width: 620px; }
+  .rd-sheet { position: relative; inset: auto; rotate: 0.8deg; }
+  .rd-sheet-back { display: none; }
+  .rd-lines { width: auto; }
+  .rd-brackets { display: none; }
+  .rd-total { width: auto; }
+  .rd-items { width: auto; rotate: 1.5deg; }
+  .rd-mci { width: auto; max-width: 280px; rotate: -3deg; }
+  .rd-confirm { width: auto; grid-column: 1 / -1; justify-self: start; }
+}
+@media (max-width: 760px) {
+  .rd-stage { grid-template-columns: minmax(0, 1fr); }
+  .rd-sheet { padding: 24px 20px; font-size: 15px; }
+  .rd-name { font-size: 20px; }
+  .rd-field { flex-wrap: wrap; }
+  .rd-field mark { font-size: 15px; }
+  .rd-day { width: 52px; }
+  .rd-lines li { height: 32px; }
+  .rd-mci { justify-self: center; }
+}

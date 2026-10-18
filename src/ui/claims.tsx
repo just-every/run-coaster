@@ -28,7 +28,7 @@ export function Claims({ state, reload, id }: ViewProps) {
       <div className="claims-tools">
         {state.actor.roles.employee && (creating
           ? <Form label="Start claim" className="record-form-inline" onSubmit={async v => { const claim = await call('claims', { title: v.title }); await reload(); setCreating(false); go('claims', claim.id); }} secondary={<button type="button" className="button" onClick={() => setCreating(false)}>Cancel</button>}>
-              <Field label="Claim title" name="title" placeholder="Sydney client workshop" autoFocus />
+              <Field label="Claim title" name="title" placeholder="Denver client trip" autoFocus />
             </Form>
           : <button className="button primary new" onClick={() => setCreating(true)}><Icon name="plus" />New claim</button>)}
         <div className="search-row">

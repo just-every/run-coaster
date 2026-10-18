@@ -15,7 +15,9 @@ export const Route = createRootRoute({
     <link rel="stylesheet" href="/rer-theme.css" />
     <link rel="stylesheet" href="/paper.css" />
     <link rel="stylesheet" href="/coaster.css" />
-    <link rel="icon" type="image/svg+xml" href="/brand/mark.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon-32.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <HeadContent />
     <script dangerouslySetInnerHTML={{ __html: introGuardScript }} />
     <style>{introCss}</style>

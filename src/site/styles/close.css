@@ -1,0 +1,45 @@
+/* Page 10: the close checklist at left, the copy and the tilted accrual card at right. */
+.sec-close { --h2: 64; --lead: 26; padding-top: 72px; }
+.cl-grid { display: grid; grid-template-columns: calc(834 * var(--p)) minmax(0, 1fr); gap: calc(54 * var(--p)); align-items: start; padding-left: calc(22 * var(--p)); }
+.cl-sheet { padding: calc(32 * var(--p)) calc(32 * var(--p)) calc(26 * var(--p)); border-radius: calc(26 * var(--p)); font-size: calc(18.5 * var(--p)); letter-spacing: -.01em; }
+.cl-title { font: 800 calc(39 * var(--p))/1.08 var(--font-head); font-stretch: 85%; letter-spacing: -.025em; }
+.cl-title .sep { color: var(--ink); }
+.cl-label { margin-top: calc(24 * var(--p)); padding-bottom: calc(12 * var(--p)); border-bottom: 1px solid var(--line); color: #4b5260; font-size: calc(15.5 * var(--p)); font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+.cl-sheet dl > div { display: grid; grid-template-columns: calc(394 * var(--p)) minmax(0, 1fr); gap: calc(8 * var(--p)); padding: calc(7 * var(--p)) 0; border-bottom: 1px solid var(--line); }
+.cl-sheet dl > div:last-child { border-bottom: 0; }
+.cl-sheet dl + .cl-label { border-top: 2px solid var(--line-strong); padding-top: calc(28 * var(--p)); margin-top: calc(4 * var(--p)); }
+.cl-sheet dd { margin: 0; font-variant-numeric: tabular-nums; }
+.cl-sum { display: block; margin-top: calc(2 * var(--p)); font-size: calc(15.5 * var(--p)); white-space: nowrap; letter-spacing: -.02em; }
+.cl-paid dt .quiet { display: block; margin-top: calc(8 * var(--p)); font-size: calc(16.5 * var(--p)); }
+.cl-foot { margin-top: calc(20 * var(--p)); padding-top: calc(22 * var(--p)); border-top: 2px solid var(--line-strong); color: var(--soft); font-size: calc(16.5 * var(--p)); }
+.cl-side { position: relative; padding-top: calc(170 * var(--p)); }
+.cl-side .lead { margin-top: calc(34 * var(--p)); color: #5b6270; line-height: 1.45; max-width: calc(470 * var(--p)); }
+.cls-1 { left: calc(236 * var(--p)); top: calc(500 * var(--p)); width: calc(52 * var(--p)); height: calc(52 * var(--p)); }
+.cl-accrual { width: calc(414 * var(--p)); margin: calc(66 * var(--p)) 0 0 calc(-182 * var(--p)); padding: calc(30 * var(--p)) calc(28 * var(--p)) calc(30 * var(--p)); rotate: 4deg; font-size: calc(19.5 * var(--p)); box-shadow: var(--shadow-float); }
+.cl-accrual > p:not(.cl-accrual-title):not(.cl-accrual-total):not(.cl-posted) { display: flex; justify-content: space-between; padding: calc(8 * var(--p)) 0; border-bottom: 1px solid var(--line); }
+.cl-accrual-title { font: 800 calc(28 * var(--p))/1 var(--font-head); font-stretch: 88%; letter-spacing: -.02em; }
+.cl-accrual-total { margin: calc(6 * var(--p)) 0 calc(14 * var(--p)); font: 800 calc(40 * var(--p))/1 var(--font-head); font-stretch: 90%; letter-spacing: -.02em; }
+.cl-posted { margin-top: calc(18 * var(--p)); padding: calc(10 * var(--p)) calc(18 * var(--p)); border-radius: 999px; background: var(--mint-strong); color: #1d4a2a; font-weight: 500; font-size: calc(18 * var(--p)); }
+.cl-cur { right: calc(-40 * var(--p)); bottom: calc(-36 * var(--p)); }
+.cl-cur > span { font-size: calc(16 * var(--p)); }
+
+@media (max-width: 1199px) {
+  .cl-grid { --p: .9375px; grid-template-columns: minmax(0, 1fr); gap: 32px; max-width: 760px; margin: 0 auto; padding-left: 0; }
+  .cl-side { order: -1; padding-top: 0; }
+  .cl-accrual { margin: 28px 0 0 auto; rotate: 2deg; }
+  .cl-cur { right: -6px; }
+  .cls-1 { display: none; }
+  .cl-sum { white-space: normal; }
+}
+@media (max-width: 760px) {
+  .cl-sheet { padding: 22px 18px; font-size: 15.5px; }
+  .cl-title { font-size: 27px; }
+  .cl-sheet dl > div { grid-template-columns: minmax(0, 1fr) auto; }
+  .cl-sheet dl > div:nth-child(5) { grid-template-columns: minmax(0, 1fr); }
+  .cl-sheet dd { text-align: right; }
+  .cl-sheet dl > div:nth-child(5) dd, .cl-sum { text-align: left; }
+  .cl-label { font-size: 13px; }
+  .cl-sum, .cl-paid dt .quiet, .cl-foot { font-size: 14px; }
+  .cl-accrual { width: auto; margin: 22px 8px 0; rotate: 1.5deg; }
+  .cl-cur { right: -6px; }
+}

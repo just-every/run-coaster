@@ -9,7 +9,7 @@ Open **Approvals**. **Waiting for you** lists the claims to decide, with their n
 Under **Decision**:
 
 - **Approve** sends the claim on to finance. If it has policy exceptions, first tick that you reviewed them and the employee's explanations.
-- **Return for correction** sends it back to the employee. Write the reason, for example "Attach the bistro receipt".
+- **Return for correction** sends it back to the employee. Write the reason, for example "Attach the Union Station Grill receipt".
 - **Reject** closes it. Write the reason.
 
 The reason is required to return or reject. Your decision applies to the exact revision you are looking at: if the employee changed the claim while you were reading it, Coaster asks you to reload.

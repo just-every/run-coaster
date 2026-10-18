@@ -1,0 +1,61 @@
+/* Page 08: one wide map card, Colorado to Missouri, with the Coaster character standing big above the DEN pin. */
+.sec-map { padding-top: 56px; }
+.mp-stage { position: relative; height: calc(712 * var(--p)); }
+.mp-stage > * { position: absolute; }
+.mps-1 { left: calc(232 * var(--p)); top: calc(132 * var(--p)); width: calc(56 * var(--p)); height: calc(56 * var(--p)); }
+.mps-2 { left: calc(520 * var(--p)); top: calc(14 * var(--p)); width: calc(56 * var(--p)); height: calc(56 * var(--p)); }
+.mp-mascot { z-index: 3; left: calc(268 * var(--p)); top: calc(6 * var(--p)); width: calc(260 * var(--p)); height: calc(290 * var(--p)); }
+.mp-mascot img { position: relative; z-index: 1; width: 100%; height: auto; rotate: -8deg; }
+.mp-shadow { position: absolute; left: 10%; right: -4%; bottom: calc(-8 * var(--p)); height: calc(34 * var(--p)); border-radius: 50%; background: radial-gradient(closest-side, rgba(20, 23, 27, .16), transparent); }
+.mpk { z-index: 3; left: calc(506 * var(--p)); top: calc(128 * var(--p)); }
+.mp-tag { z-index: 3; left: calc(648 * var(--p)); top: calc(130 * var(--p)); display: flex; align-items: center; gap: 2px; padding: calc(20 * var(--p)) calc(32 * var(--p)); border-radius: calc(20 * var(--p)); font-size: calc(21 * var(--p)); font-weight: 500; letter-spacing: -.012em; white-space: nowrap; }
+.mp-tag .tick { width: calc(22 * var(--p)); height: calc(22 * var(--p)); margin-left: calc(10 * var(--p)); }
+.mp-card { left: calc(-16 * var(--p)); top: calc(192 * var(--p)); width: calc(1442 * var(--p)); height: calc(484 * var(--p)); border-radius: calc(26 * var(--p)); overflow: visible; }
+.mp-map { position: absolute; inset: 0; }
+.mp-map svg { display: block; width: 100%; height: 100%; }
+.st { fill: #eef9e0; stroke: #cdd3d9; stroke-width: 2.4; stroke-linejoin: round; }
+.route { fill: none; stroke: #1b9a41; stroke-width: 3; stroke-dasharray: 12 10; stroke-linecap: round; }
+.plane path { fill: #fff; stroke: #1b9a41; stroke-width: 1.7; stroke-linejoin: round; }
+.leg { fill: none; stroke: #1b9a41; stroke-width: 2.6; stroke-dasharray: 7 7; stroke-linecap: round; }
+.ld { fill: #1b9a41; }
+.mp-state { position: absolute; color: #8a909c; font-size: calc(17 * var(--p)); letter-spacing: .24em; text-transform: uppercase; }
+.mp-co { left: 31.5%; top: 66%; }
+.mp-ks { left: 56%; top: 64%; }
+.mp-mo { left: 81%; top: 54%; }
+.mp-pin { position: absolute; display: flex; align-items: flex-end; gap: calc(4 * var(--p)); font-size: calc(22 * var(--p)); }
+.mp-pin .pin { width: calc(30 * var(--p)); height: calc(40 * var(--p)); }
+.mp-pin b { font-weight: 700; margin-bottom: calc(2 * var(--p)); }
+.mp-den { left: 31.4%; top: 26%; }
+.mp-mci { left: 74%; top: 38%; }
+.mp-chip { position: absolute; display: flex; align-items: center; gap: calc(12 * var(--p)); padding: calc(12 * var(--p)) calc(18 * var(--p)) calc(12 * var(--p)) calc(14 * var(--p)); font-size: calc(18 * var(--p)); white-space: nowrap; box-shadow: var(--shadow-float); }
+.mp-chip img { width: calc(36 * var(--p)); height: calc(36 * var(--p)); }
+.mp-chip .tick { width: calc(20 * var(--p)); height: calc(20 * var(--p)); }
+.mp-client { color: var(--body); }
+.mp-chips li:nth-child(1) { left: calc(37 * var(--p)); top: calc(126 * var(--p)); }
+.mp-chips li:nth-child(2) { left: calc(37 * var(--p)); top: calc(208 * var(--p)); }
+.mp-chips li:nth-child(3) { left: calc(37 * var(--p)); top: calc(293 * var(--p)); }
+.mp-chips li:nth-child(4) { left: calc(1070 * var(--p)); top: calc(308 * var(--p)); }
+
+/* Under 1200 px: the character and the trip tag over the map; the receipts as a list under it. */
+@media (max-width: 1199px) {
+  .mp-stage { --p: .9375px; height: auto; display: grid; justify-items: center; gap: 0; }
+  .mp-stage > * { position: relative; left: auto !important; top: auto !important; }
+  .mp-stage > .spark, .mpk { display: none; }
+  .mp-mascot { width: 170px; height: auto; margin-bottom: -6px; }
+  .mp-tag { white-space: normal; flex-wrap: wrap; justify-content: center; text-align: center; margin: 0 0 18px; z-index: 4; }
+  .mp-card { width: 100%; height: auto; padding: 0 0 18px; }
+  .mp-map { position: relative; inset: auto; aspect-ratio: 1442 / 484; }
+  .mp-state { display: none; }
+  .mp-pin { font-size: 15px; }
+  .mp-pin .pin { width: 20px; height: 27px; }
+  .mp-den { top: 22%; }
+  .mp-mci { top: 34%; }
+  .mp-map .leg, .mp-map .ld { display: none; }
+  .mp-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; padding: 0 18px; }
+  .mp-chips li { position: relative; left: auto !important; top: auto !important; white-space: normal; }
+}
+@media (max-width: 760px) {
+  .mp-mascot { width: 140px; }
+  .mp-tag { font-size: 16px; padding: 14px 18px; }
+  .mp-chip { font-size: 15px; }
+}

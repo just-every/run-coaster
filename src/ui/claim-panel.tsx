@@ -19,7 +19,7 @@ function split(item: D, currency: string) {
 }
 
 function merchantLine(item: D, currency: string) {
-  if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100}\u00a0km at ${money(item.rate_minor, currency)}`;
+  if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100}\u00a0mi at ${money(item.rate_minor, currency)}`;
   if (item.kind === 'per_diem') return `${item.merchant} · ${item.days} day${item.days === 1 ? '' : 's'} at ${money(item.rate_minor, currency)}`;
   return item.merchant;
 }

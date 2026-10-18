@@ -16,15 +16,15 @@ export async function requireBusiness(db: D1Database) {
 export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
   need(actor, 'owner');
   const currency = text(b.currency, 'Currency', 3).toUpperCase();
-  requireThat(/^[A-Z]{3}$/.test(currency), 'Currency must be a three-letter code such as AUD');
+  requireThat(/^[A-Z]{3}$/.test(currency), 'Currency must be a three-letter code such as USD');
   const current = await business(db);
   if (current && current.currency !== currency) {
     const used = await db.prepare('SELECT COUNT(*) AS n FROM c_claims').first<{ n: number }>();
     requireThat(!used?.n, 'The currency is fixed once claims exist', 409);
   }
   const timezone = text(b.timezone, 'Timezone', 64);
-  try { new Intl.DateTimeFormat('en', { timeZone: timezone }); } catch { requireThat(false, 'Timezone must be an IANA name such as Australia/Sydney'); }
-  const values = [text(b.name, 'Business name', 200), currency, timezone, amount(b.mileageRate, 'Mileage rate per km'), optionalAmount(b.perDiem, 'Per diem') ?? 0, optionalAmount(b.receiptThreshold, 'Receipt threshold') ?? 0, now()];
+  try { new Intl.DateTimeFormat('en', { timeZone: timezone }); } catch { requireThat(false, 'Timezone must be an IANA name such as America/Chicago'); }
+  const values = [text(b.name, 'Business name', 200), currency, timezone, amount(b.mileageRate, 'Mileage rate per mile'), optionalAmount(b.perDiem, 'Per diem') ?? 0, optionalAmount(b.receiptThreshold, 'Receipt threshold') ?? 0, now()];
   await commit(db, authority(actor, 'owner'), [
     db.prepare('INSERT INTO c_business(id,name,currency,timezone,mileage_rate_minor,per_diem_minor,receipt_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,mileage_rate_minor=excluded.mileage_rate_minor,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,updated_at=excluded.updated_at').bind(...values),
     event(db, actor, 'business-saved', {}, { name: values[0], currency, mileageRateMinor: values[3], perDiemMinor: values[4], receiptThresholdMinor: values[5] }),

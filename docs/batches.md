@@ -18,7 +18,7 @@ An exact expense is reimbursed once. If the same receipt, or the same expense wi
 
 | File | One line per |
 |---|---|
-| Accounting CSV | category split, with account and tax codes, cost centre, receipt fingerprint, exceptions, explanation and approver |
+| Accounting CSV | category split, with account and tax codes, cost center, receipt fingerprint, exceptions, explanation and approver |
 | Reimbursements CSV | person, with their total |
 
 Both add up to the batch total. Give the accounting file to your bookkeeper and pay the reimbursements file from your bank.

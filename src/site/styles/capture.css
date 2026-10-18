@@ -1,0 +1,79 @@
+/* Page 03: the phone's receipt inbox at left with the DM under it; the copy and the four source cards at right, each
+   joined to its inbox row by a dotted connector. At 1200 px and wider this is the desk's canvas, scaled by --p. */
+.sec-capture { --h2: 94; --lead: 25; padding-top: 72px; }
+.cap-stage { position: relative; height: calc(990 * var(--p)); }
+.cap-stage > * { position: absolute; }
+.cap-head { left: calc(735 * var(--p)); top: 0; width: calc(680 * var(--p)); }
+.cap-head .lead { margin-top: calc(26 * var(--p)); max-width: calc(640 * var(--p)); line-height: 1.33; }
+.cs-1 { left: calc(1345 * var(--p)); top: calc(232 * var(--p)); }
+.cs-2 { left: calc(0 * var(--p)); top: calc(672 * var(--p)); }
+
+.phone { left: calc(90 * var(--p)); top: calc(10 * var(--p)); width: calc(402 * var(--p)); height: calc(700 * var(--p)); padding: calc(11 * var(--p)) calc(11 * var(--p)) 0; border-radius: calc(64 * var(--p)) calc(64 * var(--p)) 0 0; background: #1d2026; box-shadow: var(--shadow-float); }
+.phone-screen { height: 100%; padding: calc(16 * var(--p)) calc(22 * var(--p)) 0; border-radius: calc(54 * var(--p)) calc(54 * var(--p)) 0 0; background: #fff; overflow: hidden; }
+.phone-status { display: flex; align-items: center; justify-content: space-between; height: calc(40 * var(--p)); padding: 0 calc(26 * var(--p)); font-size: calc(16 * var(--p)); font-weight: 600; }
+.phone-island { width: calc(112 * var(--p)); height: calc(32 * var(--p)); border-radius: 999px; background: #1d2026; }
+.phone-icons { display: inline-flex; gap: calc(4 * var(--p)); align-items: flex-end; }
+.phone-icons i { display: block; width: calc(6 * var(--p)); height: calc(10 * var(--p)); border-radius: 2px; background: #1d2026; }
+.phone-icons i:nth-child(2) { height: calc(12 * var(--p)); }
+.phone-icons i:nth-child(3) { width: calc(22 * var(--p)); height: calc(11 * var(--p)); border-radius: 3px; }
+.phone-title { margin: calc(40 * var(--p)) 0 0 calc(4 * var(--p)); font: 850 calc(42 * var(--p))/1 var(--font-head); font-stretch: 85%; letter-spacing: -.03em; }
+.phone-tabs { display: flex; gap: calc(6 * var(--p)); margin: calc(22 * var(--p)) 0 0; padding-bottom: calc(10 * var(--p)); border-bottom: 1px solid var(--line); font-size: calc(17 * var(--p)); color: var(--soft); }
+.phone-tabs span { padding: calc(6 * var(--p)) calc(12 * var(--p)); border-radius: 999px; }
+.phone-tabs .on { margin-left: auto; padding-inline: calc(30 * var(--p)); background: var(--mint); color: var(--green-ink); font-weight: 600; }
+.inbox li { display: flex; align-items: center; gap: calc(22 * var(--p)); height: calc(83 * var(--p)); border-bottom: 1px solid var(--line); font-size: calc(16.5 * var(--p)); }
+.inbox li > .icon { width: calc(34 * var(--p)); height: calc(34 * var(--p)); color: #4b5260; stroke-width: 1.5; }
+.inbox li > span:not(.pill) { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.inbox b { font-weight: 600; letter-spacing: -.01em; }
+.inbox-amount { color: var(--soft); }
+.inbox .pill { font-size: calc(16 * var(--p)); padding: calc(6 * var(--p)) calc(14 * var(--p)); }
+
+.cap-dm { z-index: 2; left: calc(60 * var(--p)); top: calc(700 * var(--p)); width: calc(508 * var(--p)); padding: calc(26 * var(--p)) calc(22 * var(--p)) calc(28 * var(--p)); display: grid; gap: calc(22 * var(--p)); rotate: -1.6deg; font-size: calc(18 * var(--p)); line-height: 1.4; }
+.cap-dm .msg { gap: calc(20 * var(--p)); align-items: center; }
+.cap-dm .av { width: calc(60 * var(--p)); height: calc(60 * var(--p)); }
+.cap-dm-say { font-size: calc(20 * var(--p)); }
+.quiet-ink { color: #3d4450; }
+.cap-cursor { z-index: 3; left: calc(560 * var(--p)); top: calc(898 * var(--p)); }
+.cap-cursor svg path { fill: var(--ink); }
+.cap-label { display: none; }
+
+.cap-src { display: flex; gap: calc(24 * var(--p)); padding: calc(20 * var(--p)) calc(26 * var(--p)); font-size: calc(17 * var(--p)); line-height: 1.45; letter-spacing: -.01em; }
+.cap-src > .icon { width: calc(48 * var(--p)); height: calc(48 * var(--p)); margin-top: calc(4 * var(--p)); color: #4b5260; stroke-width: 1.4; }
+.src-name { font-weight: 650; font-size: calc(20 * var(--p)); color: var(--ink); }
+.cap-src .quiet { font-size: calc(16 * var(--p)); }
+.cap-gmail { left: calc(752 * var(--p)); top: calc(366 * var(--p)); width: calc(538 * var(--p)); }
+.cap-camera { left: calc(800 * var(--p)); top: calc(492 * var(--p)); width: calc(582 * var(--p)); }
+.cap-slack { left: calc(736 * var(--p)); top: calc(612 * var(--p)); width: calc(640 * var(--p)); }
+.cap-lyft { left: calc(806 * var(--p)); top: calc(868 * var(--p)); width: calc(590 * var(--p)); }
+.cap-thread { display: grid; gap: calc(10 * var(--p)); margin-top: calc(10 * var(--p)); padding-top: calc(10 * var(--p)); border-top: 1px solid var(--line); }
+.cap-thread .av { width: calc(50 * var(--p)); height: calc(50 * var(--p)); }
+.cap-thread .msg { gap: calc(16 * var(--p)); align-items: center; }
+.ck-1 { left: calc(502 * var(--p)); top: calc(264 * var(--p)); }
+.ck-2 { left: calc(502 * var(--p)); top: calc(344 * var(--p)); }
+.ck-3 { left: calc(502 * var(--p)); top: calc(427 * var(--p)); }
+.ck-4 { left: calc(502 * var(--p)); top: calc(509 * var(--p)); }
+
+/* Under 1200 px: the copy, the inbox as a card, then the four sources stacked with short dotted joins, the DM last. */
+@media (max-width: 1199px) {
+  .cap-stage { --p: .9375px; height: auto; display: grid; gap: 18px; max-width: 720px; margin: 0 auto; }
+  .cap-stage > * { position: relative; left: auto !important; top: auto !important; width: auto !important; rotate: 0deg; }
+  .cap-stage > .conn, .cap-stage > .spark { display: none; }
+  .cap-head { margin-bottom: 20px; }
+  .phone { height: auto; padding: 0; border-radius: 18px; background: none; box-shadow: none; }
+  .phone-screen { padding: 22px 22px 6px; border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-card); }
+  .phone-status { display: none; }
+  .phone-title { margin-top: 0; font-size: 34px; }
+  .phone-tabs .on { margin-left: 0; padding-inline: 14px; }
+  .inbox li { height: auto; padding: 14px 0; }
+  .inbox li:last-child { border-bottom: 0; }
+  .cap-label { display: block; margin: 22px 0 0; color: #4b5260; font-size: 14px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+  .cap-src + .cap-src::before { content: ''; position: absolute; left: 50%; top: -19px; height: 18px; border-left: 3px dotted #23a046; }
+  .cap-dm { order: 9; margin-top: 8px; background: #f3fbf1; border-color: #c9ebc6; }
+  .cap-cursor { order: 10; justify-self: end; margin-top: -40px; }
+}
+@media (max-width: 760px) {
+  .cap-stage { gap: 16px; }
+  .cap-src { gap: 16px; padding: 18px; }
+  .cap-src > .icon { width: 40px; height: 40px; }
+  .inbox li { gap: 14px; }
+  .cap-thread { margin-left: -2px; }
+}

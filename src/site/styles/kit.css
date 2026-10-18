@@ -1,0 +1,112 @@
+/* The homepage's drawing kit: headings, cards, pills, avatars, cursors, stickies, sparks and connectors.
+   Every length is the desk's pixels (its 1536-wide drawings) times --p (.9375px at 1440), so a drawing scales as one piece when its layout asks. */
+.sec, .art { --p: .9375px; }
+.sec { position: relative; padding: 112px 0 56px; }
+/* A stage is a drawing laid out on the desk's canvas: 1408 desk pixels across the page's 1320 px width, scaled down with it. */
+.sec > .site-wrap { container-type: inline-size; }
+.stage { --p: min(.9375px, calc(100cqw / 1408)); }
+
+/* Headings: eyebrow, the heavy two-line H2 (second line kelly to lime), and the lead. */
+.eyebrow { margin-bottom: 18px; color: #4b5260; font: 600 16px/1.3 var(--font-body); letter-spacing: .24em; text-transform: uppercase; }
+.head h2, .hero h1 { font: 850 80px/.98 var(--font-head); font-stretch: 80%; letter-spacing: -.035em; color: var(--ink); text-wrap: balance; }
+/* Each section sets its heading and lead in the desk's own sizes (--h2, --lead in desk pixels). */
+.head h2 { font-size: calc(var(--h2, 86) * var(--p)); font-stretch: 77%; letter-spacing: -.04em; }
+@media (min-width: 1200px) { .head h2 > span { white-space: nowrap; } }
+.head .lead { font-size: calc(var(--lead, 25) * var(--p)); }
+.head h2 > span, .hero h1 > span { display: block; width: fit-content; }
+.h-second { padding-bottom: .08em; margin-bottom: -.08em; background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.head-center { text-align: center; }
+.head-center h2 > span { margin-inline: auto; }
+.lead { margin-top: 22px; max-width: 36em; color: var(--body); font-size: 23px; line-height: 1.45; letter-spacing: -.005em; text-wrap: pretty; }
+.head-center .lead { margin-inline: auto; }
+
+/* Cards: white, a hairline and a soft shadow. */
+.card { position: relative; background: #fff; border: 1px solid var(--line); border-radius: calc(18 * var(--p)); box-shadow: var(--shadow-card); }
+.card-tight { border-radius: calc(14 * var(--p)); }
+.float { box-shadow: var(--shadow-float); }
+
+/* Pills. */
+.pill { display: inline-flex; align-items: center; gap: calc(6 * var(--p)); padding: calc(5 * var(--p)) calc(13 * var(--p)); border-radius: 999px; font-size: calc(16 * var(--p)); font-weight: 500; line-height: 1.25; white-space: nowrap; }
+.pill .tick { width: calc(15 * var(--p)); height: calc(15 * var(--p)); }
+.pill-mint { background: var(--mint); color: var(--green-ink); }
+.pill-red { background: var(--red-tint); color: var(--red-ink); }
+.pill-amber { background: var(--amber-tint); color: #6e4700; }
+.pill-sun { background: var(--sun-pill); color: #5c4300; }
+.pill-tag { background: var(--tile); color: #3d4450; border: 1px solid var(--line); }
+.pill-line { background: #fff; color: var(--green-ink); border: 1.5px solid #8fd09a; }
+.tick { flex: none; width: calc(16 * var(--p)); height: calc(16 * var(--p)); fill: none; stroke: var(--green); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.1em; }
+.pill-mint .tick { stroke: currentColor; }
+
+/* Round states. */
+.dot { flex: none; width: calc(34 * var(--p)); height: calc(34 * var(--p)); }
+.dot circle { fill: var(--kelly); }
+.dot path { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.dot-fail circle { fill: var(--red); }
+.dot-alert circle { fill: var(--red); }
+.dot-wait circle { fill: #d8dce1; }
+
+/* Avatars: Coaster is the mark on a white tile; people are initials chips. */
+.av { flex: none; display: inline-grid; place-items: center; width: calc(52 * var(--p)); height: calc(52 * var(--p)); border-radius: calc(13 * var(--p)); font: 700 calc(19 * var(--p))/1 var(--font-body); letter-spacing: -.01em; }
+.av-coaster { background: #fff; border: 1px solid var(--line-strong); box-shadow: 0 2px 6px -3px rgba(20, 23, 27, .25); }
+.av-coaster img { width: 78%; height: 78%; }
+.av-sun { border-radius: 50%; background: var(--sun-pill); color: #3d2e00; }
+.av-mint { border-radius: 50%; background: var(--mint); color: var(--green-ink); }
+.av-tile { border-radius: 50%; background: var(--tile); color: #4b5260; }
+
+/* Cursors. */
+.cursor { position: absolute; z-index: 4; display: inline-flex; align-items: flex-start; pointer-events: none; }
+.cursor svg { width: calc(30 * var(--p)); height: calc(38 * var(--p)); filter: drop-shadow(0 2px 3px rgba(20, 23, 27, .3)); }
+.cursor svg path { fill: var(--ink); stroke: #fff; stroke-width: 1.4; stroke-linejoin: round; }
+.cursor-megan svg path { fill: #1b8f3c; }
+.cursor > span { margin: calc(24 * var(--p)) 0 0 calc(-4 * var(--p)); padding: calc(5 * var(--p)) calc(13 * var(--p)); border-radius: 999px; background: var(--lime-pill); color: var(--ink); font: 600 calc(18 * var(--p))/1.2 var(--font-body); box-shadow: 0 6px 14px -8px rgba(20, 23, 27, .45); white-space: nowrap; }
+.cursor-jordan > span { background: var(--sun-pill); }
+.cursor-left { flex-direction: row-reverse; }
+.cursor-left svg { margin-left: calc(-26 * var(--p)); }
+.cursor-left > span { margin: calc(30 * var(--p)) calc(-2 * var(--p)) 0 0; }
+
+/* Stickies: pale yellow, handwritten, tilted. */
+.sticky { position: relative; display: block; width: fit-content; padding: calc(26 * var(--p)) calc(30 * var(--p)) calc(16 * var(--p)); background: linear-gradient(180deg, #fffbc4, var(--sticky)); border-bottom: 1px solid var(--sticky-edge); box-shadow: 0 1px 1px rgba(20, 23, 27, .06), 0 18px 28px -18px rgba(20, 23, 27, .45); color: #2a2f36; font: 400 calc(30 * var(--p))/1.18 var(--font-hand); letter-spacing: -.005em; rotate: -7deg; }
+.sticky > span { display: block; }
+.sticky svg { display: block; width: 80%; height: calc(12 * var(--p)); margin: calc(4 * var(--p)) 0 0 10%; fill: none; stroke: #3b4048; stroke-width: 2; stroke-linecap: round; }
+
+/* Sparks and connectors. */
+.spark { position: absolute; width: calc(46 * var(--p)); height: calc(46 * var(--p)); fill: none; stroke: #129443; stroke-width: 3.6; stroke-linecap: round; pointer-events: none; }
+.conn { position: absolute; width: calc(var(--w) * var(--p)); height: calc(var(--h) * var(--p)); overflow: visible; pointer-events: none; }
+.conn path { stroke: #23a046; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 8 7; }
+.conn-dotted path { stroke-width: 3; stroke-dasharray: .1 7.5; }
+.conn path.conn-head { stroke-dasharray: none; stroke-linejoin: round; }
+
+/* Line icons. */
+.icon { flex: none; width: calc(26 * var(--p)); height: calc(26 * var(--p)); fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.icon-tile { flex: none; display: inline-grid; place-items: center; width: calc(54 * var(--p)); height: calc(54 * var(--p)); border-radius: calc(12 * var(--p)); background: var(--tile); color: #3d4450; }
+.icon-tile .icon { width: calc(30 * var(--p)); height: calc(30 * var(--p)); }
+.pin { width: calc(26 * var(--p)); height: calc(34 * var(--p)); }
+.pin path { fill: var(--kelly); }
+.pin circle { fill: #fff; }
+
+/* Paper: printed receipts are crumpled white paper, torn at the foot. */
+.torn { -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 13 * var(--p)) no-repeat, conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(22 * var(--p)) calc(13 * var(--p)) repeat-x; mask: linear-gradient(#000 0 0) top / 100% calc(100% - 13 * var(--p)) no-repeat, conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(22 * var(--p)) calc(13 * var(--p)) repeat-x; }
+.crumpled { position: relative; background: #fdfdfc; }
+.crumpled::before { content: ''; position: absolute; inset: 0; background: url('/site/crumple.svg') 0 0 / calc(260 * var(--p)) auto; mix-blend-mode: multiply; opacity: .42; pointer-events: none; }
+
+/* Printed type for receipts and folios. */
+.print { font-family: var(--font-print); color: #22262c; letter-spacing: .01em; }
+.num { font-variant-numeric: tabular-nums; }
+.money { font-weight: 700; font-variant-numeric: tabular-nums; }
+.quiet { color: var(--soft); }
+.sep { color: var(--faint); padding-inline: .3em; }
+.sep::after { content: '\200b'; }
+
+@media (max-width: 1199px) {
+  .head h2 { font-size: min(calc(var(--h2, 86) * var(--p)), 68px); }
+  .head .lead { font-size: min(calc(var(--lead, 25) * var(--p)), 21px); }
+  .sec { padding-top: 96px; }
+}
+@media (max-width: 760px) {
+  .sec { padding: 72px 0 32px; }
+  .eyebrow { font-size: 13px; letter-spacing: .2em; margin-bottom: 14px; }
+  .head h2 { font-size: 46px; line-height: 1; }
+  .head .lead { margin-top: 16px; font-size: 18px; }
+  .sticky { font-size: 24px; }
+}
+@media (max-width: 380px) { .head h2 { font-size: 42px; } }

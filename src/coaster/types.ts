@@ -68,5 +68,5 @@ export function distance(value: unknown): number {
   requireThat(hundredths > 0, 'Distance must be more than zero');
   return hundredths;
 }
-/** Round half up once: distance (hundredths of km) × rate per km. */
+/** Round half up once: distance (hundredths of a mile) × rate per mile. */
 export const mileageMinor = (hundredths: number, rateMinor: number) => Math.floor((hundredths * rateMinor + 50) / 100);

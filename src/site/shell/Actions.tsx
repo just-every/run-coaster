@@ -1,16 +1,14 @@
-import { Icon } from '../../ui/icons';
 import { links } from './links';
 
-/** The page's action and its quiet companion: Run Coaster opens the Run page, Try the demo the hosted demo; Read the docs opens /docs. */
-export function Actions() {
+const Arrow = () => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13.5M13 6.5l5.5 5.5-5.5 5.5" /></svg>;
+
+/** Run Coaster (to /run) and its text links: the hosted demo and the docs. The closing drops the demo. */
+export function Actions({ demo = true }: { demo?: boolean }) {
   return (
-    <div className="site-actions-block">
-      <div className="site-actions">
-        <a className="site-pill" href={links.run}>Run Coaster<Icon name="arrow" /></a>
-        <a className="site-pill" href="https://demo.run-coaster.com/">Try the demo</a>
-        <a className="site-link" href={links.docs}>Read the docs</a>
-      </div>
-      <p className="site-small">Free and open source, MIT licensed.</p>
+    <div className="site-actions">
+      <a className="site-pill" href={links.run}>Run Coaster<Arrow /></a>
+      {demo && <a className="site-link" href={links.demo}>Try the demo</a>}
+      <a className="site-link" href={links.docs}>Read the docs</a>
     </div>
   );
 }

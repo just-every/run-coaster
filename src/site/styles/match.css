@@ -1,0 +1,69 @@
+/* Page 05: the centred heading, then Jordan's Slack thread at left and claim C-1186 at right under the Amex file chip. */
+.sec-match { --h2: 76; --lead: 22; padding-top: 72px; }
+.sec-match .head h2 { line-height: .95; }
+.sec-match .head .lead { max-width: calc(780 * var(--p)); margin-top: calc(18 * var(--p)); line-height: 1.38; }
+.mt-stage { position: relative; height: calc(660 * var(--p)); margin-top: calc(40 * var(--p)); }
+.mt-stage > * { position: absolute; }
+.mts-1 { left: calc(58 * var(--p)); top: calc(0 * var(--p)); width: calc(40 * var(--p)); height: calc(40 * var(--p)); }
+.mts-2 { left: calc(1362 * var(--p)); top: calc(84 * var(--p)); width: calc(40 * var(--p)); height: calc(40 * var(--p)); }
+.btn-kelly { display: inline-flex; align-items: center; justify-content: center; min-height: calc(52 * var(--p)); padding: 0 calc(38 * var(--p)); border-radius: calc(10 * var(--p)); background: linear-gradient(180deg, #13923f, #0b7a33); color: #fff; font-weight: 700; font-size: calc(21 * var(--p)); box-shadow: 0 8px 16px -10px rgba(14, 138, 58, .9); }
+.btn-line { display: inline-flex; align-items: center; justify-content: center; min-height: calc(48 * var(--p)); padding: 0 calc(34 * var(--p)); border-radius: calc(10 * var(--p)); border: 1.5px solid #2f343b; background: #fff; color: var(--ink); font-weight: 600; font-size: calc(18 * var(--p)); }
+
+.mt-slack { left: calc(86 * var(--p)); top: calc(22 * var(--p)); width: calc(580 * var(--p)); padding: calc(30 * var(--p)) calc(30 * var(--p)) calc(40 * var(--p)); display: grid; gap: calc(24 * var(--p)); rotate: -1.6deg; font-size: calc(18 * var(--p)); line-height: 1.4; letter-spacing: -.01em; }
+.mt-slack .av { width: calc(62 * var(--p)); height: calc(62 * var(--p)); }
+.mt-slack .msg { gap: calc(20 * var(--p)); }
+.mt-crop { width: calc(282 * var(--p)); margin-top: calc(18 * var(--p)); padding: calc(20 * var(--p)) calc(24 * var(--p)) calc(30 * var(--p)); background: #f4f5f6; font-size: calc(17 * var(--p)); filter: drop-shadow(0 4px 6px rgba(20, 23, 27, .12)); }
+.mt-crop div { display: flex; justify-content: space-between; padding: calc(2 * var(--p)) 0; }
+.mt-crop dd { margin: 0; }
+.mt-crop-total { margin-top: calc(10 * var(--p)); padding-top: calc(12 * var(--p)) !important; border-top: 1.5px dashed #b4b8be; }
+.mt-submit { display: flex; align-items: center; gap: calc(26 * var(--p)); margin-top: calc(20 * var(--p)); }
+.mt-submit .pill { font-size: calc(18 * var(--p)); padding: calc(10 * var(--p)) calc(18 * var(--p)); }
+.mt-cur-jordan { left: calc(222 * var(--p)); top: calc(522 * var(--p)); }
+.mt-cur-jordan svg path { fill: var(--ink); }
+.mtk { left: calc(544 * var(--p)); top: calc(214 * var(--p)); z-index: 3; }
+
+.mt-file { z-index: 2; left: calc(720 * var(--p)); top: 0; width: calc(596 * var(--p)); display: flex; align-items: center; gap: calc(14 * var(--p)); padding: calc(14 * var(--p)) calc(22 * var(--p)); font-size: calc(16.5 * var(--p)); rotate: 1deg; white-space: nowrap; letter-spacing: -.01em; }
+.mt-file .icon { width: calc(26 * var(--p)); height: calc(26 * var(--p)); }
+.mt-claim { left: calc(666 * var(--p)); top: calc(54 * var(--p)); width: calc(682 * var(--p)); padding: calc(30 * var(--p)) calc(30 * var(--p)) calc(24 * var(--p)); rotate: 1deg; font-size: calc(18 * var(--p)); }
+.mt-claim-title { font: 800 calc(28 * var(--p))/1 var(--font-head); font-stretch: 90%; letter-spacing: -.02em; padding-bottom: calc(14 * var(--p)); border-bottom: 1px solid var(--line); }
+.mt-claim li { display: grid; grid-template-columns: minmax(0, 1fr) calc(250 * var(--p)); align-items: start; gap: calc(12 * var(--p)); padding: calc(12 * var(--p)) 0 calc(11 * var(--p)); border-bottom: 1px solid var(--line); }
+.mt-merchant { font-size: calc(20 * var(--p)); letter-spacing: -.02em; }
+.mt-merchant b { font-weight: 650; margin-right: calc(10 * var(--p)); }
+.mt-how { margin-top: calc(2 * var(--p)); font-size: calc(16 * var(--p)); letter-spacing: -.01em; }
+.mt-code { display: flex; flex-direction: column; align-items: flex-start; gap: calc(6 * var(--p)); }
+.mt-code .pill { font-size: calc(14.5 * var(--p)); letter-spacing: -.015em; }
+.mt-code .quiet { font-size: calc(15 * var(--p)); }
+.mt-totals { display: flex; flex-wrap: wrap; align-items: baseline; gap: calc(4 * var(--p)) 0; padding-top: calc(16 * var(--p)); font-size: calc(18.5 * var(--p)); letter-spacing: -.01em; }
+.mt-totals b { font-size: calc(21 * var(--p)); }
+.mt-cur-megan { left: calc(600 * var(--p)); top: calc(526 * var(--p)); }
+
+@media (max-width: 1199px) {
+  .mt-stage { --p: .9375px; height: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; max-width: 700px; margin: 36px auto 0; }
+  .mt-stage > * { position: relative; left: auto !important; top: auto !important; width: auto !important; rotate: 0deg; }
+  .mt-stage > .conn, .mt-stage > .spark { display: none; }
+  .mt-file { justify-self: start; margin-top: 10px; white-space: normal; }
+  .mt-cur-jordan { position: absolute; left: auto; right: 24px; top: auto; bottom: 30px; }
+  .mt-cur-megan { position: absolute; right: 8px; bottom: -14px; left: auto; top: auto; }
+}
+/* Phones (desk 390 plan): one Slack card with a full-width Submit, the file chip on two lines, then each claim line with its
+   coding chip and source stacked under it and the totals as right-aligned rows. */
+@media (max-width: 760px) {
+  .mt-slack { padding: 20px 18px 24px; }
+  .mt-slack .msg { gap: 14px; }
+  .mt-slack .av { width: 48px; height: 48px; }
+  .mt-crop { width: auto; max-width: 220px; }
+  .mt-submit { flex-direction: column; align-items: stretch; gap: 12px; margin-left: -62px; }
+  .mt-submit .btn-kelly { min-height: 48px; }
+  .mt-submit .pill { justify-self: start; width: fit-content; }
+  .mt-cur-jordan { right: 14px; bottom: 54px; }
+  .mt-file { align-items: flex-start; }
+  .mt-file > span { display: block; }
+  .mt-claim { padding: 22px 18px 18px; }
+  .mt-claim li { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .mt-merchant { font-size: 17px; }
+  .mt-how, .mt-code .quiet { font-size: 14px; }
+  .mt-code .pill { font-size: 14px; }
+  .mt-totals { flex-direction: column; align-items: flex-end; font-size: 15px; padding-bottom: 26px; }
+  .mt-cur-megan { right: 4px; bottom: -22px; }
+  .mt-totals .sep { display: none; }
+}

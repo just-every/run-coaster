@@ -1,3 +1,5 @@
+<p><img src="public/brand/mark.svg" alt="" width="72" height="72"></p>
+
 # Coaster
 
 Coaster runs employee expenses and reimbursement for one business: employees
@@ -8,13 +10,14 @@ Source code: [just-every/run-coaster](https://github.com/just-every/run-coaster)
 
 ## Run it locally
 
-Run one line to install the `rer` command, clone Coaster and start it:
+Install the `rer` command, then start Coaster (the same two lines as the run site's [Run page](https://run-coaster.com/run)):
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-coaster
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-coaster
 ```
 
-No Node? `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-coaster` does the same and brings its own Node; it changes no shell settings, so if it prints an `export PATH=…` line, run that line to use `rer` again later. To set Coaster up without starting it, use `setup` in place of `dev`.
+The installer brings its own Node when you have no Node 22 or later and changes no shell settings: if its last line puts `rer` on your PATH, run that line before the second. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-coaster` does both in one line. To set Coaster up without starting it, use `setup` in place of `dev`.
 
 To start it again later, run `cd run-coaster && rer dev`.
 This edition is runnable after composition. From the composed edition's
@@ -102,7 +105,7 @@ remote-transfer support.
 
 ## What Coaster does
 
-- Claims with receipt photos or PDFs, mileage and per diem, split across categories and cost centres.
+- Claims with receipt photos or PDFs, mileage and per diem, split across categories and cost centers.
 - Policy exceptions (missing receipt, over a category limit, possible duplicates) that need an explanation and stay visible to the export.
 - One approving manager per employee, deciding the exact submitted revision; returned claims keep every earlier revision and receipt.
 - Reimbursement batches where an exact duplicate expense can be paid only once, reviewed against a reconciled total, exported as an accounting CSV and a per-person reimbursements CSV.

@@ -1,4 +1,4 @@
-/** The coral pinked-edge disc and the name, set in the sans as everywhere in Coaster. */
+/** The lockup: the receipt-roll mark beside the heavy "Coaster" wordmark in the heading face. */
 export function Brand({ href = '/' }: { href?: string }) {
-  return <a className="site-brand" href={href}><img src="/brand/mark.svg" alt="" width="28" height="28" /><span>Coaster</span></a>;
+  return <a className="site-brand" href={href}><img src="/brand/mark.svg" alt="" width="58" height="58" /><span>Coaster</span></a>;
 }

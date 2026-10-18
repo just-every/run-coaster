@@ -20,7 +20,7 @@
     "onboard": "node scripts/install.mjs",
     "build:app": "rer queue build:app -- sh -c \"vite build\"",
     "build:site": "rer build --site",
-    "verify:app": "rer queue verify:app -- sh -c \"pnpm run build && pnpm run build:site && pnpm run typecheck && pnpm run test:typecheck && pnpm run test:coaster && pnpm run test:runtime && pnpm run test:email-link\"",
+    "verify:app": "rer queue verify:app -- sh -c \"pnpm run build && pnpm run build:site && pnpm run test:site && pnpm run typecheck && pnpm run test:typecheck && pnpm run test:coaster && pnpm run test:runtime && pnpm run test:email-link\"",
     "reset": "rer reset",
     "export": "rer export",
     "import": "rer import",
@@ -32,7 +32,8 @@
     "deps": "rer install",
     "rer": "rer",
     "test:coaster": "node --test --test-concurrency=1 tests/coaster.test.mjs",
-    "test:browser": "node tests/browser.mjs"
+    "test:browser": "node tests/browser.mjs",
+    "test:site": "node --test tests/site/*.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.33",

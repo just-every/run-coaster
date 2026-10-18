@@ -6,7 +6,7 @@ export type PolicyException = { item: string; code: 'missing-receipt' | 'over-li
 export type ClaimItem = Data & { id: string; kind: string; spent_on: string; merchant: string; amount_minor: number; receipt_id: string | null; receipt_sha256?: string | null; allocations: Data[] };
 
 const normal = (merchant: string) => merchant.trim().toLowerCase().replace(/\s+/g, ' ');
-const money = (minor: number, currency: string) => `${currency} ${(minor / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+const money = (minor: number, currency: string) => { const text = (minor / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return currency === 'USD' ? `$${text}` : `${currency} ${text}`; };
 
 /** The one key an exact expense reimburses under: its receipt bytes, or without a receipt its full description. */
 export function exactKey(employee: string, item: ClaimItem) {

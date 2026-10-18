@@ -14,9 +14,9 @@ export function Settings({ state, reload }: ViewProps) {
     {owner && <Section title="Business" className="business">
       <Form label="Save business" onSubmit={async v => { await call('settings/business', v); await saved('Business saved.'); }}>
         <Field label="Business name" name="name" defaultValue={b?.name} />
-        <Field label="Currency" name="currency" defaultValue={b?.currency ?? 'AUD'} maxLength={3} hint="Fixed once claims exist" />
-        <Field label="Timezone" name="timezone" defaultValue={b?.timezone ?? 'Australia/Sydney'} />
-        <Field label="Mileage rate per km" name="mileageRate" inputMode="decimal" defaultValue={b ? amountText(b.mileage_rate_minor) : '0.88'} hint="ATO cents-per-km rate for 2025–26 is 0.88" />
+        <Field label="Currency" name="currency" defaultValue={b?.currency ?? 'USD'} maxLength={3} hint="Fixed once claims exist" />
+        <Field label="Timezone" name="timezone" defaultValue={b?.timezone ?? 'America/Chicago'} />
+        <Field label="Mileage rate per mile" name="mileageRate" inputMode="decimal" defaultValue={b ? amountText(b.mileage_rate_minor) : '0.70'} hint="The IRS standard business rate for 2025 was 0.70 a mile" />
         <Field label="Per diem per day" name="perDiem" inputMode="decimal" required={false} defaultValue={b?.per_diem_minor ? amountText(b.per_diem_minor) : ''} hint="Leave empty if you do not pay per diems" />
         <Field label="Receipts required above" name="receiptThreshold" inputMode="decimal" required={false} defaultValue={b?.receipt_threshold_minor ? amountText(b.receipt_threshold_minor) : ''} hint="Leave empty to require a receipt for every purchase" />
       </Form>
@@ -28,7 +28,7 @@ export function Settings({ state, reload }: ViewProps) {
       <Form key={category?.id ?? 'new'} label={category ? 'Save category' : 'Add category'} onSubmit={async v => { await call('settings/categories', { ...v, id: category?.id }); setCategory(null); await saved('Category saved.'); }} secondary={category ? <button type="button" className="button" onClick={() => setCategory(null)}>Cancel</button> : undefined}>
         <Field label="Category name" name="name" defaultValue={category?.name} />
         <Field label="Account code" name="accountCode" defaultValue={category?.account_code} />
-        <Field label="Tax code" name="taxCode" defaultValue={category?.tax_code} hint="For example GST or GST Free" />
+        <Field label="Tax code" name="taxCode" defaultValue={category?.tax_code} hint="For example TAX or NON" />
         <Field label="Limit per expense" name="limit" inputMode="decimal" required={false} defaultValue={category?.limit_minor == null ? '' : amountText(category.limit_minor)} />
         <Field label="In use" name="active" type="checkbox" defaultValue={category ? category.active === 1 : true} />
       </Form>

@@ -1,4 +1,4 @@
-Coaster runs employee expenses and reimbursement for one business. It is free and open source under the MIT licence, and you run it yourself: on your own computer to try it, then on your own Cloudflare account for your team.
+Coaster runs employee expenses and reimbursement for one business. It is free and open source under the MIT license, and you run it yourself: on your own computer to try it, then on your own Cloudflare account for your team.
 
 ## How a claim moves
 

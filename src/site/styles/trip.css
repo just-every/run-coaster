@@ -1,0 +1,57 @@
+/* Page 02: the centred heading over one full-width card holding the ten-stop timeline. */
+.sec-trip { --h2: 124; --lead: 26; padding-top: 64px; }
+.trip-head { position: relative; }
+.sec-trip .head h2 { line-height: .94; }
+.sec-trip .head .lead { max-width: none; margin-top: calc(24 * var(--p)); }
+.ts-1 { left: 26%; top: calc(44 * var(--p)); width: calc(58 * var(--p)); height: calc(58 * var(--p)); }
+.ts-2 { right: 25%; top: calc(48 * var(--p)); width: calc(52 * var(--p)); height: calc(52 * var(--p)); }
+.trip-stage { position: relative; margin-top: calc(112 * var(--p)); }
+.trip-card { padding: calc(30 * var(--p)) calc(22 * var(--p)) 0; border-radius: calc(22 * var(--p)); }
+.trip-line { position: relative; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.trip-line::before { content: ''; position: absolute; left: 5%; right: 5%; top: calc(18 * var(--p)); border-top: 2px solid #2f343b; }
+.trip-line li { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0 calc(8 * var(--p)) calc(30 * var(--p)); text-align: center; }
+.trip-line li + li { border-left: 1px solid var(--line); }
+.trip-line li .dot { position: relative; z-index: 1; width: calc(36 * var(--p)); height: calc(36 * var(--p)); margin-bottom: calc(36 * var(--p)); }
+.trip-line li + li::after { content: ''; position: absolute; left: -1px; top: 0; height: calc(52 * var(--p)); border-left: 1px solid #fff; }
+.trip-line li + li { border-left-color: transparent; background: linear-gradient(var(--line), var(--line)) 0 calc(56 * var(--p)) / 1px 100% no-repeat; }
+.stop-day { color: #4b5260; font-size: calc(15 * var(--p)); font-weight: 500; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+.stop-time { margin-top: calc(18 * var(--p)); color: var(--ink); font-size: calc(18 * var(--p)); font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
+.stop-time .tick-ink { width: calc(18 * var(--p)); height: calc(18 * var(--p)); margin-left: calc(5 * var(--p)); stroke: var(--ink); }
+.stop-fail .stop-time { color: var(--red-ink); }
+.stop-what { margin-top: calc(10 * var(--p)); color: #4b5260; font-size: calc(15.5 * var(--p)); line-height: 1.38; letter-spacing: -.01em; }
+.stop-more { margin-top: calc(10 * var(--p)); color: var(--soft); font-size: calc(14.5 * var(--p)); line-height: 1.38; letter-spacing: -.01em; }
+.trip-cursor { left: 52%; top: calc(-46 * var(--p)); }
+.cursor-up { flex-direction: row; }
+.cursor-up > span { margin: calc(-16 * var(--p)) 0 0 calc(-2 * var(--p)); font-size: calc(14 * var(--p)); padding: calc(4 * var(--p)) calc(11 * var(--p)); }
+.trip-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 calc(-0 * var(--p)); padding: calc(18 * var(--p)) calc(8 * var(--p)) calc(22 * var(--p)); border-top: 1px solid var(--line-strong); color: #4b5260; font-size: calc(18.5 * var(--p)); }
+.trip-done { padding: calc(10 * var(--p)) calc(20 * var(--p)); font-size: calc(18 * var(--p)); font-weight: 600; }
+.trip-sticky { position: absolute; z-index: 3; right: calc(-30 * var(--p)); top: calc(-100 * var(--p)); font-size: calc(23 * var(--p)); padding: calc(18 * var(--p)) calc(20 * var(--p)) calc(10 * var(--p)); rotate: -9deg; }
+.trip-sticky span { max-width: calc(170 * var(--p)); }
+
+@media (max-width: 1199px) {
+  .trip-line { grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: calc(24 * var(--p)); }
+  .trip-line li:nth-child(6) { border-left: 0; }
+  .trip-line::before { display: none; }
+  .trip-sticky { right: -8px; }
+}
+/* Phones: the stops run down one line. */
+@media (max-width: 760px) {
+  .sec-trip { padding-top: 56px; }
+  .sec-trip .head h2 { font-size: 50px; }
+  .ts-1, .ts-2 { display: none; }
+  .trip-stage { margin-top: 74px; }
+  .trip-card { padding: 22px 18px 0; }
+  .trip-line { display: block; }
+  .trip-line::before { display: block; left: calc(17 * var(--p)); right: auto; top: 18px; bottom: 30px; border-top: 0; border-left: 2px solid #2f343b; }
+  .trip-line li { display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 14px; align-items: start; padding: 0 0 18px; text-align: left; }
+  .trip-line li + li { border-left: 0; }
+  .trip-line li + li::after { display: none; }
+  .trip-line li .dot { grid-row: 1 / span 4; margin: 0; width: 34px; height: 34px; }
+  .stop-day { font-size: 13px; }
+  .stop-time { margin-top: 2px; font-size: 17px; }
+  .stop-what, .stop-more { margin-top: 2px; font-size: 15px; }
+  .trip-cursor { left: 150px; top: -6px; }
+  .trip-foot { flex-direction: column; align-items: flex-start; padding: 16px 0 18px; font-size: 15px; }
+  .trip-done { font-size: 14px; white-space: normal; }
+  .trip-sticky { right: 0; top: -62px; font-size: 20px; }
+}

@@ -13,7 +13,7 @@ export function Batches({ state, reload, id }: ViewProps) {
   const [chosen, setChosen] = useState<string[]>([]);
   const proposals = state.proposals.filter((p: D) => p.kind === 'batch' && p.status === 'proposed');
   const total = ready.filter((c: D) => chosen.includes(c.id)).reduce((n: number, c: D) => n + c.total_minor, 0);
-  const currency = state.business?.currency ?? 'AUD';
+  const currency = state.business?.currency ?? 'USD';
   return <main className="main-wide batches">
     <div className={`batch-columns${id ? ' has-selection' : ''}`}>
       <div className="batch-side">

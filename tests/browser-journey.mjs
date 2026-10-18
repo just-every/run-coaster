@@ -58,7 +58,7 @@ async function noOverflow(page, width) { assert.equal(await page.evaluate(() => 
 async function addExpense(page, { kind = 'Purchase with receipt', merchant, amount, distance, category, receipt, explanation }) {
   await page.getByRole('button', { name: 'Add expense', exact: true }).click()
   await page.getByLabel('Type', { exact: true }).selectOption({ label: kind })
-  if (distance) { await fill(page, 'Route', merchant); await fill(page, 'Distance (km)', distance) }
+  if (distance) { await fill(page, 'Route', merchant); await fill(page, 'Distance (mi)', distance) }
   else { await fill(page, 'Merchant', merchant); await fill(page, 'Amount', amount) }
   await page.getByLabel('Category', { exact: true }).selectOption({ label: category })
   if (receipt) await page.getByLabel('Receipt photo or PDF', { exact: true }).setInputFiles(receipt)
@@ -89,7 +89,7 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     await page.getByRole('heading', { name: title }).waitFor()
     await addExpense(page, { merchant: 'Harbour View Bistro', amount: plan.bistro, category: 'Meals', receipt: await variant('bistro', width) })
     await addExpense(page, { merchant: 'Rockpool Dining', amount: plan.rockpool, category: 'Meals', receipt: await variant('hotel', width), explanation: 'Client dinner for four, agreed with Priya' })
-    await addExpense(page, { kind: 'Mileage at AUD 0.88 per km', merchant: 'Studio to client', distance: plan.km, category: 'Car' })
+    await addExpense(page, { kind: 'Mileage at AUD 0.88 per mile', merchant: 'Studio to client', distance: plan.km, category: 'Car' })
     await page.getByText('Over the Meals limit of AUD 120.00').waitFor()
     await page.getByRole('button', { name: 'Submit for approval' }).click()
     await page.locator('.detail .badge', { hasText: 'Submitted' }).waitFor()

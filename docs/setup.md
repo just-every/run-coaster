@@ -7,9 +7,9 @@ In **Settings**, under **Business**:
 | Field | What it does |
 |---|---|
 | Business name | The name people see. |
-| Currency | One currency for every claim, for example `AUD`. It is fixed once claims exist. |
-| Timezone | For example `Australia/Sydney`. |
-| Mileage rate per km | Mileage is priced at kilometres times this rate. The ATO cents-per-km rate for 2025–26 is 0.88. |
+| Currency | One currency for every claim, for example `USD`. It is fixed once claims exist. |
+| Timezone | For example `America/Chicago`. |
+| Mileage rate per mile | Mileage is priced at miles times this rate. The IRS standard business rate for 2025 was 0.70 a mile. |
 | Per diem per day | Leave it empty if you do not pay per diems. |
 | Receipts required above | A purchase above this amount needs a receipt. Leave it empty to require a receipt for every purchase. |
 
@@ -17,7 +17,7 @@ Choose **Save business**.
 
 ## Expense categories
 
-Add the categories your accountant expects. Each has a **Category name**, an **Account code**, a **Tax code** (for example `GST` or `GST Free`) and an optional **Limit per expense**. The account and tax codes travel with every accounting line, so the bookkeeper can import the file without retyping.
+Add the categories your accountant expects. Each has a **Category name**, an **Account code**, a **Tax code** (for example `TAX` or `NON`) and an optional **Limit per expense**. The account and tax codes travel with every accounting line, so the bookkeeper can import the file without retyping.
 
 A limit is checked against the whole amount of an expense in that category, however it is split. An expense over its limit needs the employee's explanation before they can submit it.
 

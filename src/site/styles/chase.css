@@ -1,0 +1,66 @@
+/* Page 09: the copy beside the feed health and feed cards, then the "Being chased" table with its schedule. */
+.sec-chase { --h2: 90; --lead: 22; padding-top: 72px; }
+.ch-top { display: grid; grid-template-columns: minmax(0, 1fr) calc(274 * var(--p)) calc(308 * var(--p)); gap: calc(18 * var(--p)); align-items: start; padding-left: calc(20 * var(--p)); }
+.ch-copy { position: relative; }
+.chs-1 { left: calc(708 * var(--p)); top: calc(-34 * var(--p)); width: calc(48 * var(--p)); height: calc(48 * var(--p)); }
+.ch-copy .lead { margin-top: calc(30 * var(--p)); max-width: calc(730 * var(--p)); line-height: 1.38; color: #5b6270; }
+.ch-file, .ch-feed { margin-top: calc(76 * var(--p)); padding: calc(26 * var(--p)) calc(24 * var(--p)); font-size: calc(18 * var(--p)); line-height: 1.65; }
+.ch-card-title { margin-bottom: calc(8 * var(--p)); font: 800 calc(24 * var(--p))/1.15 var(--font-head); font-stretch: 90%; letter-spacing: -.02em; }
+.ch-file-note { margin-top: calc(10 * var(--p)); padding-top: calc(10 * var(--p)); border-top: 1px solid var(--line); font-size: calc(14.5 * var(--p)); line-height: 1.45; }
+.ch-feed dl { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; }
+.ch-feed dl div { display: flex; flex-direction: column-reverse; justify-content: flex-end; padding: calc(8 * var(--p)) calc(20 * var(--p)) 0; }
+.ch-feed dl div:first-child { padding-left: 0; }
+.ch-feed dl div + div { border-left: 1px solid var(--line); }
+.ch-feed dd { margin: 0; font: 800 calc(32 * var(--p))/1.1 var(--font-head); font-stretch: 90%; }
+.ch-feed dt { color: #4b5260; font-size: calc(17 * var(--p)); line-height: 1.35; max-width: calc(80 * var(--p)); }
+.ch-table { position: relative; margin-top: calc(42 * var(--p)); padding: calc(34 * var(--p)) calc(30 * var(--p)) calc(28 * var(--p)); border-radius: calc(24 * var(--p)); }
+.ch-table-title { font: 800 calc(32 * var(--p))/1 var(--font-head); font-stretch: 90%; letter-spacing: -.02em; margin-bottom: calc(26 * var(--p)); }
+.ch-table table { width: 100%; border-collapse: collapse; font-size: calc(18 * var(--p)); letter-spacing: -.01em; }
+.ch-table th { padding: 0 calc(10 * var(--p)) calc(14 * var(--p)); border-bottom: 1px solid var(--line); color: #4b5260; font-size: calc(14.5 * var(--p)); font-weight: 600; letter-spacing: .16em; text-align: left; text-transform: uppercase; }
+.ch-table td { padding: calc(13 * var(--p)) calc(10 * var(--p)); border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ch-person { display: flex; align-items: center; gap: calc(22 * var(--p)); }
+.ch-person .av { width: calc(42 * var(--p)); height: calc(42 * var(--p)); font-size: calc(16 * var(--p)); }
+.ch-table .pill { font-size: calc(17 * var(--p)); padding: calc(7 * var(--p)) calc(16 * var(--p)); border-radius: calc(10 * var(--p)); }
+.ch-note { display: block; font-size: calc(16.5 * var(--p)); }
+.ch-more { width: fit-content; padding: calc(18 * var(--p)) calc(4 * var(--p)) calc(16 * var(--p)); color: #4b5260; font-size: calc(19 * var(--p)); }
+.ch-foot { display: grid; grid-template-columns: calc(758 * var(--p)) calc(378 * var(--p)); gap: calc(18 * var(--p)); align-items: center; }
+.ch-schedule { display: flex; align-items: center; gap: calc(18 * var(--p)); padding: calc(18 * var(--p)) calc(20 * var(--p)); border: 1px solid var(--line); border-radius: calc(12 * var(--p)); background: var(--row); color: #4b5260; font-size: calc(16 * var(--p)); white-space: nowrap; letter-spacing: -.01em; }
+.ch-schedule .icon { width: calc(28 * var(--p)); height: calc(28 * var(--p)); }
+.ch-closed { display: flex; align-items: center; gap: calc(16 * var(--p)); padding: calc(18 * var(--p)) calc(20 * var(--p)); rotate: -3deg; font-size: calc(18.5 * var(--p)); white-space: nowrap; letter-spacing: -.015em; box-shadow: var(--shadow-float); }
+.ch-closed .dot { width: calc(52 * var(--p)); height: calc(52 * var(--p)); }
+.ch-closed .dot circle { fill: var(--mint-strong); }
+.ch-closed .dot path { stroke: var(--kelly); }
+.ch-closed .quiet { font-size: calc(15 * var(--p)); }
+.ch-sticky { position: absolute; right: calc(10 * var(--p)); bottom: calc(18 * var(--p)); width: calc(196 * var(--p)); font-size: calc(26 * var(--p)); padding: calc(22 * var(--p)) calc(22 * var(--p)) calc(12 * var(--p)); rotate: -9deg; }
+.chs-2 { right: calc(-16 * var(--p)); bottom: calc(150 * var(--p)); width: calc(44 * var(--p)); height: calc(44 * var(--p)); }
+.ch-cur { right: calc(-24 * var(--p)); bottom: calc(-28 * var(--p)); }
+.ch-cur > span { font-size: calc(15 * var(--p)); }
+
+@media (max-width: 1199px) {
+  .ch-stage { --p: .9375px; }
+  .ch-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding-left: 0; }
+  .ch-copy { grid-column: 1 / -1; }
+  .ch-file, .ch-feed { margin-top: 0; }
+  .ch-foot { grid-template-columns: minmax(0, 1fr); }
+  .ch-closed { justify-self: start; }
+  .ch-schedule, .ch-closed { white-space: normal; }
+  .ch-sticky { position: relative; right: auto; bottom: auto; margin: 22px 0 0 auto; }
+  .chs-2 { display: none; }
+}
+/* Phones: each chased charge is one block, its labels beside the values. */
+@media (max-width: 760px) {
+  .ch-top { grid-template-columns: minmax(0, 1fr); }
+  .chs-1 { display: none; }
+  .ch-table { padding: 22px 16px 34px; }
+  .ch-table thead { display: none; }
+  .ch-table table, .ch-table tbody, .ch-table tr, .ch-table td { display: block; }
+  .ch-table tr { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .ch-table td { display: flex; gap: 12px; padding: 4px 0; border: 0; font-size: 16px; }
+  .ch-table td[data-label]::before { content: attr(data-label); flex: none; width: 86px; color: #4b5260; font-size: 14px; }
+  .ch-table td:nth-child(5) { flex-wrap: wrap; }
+  .ch-note { flex-basis: 100%; padding-left: 98px; font-size: 14px; }
+  .ch-table .pill { font-size: 15px; }
+  .ch-schedule { align-items: flex-start; font-size: 15px; }
+  .ch-closed { font-size: 16px; rotate: -1.5deg; }
+  .ch-cur { right: 6px; bottom: -16px; }
+}

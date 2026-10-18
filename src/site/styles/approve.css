@@ -1,0 +1,61 @@
+/* Page 06: the copy at left; Dana's Slack approval card over the Friday reimbursements card at right, the QuickBooks
+   chip at its edge. */
+.sec-approve { --h2: 76; --lead: 25; padding-top: 40px; }
+.ap-stage { position: relative; height: calc(960 * var(--p)); }
+.ap-stage > * { position: absolute; }
+.ap-head { left: calc(46 * var(--p)); top: calc(300 * var(--p)); width: calc(660 * var(--p)); }
+.ap-head .lead { margin-top: calc(48 * var(--p)); color: #5b6270; line-height: 1.5; }
+.aps-1 { left: calc(1290 * var(--p)); top: calc(26 * var(--p)); width: calc(50 * var(--p)); height: calc(50 * var(--p)); }
+.aps-2 { left: calc(1270 * var(--p)); top: calc(470 * var(--p)); width: calc(46 * var(--p)); height: calc(46 * var(--p)); }
+.ap-slack { left: calc(716 * var(--p)); top: calc(30 * var(--p)); width: calc(604 * var(--p)); padding: calc(28 * var(--p)) calc(26 * var(--p)) calc(26 * var(--p)); rotate: -3deg; font-size: calc(16.5 * var(--p)); line-height: 1.35; letter-spacing: -.01em; z-index: 2; }
+.ap-from { display: flex; gap: calc(20 * var(--p)); }
+.ap-from .av { width: calc(76 * var(--p)); height: calc(76 * var(--p)); border-radius: calc(16 * var(--p)); }
+.ap-from b { font-weight: 650; }
+.ap-claim { font-size: calc(17.5 * var(--p)); letter-spacing: -.02em; }
+.ap-rule, .ap-exception { display: flex; align-items: center; gap: calc(12 * var(--p)); margin: calc(14 * var(--p)) 0 0 calc(96 * var(--p)); }
+.ap-rule .dot { width: calc(28 * var(--p)); height: calc(28 * var(--p)); }
+.ap-exception { margin-left: calc(96 * var(--p)); padding: calc(10 * var(--p)) calc(16 * var(--p)); border: 1.5px solid #f4c064; border-radius: calc(10 * var(--p)); background: #fff6e2; font-size: calc(15 * var(--p)); white-space: nowrap; letter-spacing: -.015em; }
+.ap-exception .dot { width: calc(22 * var(--p)); height: calc(22 * var(--p)); }
+.ap-exception .dot circle { fill: var(--amber); }
+.ap-quote { margin: calc(12 * var(--p)) 0 0 calc(96 * var(--p)); color: var(--soft); font-size: calc(15.5 * var(--p)); white-space: nowrap; letter-spacing: -.015em; }
+.ap-buttons { display: flex; gap: calc(14 * var(--p)); margin: calc(18 * var(--p)) 0 0 calc(96 * var(--p)); }
+.ap-buttons .btn-kelly { min-height: calc(50 * var(--p)); font-size: calc(18 * var(--p)); padding: 0 calc(30 * var(--p)); }
+.ap-buttons, .ap-release { position: relative; }
+.ap-cur-dana { left: calc(84 * var(--p)); top: calc(24 * var(--p)); }
+.ap-approved { display: flex; align-items: center; gap: calc(12 * var(--p)); margin: calc(26 * var(--p)) 0 0 calc(80 * var(--p)); padding: calc(12 * var(--p)) calc(16 * var(--p)); border-radius: calc(10 * var(--p)); background: var(--mint); color: #1d4a2a; font-size: calc(14.5 * var(--p)); letter-spacing: -.015em; }
+.ap-approved .dot { width: calc(26 * var(--p)); height: calc(26 * var(--p)); }
+.apk { left: calc(768 * var(--p)); top: calc(330 * var(--p)); z-index: 3; }
+
+.ap-pay { left: calc(788 * var(--p)); top: calc(486 * var(--p)); width: calc(458 * var(--p)); padding: calc(26 * var(--p)) calc(30 * var(--p)) calc(26 * var(--p)); rotate: 2deg; font-size: calc(17 * var(--p)); z-index: 1; }
+.ap-pay-title { font: 800 calc(26 * var(--p))/1.1 var(--font-head); font-stretch: 90%; letter-spacing: -.02em; }
+.ap-pay > .quiet { margin-top: calc(4 * var(--p)); font-size: calc(17 * var(--p)); }
+.ap-pay ul { margin-top: calc(12 * var(--p)); }
+.ap-pay li { display: grid; grid-template-columns: calc(44 * var(--p)) minmax(0, 1fr) auto; align-items: center; gap: calc(18 * var(--p)); padding: calc(3 * var(--p)) 0; border-bottom: 1px solid var(--line); }
+.ap-pay li .av { width: calc(36 * var(--p)); height: calc(36 * var(--p)); font-size: calc(14.5 * var(--p)); }
+.ap-more .icon { width: calc(20 * var(--p)); height: calc(20 * var(--p)); }
+.ap-total { display: flex; justify-content: space-between; margin-top: calc(10 * var(--p)); padding-top: calc(10 * var(--p)); font-size: calc(19 * var(--p)); }
+.ap-release { margin-top: calc(14 * var(--p)); }
+.ap-release .btn-kelly { min-height: calc(52 * var(--p)); padding: 0 calc(42 * var(--p)); font-size: calc(19 * var(--p)); }
+.ap-cur-megan { left: calc(128 * var(--p)); top: calc(18 * var(--p)); }
+.ap-released { margin-top: calc(12 * var(--p)); font-size: calc(14.5 * var(--p)) !important; line-height: 1.45; }
+.ap-books { left: calc(1214 * var(--p)); top: calc(742 * var(--p)); width: calc(250 * var(--p)); display: flex; gap: calc(10 * var(--p)); padding: calc(14 * var(--p)) calc(12 * var(--p)); font-size: calc(14.5 * var(--p)); letter-spacing: -.01em; line-height: 1.45; z-index: 2; }
+.ap-books .icon { width: calc(34 * var(--p)); height: calc(34 * var(--p)); color: #4b5260; }
+
+@media (max-width: 1199px) {
+  .ap-stage { --p: .9375px; height: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; max-width: 680px; margin: 0 auto; }
+  .ap-stage > * { position: relative; left: auto !important; top: auto !important; width: auto !important; }
+  .ap-stage > .conn, .ap-stage > .spark { display: none; }
+  .ap-slack { rotate: -1deg; }
+  .ap-pay { rotate: 1deg; }
+  .ap-books { rotate: -1deg; }
+}
+@media (max-width: 760px) {
+  .ap-slack, .ap-pay { padding: 20px 18px; }
+  .ap-from { gap: 14px; }
+  .ap-from .av { width: 54px; height: 54px; }
+  .ap-rule, .ap-exception, .ap-quote, .ap-buttons, .ap-approved { margin-left: 0; }
+  .ap-exception, .ap-quote, .ap-approved { white-space: normal; }
+  .ap-exception, .ap-approved { align-items: flex-start; }
+  .ap-buttons { gap: 8px; }
+  .ap-buttons .btn-kelly, .ap-buttons .btn-line { padding: 0 16px; min-height: 44px; font-size: 16px; }
+}

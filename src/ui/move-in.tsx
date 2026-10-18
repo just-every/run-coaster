@@ -22,7 +22,7 @@ export function MoveIn({ state }: ViewProps) {
     if (JSON.stringify(filled) !== JSON.stringify(mapping)) { setStatuses(filled); return look(filled); }
     setPreview(result);
   }
-  const s = preview?.summary, currency = state.business?.currency ?? 'AUD';
+  const s = preview?.summary, currency = state.business?.currency ?? 'USD';
   return <main className="main-wide">
     <section className="section slip slip-foot move-in">
       <h1>Move in from Expensify</h1>
