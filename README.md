@@ -34,7 +34,11 @@ rer dev
 
 `rer demo` opens a throwaway copy signed in as the owner, with Tallgrass Outdoor
 Co.'s sample claims, and deletes it when it stops; [DEMO.md](DEMO.md) covers
-the sample data and the hosted demo at https://demo.run-coaster.com/.
+the sample data and the hosted demo at https://demo.run-coaster.com/. It opens
+on Claims with the claim waiting longest for your decision in the panel: Dana
+Kim's Wichita dealer dinner, $182.50 and over the Meals limit, ready to approve,
+return or reject. Its sign-in page also signs you in as Jordan Pike (employee),
+Dana Kim (manager) or Ruth Kowal (finance).
 
 Commands that run project work select the exact Node version declared by the
 project. They use an exact matching installed runtime or a checksum-verified
