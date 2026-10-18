@@ -1,0 +1,87 @@
+/* The right panel's contents, as the pick's exception panel: a heavy name, the amount line and date, the red banner,
+   the facts with outline icons, the question with radio choices, the gradient decision and the outline second choice.
+   Claim and batch detail both use it. */
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.panel-head h2 { font-size: 28px; color: var(--app-title); letter-spacing: -.03em; overflow-wrap: anywhere; }
+.panel-close { display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin: -2px -6px 0 0; border-radius: 8px; color: var(--soft); text-decoration: none; }
+.panel-close:hover { background: var(--row); color: var(--ink); }
+.panel-close .icon { width: 20px; height: 20px; }
+.panel-amount { margin: 6px 0 2px; font-size: 17px; }
+.panel-amount strong { font-weight: 650; font-variant-numeric: tabular-nums; }
+.panel-date { margin: 0; color: var(--soft); font-size: 14.5px; }
+.banner { display: flex; gap: 12px; margin-top: 16px; padding: 12px 14px; border: 1px solid var(--app-fail-edge); border-radius: 10px; background: var(--app-fail); color: var(--app-fail-ink); font-size: 14.5px; line-height: 1.45; }
+.banner-mark { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border: 2px solid #fff; border-radius: 50%; background: var(--app-fail-mark); color: #fff; font-size: 16px; font-weight: 800; box-shadow: 0 0 0 1px var(--app-fail-edge); }
+.banner p { margin: 0; }
+.banner strong { font-weight: 650; }
+.banner.tone-wait { border-color: #fbe3b0; background: #fff8e8; color: var(--app-wait-ink); }
+.banner.tone-wait .banner-mark { background: var(--app-wait-mark); box-shadow: 0 0 0 1px #fbe3b0; }
+.banner.tone-done { border-color: var(--mint-strong); background: var(--app-done); color: var(--app-done-ink); }
+.banner.tone-done .banner-mark { background: var(--app-done-mark); box-shadow: 0 0 0 1px var(--mint-strong); }
+.panel-block { margin-top: 22px; }
+.panel-block + .panel-block, .panel-rule { padding-top: 16px; border-top: 1px solid var(--app-hairline); }
+.panel-block > h3 { font-size: 15px; font-weight: 650; }
+.facts { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.facts li { display: flex; align-items: center; gap: 12px; min-width: 0; font-size: 14px; color: #30353d; }
+.facts li > span { min-width: 0; overflow-wrap: anywhere; }
+.facts .icon { width: 19px; height: 19px; color: #59606b; }
+.metadata { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
+
+/* Expense lines: receipt thumbnail, merchant and date, category split, amount; exceptions and changes beneath. */
+.lines { margin: 0; padding: 0; list-style: none; }
+.line { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--app-hairline-soft); }
+.line:first-child { padding-top: 4px; }
+.line .receipt { grid-row: 1 / span 3; }
+.line-main { min-width: 0; font-size: 14px; line-height: 1.4; }
+.line-main strong { font-weight: 600; overflow-wrap: anywhere; }
+.line-main .muted { display: block; font-size: 12.5px; }
+.line .amount { font-size: 14.5px; font-weight: 600; text-align: right; white-space: nowrap; }
+.line-extra { grid-column: 2 / -1; min-width: 0; }
+.line-actions { grid-column: 2 / -1; display: flex; gap: 8px; margin-top: 6px; }
+.receipt { display: flex; align-items: center; justify-content: center; width: 40px; height: 48px; border: 1px solid var(--app-hairline); border-radius: 6px; background: var(--row); overflow: hidden; color: var(--app-label); text-decoration: none; }
+.app a.receipt { text-decoration: none; }
+.receipt img { width: 100%; height: 100%; object-fit: cover; }
+.receipt .icon { width: 18px; height: 18px; }
+.receipt.missing { border-style: dashed; border-color: #f2b8bf; background: var(--app-fail); color: var(--app-fail-mark); }
+.receipt-file { font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.split-line { display: block; color: var(--soft); font-size: 12.5px; }
+.total { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0 2px; font-size: 16px; font-weight: 650; }
+
+/* The decision, as the pick asks it: one question, radio choices, the gradient button that does the chosen thing. */
+.app .choices { display: grid; gap: 4px; margin: 4px 0 14px; padding: 0; border: 0; }
+.choice { display: flex; align-items: center; gap: 12px; min-height: 36px; font-size: 15px; cursor: pointer; }
+.choice input { appearance: none; flex: none; width: 24px; height: 24px; margin: 0; border: 1.5px solid #a1a7af; border-radius: 50%; background: #fff; cursor: pointer; }
+.choice input:checked { border: 2px solid var(--app-kelly); background: radial-gradient(circle, var(--app-kelly) 0 6px, #fff 6.5px); }
+.choice input:focus-visible { outline: 2px solid var(--app-kelly); outline-offset: 2px; }
+.decision .field { margin-bottom: 12px; }
+.decision .check { margin-bottom: 12px; align-items: flex-start; font-size: 14px; line-height: 1.4; }
+.decision .check input { margin-top: 1px; }
+.decision .button + .button { margin-top: 8px; }
+.claim-actions { display: grid; gap: 8px; margin-top: 16px; }
+.claim-actions .record-form { margin: 0; }
+.claim-actions .form-end { display: grid; }
+.claim-actions .form-end .button { width: 100%; }
+.item-form { margin: 16px 0 0; padding: 16px 0 0; border-top: 1px solid var(--app-hairline); grid-template-columns: minmax(0, 1fr); }
+.item-form .form-end { display: grid; grid-template-columns: 1fr 1fr; }
+.item-form .form-end .form-error { grid-column: 1 / -1; }
+.form-title { font-size: 15px; font-weight: 650; }
+.split-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--app-hairline-soft); }
+
+.timeline { margin: 0 0 10px; padding: 0; list-style: none; }
+.timeline li { position: relative; padding: 8px 0 8px 24px; font-size: 13.5px; line-height: 1.4; }
+.timeline li::before { content: ''; position: absolute; left: 3px; top: 13px; width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
+.timeline li:first-child::before { background: var(--app-kelly); }
+.timeline li:not(:last-child)::after { content: ''; position: absolute; left: 7px; top: 25px; bottom: -11px; border-left: 1px solid var(--app-hairline); }
+.timeline time { display: block; color: var(--soft); font-size: 12.5px; }
+.revision h3 { font-weight: 500; font-size: 13.5px; }
+
+/* Batch detail tables inside the wider panel. */
+.mini { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.mini th { padding: 6px 8px 8px 0; color: var(--app-label); font-size: 12px; font-weight: 400; text-align: left; border-bottom: 1px solid var(--app-hairline); }
+.mini td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--app-hairline-soft); vertical-align: middle; overflow-wrap: anywhere; }
+.mini th:last-child, .mini td:last-child { padding-right: 0; }
+.mini th.figure { text-align: right; }
+.downloads { display: grid; gap: 8px; margin-top: 14px; }
+button.panel-close { border: 0; background: none; cursor: pointer; }
+.banner-list { margin-top: 4px; }
+.banner-list li { padding: 3px 0; border: 0; font-size: 13.5px; }
+.panel > .table-foot { margin: 0; border: 0; border-top: 1px solid var(--app-hairline); border-radius: 0 0 12px 12px; }

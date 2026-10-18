@@ -1,114 +1,119 @@
-// Harbour & Finch Studio, the business Coaster's own tests set up (tests/harness.mjs),
-// as it looks a few weeks into using Coaster. Days count back from the moment a demo starts;
-// `owner` is whoever signs in to the demo.
+// Tallgrass Outdoor Co., the homepage's business: a 70-person outdoor-gear wholesaler in Kansas City, Missouri, a few
+// weeks into using Coaster. Days count back from the day a demo starts, at 8:00 AM Kansas City time; `owner` is whoever
+// signs in to the demo, who plays Megan Ortiz, the finance and operations lead. Jordan Pike's Denver client trip is
+// the homepage's claim (C-1186 there, CL-1186 here): his two out-of-pocket receipts, $448.80, paid by ACH.
 
-export const business = { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', mileageRateMinor: 88, perDiemMinor: 7500, receiptThresholdMinor: 0 };
-export const ownerName = 'Maya Finch';
+export const business = { name: 'Tallgrass Outdoor Co.', currency: 'USD', timezone: 'America/Chicago', mileageRateMinor: 70, perDiemMinor: 6800, receiptThresholdMinor: 7500 };
+export const ownerName = 'Megan Ortiz';
+/** Claim numbers continue the business's own sequence, so Jordan's trip is CL-1186 as on the homepage. */
+export const firstClaimNumber = 1184;
 
 export const categories = [
-  { id: 'demo-cat-meals', name: 'Meals', account: '6300', tax: 'GST', limitMinor: 12000 },
-  { id: 'demo-cat-travel', name: 'Travel', account: '6200', tax: 'GST', limitMinor: null },
-  { id: 'demo-cat-car', name: 'Car', account: '6400', tax: 'GST Free', limitMinor: null },
-  { id: 'demo-cat-office', name: 'Office supplies', account: '6500', tax: 'GST', limitMinor: null },
-  { id: 'demo-cat-software', name: 'Software', account: '6550', tax: 'GST', limitMinor: 50000 },
-  { id: 'demo-cat-training', name: 'Training', account: '6600', tax: 'GST', limitMinor: null },
+  { id: 'demo-cat-lodging', name: 'Lodging', account: '6210', tax: 'TAX', limitMinor: null },
+  { id: 'demo-cat-meals', name: 'Meals', account: '6220', tax: 'TAX', limitMinor: 7500 },
+  { id: 'demo-cat-travel', name: 'Travel', account: '6230', tax: 'NON', limitMinor: null },
+  { id: 'demo-cat-car', name: 'Mileage and parking', account: '6240', tax: 'NON', limitMinor: null },
+  { id: 'demo-cat-office', name: 'Office supplies', account: '6510', tax: 'TAX', limitMinor: null },
+  { id: 'demo-cat-equipment', name: 'Equipment', account: '6520', tax: 'TAX', limitMinor: 50000 },
 ];
 
-export type Person = 'owner' | 'priya' | 'morgan' | 'sam' | 'lena' | 'tom' | 'alex' | 'jordan';
+export type Person = 'owner' | 'dana' | 'ruth' | 'jordan' | 'alyssa' | 'trevor' | 'ben' | 'kevin' | 'cara' | 'nina' | 'diego' | 'elena' | 'sam';
+const at = (local: string) => `${local}@tallgrassoutdoor.example`;
 export const people: Record<Exclude<Person, 'owner'>, { email: string; name: string; employee: boolean; manager: boolean; finance: boolean; approver: Person | null; active: boolean }> = {
-  priya: { email: 'priya@harbourfinch.example', name: 'Priya Raman', employee: true, manager: true, finance: false, approver: 'owner', active: true },
-  morgan: { email: 'morgan@harbourfinch.example', name: 'Morgan Ellis', employee: true, manager: false, finance: true, approver: 'priya', active: true },
-  sam: { email: 'sam@harbourfinch.example', name: 'Sam Okafor', employee: true, manager: false, finance: false, approver: 'priya', active: true },
-  lena: { email: 'lena@harbourfinch.example', name: 'Lena Fischer', employee: true, manager: false, finance: false, approver: 'priya', active: true },
-  tom: { email: 'tom@harbourfinch.example', name: 'Tom Becker', employee: true, manager: false, finance: false, approver: 'owner', active: true },
-  alex: { email: 'alex@harbourfinch.example', name: 'Alex Tran', employee: true, manager: false, finance: false, approver: 'owner', active: true },
-  jordan: { email: 'jordan@harbourfinch.example', name: 'Jordan Wu', employee: true, manager: false, finance: false, approver: 'priya', active: false },
+  dana: { email: at('dana.kim'), name: 'Dana Kim', employee: true, manager: true, finance: false, approver: 'owner', active: true },
+  ruth: { email: at('ruth.kowal'), name: 'Ruth Kowal', employee: true, manager: false, finance: true, approver: 'owner', active: true },
+  jordan: { email: at('jordan.pike'), name: 'Jordan Pike', employee: true, manager: false, finance: false, approver: 'dana', active: true },
+  alyssa: { email: at('alyssa.grant'), name: 'Alyssa Grant', employee: true, manager: false, finance: false, approver: 'dana', active: true },
+  trevor: { email: at('trevor.nash'), name: 'Trevor Nash', employee: true, manager: false, finance: false, approver: 'dana', active: true },
+  ben: { email: at('ben.ochoa'), name: 'Ben Ochoa', employee: true, manager: false, finance: false, approver: 'dana', active: true },
+  kevin: { email: at('kevin.ruiz'), name: 'Kevin Ruiz', employee: true, manager: false, finance: false, approver: 'owner', active: true },
+  cara: { email: at('cara.liu'), name: 'Cara Liu', employee: true, manager: false, finance: false, approver: 'dana', active: true },
+  nina: { email: at('nina.patel'), name: 'Nina Patel', employee: true, manager: false, finance: false, approver: 'owner', active: true },
+  diego: { email: at('diego.santos'), name: 'Diego Santos', employee: true, manager: false, finance: false, approver: 'dana', active: true },
+  elena: { email: at('elena.martinez'), name: 'Elena Martinez', employee: true, manager: false, finance: false, approver: 'dana', active: true },
+  sam: { email: at('sam.whitfield'), name: 'Sam Whitfield', employee: true, manager: false, finance: false, approver: 'dana', active: false },
 };
+/** The owner's own claims go to Dana Kim, the sales director. */
+export const ownerApprover: Exclude<Person, 'owner'> = 'dana';
 
-type Category = 'meals' | 'travel' | 'car' | 'office' | 'software' | 'training';
-/** One expense: a receipt (with its receipt file unless `noReceipt`), mileage in km, or per diem days. */
+type Category = 'lodging' | 'meals' | 'travel' | 'car' | 'office' | 'equipment';
+/** One expense: a receipt (with its receipt file unless `noReceipt`), mileage in miles, or per diem days. */
 export type Expense = { day: number; category: Category; costCentre?: string; explanation?: string; description?: string; split?: [Category, string, string][] } & (
-  | { kind: 'receipt'; merchant: string; amount: string; noReceipt?: boolean; lines?: [string, string][] }
-  | { kind: 'mileage'; merchant: string; km: string }
+  | { kind: 'receipt'; merchant: string; city: string; amount: string; noReceipt?: boolean; lines?: [string, string][] }
+  | { kind: 'mileage'; merchant: string; miles: string }
   | { kind: 'per_diem'; merchant: string; days: number });
 
-export type Decision = { by: Person; day: number; decision: 'approved' | 'returned' | 'rejected'; reason?: string };
-export type DemoClaim = { id: string; employee: Person; title: string; created: number; expenses: Expense[]; submitted?: number; decision?: Decision; batch?: string };
+export type Decision = { by: Person; day: number; minutes?: number; decision: 'approved' | 'returned' | 'rejected'; reason?: string };
+export type DemoClaim = { id: string; employee: Person; title: string; created: number; expenses: Expense[]; submitted?: number; submittedMinutes?: number; decision?: Decision; batch?: string };
 
 export const claims: DemoClaim[] = [
-  { id: 'demo-claim-01', employee: 'sam', title: 'Melbourne client pitch', created: 34, submitted: 31, decision: { by: 'priya', day: 30, decision: 'approved' }, batch: 'demo-batch-1', expenses: [
-    { day: 36, kind: 'receipt', merchant: 'Qantas', amount: '289.00', category: 'travel', costCentre: 'Client: Lyra Health', description: 'SYD-MEL return', lines: [['QF 409 SYD-MEL', '144.50'], ['QF 432 MEL-SYD', '144.50']] },
-    { day: 35, kind: 'receipt', merchant: 'Ovolo Laneways', amount: '412.00', category: 'travel', costCentre: 'Client: Lyra Health', description: 'Two nights', lines: [['Room, 2 nights', '398.00'], ['City tax', '14.00']] },
-    { day: 35, kind: 'per_diem', merchant: 'Melbourne', days: 2, category: 'travel', costCentre: 'Client: Lyra Health' },
-    { day: 34, kind: 'receipt', merchant: '13cabs', amount: '38.40', category: 'travel', costCentre: 'Client: Lyra Health', description: 'Hotel to client office' },
+  { id: 'demo-claim-01', employee: 'elena', title: 'Chicago market week', created: 21, submitted: 20, decision: { by: 'dana', day: 19, decision: 'approved' }, batch: 'demo-batch-41', expenses: [
+    { day: 21, kind: 'receipt', merchant: 'United Airlines', city: 'Kansas City, MO', amount: '286.40', category: 'travel', costCentre: 'Sales', description: 'MCI to ORD and back', lines: [['UA 2261 MCI-ORD', '143.20'], ['UA 1874 ORD-MCI', '143.20']] },
+    { day: 21, kind: 'receipt', merchant: 'Palmer House Hilton', city: 'Chicago, IL', amount: '198.40', category: 'lodging', costCentre: 'Sales', description: 'One night', lines: [['Room, 1 night', '169.00'], ['Room and occupancy tax', '29.40']] },
+    { day: 20, kind: 'receipt', merchant: 'Lyft', city: 'Chicago, IL', amount: '24.90', category: 'travel', costCentre: 'Sales', description: 'Hotel to the Merchandise Mart' },
   ] },
-  { id: 'demo-claim-02', employee: 'owner', title: 'Studio supplies for the brand workshop', created: 33, submitted: 32, decision: { by: 'priya', day: 31, decision: 'approved' }, batch: 'demo-batch-1', expenses: [
-    { day: 33, kind: 'receipt', merchant: 'Officeworks', amount: '86.35', category: 'office', description: 'Butcher paper, markers, sticky notes', lines: [['Butcher paper roll', '24.95'], ['Markers 24pk', '32.40'], ['Sticky notes 12pk', '29.00']] },
-    { day: 33, kind: 'receipt', merchant: 'Kmart', amount: '42.00', category: 'office', description: 'Display easels' },
+  { id: 'demo-claim-02', employee: 'trevor', title: 'Phone case and charger', created: 13, submitted: 12, decision: { by: 'dana', day: 11, decision: 'rejected', reason: 'Personal phone accessories are not covered; the company line ships with a charger.' }, expenses: [
+    { day: 13, kind: 'receipt', merchant: 'Best Buy', city: 'Kansas City, MO', amount: '64.98', category: 'equipment', description: 'Rugged case and car charger' },
   ] },
-  { id: 'demo-claim-03', employee: 'lena', title: 'Design Week Sydney ticket', created: 30, submitted: 29, decision: { by: 'priya', day: 28, decision: 'approved' }, batch: 'demo-batch-1', expenses: [
-    { day: 31, kind: 'receipt', merchant: 'Design Week Sydney', amount: '349.00', category: 'training', description: 'Two-day pass' },
-    { day: 29, kind: 'receipt', merchant: 'Bills Surry Hills', amount: '31.50', category: 'meals', description: 'Lunch between sessions' },
+  { id: 'demo-claim-03', employee: 'jordan', title: 'Denver client trip', created: 11, submitted: 10, submittedMinutes: 91, decision: { by: 'dana', day: 10, minutes: 134, decision: 'approved' }, batch: 'demo-batch-41', expenses: [
+    { day: 11, kind: 'receipt', merchant: 'Blake Street Hotel', city: 'Denver, CO', amount: '412.80', category: 'lodging', costCentre: 'Client: Pikes Trail Supply', description: 'Two nights, one folio', lines: [['Room, 2 nights', '358.00'], ['Lodging and occupancy tax', '54.80']] },
+    { day: 11, kind: 'receipt', merchant: 'MCI Economy Parking', city: 'Kansas City, MO', amount: '36.00', category: 'car', costCentre: 'Client: Pikes Trail Supply', description: 'Three days', lines: [['Economy lot, 3 days', '36.00']] },
   ] },
-  { id: 'demo-claim-04', employee: 'tom', title: 'Newcastle client visits', created: 18, submitted: 16, decision: { by: 'owner', day: 15, decision: 'approved' }, batch: 'demo-batch-2', expenses: [
-    { day: 20, kind: 'mileage', merchant: 'Studio to Newcastle and back', km: '324', category: 'car', costCentre: 'Client: Hunter Brewing' },
-    { day: 20, kind: 'receipt', merchant: 'Secure Parking Newcastle', amount: '24.00', category: 'car', costCentre: 'Client: Hunter Brewing' },
-    { day: 20, kind: 'receipt', merchant: 'Rustica', amount: '58.20', category: 'meals', costCentre: 'Client: Hunter Brewing', description: 'Lunch with the brand team' },
+  { id: 'demo-claim-04', employee: 'trevor', title: 'Sioux Falls dealer visit', created: 10, submitted: 4, expenses: [
+    { day: 10, kind: 'receipt', merchant: 'Casey’s', city: 'Sioux Falls, SD', amount: '58.40', category: 'meals', costCentre: 'Sales', description: 'Lunch with the Dakota Trail Outfitters team', lines: [['Large pizzas x3', '47.97'], ['Drinks', '6.50'], ['Sales tax', '3.93']] },
+    { day: 10, kind: 'mileage', merchant: 'Kansas City to Sioux Falls and back', miles: '704', category: 'car', costCentre: 'Sales' },
   ] },
-  { id: 'demo-claim-05', employee: 'morgan', title: 'Xero payroll course', created: 17, submitted: 16, decision: { by: 'priya', day: 14, decision: 'approved' }, batch: 'demo-batch-2', expenses: [
-    { day: 19, kind: 'receipt', merchant: 'Xero', amount: '195.00', category: 'training', description: 'Payroll advisor course' },
+  { id: 'demo-claim-05', employee: 'cara', title: 'San Francisco buyer meeting', created: 7, submitted: 6, decision: { by: 'dana', day: 5, decision: 'approved' }, batch: 'demo-batch-42', expenses: [
+    { day: 7, kind: 'receipt', merchant: 'Uber', city: 'San Francisco, CA', amount: '27.15', category: 'travel', costCentre: 'Sales', description: 'SFO to the REI buying office' },
+    { day: 7, kind: 'receipt', merchant: 'Tartine Manufactory', city: 'San Francisco, CA', amount: '48.20', category: 'meals', costCentre: 'Sales', description: 'Lunch with two REI buyers', lines: [['Lunch for three', '43.80'], ['Sales tax', '4.40']] },
   ] },
-  { id: 'demo-claim-06', employee: 'alex', title: 'Photo shoot props', created: 12, submitted: 11, decision: { by: 'owner', day: 9, decision: 'approved' }, expenses: [
-    { day: 13, kind: 'receipt', merchant: 'Bunnings Warehouse', amount: '67.80', category: 'office', costCentre: 'Client: Saltwater Swim', description: 'Timber offcuts and clamps' },
-    { day: 13, kind: 'receipt', merchant: 'Paddy’s Markets', amount: '45.00', category: 'office', costCentre: 'Client: Saltwater Swim', description: 'Fresh flowers for set', noReceipt: true, explanation: 'Cash stall with no receipts; photo of the stall sign in the shoot folder.' },
-    { day: 12, kind: 'receipt', merchant: 'Uber', amount: '27.65', category: 'travel', costCentre: 'Client: Saltwater Swim' },
+  { id: 'demo-claim-06', employee: 'ben', title: 'Atlanta outdoor retailer show', created: 6, submitted: 5, decision: { by: 'dana', day: 3, decision: 'approved' }, expenses: [
+    { day: 6, kind: 'receipt', merchant: 'Delta', city: 'Atlanta, GA', amount: '412.60', category: 'travel', costCentre: 'Sales', description: 'MCI to ATL and back', lines: [['DL 1422 MCI-ATL', '206.30'], ['DL 2091 ATL-MCI', '206.30']] },
+    { day: 5, kind: 'per_diem', merchant: 'Atlanta, GA', days: 2, category: 'travel', costCentre: 'Sales' },
   ] },
-  { id: 'demo-claim-07', employee: 'priya', title: 'Team offsite in the Blue Mountains', created: 10, submitted: 9, decision: { by: 'owner', day: 8, decision: 'approved', reason: 'Thanks for organising.' }, expenses: [
-    { day: 11, kind: 'receipt', merchant: 'Hydro Majestic', amount: '540.00', category: 'meals', description: 'Team lunch for six', split: [['meals', 'Studio', '120.00'], ['training', 'Studio', '420.00']], explanation: 'Lunch was part of the paid workshop venue; split agreed with Morgan.', lines: [['Workshop room hire', '420.00'], ['Lunch, 6 guests', '120.00']] },
-    { day: 11, kind: 'mileage', merchant: 'Studio to Katoomba and back', km: '212', category: 'car', costCentre: 'Studio' },
+  { id: 'demo-claim-07', employee: 'alyssa', title: 'Omaha dealer visits', created: 6, submitted: 5, decision: { by: 'dana', day: 4, decision: 'returned', reason: 'Attach the Hampton Inn folio; lodging always needs a receipt.' }, expenses: [
+    { day: 6, kind: 'receipt', merchant: 'Hampton Inn Omaha', city: 'Omaha, NE', amount: '241.36', category: 'lodging', costCentre: 'Sales', description: 'One night', noReceipt: true, explanation: 'The front desk is emailing the folio; I will attach it when it arrives.' },
+    { day: 6, kind: 'mileage', merchant: 'Kansas City to Omaha and back', miles: '372', category: 'car', costCentre: 'Sales' },
   ] },
-  { id: 'demo-claim-08', employee: 'tom', title: 'Hunter Brewing launch dinner', created: 6, submitted: 4, expenses: [
-    { day: 7, kind: 'receipt', merchant: 'Margan Restaurant', amount: '186.00', category: 'meals', costCentre: 'Client: Hunter Brewing', description: 'Dinner with client founders', explanation: 'Launch dinner for three; the client chose the venue.', lines: [['Tasting menu x3', '165.00'], ['Sparkling water', '21.00']] },
-    { day: 7, kind: 'receipt', merchant: 'Hunter Valley Resort', amount: '219.00', category: 'travel', costCentre: 'Client: Hunter Brewing', description: 'One night' },
-    { day: 7, kind: 'mileage', merchant: 'Studio to Pokolbin and back', km: '338', category: 'car', costCentre: 'Client: Hunter Brewing' },
+  { id: 'demo-claim-08', employee: 'diego', title: 'Boulder store visit', created: 6, submitted: 5, decision: { by: 'dana', day: 4, decision: 'approved' }, batch: 'demo-batch-42', expenses: [
+    { day: 6, kind: 'receipt', merchant: 'REI', city: 'Boulder, CO', amount: '112.45', category: 'equipment', costCentre: 'Sales', description: 'Rope and carabiners for the store fixture', lines: [['Static rope, 30 m', '64.95'], ['Carabiners x6', '38.94'], ['Sales tax', '8.56']] },
+    { day: 6, kind: 'receipt', merchant: 'Pearl Street parking', city: 'Boulder, CO', amount: '12.00', category: 'car', costCentre: 'Sales' },
   ] },
-  { id: 'demo-claim-09', employee: 'owner', title: 'Studio software renewals', created: 5, submitted: 4, expenses: [
-    { day: 6, kind: 'receipt', merchant: 'Figma', amount: '264.00', category: 'software', description: 'Professional plan, two editors' },
-    { day: 6, kind: 'receipt', merchant: 'Adobe', amount: '89.99', category: 'software', description: 'Creative Cloud single app' },
+  { id: 'demo-claim-09', employee: 'nina', title: 'Showroom display hardware', created: 6, submitted: 6, decision: { by: 'owner', day: 5, decision: 'approved' }, expenses: [
+    { day: 7, kind: 'receipt', merchant: 'Home Depot', city: 'Kansas City, MO', amount: '89.23', category: 'office', costCentre: 'Marketing', description: 'Pegboard hooks and cable ties', lines: [['Pegboard hooks, 50 pack', '54.97'], ['Cable ties', '27.48'], ['Sales tax', '6.78']] },
   ] },
-  { id: 'demo-claim-10', employee: 'priya', title: 'Client workshop catering', created: 4, submitted: 3, expenses: [
-    { day: 5, kind: 'receipt', merchant: 'Harris Farm Markets', amount: '73.45', category: 'meals', costCentre: 'Client: Lyra Health', description: 'Fruit and pastries' },
-    { day: 5, kind: 'receipt', merchant: 'Single O', amount: '48.00', category: 'meals', costCentre: 'Client: Lyra Health', description: 'Coffee for twelve' },
+  { id: 'demo-claim-10', employee: 'kevin', title: 'Warehouse shelving repair', created: 5, submitted: 3, expenses: [
+    { day: 5, kind: 'receipt', merchant: 'Home Depot', city: 'Lenexa, KS', amount: '146.88', category: 'equipment', costCentre: 'Warehouse', description: 'Brackets and lag screws for aisle 4', lines: [['Steel shelf brackets x12', '97.08'], ['Lag screws, 50 pack', '38.42'], ['Sales tax', '11.38']] },
   ] },
-  { id: 'demo-claim-11', employee: 'sam', title: 'Printing for the Saltwater pitch', created: 3, submitted: 2, expenses: [
-    { day: 3, kind: 'receipt', merchant: 'Snap Printing Surry Hills', amount: '132.00', category: 'office', costCentre: 'Client: Saltwater Swim', description: 'A3 boards, matte' },
+  { id: 'demo-claim-11', employee: 'owner', title: 'Kansas City lender lunch', created: 5, submitted: 4, expenses: [
+    { day: 5, kind: 'receipt', merchant: 'Jack Stack Barbecue', city: 'Kansas City, MO', amount: '96.40', category: 'meals', costCentre: 'Operations', description: 'Lunch for three', explanation: 'Lunch with two from First Bank about the credit line; agreed with Dana.', lines: [['Lunch for three', '79.50'], ['Sales tax', '7.40'], ['Tip', '9.50']] },
   ] },
-  { id: 'demo-claim-12', employee: 'lena', title: 'Canberra site survey', created: 9, submitted: 7, decision: { by: 'priya', day: 6, decision: 'returned', reason: 'Please attach the parking receipt; the car park emails one.' }, expenses: [
-    { day: 9, kind: 'mileage', merchant: 'Studio to Canberra and back', km: '572', category: 'car', costCentre: 'Client: National Arboretum' },
-    { day: 9, kind: 'receipt', merchant: 'Wilson Parking Canberra', amount: '18.00', category: 'car', costCentre: 'Client: National Arboretum', noReceipt: true, explanation: 'Machine was out of paper.' },
+  { id: 'demo-claim-12', employee: 'ruth', title: 'October office supplies', created: 4, submitted: 4, decision: { by: 'owner', day: 3, decision: 'approved' }, expenses: [
+    { day: 4, kind: 'receipt', merchant: 'Staples', city: 'Overland Park, KS', amount: '64.12', category: 'office', costCentre: 'Operations', description: 'Toner and receipt paper', lines: [['Toner cartridge', '49.99'], ['Thermal receipt paper', '9.29'], ['Sales tax', '4.84']] },
   ] },
-  { id: 'demo-claim-13', employee: 'alex', title: 'Gym membership', created: 8, submitted: 8, decision: { by: 'owner', day: 7, decision: 'rejected', reason: 'A personal membership is not a studio expense.' }, expenses: [
-    { day: 8, kind: 'receipt', merchant: 'Fitness First', amount: '79.00', category: 'office', description: 'Monthly membership' },
+  { id: 'demo-claim-13', employee: 'dana', title: 'Wichita dealer dinner', created: 4, submitted: 3, expenses: [
+    { day: 4, kind: 'receipt', merchant: 'The Monarch', city: 'Wichita, KS', amount: '182.50', category: 'meals', costCentre: 'Sales', description: 'Dinner for five', explanation: 'Dinner with three Prairie Outfitters buyers and Ben; they signed the spring order.', lines: [['Dinner for five', '146.00'], ['Sales tax', '11.30'], ['Tip', '25.20']] },
   ] },
-  { id: 'demo-claim-14', employee: 'owner', title: 'Sydney Design Awards dinner', created: 1, expenses: [
-    { day: 2, kind: 'receipt', merchant: 'Ivy Ballroom', amount: '110.00', category: 'meals', description: 'Awards dinner ticket' },
-    { day: 2, kind: 'receipt', merchant: 'Uber', amount: '34.20', category: 'travel', description: 'Home after the awards' },
+  { id: 'demo-claim-14', employee: 'owner', title: 'Overland Park trade show', created: 3, expenses: [
+    { day: 3, kind: 'receipt', merchant: 'Hy-Vee', city: 'Overland Park, KS', amount: '34.20', category: 'meals', costCentre: 'Marketing', description: 'Booth snacks and water' },
+    { day: 3, kind: 'receipt', merchant: 'Overland Park Convention Center', city: 'Overland Park, KS', amount: '15.00', category: 'car', costCentre: 'Marketing', description: 'Exhibitor parking' },
   ] },
 ];
 
-export type DemoBatch = { id: string; number: number; createdBy: Person; created: number; reviewedBy?: Person; reviewed?: number; exported?: number; paid?: { by: Person; day: number; reference: string } };
+/** `minutes` moves a batch's same-day steps later than 8:00 AM, after the approvals it holds. */
+export type DemoBatch = { id: string; number: number; createdBy: Person; created: number; minutes?: number; reviewedBy?: Person; reviewed?: number; exported?: number; paid?: { by: Person; day: number; reference: string } };
 export const batches: DemoBatch[] = [
-  { id: 'demo-batch-1', number: 1, createdBy: 'owner', created: 27, reviewedBy: 'morgan', reviewed: 26, exported: 26, paid: { by: 'morgan', day: 25, reference: 'CBA EFT 240918' } },
-  { id: 'demo-batch-2', number: 2, createdBy: 'morgan', created: 13 },
+  { id: 'demo-batch-41', number: 41, createdBy: 'owner', created: 10, minutes: 300, reviewedBy: 'ruth', reviewed: 10, exported: 10, paid: { by: 'ruth', day: 3, reference: 'ACH 1016-0041' } },
+  { id: 'demo-batch-42', number: 42, createdBy: 'ruth', created: 3, minutes: 120 },
 ];
 
-/** An agent working for the owner has turned three emailed ride receipts into a claim for them to accept. */
+/** An agent working for the owner has turned three forwarded Lyft receipts into a claim for them to accept. */
 export const proposal = {
-  id: 'demo-proposal-1', key: 'demo-agent-key-1', agent: 'Receipt assistant', created: 1,
-  title: 'Rides to client meetings', note: 'From three Uber receipts in your inbox this week.',
+  id: 'demo-proposal-1', key: 'demo-agent-key-1', agent: 'Receipt inbox agent', created: 3,
+  title: 'Lyft rides to the Lenexa warehouse', note: 'From three Lyft receipts forwarded to the receipts inbox this week.',
   items: [
-    { day: 4, merchant: 'Uber', amount: '22.80', category: 'travel', description: 'Studio to Lyra Health' },
-    { day: 3, merchant: 'Uber', amount: '19.35', category: 'travel', description: 'Lyra Health to studio' },
-    { day: 2, merchant: 'Uber', amount: '31.10', category: 'travel', description: 'Studio to Saltwater Swim' },
+    { day: 6, merchant: 'Lyft', amount: '18.40', category: 'travel', description: 'Office to the Lenexa warehouse' },
+    { day: 5, merchant: 'Lyft', amount: '21.75', category: 'travel', description: 'Lenexa warehouse to the office' },
+    { day: 4, merchant: 'Lyft', amount: '19.60', category: 'travel', description: 'Office to the Lenexa warehouse' },
   ],
 };

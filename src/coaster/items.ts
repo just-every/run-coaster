@@ -43,7 +43,7 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
     requireThat(typeof a.category === 'string' && active.has(a.category), `Choose an active category for part ${i + 1}`);
     const part = raw.length === 1 && (a.amount === null || a.amount === undefined || a.amount === '') ? amount_minor : amount(a.amount, `Amount for part ${i + 1}`);
     requireThat(part > 0, `Part ${i + 1} must be more than zero`);
-    return { category_id: a.category, cost_centre: optionalText(a.costCentre, 'Cost centre', 80), amount_minor: part };
+    return { category_id: a.category, cost_centre: optionalText(a.costCentre, 'Cost center', 80), amount_minor: part };
   });
   const sum = allocations.reduce((n, a) => n + a.amount_minor, 0);
   requireThat(sum === amount_minor, 'The split must add up exactly to the expense amount');

@@ -1,0 +1,122 @@
+/* The Coaster app's ground: type, buttons, fields, status pills and quiet utilities. Every colour, face and shadow is a
+   token from /rer-theme.css (owner pick J, 18 Oct 2026). Rules are scoped to .app so Base's own pages keep their look. */
+body:has(.app) { margin: 0; padding: 0; background: var(--app-grid); background-attachment: fixed; }
+.app { min-height: 100vh; color: var(--ink); font: 15px/1.5 var(--font-body); font-variant-numeric: lining-nums; -webkit-font-smoothing: antialiased; }
+.app *, .app *::before, .app *::after { box-sizing: border-box; }
+.app button, .app input, .app select, .app textarea { font: inherit; color: inherit; }
+.app a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.app a:hover { text-decoration-thickness: 2px; }
+.app :focus-visible { outline: 2px solid var(--app-kelly); outline-offset: 2px; }
+.app .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.app .muted { color: var(--soft); }
+.app .block { display: block; }
+.app .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.app .amount, .app .figure, .app .total, .app .tile-value { font-variant-numeric: tabular-nums lining-nums; }
+.app .figure { text-align: right; white-space: nowrap; }
+.app .nowrap { white-space: nowrap; }
+
+/* Type: heavy black grotesk for page and panel titles, clean sans for everything else. */
+.app h1, .app h2 { font-family: var(--font-head); font-weight: 800; letter-spacing: -.03em; word-spacing: .12em; line-height: 1.08; text-wrap: balance; margin: 0; }
+.app h1 { font-size: 50px; font-weight: 850; letter-spacing: -.045em; word-spacing: .16em; color: var(--app-title); }
+.app h2 { font-size: 22px; }
+.app h3 { font: 600 15px/1.35 var(--font-body); margin: 0 0 8px; }
+
+/* Buttons: ink for the one main action on a screen, white with a hairline for the rest; the gradient is kept for the
+   decision button alone (.button.go). */
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 18px; border: 1px solid var(--app-field); border-radius: 10px; background: #fff; color: var(--ink); font-size: 14.5px; font-weight: 500; line-height: 1.2; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.app a.button { text-decoration: none; }
+.button:hover { background: var(--row); border-color: var(--line-strong); }
+.button.primary, .button.dark { background: var(--button); border-color: var(--button); color: #fff; font-weight: 600; }
+.button.primary:hover, .button.dark:hover { background: var(--button-hover); }
+.button.go { width: 100%; min-height: 46px; border: 0; border-radius: 12px; background: var(--app-gradient); color: #fff; font-size: 16px; font-weight: 650; text-shadow: 0 1px 1px rgba(0, 60, 20, .25); }
+.button.go:hover { filter: brightness(.97); background: var(--app-gradient); }
+.button.wide { width: 100%; }
+.button:disabled { opacity: .55; cursor: not-allowed; }
+.button.small { min-height: 32px; padding: 5px 12px; font-size: 13px; border-radius: 8px; }
+.button .icon { width: 18px; height: 18px; }
+.link-button { border: 0; padding: 0; min-height: 0; background: none; color: var(--ink); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.link-button:hover { background: none; text-decoration-thickness: 2px; }
+
+/* Fields: thin quiet borders, a clear green focus ring, labels above. */
+.record-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 16px; margin: 14px 0 0; align-items: start; }
+.record-form-inline { grid-template-columns: 1fr; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field-wide, .form-end, .form-title, .split, .roles { grid-column: 1 / -1; }
+.field-label { color: var(--app-label); font-size: 13px; font-weight: 500; }
+.field-hint { color: var(--soft); font-size: 12.5px; }
+.field input:not([type=checkbox]):not([type=radio]), .field select, .field textarea, .key-field { width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid var(--app-field); border-radius: 10px; background: #fff; color: var(--ink); font-size: 14.5px; transition: border-color .12s, box-shadow .12s; }
+.field input:not([type=checkbox]):not([type=radio]):hover, .field select:hover, .field textarea:hover { border-color: #b9c0ca; }
+.field input:not([type=checkbox]):not([type=radio]):focus, .field select:focus, .field textarea:focus, .key-field:focus { outline: none; border-color: var(--app-kelly); box-shadow: 0 0 0 3px rgba(30, 158, 58, .18); }
+/* Single-choice selects draw Base #247's two-gradient chevron 14 px in from the border, with 40 px end padding so the
+   text never runs under it (multiple and size>1 lists keep their native look). */
+.field select:not([multiple], [size]:not([size="1"])) {
+  --rer-select-ink: var(--soft);
+  -webkit-appearance: none;
+  appearance: none;
+  padding-inline-end: 40px;
+  text-overflow: ellipsis;
+  background-image:
+    linear-gradient(to top right, transparent calc(50% - 1.1px), var(--rer-select-ink) calc(50% - .55px), var(--rer-select-ink) calc(50% + .55px), transparent calc(50% + 1.1px)),
+    linear-gradient(to top left, transparent calc(50% - 1.1px), var(--rer-select-ink) calc(50% - .55px), var(--rer-select-ink) calc(50% + .55px), transparent calc(50% + 1.1px));
+  background-repeat: no-repeat;
+  background-position: right 20px center, right 14px center;
+  background-size: 6px 6px;
+}
+.field select:not([multiple], [size]:not([size="1"])):focus-visible { --rer-select-ink: var(--ink); }
+.field select:not([multiple], [size]:not([size="1"])):disabled { --rer-select-ink: color-mix(in srgb, var(--soft) 55%, transparent); }
+.field input[type=file] { padding: 6px 8px; font-size: 13.5px; }
+.field input[type=file]::file-selector-button { margin-right: 12px; min-height: 28px; padding: 4px 12px; border: 1px solid var(--app-field); border-radius: 8px; background: #fff; color: var(--ink); font: 500 13px/1.2 var(--font-body); cursor: pointer; }
+.field textarea { min-height: 72px; resize: vertical; }
+.field input:user-invalid, .field select:user-invalid { border-color: var(--app-fail-mark); }
+.check { display: flex; align-items: center; gap: 10px; min-height: 32px; font-size: 14.5px; }
+.check input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--app-kelly); }
+.form-end { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.form-error { color: var(--app-fail-ink); margin: 6px 0; font-weight: 500; font-size: 14px; }
+.form-error::before { content: '! '; font-weight: 700; }
+.app fieldset { border: 1px solid var(--app-hairline); border-radius: 12px; padding: 10px 14px 12px; margin: 0; min-width: 0; }
+.app legend { font-size: 13px; color: var(--soft); padding: 0 4px; }
+.roles { display: flex; gap: 20px; flex-wrap: wrap; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+.key-once { display: grid; gap: 8px; margin: 12px 0; }
+.key-field { font-family: var(--font-mono); font-size: 12.5px; }
+
+/* Status pills: words with a shape, never colour alone. Green done, amber waiting, red failed, grey not started. */
+.chip { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; padding: 4px 11px 4px 6px; border-radius: 999px; background: var(--app-quiet); color: var(--app-quiet-ink); font: 500 12.5px/18px var(--font-body); white-space: nowrap; }
+.chip > span { overflow: hidden; text-overflow: ellipsis; }
+.chip .icon { width: 17px; height: 17px; padding: 2.5px; border-radius: 50%; stroke-width: 2.6; background: var(--soft); color: #fff; }
+.tone-done { background: var(--app-done); color: var(--app-done-ink); }
+.tone-done .icon { background: var(--app-done-mark); }
+.tone-wait { background: var(--app-wait); color: var(--app-wait-ink); }
+.tone-wait .icon { background: none; color: var(--app-wait-mark); padding: 0; stroke-width: 2; }
+.tone-fail { background: var(--app-fail); color: var(--app-fail-ink); }
+.tone-fail .icon { background: var(--app-fail-mark); }
+.tone-quiet .icon { background: #9aa1ab; }
+
+/* Initials, as the pick draws people in the table and the rail. */
+.initials { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--app-quiet); color: var(--ink); font: 600 11.5px/1 var(--font-body); letter-spacing: .02em; }
+.initials.me { width: 40px; height: 40px; background: var(--mint-strong); color: var(--app-active-ink); font-size: 13.5px; }
+
+.warning { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 6px; padding: 3px 11px 3px 4px; border-radius: 999px; background: var(--app-fail); color: var(--app-fail-ink); font-size: 12.5px; line-height: 1.35; }
+.warning-mark { display: grid; place-items: center; flex: none; width: 17px; height: 17px; border-radius: 50%; background: var(--app-fail-mark); color: #fff; font-size: 11px; font-weight: 700; }
+.explanation { display: block; margin-top: 6px; font-size: 13px; color: var(--soft); }
+.notice:empty { display: none; }
+.notice { margin: 0; padding: 10px 14px; border: 1px solid var(--mint-strong); border-radius: 10px; background: var(--app-done); color: var(--app-done-ink); font-weight: 500; font-size: 14px; }
+.callout { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--app-fail-edge); border-radius: 10px; background: var(--app-fail); color: var(--app-fail-ink); font-size: 14px; }
+.reconciled, .paid { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--mint-strong); border-radius: 10px; background: var(--app-done); color: var(--app-done-ink); font-size: 14px; font-weight: 500; }
+.reconciled .icon, .paid .icon { width: 18px; height: 18px; margin-top: 1px; stroke-width: 2.4; }
+.machine { display: block; font-family: var(--font-mono); font-size: 11.5px; color: var(--soft); overflow-wrap: anywhere; }
+.disclosure summary { cursor: pointer; padding: 8px 0; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.disclosure-body { padding: 4px 0 8px; }
+.ruled-list { list-style: none; padding: 0; margin: 0; }
+.ruled-list li { padding: 11px 0; border-bottom: 1px solid var(--app-hairline-soft); font-size: 14px; }
+.ruled-list li:last-child { border-bottom: 0; }
+.job { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Empty states: the mark's quiet tile, a heavy title, one line of help. */
+.empty { padding: 18px 0; }
+.empty-title { margin: 0 0 4px; font-weight: 600; }
+.empty-large { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 56px 24px; }
+.empty-large .empty-title { font: 800 24px/1.1 var(--font-head); letter-spacing: -.025em; word-spacing: .12em; margin: 16px 0 6px; }
+.empty-large .muted { max-width: 36ch; margin: 0; font-size: 14.5px; }
+.empty-icon { display: grid; place-items: center; width: 56px; height: 56px; border: 1px solid var(--app-hairline); border-radius: 14px; background: #fff; box-shadow: var(--app-shadow); }
+.empty-icon img { width: 36px; height: 36px; }

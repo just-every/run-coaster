@@ -18,16 +18,24 @@ export const claimNumber = (n: number) => `CL-${String(n).padStart(4, '0')}`;
 export const batchNumber = (n: number) => `RB-${String(n).padStart(4, '0')}`;
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** "Apr 29, 2025" for a YYYY-MM-DD day. */
-export const day = (iso?: string | null) => { if (!iso) return '—'; const [y, m, d] = iso.slice(0, 10).split('-'); return `${months[Number(m) - 1]} ${Number(d)}, ${y}`; };
-/** "Apr 29, 2025 at 2:14 PM" in the reader's own clock. */
+const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** A YYYY-MM-DD day as that calendar day, or a timestamp in the reader's own clock. */
+const when = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) : new Date(iso);
+const named = (t: Date) => `${weekdays[t.getDay()]} ${months[t.getMonth()]} ${t.getDate()}`;
+/** "Tue Oct 13, 2026" for a day or timestamp. */
+export const day = (iso?: string | null) => { if (!iso) return '—'; const t = when(iso); return Number.isFinite(t.getTime()) ? `${named(t)}, ${t.getFullYear()}` : '—'; };
+/** "Tue Oct 13" this year, "Tue Oct 13, 2025" in any other, as the pick's table dates them. */
+export const shortDay = (iso?: string | null) => { if (!iso) return '—'; const t = when(iso); if (!Number.isFinite(t.getTime())) return '—'; return t.getFullYear() === new Date().getFullYear() ? named(t) : `${named(t)}, ${t.getFullYear()}`; };
+/** "8:41 AM" in the reader's own clock. */
+export const clock = (t: Date) => `${t.getHours() % 12 || 12}:${String(t.getMinutes()).padStart(2, '0')} ${t.getHours() < 12 ? 'AM' : 'PM'}`;
+/** "Fri Oct 16, 2026 at 8:41 AM" in the reader's own clock. */
 export function moment(iso?: string | null) {
   if (!iso) return '—';
   const t = new Date(iso);
-  if (!Number.isFinite(t.getTime())) return '—';
-  const h = t.getHours(), m = String(t.getMinutes()).padStart(2, '0');
-  return `${months[t.getMonth()]} ${t.getDate()}, ${t.getFullYear()} at ${h % 12 || 12}:${m} ${h < 12 ? 'AM' : 'PM'}`;
+  return Number.isFinite(t.getTime()) ? `${day(iso)} at ${clock(t)}` : '—';
 }
+/** "MO" for Megan Ortiz; the first two letters of an address with no name. */
+export const initials = (name?: string | null) => { const words = String(name ?? '').replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean); return (words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? '?').slice(0, 2)).toUpperCase(); };
 export const today = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
 
 export async function fileBase64(file: File) {
@@ -40,4 +48,6 @@ export async function fileBase64(file: File) {
 export const statusWords: Record<string, string> = { draft: 'Draft', submitted: 'Submitted', returned: 'Returned', approved: 'Approved', rejected: 'Rejected', batched: 'In batch', reimbursed: 'Reimbursed', proposed: 'Prepared', accepted: 'Accepted', declined: 'Declined' };
 /** A policy exception's code in the words a person reads. */
 export const exceptionWords: Record<string, string> = { 'over-limit': 'Over a category limit', 'missing-receipt': 'No receipt', 'duplicate-receipt': 'Same receipt as another expense', 'possible-duplicate': 'Possible duplicate' };
+/** Each status's colour family: green done, amber waiting, red failed, grey not started. */
+export const statusTone: Record<string, string> = { draft: 'quiet', submitted: 'wait', returned: 'fail', approved: 'done', rejected: 'fail', batched: 'done', reimbursed: 'done', proposed: 'quiet', accepted: 'done', declined: 'quiet' };
 export const batchWords: Record<string, string> = { draft: 'Draft · not reviewed', approved: 'Reviewed · ready to pay', reimbursed: 'Paid' };

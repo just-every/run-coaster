@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
-import { statusWords, type D } from './api';
+import { initials, statusTone, statusWords, type D } from './api';
 import { Icon } from './icons';
 
 type Option = { value: string; label: string };
@@ -28,10 +28,25 @@ export function Form({ children, onSubmit, label, className = '', secondary }: {
   }}>{children}<div className="form-end"><button className="button primary" disabled={busy}>{busy ? 'Working…' : label}</button>{secondary}{error && <p className="form-error" role="alert">{error}</p>}</div></form>;
 }
 
-/** Status in words with a shape, never colour alone. */
-const badgeIcons: Record<string, string> = { submitted: 'clock', draft: 'document', proposed: 'document', approved: 'check', reimbursed: 'check', accepted: 'check', batched: 'batches', returned: 'back', rejected: 'cross', declined: 'cross' };
-export function Badge({ status, words }: { status: string; words?: string }) {
-  return <span className={`chip badge badge-${status}`}><Icon name={badgeIcons[status] ?? 'clock'} />{words ?? statusWords[status] ?? status}</span>;
+/** Status in words with a shape and its colour family (green done, amber waiting, red failed), never colour alone. */
+const badgeIcons: Record<string, string> = { submitted: 'clock', draft: 'document', proposed: 'document', approved: 'check', reimbursed: 'check', accepted: 'check', batched: 'check', returned: 'back', rejected: 'cross', declined: 'cross' };
+export function Badge({ status, words, tone = statusTone[status] ?? 'quiet' }: { status: string; words?: string; tone?: string }) {
+  return <span className={`chip badge badge-${status} tone-${tone}`}><Icon name={badgeIcons[status] ?? 'clock'} /><span>{words ?? statusWords[status] ?? status}</span></span>;
+}
+
+/** A person's initials in a round chip, as the pick's table and rail draw people. */
+export function Initials({ name, me = false }: { name?: string | null; me?: boolean }) {
+  return <span className={me ? 'initials me' : 'initials'} aria-hidden="true">{initials(name)}</span>;
+}
+
+/** A screen's heavy title and the counting line under it; `action` repeats the top bar's action on phones. */
+export function PageHead({ title, line, action }: { title: string; line?: ReactNode; action?: ReactNode }) {
+  return <div className="page-head"><div><h1>{title}</h1>{line && <p>{line}</p>}</div>{action}</div>;
+}
+
+/** Three plain tiles; the one marked `wash` is the screen's single lime tile. */
+export function Tiles({ tiles, label }: { tiles: { label: string; value: ReactNode; note?: ReactNode; wash?: boolean }[]; label: string }) {
+  return <section className="tiles" aria-label={label}>{tiles.map(t => <div key={t.label} className={t.wash ? 'tile wash' : 'tile'}><p className="tile-label">{t.label}</p><strong className="tile-value">{t.value}</strong>{t.note && <span className="tile-note">{t.note}</span>}</div>)}</section>;
 }
 
 /** A select with an explicit label, so its name is the label alone (not its options). */
@@ -50,11 +65,11 @@ export function Details({ label = 'Details', children }: { label?: string; child
   return <details ref={ref} className="disclosure" onKeyDown={e => { if (e.key === 'Escape' && ref.current?.open) { ref.current.open = false; ref.current.querySelector('summary')?.focus(); } }}><summary>{label}</summary><div className="disclosure-body">{children}</div></details>;
 }
 
-/** Nothing here yet; `large` is the panel-filling state with its document tile and serif title. */
+/** Nothing here yet; `large` is the panel-filling state with the mark's tile and a heavy title. */
 export function Empty({ title, children, large = false }: { title: string; children?: ReactNode; large?: boolean }) {
-  return <div className={large ? 'empty empty-large' : 'empty'}>{large && <span className="empty-icon" aria-hidden="true"><Icon name="document" /></span>}<p className="empty-title">{title}</p>{children && <p className="muted">{children}</p>}</div>;
+  return <div className={large ? 'empty empty-large' : 'empty'}>{large && <span className="empty-icon" aria-hidden="true"><img src="/brand/mark.svg" alt="" /></span>}<p className="empty-title">{title}</p>{children && <p className="muted">{children}</p>}</div>;
 }
 
-export function Section({ title, children, actions, className = '' }: { title: string; children: ReactNode; actions?: ReactNode; className?: string }) {
-  return <section className={`panel section ${className}`.trim()}><div className="section-head"><h2>{title}</h2>{actions}</div>{children}</section>;
+export function Section({ title, children, actions, className = '', label }: { title: string; children: ReactNode; actions?: ReactNode; className?: string; label?: string }) {
+  return <section className={`panel section ${className}`.trim()} aria-label={label}><div className="section-head"><h2>{title}</h2>{actions}</div>{children}</section>;
 }

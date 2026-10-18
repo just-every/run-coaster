@@ -26,7 +26,7 @@
       "label": "Brand colour",
       "kind": "colour",
       "required": true,
-      "default": "#CC4128",
+      "default": "#1E9E3A",
       "group": "application"
     },
     {

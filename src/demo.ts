@@ -4,21 +4,26 @@ import { batchNumber } from './coaster/batches';
 import { exactKey, findExceptions } from './coaster/exceptions';
 import { itemInput, type Category } from './coaster/items';
 import { sha256Hex } from './coaster/session';
-import { business, batches, categories, claims, ownerName, people, proposal, type DemoClaim, type Expense, type Person } from './demo-data';
+import { business, batches, categories, claims, firstClaimNumber, ownerApprover, ownerName, people, proposal, type DemoClaim, type Expense, type Person } from './demo-data';
 import { receiptPdf } from './demo-receipt';
 import type { Data } from './coaster/types';
 
 const DAY = 86_400_000;
+/** "10/13/2026" as a US till prints it. */
+const receiptDay = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;
 type Event = { id: string; at: string; actor: string; action: string; claim?: string; batch?: string; detail: Data };
 
 /**
- * `rer demo` and the hosted demo: Harbour & Finch Studio's claims at every stage, written once
+ * `rer demo` and the hosted demo: Tallgrass Outdoor Co.'s claims at every stage, written once
  * after the owner exists. Claims waiting for the owner's approval, a draft batch for them to
  * review, approved claims to batch and an agent's proposal are left for the visitor to act on.
  * Fixed ids; a workspace that already has a business is left as it is. It never fetches.
  */
 export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail: string; now: Date }) {
-  const db = env.DB, ownerAddress = ownerEmail.toLowerCase(), t = now.getTime();
+  const db = env.DB, ownerAddress = ownerEmail.toLowerCase();
+  // Every day counts back from 8:00 AM in the business's own timezone on the day the demo starts.
+  const clock = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: business.timezone, hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(now).map(p => [p.type, p.value]));
+  const t = now.getTime() - (Number(clock.hour) * 60 + Number(clock.minute)) * 60_000 - now.getSeconds() * 1000 - now.getMilliseconds() + 8 * 3_600_000;
   const at = (days: number, minutes = 0) => new Date(t - days * DAY + minutes * 60_000).toISOString();
   const date = (days: number) => at(days).slice(0, 10);
   const email = (p: Person) => p === 'owner' ? ownerAddress : people[p].email;
@@ -27,15 +32,15 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   const policy = { name: business.name, currency: business.currency, timezone: business.timezone, mileage_rate_minor: business.mileageRateMinor, per_diem_minor: business.perDiemMinor, receipt_threshold_minor: business.receiptThresholdMinor };
   const known: Category[] = categories.map(c => ({ id: c.id, name: c.name, account_code: c.account, tax_code: c.tax, limit_minor: c.limitMinor, active: 1 }));
   const raw = (e: Expense) => ({ kind: e.kind, date: date(e.day), merchant: e.merchant, description: e.description, explanation: e.explanation,
-    amount: e.kind === 'receipt' ? e.amount : undefined, distance: e.kind === 'mileage' ? e.km : undefined, days: e.kind === 'per_diem' ? e.days : undefined,
+    amount: e.kind === 'receipt' ? e.amount : undefined, distance: e.kind === 'mileage' ? e.miles : undefined, days: e.kind === 'per_diem' ? e.days : undefined,
     allocations: e.split ? e.split.map(([category, costCentre, amount]) => ({ category: `demo-cat-${category}`, costCentre, amount })) : [{ category: `demo-cat-${e.category}`, costCentre: e.costCentre }] });
-  const ordered = [...claims].sort((a, b) => b.created - a.created), number = new Map(ordered.map((c, i) => [c.id, i + 1]));
+  const ordered = [...claims].sort((a, b) => b.created - a.created), number = new Map(ordered.map((c, i) => [c.id, firstClaimNumber + i]));
   const batchOf = new Map(batches.map(b => [b.id, b]));
   const status = (c: DemoClaim) => {
     const batch = c.batch ? batchOf.get(c.batch) : undefined;
     return batch ? batch.paid ? 'reimbursed' : 'batched' : c.decision?.decision ?? (c.submitted === undefined ? 'draft' : 'submitted');
   };
-  const approverOf = (p: Person) => p === 'owner' ? 'priya' : people[p].approver;
+  const approverOf = (p: Person) => p === 'owner' ? ownerApprover : people[p].approver;
   const events: Event[] = [];
   const event = (id: string, when: string, actor: string, action: string, target: { claim?: string; batch?: string }, detail: Data = {}) => events.push({ id: `demo-event-${id}`, at: when, actor, action, ...target, detail });
 
@@ -45,7 +50,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       db.prepare('UPDATE oa_operators SET display_name=? WHERE id=?').bind(ownerName, owner.id),
       db.prepare('INSERT INTO c_business(id,name,currency,timezone,mileage_rate_minor,per_diem_minor,receipt_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(business.name, business.currency, business.timezone, business.mileageRateMinor, business.perDiemMinor, business.receiptThresholdMinor, at(42)),
       ...known.map(c => db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active) VALUES(?,?,?,?,?,1) ON CONFLICT DO NOTHING').bind(c.id, c.name, c.account_code, c.tax_code, c.limit_minor)),
-      db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,1,1,1,?,1,?) ON CONFLICT DO NOTHING').bind(ownerAddress, ownerName, people.priya.email, at(42)),
+      db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,1,1,1,?,1,?) ON CONFLICT DO NOTHING').bind(ownerAddress, ownerName, people[ownerApprover].email, at(42)),
       ...Object.values(people).map(p => db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(p.email, p.name, +p.employee, +p.manager, +p.finance, p.approver && email(p.approver), +p.active, at(42))),
       db.prepare('INSERT INTO oa_first_run(singleton,completed_by,completed_at) VALUES(1,?,?) ON CONFLICT DO NOTHING').bind(owner.id, t - 42 * DAY),
     ];
@@ -54,7 +59,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       const files = await Promise.all(c.expenses.map(async (e, i) => {
         if (e.kind !== 'receipt' || e.noReceipt) return null;
         const lines = e.lines ?? [[e.description ?? e.merchant, e.amount]];
-        const bytes = receiptPdf([e.merchant, `Tax invoice  ${date(e.day)}`, ...lines.map(([what, amount]) => `${what}  ${amount}`), `Total AUD ${e.amount}`, 'GST included', 'Thank you']);
+        const bytes = receiptPdf([e.merchant, e.city, `Receipt  ${receiptDay(date(e.day))}`, ...lines.map(([what, amount]) => `${what}  $${amount}`), `Total  $${e.amount}`, 'Thank you']);
         return { id: `${c.id}-receipt-${i + 1}`, name: `${e.merchant.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${date(e.day)}.pdf`, bytes, sha: await sha256Hex(bytes) };
       }));
       const submitted = c.submitted !== undefined, decided = c.decision ? 1 : 0, batched = c.batch ? 1 : 0, paid = c.batch && batchOf.get(c.batch)?.paid ? 1 : 0;
@@ -82,19 +87,20 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const exceptions = await findExceptions(db, claim, items, policy, known), total = items.reduce((n, i) => n + i.amount_minor, 0);
     totals.set(c.id, total);
     const snapshot = { title: c.title, approver, currency: business.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-    history.push(db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,1,?,?,?,?) ON CONFLICT DO NOTHING').bind(c.id, employee, at(c.submitted, 60), total, JSON.stringify(snapshot)));
-    event(`${c.id}-submitted`, at(c.submitted, 60), employee, 'claim-submitted', { claim: c.id }, { revision: 1, totalMinor: total, exceptions: exceptions.length, note: '' });
+    const submittedAt = at(c.submitted, c.submittedMinutes ?? 60);
+    history.push(db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,1,?,?,?,?) ON CONFLICT DO NOTHING').bind(c.id, employee, submittedAt, total, JSON.stringify(snapshot)));
+    event(`${c.id}-submitted`, submittedAt, employee, 'claim-submitted', { claim: c.id }, { revision: 1, totalMinor: total, exceptions: exceptions.length, note: '' });
     if (c.decision) {
-      const d = c.decision, reason = d.reason ?? '';
-      history.push(db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions) VALUES(?,?,1,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(`${c.id}-decision`, c.id, d.decision, reason, email(d.by), at(d.day, 120), JSON.stringify(exceptions)));
-      event(`${c.id}-decided`, at(d.day, 120), email(d.by), `claim-${d.decision}`, { claim: c.id }, { revision: 1, reason, exceptionsAcknowledged: d.decision === 'approved' ? exceptions.length : 0 });
+      const d = c.decision, reason = d.reason ?? '', decidedAt = at(d.day, d.minutes ?? 120);
+      history.push(db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions) VALUES(?,?,1,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(`${c.id}-decision`, c.id, d.decision, reason, email(d.by), decidedAt, JSON.stringify(exceptions)));
+      event(`${c.id}-decided`, decidedAt, email(d.by), `claim-${d.decision}`, { claim: c.id }, { revision: 1, reason, exceptionsAcknowledged: d.decision === 'approved' ? exceptions.length : 0 });
     }
     const batch = c.batch ? batchOf.get(c.batch) : undefined;
     if (batch) {
       history.push(db.prepare('UPDATE c_claims SET batch_id=? WHERE id=? AND batch_id IS NULL').bind(batch.id, c.id));
       history.push(db.prepare('INSERT INTO c_batch_claims(batch_id,claim_id,revision,amount_minor) VALUES(?,?,1,?) ON CONFLICT DO NOTHING').bind(batch.id, c.id, total));
       for (const item of items) history.push(db.prepare('INSERT INTO c_reimbursement_keys(key,batch_id,claim_id,item_id) VALUES(?,?,?,?) ON CONFLICT DO NOTHING').bind(exactKey(employee, item), batch.id, c.id, item.id));
-      event(`${c.id}-batched`, at(batch.created, claimNo), email(batch.createdBy), 'claim-batched', { claim: c.id, batch: batch.id }, { claim: claimNumber(claimNo), batch: batchNumber(batch.number) });
+      event(`${c.id}-batched`, at(batch.created, (batch.minutes ?? 0) + 30 + claimNo - firstClaimNumber), email(batch.createdBy), 'claim-batched', { claim: c.id, batch: batch.id }, { claim: claimNumber(claimNo), batch: batchNumber(batch.number) });
     }
   }
 
@@ -104,10 +110,10 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const total = members.reduce((n, c) => n + totals.get(c.id)!, 0);
     const state = b.paid ? 'reimbursed' : b.reviewedBy ? 'approved' : 'draft', version = 1 + (b.reviewedBy ? 1 : 0) + (b.paid ? 1 : 0);
     history.unshift(db.prepare('INSERT INTO c_batches(id,number,status,currency,total_minor,version,created_by,created_at,reviewed_by,reviewed_at,paid_reference,paid_on,paid_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING')
-      .bind(b.id, b.number, state, business.currency, total, version, email(b.createdBy), at(b.created, 30), b.reviewedBy ? email(b.reviewedBy) : null, b.reviewed !== undefined ? at(b.reviewed, 60) : null, b.paid?.reference ?? null, b.paid ? date(b.paid.day) : null, b.paid ? email(b.paid.by) : null));
-    event(`${b.id}-created`, at(b.created, 30), email(b.createdBy), 'batch-created', { batch: b.id }, { claims: members.length, totalMinor: total, preparedBy: null });
-    if (b.reviewedBy && b.reviewed !== undefined) event(`${b.id}-approved`, at(b.reviewed, 60), email(b.reviewedBy), 'batch-approved', { batch: b.id }, { totalMinor: total, claims: members.length });
-    if (b.exported !== undefined) event(`${b.id}-exported`, at(b.exported, 90), email(b.reviewedBy ?? b.createdBy), 'batch-exported', { batch: b.id }, { file: 'accounting', rows: members.reduce((n, c) => n + c.expenses.length, 0), totalMinor: total });
+      .bind(b.id, b.number, state, business.currency, total, version, email(b.createdBy), at(b.created, (b.minutes ?? 0) + 30), b.reviewedBy ? email(b.reviewedBy) : null, b.reviewed !== undefined ? at(b.reviewed, (b.minutes ?? 0) + 60) : null, b.paid?.reference ?? null, b.paid ? date(b.paid.day) : null, b.paid ? email(b.paid.by) : null));
+    event(`${b.id}-created`, at(b.created, (b.minutes ?? 0) + 30), email(b.createdBy), 'batch-created', { batch: b.id }, { claims: members.length, totalMinor: total, preparedBy: null });
+    if (b.reviewedBy && b.reviewed !== undefined) event(`${b.id}-approved`, at(b.reviewed, (b.minutes ?? 0) + 60), email(b.reviewedBy), 'batch-approved', { batch: b.id }, { totalMinor: total, claims: members.length });
+    if (b.exported !== undefined) event(`${b.id}-exported`, at(b.exported, (b.minutes ?? 0) + 90), email(b.reviewedBy ?? b.createdBy), 'batch-exported', { batch: b.id }, { file: 'accounting', rows: members.reduce((n, c) => n + c.expenses.length, 0), totalMinor: total });
     if (b.paid) event(`${b.id}-paid`, at(b.paid.day, 30), email(b.paid.by), 'batch-reimbursed', { batch: b.id }, { reference: b.paid.reference, paidOn: date(b.paid.day), note: '' });
   }
 
@@ -116,9 +122,9 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   history.push(db.prepare('INSERT INTO c_agent_keys(id,member_email,label,token_hash,created_at) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING').bind(proposal.key, ownerAddress, proposal.agent, keyHash, at(14)));
   const proposalReceipts: D1PreparedStatement[] = [];
   const proposed = await Promise.all(proposal.items.map(async (item, i) => {
-    const bytes = receiptPdf(['Uber', `Trip receipt  ${date(item.day)}`, `${item.description}  ${item.amount}`, `Total AUD ${item.amount}`, 'GST included']);
+    const bytes = receiptPdf(['Lyft', 'Kansas City, MO', `Ride receipt  ${receiptDay(date(item.day))}`, `${item.description}  $${item.amount}`, `Total  $${item.amount}`]);
     const id = `${proposal.id}-receipt-${i + 1}`;
-    proposalReceipts.push(db.prepare("INSERT INTO c_receipts(id,proposal_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,'application/pdf',?,?,?,'agent',?,?) ON CONFLICT DO NOTHING").bind(id, proposal.id, ownerAddress, `uber-${date(item.day)}.pdf`, bytes.length, await sha256Hex(bytes), bytes, agentFor, at(proposal.created)));
+    proposalReceipts.push(db.prepare("INSERT INTO c_receipts(id,proposal_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,'application/pdf',?,?,?,'agent',?,?) ON CONFLICT DO NOTHING").bind(id, proposal.id, ownerAddress, `lyft-${date(item.day)}.pdf`, bytes.length, await sha256Hex(bytes), bytes, agentFor, at(proposal.created)));
     const amountMinor = itemInput({ kind: 'receipt', date: date(item.day), merchant: item.merchant, amount: item.amount, category: `demo-cat-${item.category}` }, policy, known).amount_minor;
     return { kind: 'receipt', date: date(item.day), merchant: item.merchant, amount: item.amount, description: item.description, category: `demo-cat-${item.category}`, receiptId: id, amountMinor };
   }));

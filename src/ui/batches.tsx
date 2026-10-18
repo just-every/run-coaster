@@ -1,40 +1,63 @@
 import { useCallback, useEffect, useState } from 'react';
-import { batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, today, type D } from './api';
-import { Badge, Empty, Field, Form, Warning } from './parts';
+import { batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, shortDay, today, type D } from './api';
+import { Badge, Empty, Field, Form, Initials, PageHead, Section, Tiles, Warning } from './parts';
 import { Icon } from './icons';
-import { Proposals } from './proposals';
+import { AgentStrip } from './proposals';
 import { describe } from './history';
+import { Work } from './shell';
 import { go } from './app';
-import type { ViewProps } from './claims';
+import { matches, type ViewProps } from './claims';
+
+const batchStatus = (b: D) => b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed';
+const sum = (rows: D[]) => rows.reduce((n, r) => n + r.total_minor, 0);
 
 /** Finance turns approved claims into a reviewed batch, exports it, and records the payment made outside Coaster. */
-export function Batches({ state, reload, id }: ViewProps) {
-  const ready = state.claims.filter((c: D) => c.status === 'approved');
+export function Batches({ state, reload, id, query }: ViewProps) {
+  const ready = state.claims.filter((c: D) => c.status === 'approved'), shown = ready.filter((c: D) => matches(c, query));
   const [chosen, setChosen] = useState<string[]>([]);
   const proposals = state.proposals.filter((p: D) => p.kind === 'batch' && p.status === 'proposed');
   const total = ready.filter((c: D) => chosen.includes(c.id)).reduce((n: number, c: D) => n + c.total_minor, 0);
   const currency = state.business?.currency ?? 'USD';
-  return <main className="main-wide batches">
-    <div className={`batch-columns${id ? ' has-selection' : ''}`}>
-      <div className="batch-side">
-        <section className="panel section" aria-label="Ready to batch">
-          <h2>Approved and ready · {ready.length}</h2>
-          {ready.length ? <Form label={`Create batch · ${money(total, currency)}`} onSubmit={async () => { const batch = await call('batches', { claims: chosen }); setChosen([]); await reload(); go('batches', batch.id); }}>
-            <ul className="ruled-list field-wide">{ready.map((c: D) => <li key={c.id}><label className="check ready"><input type="checkbox" checked={chosen.includes(c.id)} onChange={e => setChosen(e.target.checked ? [...chosen, c.id] : chosen.filter(x => x !== c.id))} /><span className="ready-text"><span className="claim-top"><span>{claimNumber(c.number)}<span className="visually-hidden"> · </span></span><span className="amount">{money(c.total_minor, c.currency)}</span></span><span className="block">{c.title}<span className="visually-hidden"> · </span></span><span className="claim-person">{c.employee_name}</span></span></label></li>)}</ul>
-          </Form> : <Empty title="No approved claims waiting">Claims appear here once their manager approves them.</Empty>}
-        </section>
-        {proposals.length > 0 && <section className="panel section"><Proposals proposals={proposals} reload={reload} claims={state.claims} /></section>}
-        <section className="panel section" aria-label="Batches">
-          <h2>Batches</h2>
-          {state.batches.length ? <ul className="claim-list">{state.batches.map((b: D) => <li key={b.id}><a className={`claim${b.id === id ? ' selected' : ''}`} href={`#/batches/${b.id}`} aria-current={b.id === id ? 'true' : undefined}>
-            <span className="claim-top"><span className="claim-id">{batchNumber(b.number)}</span><span className="amount">{money(b.total_minor, b.currency)}</span></span>
-            <span className="claim-person">Created {moment(b.created_at)}</span><Badge status={b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed'} words={batchWords[b.status]} />
-          </a></li>)}</ul> : <Empty title="No batches yet">Choose approved claims above to start one.</Empty>}
-        </section>
-      </div>
-      {id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} /> : <section className="panel section detail-empty batch-empty"><Empty large title="Choose a batch">Review its totals, download the accounting file and record the payment.</Empty></section>}
+  const drafts = state.batches.filter((b: D) => b.status === 'draft'), reviewed = state.batches.filter((b: D) => b.status === 'approved'), paid = state.batches.filter((b: D) => b.status === 'reimbursed');
+  const panel = id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} />
+    : <aside className="side side-empty"><Empty large title="Choose a batch">Review its totals, download the accounting and reimbursement files, and record the payment.</Empty></aside>;
+  return <Work panel={panel} wide selected={!!id} className="batches-work">
+    <PageHead title="Batches" line={`${ready.length} approved claim${ready.length === 1 ? '' : 's'} ready to batch, ${drafts.length} batch${drafts.length === 1 ? '' : 'es'} to review, ${reviewed.length} ready to pay`} />
+    <Tiles label="Batch totals" tiles={[
+      { label: 'To review or pay', value: drafts.length + reviewed.length, note: money(sum([...drafts, ...reviewed]), currency) },
+      { label: 'Paid', value: paid.length, note: paid[0] ? `Last paid ${shortDay(paid[0].paid_on)} · ${money(sum(paid), currency)}` : 'None yet' },
+      { label: 'Approved and ready', value: ready.length, note: money(sum(ready), currency), wash: true },
+    ]} />
+    <AgentStrip proposals={proposals} reload={reload} claims={state.claims} />
+    <div className="cards">
+      <Section title={`Approved and ready · ${ready.length}`} label="Ready to batch">
+        {ready.length ? <Form label={`Create batch · ${money(total, currency)}`} onSubmit={async () => { const batch = await call('batches', { claims: chosen }); setChosen([]); await reload(); go('batches', batch.id); }}>
+          <div className="table-wrap field-wide"><table className="data" aria-label="Approved claims">
+            <colgroup><col style={{ width: '34%' }} /><col style={{ width: '36%' }} /><col style={{ width: '16%' }} /><col style={{ width: '14%' }} /></colgroup>
+            <thead><tr><th>Person</th><th>Claim</th><th className="figure">Amount</th><th>Approved</th></tr></thead>
+            <tbody>{shown.map((c: D) => <tr key={c.id} className={chosen.includes(c.id) ? 'selected row-done' : undefined}>
+              <td data-cell="person"><label className="row-check"><input type="checkbox" checked={chosen.includes(c.id)} onChange={e => setChosen(e.target.checked ? [...chosen, c.id] : chosen.filter(x => x !== c.id))} /><Initials name={c.employee_name} /><span>{c.employee_name}<span className="visually-hidden"> · {claimNumber(c.number)} · {c.title}</span></span></label></td>
+              <td data-cell="title"><span className="block">{c.title}</span><span className="sub">{claimNumber(c.number)} · approved by {c.approver_name}</span></td>
+              <td data-cell="amount" className="figure amount">{money(c.total_minor, c.currency)}</td>
+              <td data-cell="updated" className="soft nowrap">{shortDay(c.updated_at)}</td>
+            </tr>)}</tbody>
+          </table></div>
+        </Form> : <Empty title="No approved claims waiting">Claims appear here once their manager approves them.</Empty>}
+      </Section>
+      <Section title="Batches" label="Batches">
+        {state.batches.length ? <div className="table-wrap"><table className="data" aria-label="Batches">
+          <colgroup><col style={{ width: '24%' }} /><col style={{ width: '26%' }} /><col style={{ width: '20%' }} /><col style={{ width: '30%' }} /></colgroup>
+          <thead><tr><th>Batch</th><th>Created</th><th className="figure">Total</th><th>Status</th></tr></thead>
+          <tbody>{state.batches.map((b: D) => <tr key={b.id} className={b.id === id ? `selected row-${batchStatus(b) === 'draft' ? 'wait' : 'done'}` : undefined}>
+            <td data-cell="person"><a className="title-link" href={`#/batches/${b.id}`} aria-current={b.id === id ? 'true' : undefined}>{batchNumber(b.number)}</a></td>
+            <td data-cell="updated" className="soft nowrap">{shortDay(b.created_at)}</td>
+            <td data-cell="amount" className="figure amount">{money(b.total_minor, b.currency)}</td>
+            <td data-cell="status"><Badge status={batchStatus(b)} tone={b.status === 'draft' ? 'wait' : 'done'} words={batchWords[b.status]} /></td>
+          </tr>)}</tbody>
+        </table></div> : <Empty title="No batches yet">Choose approved claims above to start one.</Empty>}
+      </Section>
     </div>
-  </main>;
+  </Work>;
 }
 
 function BatchPanel({ id, reload, names }: { id: string; reload: () => Promise<D>; names: Record<string, string> }) {
@@ -42,32 +65,40 @@ function BatchPanel({ id, reload, names }: { id: string; reload: () => Promise<D
   const load = useCallback(async () => { try { setDetail(await call(`batches/${id}`)); } catch (e) { setError((e as Error).message); } }, [id]);
   useEffect(() => { load(); }, [load]);
   const done = async () => { await Promise.all([load(), reload()]); };
-  if (!detail) return <section className="section batch-detail slip slip-foot">{error ? <p role="alert">{error}</p> : <p className="muted">Opening batch…</p>}</section>;
+  const close = <a className="panel-close" href="#/batches" aria-label="Back to batches"><Icon name="cross" /></a>;
+  if (!detail) return <aside className="side detail">{error ? <><div className="panel-head"><h2>Batch</h2>{close}</div><p role="alert">{error}</p></> : <p className="muted">Opening batch…</p>}</aside>;
   const { batch, claims, lines, people } = detail, c = batch.currency;
   const linesTotal = lines.reduce((n: number, l: D) => n + l.amountMinor, 0), peopleTotal = people.reduce((n: number, p: D) => n + p.amountMinor, 0);
   const reconciled = linesTotal === batch.total_minor && peopleTotal === batch.total_minor;
   const flagged = lines.filter((l: D) => l.exceptions);
-  return <section className="section batch-detail slip slip-foot" aria-label={`Batch ${batchNumber(batch.number)}`}>
-    <a className="back" href="#/batches"><Icon name="back" />Back to batches</a>
-    <h1>{batchNumber(batch.number)} · {money(batch.total_minor, c)}</h1>
-    <div className="metadata"><Badge status={batch.status === 'draft' ? 'draft' : batch.status === 'approved' ? 'approved' : 'reimbursed'} words={batchWords[batch.status]} /><span className="muted">{claims.length} claim{claims.length === 1 ? '' : 's'} · {people.length} {people.length === 1 ? 'person' : 'people'}{batch.prepared_by ? ` · prepared by ${batch.prepared_by}` : ''}</span></div>
-    <p className={reconciled ? 'reconciled' : 'form-error'} role="status">{reconciled ? `Reconciled: ${lines.length} accounting line${lines.length === 1 ? '' : 's'} and ${people.length} reimbursement${people.length === 1 ? '' : 's'} ${lines.length === 1 && people.length === 1 ? 'both add' : 'each add'} up to ${money(batch.total_minor, c)}.` : 'These totals do not reconcile. Do not pay this batch.'}</p>
-    <h2>Reimbursements</h2>
-    <table className="plain"><thead><tr><th>Person</th><th>Claims</th><th className="figure">Amount</th></tr></thead><tbody>{people.map((p: D) => <tr key={p.email}><td>{p.name}</td><td>{p.claims.join(', ')}</td><td className="figure">{money(p.amountMinor, c)}</td></tr>)}</tbody></table>
-    <h2>Claims</h2>
-    <table className="plain"><thead><tr><th>Claim</th><th>Title</th><th className="figure">Amount</th>{batch.status === 'draft' && <th><span className="visually-hidden">Remove</span></th>}</tr></thead><tbody>{claims.map((x: D) => <tr key={x.claim_id}><td><a href={`#/claims/${x.claim_id}`}>{claimNumber(x.number)}</a></td><td>{x.title}</td><td className="figure">{money(x.amount_minor, c)}</td>{batch.status === 'draft' && <td><button className="button small" onClick={async () => { try { await call(`batches/${id}/remove`, { version: batch.version, claim: x.claim_id }); await done(); } catch (e) { setError((e as Error).message); } }}>Take out</button></td>}</tr>)}</tbody></table>
-    {flagged.length > 0 && <><h2>Policy exceptions in this batch</h2><ul className="ruled-list">{flagged.map((l: D, i: number) => <li key={i}>{l.claim} · {l.merchant} · {money(l.amountMinor, c)} <Warning>{l.exceptions.split(' ').map((code: string) => exceptionWords[code] ?? code).join(' · ')}</Warning>{l.explanation && <span className="explanation">Explanation: {l.explanation}</span>}</li>)}</ul></>}
+  return <aside className="side detail batch-detail" aria-label={`Batch ${batchNumber(batch.number)}`}>
+    <div className="panel-head"><h2>{batchNumber(batch.number)} · {money(batch.total_minor, c)}</h2>{close}</div>
+    <p className="panel-amount">{claims.length} claim{claims.length === 1 ? '' : 's'} · {people.length} {people.length === 1 ? 'person' : 'people'}{batch.prepared_by ? ` · prepared by ${batch.prepared_by}` : ''}</p>
+    <p className="panel-date">Created {day(batch.created_at)}</p>
+    <div className="metadata panel-block"><Badge status={batchStatus(batch)} tone={batch.status === 'draft' ? 'wait' : 'done'} words={batchWords[batch.status]} /></div>
+    {reconciled
+      ? <p className="reconciled" role="status"><Icon name="check" /><span>Reconciled: {lines.length} accounting line{lines.length === 1 ? '' : 's'} and {people.length} reimbursement{people.length === 1 ? '' : 's'} {lines.length === 1 && people.length === 1 ? 'both add' : 'each add'} up to {money(batch.total_minor, c)}.</span></p>
+      : <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>These totals do not reconcile.</strong> Do not pay this batch.</p></div>}
+    <section className="panel-block" aria-label="Reimbursements">
+      <h3>Reimbursements</h3>
+      <table className="mini"><thead><tr><th>Person</th><th>Claims</th><th className="figure">Amount</th></tr></thead><tbody>{people.map((p: D) => <tr key={p.email}><td>{p.name}</td><td>{p.claims.join(', ')}</td><td className="figure amount">{money(p.amountMinor, c)}</td></tr>)}</tbody></table>
+    </section>
+    <section className="panel-block" aria-label="Claims in this batch">
+      <h3>Claims</h3>
+      <table className="mini"><thead><tr><th>Claim</th><th>Title</th><th className="figure">Amount</th>{batch.status === 'draft' && <th><span className="visually-hidden">Remove</span></th>}</tr></thead><tbody>{claims.map((x: D) => <tr key={x.claim_id}><td className="nowrap"><a href={`#/claims/${x.claim_id}`}>{claimNumber(x.number)}</a></td><td>{x.title}</td><td className="figure amount">{money(x.amount_minor, c)}</td>{batch.status === 'draft' && <td className="figure"><button className="button small" onClick={async () => { try { await call(`batches/${id}/remove`, { version: batch.version, claim: x.claim_id }); await done(); } catch (e) { setError((e as Error).message); } }}>Take out</button></td>}</tr>)}</tbody></table>
+    </section>
+    {flagged.length > 0 && <section className="panel-block" aria-label="Policy exceptions in this batch"><h3>Policy exceptions in this batch</h3><ul className="ruled-list">{flagged.map((l: D, i: number) => <li key={i}>{l.claim} · {l.merchant} · {money(l.amountMinor, c)} <Warning>{l.exceptions.split(' ').map((code: string) => exceptionWords[code] ?? code).join(' · ')}</Warning>{l.explanation && <span className="explanation">Explanation: {l.explanation}</span>}</li>)}</ul></section>}
     {error && <p className="form-error" role="alert">{error}</p>}
-    {batch.status === 'draft' && <Form label="Approve batch" onSubmit={async v => { if (!v.confirm) throw new Error('Confirm the reconciled total first'); await call(`batches/${id}/approve`, { version: batch.version, expectedTotal: batch.total_minor }); await done(); }}>
+    {batch.status === 'draft' && <section className="panel-block" aria-label="Review"><Form label="Approve batch" className="record-form-inline" onSubmit={async v => { if (!v.confirm) throw new Error('Confirm the reconciled total first'); await call(`batches/${id}/approve`, { version: batch.version, expectedTotal: batch.total_minor }); await done(); }}>
       <Field label={`I checked the reimbursements, accounting lines and exceptions add up to ${money(batch.total_minor, c)}`} name="confirm" type="checkbox" />
-    </Form>}
-    {batch.status !== 'draft' && <div className="downloads"><a className="button" href={`/api/coaster/batches/${id}/accounting.csv`} download>Download accounting CSV</a><a className="button" href={`/api/coaster/batches/${id}/reimbursements.csv`} download>Download reimbursements CSV</a></div>}
-    {batch.status === 'approved' && <Form label="Record payment" onSubmit={async v => { await call(`batches/${id}/paid`, { version: batch.version, reference: v.reference, paidOn: v.paidOn }); await done(); }}>
-      <Field label="Payment reference" name="reference" placeholder="Bank batch or transfer reference" />
+    </Form></section>}
+    {batch.status !== 'draft' && <div className="downloads"><a className="button" href={`/api/coaster/batches/${id}/accounting.csv`} download><Icon name="download" />Download accounting CSV</a><a className="button" href={`/api/coaster/batches/${id}/reimbursements.csv`} download><Icon name="download" />Download reimbursements CSV</a></div>}
+    {batch.status === 'approved' && <section className="panel-block" aria-label="Payment"><h3>Record payment</h3><Form label="Record payment" className="record-form-inline" onSubmit={async v => { await call(`batches/${id}/paid`, { version: batch.version, reference: v.reference, paidOn: v.paidOn }); await done(); }}>
+      <Field label="Payment reference" name="reference" placeholder="Bank batch or ACH reference" />
       <Field label="Paid on" name="paidOn" type="date" defaultValue={today()} />
       <p className="muted field-wide">Coaster does not move money: pay the reimbursements file from your bank, then record it here.</p>
-    </Form>}
-    {batch.status === 'reimbursed' && <p className="paid"><Icon name="check" />Paid on {day(batch.paid_on)} · reference {batch.paid_reference}</p>}
-    <div className="history"><h2>History</h2><ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol></div>
-  </section>;
+    </Form></section>}
+    {batch.status === 'reimbursed' && <p className="paid"><Icon name="check" /><span>Paid on {day(batch.paid_on)} · reference {batch.paid_reference}</span></p>}
+    <section className="panel-block history" aria-label="History"><h3>History</h3><ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol></section>
+  </aside>;
 }

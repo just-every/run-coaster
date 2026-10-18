@@ -100,6 +100,7 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     await manager.page.getByRole('link', { name: new RegExp(title) }).click()
     await manager.page.getByRole('heading', { name: title }).waitFor()
     await fill(manager.page, 'Reason (required if returning or rejecting)', 'The bistro receipt shows a different date; attach the right one')
+    await manager.page.getByRole('radio', { name: 'Return for correction' }).check()
     await manager.page.getByRole('button', { name: 'Return for correction' }).click()
     await manager.page.locator('.detail .badge', { hasText: 'Returned' }).waitFor()
 

@@ -59,10 +59,10 @@ export function optionalAmount(value: unknown, label: string): number | null {
 }
 export const decimal = (minor: number) => `${Math.trunc(minor / 100)}.${String(Math.abs(minor) % 100).padStart(2, '0')}`;
 
-/** Distances in hundredths of a kilometre: "142" or "142.5" → 14200 / 14250. */
+/** Distances in hundredths of a mile: "142" or "142.5" → 14200 / 14250. */
 export function distance(value: unknown): number {
   const raw = typeof value === 'number' ? String(value) : value;
-  requireThat(typeof raw === 'string' && /^\d{1,6}(\.\d{1,2})?$/.test(raw.trim()), 'Distance must be kilometres like 142 or 142.5');
+  requireThat(typeof raw === 'string' && /^\d{1,6}(\.\d{1,2})?$/.test(raw.trim()), 'Distance must be miles like 142 or 142.5');
   const [whole, fraction = ''] = raw.trim().split('.');
   const hundredths = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
   requireThat(hundredths > 0, 'Distance must be more than zero');

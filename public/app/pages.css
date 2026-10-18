@@ -1,0 +1,53 @@
+/* The other screens in the pick's surfaces: settings and move-in as titled hairline cards, first run as one checklist
+   card, and the hairline tables they share. */
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 20px; }
+.cards-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.plain { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 14px; }
+.plain th { padding: 8px 12px 8px 0; color: var(--app-label); font-size: 12px; font-weight: 400; text-align: left; border-bottom: 1px solid var(--app-hairline); white-space: nowrap; }
+.plain td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--app-hairline-soft); vertical-align: middle; }
+.plain th:last-child, .plain td:last-child { padding-right: 0; }
+.plain th.figure { text-align: right; }
+.plain tr:last-child td { border-bottom: 0; }
+.row-actions { white-space: nowrap; text-align: right; }
+.row-actions .button + .button { margin-left: 6px; }
+.mobile-label { display: none; }
+.sub-form { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--app-hairline); }
+.sub-form .record-form { margin-top: 6px; }
+.business .record-form { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.business .field { display: grid; grid-template-columns: 180px minmax(0, 1fr); align-items: center; column-gap: 16px; row-gap: 4px; }
+.business .field-hint { grid-column: 2; }
+
+.move-in .record-form { grid-template-columns: minmax(0, 1fr); }
+.preview { margin-top: 16px; padding: 16px; border: 1px solid var(--mint-strong); border-radius: 10px; background: #fbfefb; }
+.preview h3 { font-size: 15px; }
+
+.first-run { max-width: 760px; margin-top: 20px; }
+.checklist { list-style: none; margin: 8px 0 0; padding: 0; counter-reset: step; }
+.checklist li { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--app-hairline-soft); font-size: 15px; }
+.checklist li:last-child { border-bottom: 0; }
+.check-mark { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 1.5px solid var(--line-strong); border-radius: 50%; color: var(--app-label); font-size: 13px; font-weight: 600; }
+.check-mark::before { counter-increment: step; content: counter(step); }
+.checklist .done .check-mark { border-color: var(--app-done-mark); background: var(--app-done-mark); color: #fff; }
+.checklist .done .check-mark::before { content: none; }
+.check-mark .icon { width: 16px; height: 16px; stroke-width: 2.6; }
+.checklist .muted { margin-left: auto; font-size: 13px; }
+
+.batches-work .data td.figure { font-size: 14.5px; }
+.ready-total { margin-left: auto; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1279px) { .cards-2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1023px) {
+  .cards { margin-top: 16px; gap: 12px; }
+  .business .field { grid-template-columns: minmax(0, 1fr); }
+  .business .field-hint { grid-column: 1; }
+  .plain, .plain tbody, .plain tr, .plain td { display: block; width: 100%; }
+  .plain thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .plain tr { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--app-hairline-soft); }
+  .plain tr:last-child { border-bottom: 0; }
+  .plain td { width: auto; padding: 0; border: 0; color: var(--soft); font-size: 13px; overflow-wrap: anywhere; }
+  .plain td:first-child { flex-basis: 100%; color: var(--ink); font-size: 14.5px; font-weight: 600; }
+  .plain td.figure { color: var(--ink); font-weight: 600; }
+  .plain td.row-actions { flex-basis: 100%; padding-top: 8px; text-align: left; }
+  .plain .mobile-label { display: inline; }
+  .checklist li { flex-wrap: wrap; }
+}

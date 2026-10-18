@@ -5,8 +5,8 @@ import type { DevPersona } from './modules/operator-auth/dev/index.mjs'
 // Each still needs the owner to add them in Settings with the matching roles.
 export function devPersonas(): DevPersona[] {
  return [
-  { as: 'employee', role: 'member', displayName: 'Sam Taylor (employee)' },
-  { as: 'manager', role: 'member', displayName: 'Priya Nair (manager)' },
-  { as: 'finance', role: 'member', displayName: 'Morgan Lee (finance)' },
+  { as: 'employee', role: 'member', displayName: 'Jordan Pike (employee)' },
+  { as: 'manager', role: 'member', displayName: 'Dana Kim (manager)' },
+  { as: 'finance', role: 'member', displayName: 'Ruth Kowal (finance)' },
  ]
 }

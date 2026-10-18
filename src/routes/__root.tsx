@@ -13,8 +13,7 @@ export const Route = createRootRoute({
   component: () => <html lang="en"><head>
     {fontLinks.map(link => <link key={link.href} {...link} />)}
     <link rel="stylesheet" href="/rer-theme.css" />
-    <link rel="stylesheet" href="/paper.css" />
-    <link rel="stylesheet" href="/coaster.css" />
+    {['base', 'shell', 'work', 'panel', 'pages'].map(sheet => <link key={sheet} rel="stylesheet" href={`/app/${sheet}.css`} />)}
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon-32.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
