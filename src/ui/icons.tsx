@@ -15,6 +15,9 @@ const paths: Record<string, string> = {
   back: 'M19 12H5M11 6l-6 6 6 6',
   cross: 'M6 6l12 12M18 6L6 18',
   car: 'M6.5 10.5l1.4-3.6A2 2 0 0 1 9.8 5.6h4.4a2 2 0 0 1 1.9 1.3l1.4 3.6M5 10.5h14a1.5 1.5 0 0 1 1.5 1.5v4.5h-17V12A1.5 1.5 0 0 1 5 10.5zM6 16.5v2M18 16.5v2M7 13.5h1.5M15.5 13.5H17',
+  // The run site's docs cards, pager and menu draw these two from the same set.
+  arrow: 'M5 12h14M13 6l6 6-6 6',
+  lines: 'M6 7h12M6 11h12M6 15h12M6 19h8',
   tag: 'M3 3h8l10 10-8 8L3 11zM7.5 7.5h.01',
   person: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
   users: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.3a3.5 3.5 0 0 1 0 6.4M18 14.2a6.5 6.5 0 0 1 3.5 5.8',
