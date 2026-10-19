@@ -882,6 +882,50 @@ test('DATA-001 the claim-to-batch journey sends data only through the declared m
   }
 }, { identityProvider: 'https://auth.harbourfinch.example' }))
 
+test('REPORT-001 spend groups by employee, category, merchant, cost centre and month with approved and pending apart, drills to the receipt, is scoped to a manager\'s people and saves views', () => withAgency(async (h, t) => {
+  const MORGAN = 'morgan@harbourfinch.example'
+  const lee = await h.person('lee@harbourfinch.example', { employee: true, manager: true })
+  await h.post('settings/members', { email: MORGAN, name: 'morgan', employee: true, finance: true, approver: 'lee@harbourfinch.example' })
+  const r = (date, merchant, amount, category, fixture, extra = {}) => ({ kind: 'receipt', date, merchant, amount, allocations: [{ category }], receiptFixture: fixture, ...extra })
+  // Six months of spend: approved, pending, a split across cost centres, and a draft that is not spend yet.
+  await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'January lunch', [r('2026-01-14', 'Bistro', '64.50', t.c.meals, 'bistro')])))
+  await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'March visit', [{ kind: 'mileage', date: '2026-03-03', merchant: 'Studio to client', distance: '100', allocations: [{ category: t.c.car }] }])))
+  await approve(h, t.priya, await submit(h, t.alex, await claim(h, t.alex, 'February hotel', [{ kind: 'receipt', date: '2026-02-10', merchant: 'Hotel Ibis', amount: '236.00', allocations: [{ category: t.c.travel, amount: '200.00', costCentre: 'Sales' }, { category: t.c.travel, amount: '36.00', costCentre: 'Ops' }], receiptFixture: 'hotel' }])))
+  await submit(h, t.alex, await claim(h, t.alex, 'June trip', [{ kind: 'per_diem', date: '2026-06-08', days: 2, allocations: [{ category: t.c.travel }] }]))
+  await approve(h, lee, await submit(h, t.morgan, await claim(h, t.morgan, 'April paper', [r('2026-04-21', 'Officeworks', '64.95', t.c.office, 'officeworks')])))
+  await submit(h, t.sam, await claim(h, t.sam, 'May ride', [r('2026-05-30', 'Uber', '30.00', t.c.travel, 'uber')]))
+  await claim(h, t.alex, 'Unsent', [{ kind: 'mileage', date: '2026-05-01', merchant: 'Drive', distance: '10', allocations: [{ category: t.c.car }] }])
+  const view = (by, cookie = t.jordan, extra = {}) => h.get(`spend?${new URLSearchParams({ by, from: '2026-01-01', to: '2026-06-30', ...extra })}`, cookie)
+  const rows = res => res.groups.map(g => [g.label, g.approvedMinor, g.pendingMinor, g.totalMinor])
+
+  const total = 6450 + 8800 + 23600 + 15000 + 6495 + 3000
+  assert.deepEqual(rows(await view('employee')), [['alex', 23600, 15000, 38600], ['sam', 6450 + 8800, 3000, 18250], ['morgan', 6495, 0, 6495]])
+  assert.deepEqual(rows(await view('category')), [['Travel', 23600, 15000 + 3000, 41600], ['Car', 8800, 0, 8800], ['Office supplies', 6495, 0, 6495], ['Meals', 6450, 0, 6450]])
+  assert.deepEqual(rows(await view('cost-centre')), [['No cost centre', 6450 + 8800 + 6495, 15000 + 3000, total - 23600], ['Sales', 20000, 0, 20000], ['Ops', 3600, 0, 3600]])
+  assert.deepEqual(rows(await view('month')).map(g => [g[0], g[3]]), [['2026-01', 6450], ['2026-02', 23600], ['2026-03', 8800], ['2026-04', 6495], ['2026-05', 3000], ['2026-06', 15000]])
+  for (const by of ['employee', 'category', 'merchant', 'cost-centre', 'month']) assert.equal((await view(by)).totalMinor, total, `${by} adds up to all spend`)
+
+  // Drill from a category to its lines and open the very receipt.
+  const travel = await view('category', t.jordan, { key: t.c.travel })
+  assert.deepEqual(travel.lines.map(l => [l.date, l.merchant, l.amountMinor, l.status]).sort(), [['2026-02-10', 'Hotel Ibis', 3600, 'approved'], ['2026-02-10', 'Hotel Ibis', 20000, 'approved'], ['2026-05-30', 'Uber', 3000, 'pending'], ['2026-06-08', 'Per diem', 15000, 'pending']].sort())
+  const hotel = travel.lines.find(l => l.merchant === 'Hotel Ibis')
+  const bytes = Buffer.from(await (await h.mf.dispatchFetch(`${h.origin}${hotel.receiptLink}`, { headers: { cookie: t.jordan } })).arrayBuffer())
+  assert.equal(sha(bytes), sha(await readFile('tests/fixtures/receipts/hotel.png')))
+
+  // A manager sees only the people they approve for; an employee sees none.
+  assert.deepEqual(rows(await view('employee', t.priya)).map(g => g[0]), ['alex', 'sam'])
+  assert.deepEqual(rows(await view('employee', lee)).map(g => g[0]), ['morgan'])
+  assert.deepEqual((await view('category', lee, { key: t.c.travel })).lines, [], 'drilling cannot reach outside the scope')
+  assert.equal((await h.send('/api/coaster/spend?by=employee&from=2026-01-01&to=2026-06-30', undefined, t.sam)).status, 403)
+
+  // Save a view and reopen it; it is the saver's own.
+  const views = await h.post('spend-views', { name: 'Q1 by category', by: 'category', from: '2026-01-01', to: '2026-03-31' }, t.priya)
+  const reopened = await h.get(`spend?view=${views[0].id}`, t.priya)
+  assert.deepEqual([reopened.by, reopened.from, reopened.to, reopened.totalMinor], ['category', '2026-01-01', '2026-03-31', 6450 + 8800 + 23600])
+  assert.deepEqual(reopened.views.map(v => v.name), ['Q1 by category'])
+  await h.get(`spend?view=${views[0].id}`, lee, 404)
+}))
+
 test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt compliance, unsubmitted spend and exception trends, each matching the records and exportable as CSV', () => withAgency(async (h, t) => {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   const run = (name, cookie = t.jordan, status) => h.get(`reports/${name}?from=${today}&to=${today}`, cookie, status)

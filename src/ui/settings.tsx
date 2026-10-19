@@ -4,6 +4,7 @@ import { Badge, Empty, Field, Form, PageHead, Section } from './parts';
 import { Work } from './shell';
 import { AuditRecords } from './audit';
 import { Reports } from './reports';
+import { SpendAnalytics } from './spend';
 import { Delegates } from './delegates';
 import type { ViewProps } from './claims';
 
@@ -55,6 +56,7 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Escalate after (business days)" name="escalateAfter" inputMode="numeric" required={false} defaultValue={b.escalation_days == null ? '' : String(b.escalation_days)} hint="After the last reminder, to the person's manager, then the same again to finance; empty turns escalation off" />
       </Form>
     </Section>}
+    {b && (owner || roles.finance || roles.auditor || roles.manager) && <SpendAnalytics currency={b.currency} />}
     {(owner || roles.finance || roles.auditor) && <Reports owner={owner} schedules={owner || roles.finance} />}
     {(owner || roles.finance || roles.auditor) && <AuditRecords state={state} />}
     {owner && b && <Section title="Approval by rule">
