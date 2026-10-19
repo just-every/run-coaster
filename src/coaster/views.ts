@@ -12,6 +12,7 @@ import { exportTemplates } from './exports';
 import { currentRule } from './auto-approval';
 import { localDate } from './reports';
 import { businessDaysBetween } from './business-days';
+import { allowancesFor } from './allowances';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -43,6 +44,7 @@ export async function workspace(db: D1Database, actor: Actor) {
     delegates: await delegateGrants(db, actor),
     requests: await requestsFor(db, actor),
     approvalRule: actor.roles.owner || actor.roles.finance || actor.roles.auditor ? await currentRule(db) : null,
+    allowances: await allowancesFor(db, actor),
   };
 }
 

@@ -8,9 +8,11 @@ export type Allocation = { category_id: string; cost_centre: string; amount_mino
 /** Someone at a meal: a colleague (by their Coaster email) or a guest. */
 export type Attendee = { name: string; kind: 'employee' | 'guest'; email?: string };
 export type ItemInput = {
-  kind: 'receipt' | 'mileage' | 'per_diem'; spent_on: string; merchant: string; description: string; amount_minor: number;
+  kind: 'receipt' | 'mileage' | 'per_diem' | 'stipend'; spent_on: string; merchant: string; description: string; amount_minor: number;
   distance_hundredths: number | null; days: number | null; rate_thousandths: number | null; explanation: string; allocations: Allocation[];
   sales_tax_minor: number; sales_tax_account: string; sales_tax_code: string; attendees?: Attendee[]; fields?: Record<string, string>; request_id?: string | null;
+  /** A stipend's allowance, or the cap a purchase is claimed against with the receipt's amount when it was capped (CLAIM-009). */
+  allowance_id?: string | null; claimed_minor?: number | null;
 };
 
 export async function categories(db: D1Database): Promise<Category[]> {
@@ -20,7 +22,7 @@ export async function categories(db: D1Database): Promise<Category[]> {
 /** One expense line, priced from policy (mileage at the rate in force on its trip date) and split across categories; a receipt's sales tax is its own line. */
 export function itemInput(b: Data, business: Business, known: Category[]): ItemInput {
   requireThat(['receipt', 'mileage', 'per_diem'].includes(b.kind), 'Choose a receipt, mileage or per diem expense');
-  const kind = b.kind as ItemInput['kind'];
+  const kind = b.kind as 'receipt' | 'mileage' | 'per_diem';
   const spent_on = isoDate(b.date, 'Expense date');
   let amount_minor: number, distance_hundredths: number | null = null, days: number | null = null, rate_thousandths: number | null = null, merchant: string, sales_tax_minor = 0;
   if (kind === 'receipt') {

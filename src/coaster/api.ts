@@ -14,6 +14,7 @@ import { report } from './reports';
 import { saveReminderSettings } from './reminders';
 import { saveSpendView, spend } from './spend';
 import { budgetReport, importBudgets, saveBudget } from './budgets';
+import { allowancesFor, saveAllowance, saveRecurring, stopAllowance, stopRecurring } from './allowances';
 import { reportSchedules, scheduleReport, stopReportSchedule } from './report-schedules';
 import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
@@ -131,6 +132,11 @@ api.post('/api/coaster/spend-views', as(async (a, c) => saveSpendView(db(c), a, 
 api.get('/api/coaster/budgets', as(async (a, c) => budgetReport(db(c), a, c.req.query('day') || undefined)));
 api.post('/api/coaster/budgets', as(async (a, c) => saveBudget(db(c), a, await body(c))));
 api.post('/api/coaster/budgets/import', as(async (a, c) => importBudgets(db(c), a, await body(c))));
+api.get('/api/coaster/allowances', as(async (a, c) => allowancesFor(db(c), a, c.req.query('day') || undefined)));
+api.post('/api/coaster/allowances', as(async (a, c) => saveAllowance(db(c), a, await body(c))));
+api.post('/api/coaster/allowances/:id/stop', as(async (a, c) => stopAllowance(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/recurring', as(async (a, c) => saveRecurring(db(c), a, await body(c))));
+api.post('/api/coaster/recurring/:id/stop', as(async (a, c) => stopRecurring(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));
 api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'))));
 

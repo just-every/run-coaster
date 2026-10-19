@@ -1,11 +1,12 @@
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
-import { event } from './events';
+import { event, ruleEvent } from './events';
 import { categories, itemInput, type Allocation, type ItemInput } from './items';
 import { findExceptions, missingFields, repeatedInClaim, type ClaimItem } from './exceptions';
 import { requireBusiness } from './settings';
 import { localDay, routeFor } from './delegation';
 import { linkableRequest } from './requests';
 import { approvesByRule, currentRule, ruleApproval, ruleStill } from './auto-approval';
+import { capToAllowance } from './allowances';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null };
@@ -39,7 +40,8 @@ function editable(actor: Actor, claim: Claim, b: Data) {
   requireThat(['draft', 'returned'].includes(claim.status), 'This claim can no longer be changed', 409);
   requireThat(b.version === claim.version, 'This claim changed; reload before trying again', 409);
 }
-const touch = (db: D1Database, id: string) => db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?').bind(id, now(), id);
+/** Recount a claim's total from its expenses and move its version on. */
+export const claimTotal = (db: D1Database, id: string) => db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?').bind(id, now(), id);
 
 export function insertClaim(db: D1Database, id: string, employee: string, title: string, currency: string, preparedBy: string | null) {
   const at = now();
@@ -48,7 +50,7 @@ export function insertClaim(db: D1Database, id: string, employee: string, title:
 
 export function insertItem(db: D1Database, claimId: string, itemId: string, position: number, item: ItemInput, receiptId: string | null) {
   return [
-    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null),
+    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id,allowance_id,claimed_minor) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null, item.allowance_id ?? null, item.claimed_minor ?? null),
     ...item.allocations.map((a: Allocation, i) => db.prepare('INSERT INTO c_allocations(item_id,position,category_id,cost_centre,amount_minor,description) VALUES(?,?,?,?,?,?)').bind(itemId, i, a.category_id, a.cost_centre, a.amount_minor, a.description ?? '')),
   ];
 }
@@ -82,7 +84,9 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
   const business = await requireBusiness(db), receiptId = await ownReceipt(db, claim, b.receipt);
-  const item = { ...itemInput(b, business, await categories(db)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
+  let item: ItemInput = { ...itemInput(b, business, await categories(db)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
+  // A purchase claimed against a cap is reimbursed up to what is left of it (CLAIM-009).
+  if (b.allowance) item = await capToAllowance(db, claim.employee_email, item, b.allowance, typeof b.item === 'string' ? b.item : null);
   for (const a of item.attendees ?? []) if (a.email) requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=?').bind(a.email).first(), `${a.name} is not a Coaster member; add them as a guest`);
   const statements: D1PreparedStatement[] = [];
   let itemId: string = uid(), position: number;
@@ -96,7 +100,7 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
     requireThat((count?.n ?? 0) < 100, 'A claim holds at most 100 expenses');
     position = (count?.last ?? -1) + 1;
   }
-  statements.push(...insertItem(db, claim.id, itemId, position, item, receiptId), touch(db, claim.id), event(db, actor, b.item ? 'expense-changed' : 'expense-added', { claim: claim.id }, { item: itemId, merchant: item.merchant, amountMinor: item.amount_minor, receipt: receiptId, request: item.request_id }));
+  statements.push(...insertItem(db, claim.id, itemId, position, item, receiptId), claimTotal(db, claim.id), event(db, actor, b.item ? 'expense-changed' : 'expense-added', { claim: claim.id }, { item: itemId, merchant: item.merchant, amountMinor: item.amount_minor, receipt: receiptId, request: item.request_id, allowance: item.allowance_id ?? null, claimedMinor: item.claimed_minor ?? null }));
   await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
   return loadClaim(db, id);
 }
@@ -106,7 +110,7 @@ export async function removeItem(db: D1Database, actor: Actor, id: string, b: Da
   editable(actor, claim, b);
   const existing = await db.prepare('SELECT id,merchant,amount_minor FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first<{ id: string; merchant: string; amount_minor: number }>();
   requireThat(existing, 'Expense not found on this claim', 404);
-  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), [db.prepare('DELETE FROM c_items WHERE id=?').bind(existing.id), touch(db, claim.id), event(db, actor, 'expense-removed', { claim: claim.id }, { item: existing.id, merchant: existing.merchant, amountMinor: existing.amount_minor })]);
+  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), [db.prepare('DELETE FROM c_items WHERE id=?').bind(existing.id), claimTotal(db, claim.id), event(db, actor, 'expense-removed', { claim: claim.id }, { item: existing.id, merchant: existing.merchant, amountMinor: existing.amount_minor })]);
   return loadClaim(db, id);
 }
 
@@ -137,7 +141,7 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
     requireThat(item, 'Expense not found on this claim', 404);
     statements.push(db.prepare('UPDATE c_items SET receipt_id=? WHERE id=?').bind(receiptId, b.item));
   }
-  statements.push(touch(db, claim.id), event(db, actor, 'receipt-added', { claim: claim.id }, { receipt: receiptId, name, sha256: sha, size: bytes.length, item: b.item ?? null, source }));
+  statements.push(claimTotal(db, claim.id), event(db, actor, 'receipt-added', { claim: claim.id }, { receipt: receiptId, name, sha256: sha, size: bytes.length, item: b.item ?? null, source }));
   await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
   return { claim: await loadClaim(db, id), receipt: receiptId };
 }
@@ -156,6 +160,18 @@ export async function claimItems(db: D1Database, claimId: string): Promise<Claim
 export async function submitClaim(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
+  return submission(db, claim, actor.delegate?.email ?? actor.email, authority(actor, 'employee'), (action, detail) => event(db, actor, action, { claim: claim.id }, detail), optionalText(b.note, 'Note', 1000));
+}
+
+/** The hourly run submits a stipend's claim in the employee's name, recorded under the schedule's name (CLAIM-009). */
+export async function submitScheduled(db: D1Database, id: string, by: string) {
+  const claim = await loadClaim(db, id);
+  requireThat(claim.status === 'draft', 'This claim can no longer be changed', 409);
+  return submission(db, claim, by, { sql: '1', params: [] }, (action, detail) => ruleEvent(db, by, action, { claim: claim.id }, detail), '');
+}
+
+/** Everything a submission checks and writes once the submitter's authority is known. */
+async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, history: (action: string, detail: Data) => D1PreparedStatement, note: string) {
   const items = await claimItems(db, claim.id);
   requireThat(items.length > 0, 'Add at least one expense before submitting');
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(claim.employee_email).first<{ approver_email: string | null }>();
@@ -171,11 +187,11 @@ export async function submitClaim(db: D1Database, actor: Actor, id: string, b: D
   const rule = await currentRule(db), byRule = approvesByRule(rule, items, exceptions);
   const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();
   const snapshot = { title: claim.title, approver, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule)] : [])), [
-    db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, actor.delegate?.email ?? actor.email, at, total, JSON.stringify(snapshot)),
+  await commit(db, all(auth, claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule)] : [])), [
+    db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),
     db.prepare('UPDATE c_claims SET status=?,revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?').bind(byRule ? 'approved' : 'submitted', revision, approver, onBehalfOf, total, at, claim.id),
-    event(db, actor, revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { claim: claim.id }, { revision, totalMinor: total, exceptions: exceptions.length, note: optionalText(b.note, 'Note', 1000), approver, onBehalfOf }),
+    history(revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { revision, totalMinor: total, exceptions: exceptions.length, note, approver, onBehalfOf }),
     ...(byRule ? ruleApproval(db, claim.id, revision, rule, claim.currency) : []),
   ]);
-  return loadClaim(db, id);
+  return loadClaim(db, claim.id);
 }

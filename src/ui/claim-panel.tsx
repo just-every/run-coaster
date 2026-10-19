@@ -8,6 +8,7 @@ import { Comments } from './comments';
 
 function Receipt({ item }: { item: D }) {
   if (item.kind === 'mileage') return <span className="receipt" title="Mileage"><Icon name="car" /><span className="visually-hidden">Mileage</span></span>;
+  if (item.kind === 'stipend') return <span className="receipt" title="Stipend"><Icon name="bank" /><span className="visually-hidden">Stipend</span></span>;
   if (item.kind === 'per_diem') return <span className="receipt" title="Per diem"><Icon name="calendar" /><span className="visually-hidden">Per diem</span></span>;
   if (!item.receipt_id) return <span className="receipt missing" title="No receipt"><Icon name="receipt" /><span className="visually-hidden">No receipt</span></span>;
   const image = String(item.receipt_media).startsWith('image/') && item.receipt_media !== 'image/heic';
@@ -23,7 +24,9 @@ function split(item: D, currency: string) {
 function merchantLine(item: D, currency: string) {
   if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${rate(item.rate_thousandths, currency)}`;
   if (item.kind === 'per_diem') return `${item.merchant} · ${plural(item.days, 'day')} at ${rate(item.rate_thousandths, currency)}`;
-  return item.sales_tax_minor ? `${item.merchant} · ${money(item.sales_tax_minor, currency)} sales tax` : item.merchant;
+  if (item.kind === 'stipend') return `${item.merchant} · ${item.description}`;
+  const capped = item.claimed_minor ? ` · claimed ${money(item.claimed_minor, currency)}, capped by allowance` : '';
+  return (item.sales_tax_minor ? `${item.merchant} · ${money(item.sales_tax_minor, currency)} sales tax` : item.merchant) + capped;
 }
 
 /** One claim in the panel, as the pick's exception panel: who and how much, the red banner for a return or a policy
@@ -90,7 +93,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
           {(flags.length > 0 || editable) && <span className="line-extra">
             {flags.map((f: D) => <Warning key={f.code}>{exceptionWords[f.code] ?? f.code}</Warning>)}
             {flags.length > 0 && item.explanation && <span className="explanation">Explanation: {item.explanation}</span>}
-            {editable && <span className="line-actions"><button className="button small" onClick={() => setEditing(item.id)} aria-label={`Change ${item.merchant}`}>Change</button><button className="button small" aria-label={`Remove ${item.merchant}`} onClick={async () => { try { await call(`claims/${claim.id}/items/remove`, { version: claim.version, item: item.id }); await done(); } catch (e) { setError((e as Error).message); } }}>Remove</button></span>}
+            {editable && <span className="line-actions">{item.kind !== 'stipend' && <button className="button small" onClick={() => setEditing(item.id)} aria-label={`Change ${item.merchant}`}>Change</button>}<button className="button small" aria-label={`Remove ${item.merchant}`} onClick={async () => { try { await call(`claims/${claim.id}/items/remove`, { version: claim.version, item: item.id }); await done(); } catch (e) { setError((e as Error).message); } }}>Remove</button></span>}
           </span>}
         </li>;
       })}</ul> : <Empty title="No expenses yet">{editable ? 'Add each expense with its receipt; mileage is priced at the rate for its date.' : null}</Empty>}

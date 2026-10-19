@@ -63,7 +63,7 @@ export async function fileBase64(file: File) {
 
 export const statusWords: Record<string, string> = { draft: 'Draft', submitted: 'Submitted', returned: 'Returned', approved: 'Approved', rejected: 'Rejected', batched: 'In batch', reimbursed: 'Reimbursed', proposed: 'Prepared', accepted: 'Accepted', declined: 'Declined' };
 /** A policy exception's code in the words a person reads. */
-export const exceptionWords: Record<string, string> = { 'over-limit': 'Over a category limit', 'over-per-person': 'Over the per-person limit', 'needs-pre-approval': 'No approved spend request', 'missing-receipt': 'No receipt', 'duplicate-receipt': 'Same receipt as another expense', 'possible-duplicate': 'Possible duplicate' };
+export const exceptionWords: Record<string, string> = { 'over-limit': 'Over a category limit', 'over-per-person': 'Over the per-person limit', 'needs-pre-approval': 'No approved spend request', 'missing-receipt': 'No receipt', 'duplicate-receipt': 'Same receipt as another expense', 'possible-duplicate': 'Possible duplicate', 'over-allowance': 'Over an allowance' };
 /** Each status's colour family: green done, amber waiting, red failed, grey not started. */
 export const statusTone: Record<string, string> = { draft: 'quiet', submitted: 'wait', returned: 'fail', approved: 'done', rejected: 'fail', batched: 'done', reimbursed: 'done', proposed: 'quiet', accepted: 'done', declined: 'quiet' };
 export const batchWords: Record<string, string> = { draft: 'Draft · not reviewed', approved: 'Reviewed · ready to pay', reimbursed: 'Paid' };

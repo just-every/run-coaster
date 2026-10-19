@@ -2,8 +2,9 @@ import type { Business } from './settings';
 import type { Category } from './items';
 import type { Data } from './types';
 import { overBudget } from './budgets';
+import { overAllowance } from './allowances';
 
-export type PolicyException = { item: string; code: 'missing-receipt' | 'over-limit' | 'over-per-person' | 'needs-pre-approval' | 'duplicate-receipt' | 'possible-duplicate' | 'over-budget'; message: string };
+export type PolicyException = { item: string; code: 'missing-receipt' | 'over-limit' | 'over-per-person' | 'needs-pre-approval' | 'duplicate-receipt' | 'possible-duplicate' | 'over-budget' | 'over-allowance'; message: string };
 export type ClaimItem = Data & { id: string; kind: string; spent_on: string; merchant: string; amount_minor: number; receipt_id: string | null; receipt_sha256?: string | null; allocations: Data[]; attendees: Data[]; fields: Record<string, string> };
 
 /** Each required custom field (CLAIM-007) a current expense leaves blank, named with the expense and category. */
@@ -46,6 +47,8 @@ export async function findExceptions(db: D1Database, claim: { id: string; employ
     const always = item.allocations.map(part => byId.get(part.category_id)).find(c => c?.receipt_always);
     if (item.kind === 'receipt' && !item.receipt_id && (always || item.amount_minor > business.receipt_threshold_minor))
       found.push({ item: item.id, code: 'missing-receipt', message: always ? `${always.name} always needs a receipt` : business.receipt_threshold_minor ? `No receipt for an expense over ${money(business.receipt_threshold_minor, business.currency)}` : 'No receipt attached' });
+    const capped = await overAllowance(db, item, business.currency);
+    if (capped) found.push({ item: item.id, code: 'over-allowance', message: capped });
     if (business.preapproval_threshold_minor != null && item.amount_minor > business.preapproval_threshold_minor && !item.request_id)
       found.push({ item: item.id, code: 'needs-pre-approval', message: `Over ${money(business.preapproval_threshold_minor, business.currency)} without an approved spend request` });
     // A category's limit applies to the expense's whole amount in it, however many parts it is split into.

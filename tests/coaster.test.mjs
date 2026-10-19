@@ -24,6 +24,12 @@ async function claim(h, cookie, title, items) {
   }
   return h.get(`claims/${c.id}`, cookie)
 }
+/** That hour of that day on Central time, as the hourly Cron Trigger would fire it. */
+const central = (day, hour) => {
+  const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:17:00Z`)
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]))
+  return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
+}
 const submit = (h, cookie, d) => h.post(`claims/${d.claim.id}/submit`, { version: d.claim.version }, cookie)
 const approve = async (h, cookie, c, extra = {}) => h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', ...extra }, cookie)
 
@@ -943,11 +949,6 @@ test('REPORT-004 budgets count spend from submission by period, alert the owner 
   await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Team lunch', [r('2026-06-12', 'Bistro', '150.00', t.c.meals, 'bistro', { explanation: 'Client lunch' })])), { acknowledge: true })
   await submit(h, t.alex, await claim(h, t.alex, 'Offsite lunch', [r('2026-06-15', 'Officeworks cafe', '250.00', t.c.meals, 'officeworks', { explanation: 'Offsite' })]))
 
-  const central = (day, hour) => {
-    const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:17:00Z`)
-    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]))
-    return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
-  }
   const worker = await h.mf.getWorker()
   const tick = async day => { const before = h.messages.length; await worker.scheduled({ scheduledTime: central(day, 9), cron: '17 * * * *' }); return h.messages.slice(before).filter(m => m.subject.startsWith('Budget alert: ')).map(m => [m.to, m.subject, /for (\S+@\S+) has/.exec(m.text)?.[1] ?? null]) }
 
@@ -1285,4 +1286,72 @@ test('POLICY-003 finance works one queue of open exceptions across claims by ris
   await h.post('audit-samples/finding', { claim: sample.claim_id, revision: sample.revision, outcome: 'clean' }, t.jordan, 409)
   await assert.rejects(h.db.prepare("UPDATE c_audit_samples SET finding='rewritten' WHERE claim_id=?").bind(sample.claim_id).run(), /permanent/)
   assert.ok((await h.get(`claims/${sample.claim_id}`, t.alex)).events.some(e => e.action === 'audit-finding-recorded'))
+}))
+
+test('CLAIM-009 finance pays a monthly stipend to every employee and caps a yearly allowance; employees claim against the cap, set recurring expenses and see what is left; a deactivated member\'s stipend stops', () => withAgency(async (h, t) => {
+  const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example', JORDAN = 'jordan@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', timezone: 'America/Chicago', perDiem: '75.00', receiptThreshold: '75.00' })
+  const phone = (await h.post('settings/categories', { name: 'Phone', accountCode: '6600', taxCode: 'NONE' })).id
+  // An approval rule is on: a stipend has no receipt, so it still goes to the employee's approver (APPROVE-004).
+  await h.post('settings/approval-rule', { enabled: true, limit: '100.00' })
+  const stipend = { name: 'Phone stipend', type: 'stipend', category: phone, period: 'monthly', amount: '75.00', tax: 'taxable', startsOn: '2026-06-01' }
+  await h.post('allowances', stipend, t.sam, 403)
+  await h.post('allowances', { ...stipend, tax: undefined }, t.jordan, 400)
+  await h.post('allowances', stipend, t.jordan)
+  const home = (await h.post('allowances', { name: 'Home office', type: 'cap', period: 'yearly', amount: '500.00', startsOn: '2026-01-01' }, t.jordan)).all.find(a => a.name === 'Home office')
+  await h.post('recurring', { merchant: 'Figma', description: 'Design seat', category: t.c.office, period: 'monthly', amount: '20.00', startsOn: '2026-06-01' }, t.sam)
+
+  const worker = await h.mf.getWorker()
+  const tick = day => worker.scheduled({ scheduledTime: central(day, 9), cron: '17 * * * *' })
+  const stipends = async email => (await h.get('state')).claims.filter(c => c.employee_email === email && c.title.startsWith('Phone stipend · ')).map(c => [c.title, c.status, c.total_minor]).sort()
+  await tick('2026-06-01'); await tick('2026-06-01')
+  // One claim a period for each employee, submitted to their approver without a receipt; Jordan has no approver, so theirs waits as a draft.
+  assert.deepEqual(await stipends(SAM), [['Phone stipend · 2026-06', 'submitted', 7500]])
+  const june = (await h.get('state', t.sam)).claims.find(c => c.title === 'Phone stipend · 2026-06')
+  const juneDetail = await h.get(`claims/${june.id}`, t.priya)
+  assert.equal(june.approver_email, PRIYA)
+  assert.deepEqual(juneDetail.items.map(i => [i.kind, i.spent_on, i.amount_minor, i.receipt_id, i.description, i.allocations[0].category_id]), [['stipend', '2026-06-01', 7500, null, 'Monthly stipend for 2026-06 · taxable pay', phone]])
+  assert.deepEqual(juneDetail.revisions[0].snapshot.exceptions, [])
+  assert.deepEqual(juneDetail.events.map(e => [e.actor_email, e.action]), [['allowance', 'stipend-created'], ['allowance', 'claim-submitted']])
+  assert.deepEqual((await h.get('state', t.jordan)).claims.filter(c => c.employee_email === JORDAN).map(c => [c.title, c.status]), [['Phone stipend · 2026-06', 'draft']])
+  // Sam's recurring subscription opens one draft for the month asking for its receipt.
+  const figma = (await h.get('state', t.sam)).claims.filter(c => c.title.startsWith('Figma'))
+  assert.deepEqual(figma.map(c => [c.title, c.status, c.total_minor]), [['Figma · 2026-06', 'draft', 2000]])
+  assert.deepEqual((await h.get(`claims/${figma[0].id}`, t.sam)).items.map(i => [i.kind, i.receipt_id, i.description]), [['receipt', null, 'Design seat · Monthly recurring expense: receipt requested']])
+
+  await tick('2026-07-01')
+  await h.post('settings/members', { email: ALEX, name: 'alex', employee: true, approver: PRIYA, active: false })
+  await tick('2026-08-01')
+  assert.deepEqual(await stipends(SAM), [['Phone stipend · 2026-06', 'submitted', 7500], ['Phone stipend · 2026-07', 'submitted', 7500], ['Phone stipend · 2026-08', 'submitted', 7500]])
+  assert.deepEqual((await stipends(ALEX)).map(c => c[0]), ['Phone stipend · 2026-06', 'Phone stipend · 2026-07'], 'no stipend once deactivated')
+
+  // Three months of stipends are approved, batched and reimbursed like any claim.
+  const sams = (await h.get('state', t.sam)).claims.filter(c => c.title.startsWith('Phone stipend · '))
+  for (const c of sams) await approve(h, t.priya, c)
+  let batch = await h.post('batches', { claims: sams.map(c => c.id) }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 22500 }, t.jordan)
+  assert.equal(sum((await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, t.jordan)).text, 'amount'), 22500)
+  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0815', paidOn: '2026-08-15' }, t.jordan)
+  assert.deepEqual((await h.get('state', t.sam)).claims.filter(c => c.title.startsWith('Phone stipend · ')).map(c => c.status), ['reimbursed', 'reimbursed', 'reimbursed'])
+
+  // $320 then $250 against the $500 home-office cap: the second is reimbursed $180 and the $70 over is flagged.
+  const left = async () => (await h.get('allowances?day=2026-08-20', t.sam)).mine.find(a => a.name === 'Home office').remaining_minor
+  assert.equal(await left(), 50000)
+  const desk = await claim(h, t.sam, 'Desk', [{ kind: 'receipt', date: '2026-08-03', merchant: 'IKEA', amount: '320.00', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks', allowance: home.id }])
+  assert.equal(desk.claim.total_minor, 32000)
+  assert.equal(await left(), 18000)
+  const chair = await claim(h, t.sam, 'Chair', [{ kind: 'receipt', date: '2026-08-10', merchant: 'Herman Miller', amount: '250.00', allocations: [{ category: t.c.office }], receiptFixture: 'hotel', allowance: home.id }])
+  assert.deepEqual([chair.claim.total_minor, chair.items[0].amount_minor, chair.items[0].claimed_minor, chair.items[0].allocations.map(a => a.amount_minor)], [18000, 18000, 25000, [18000]])
+  await h.post(`claims/${chair.claim.id}/submit`, { version: chair.claim.version }, t.sam, 409)
+  await h.post(`claims/${chair.claim.id}/items`, { version: chair.claim.version, item: chair.items[0].id, kind: 'receipt', date: '2026-08-10', merchant: 'Herman Miller', amount: '250.00', allocations: [{ category: t.c.office }], receipt: chair.items[0].receipt_id, allowance: home.id, explanation: 'Chair for the home office' }, t.sam)
+  const sent = await submit(h, t.sam, await h.get(`claims/${chair.claim.id}`, t.sam))
+  assert.deepEqual((await h.get(`claims/${sent.id}`, t.priya)).revisions[0].snapshot.exceptions.map(e => [e.code, e.message]), [['over-allowance', 'Claimed $250.00 against Home office; only $180.00 was left for 2026, so $70.00 is not reimbursed']])
+  assert.equal(await left(), 0)
+  const more = await h.post('claims', { title: 'Lamp' }, t.sam)
+  await h.post(`claims/${more.id}/items`, { version: more.version, kind: 'receipt', date: '2026-08-12', merchant: 'Target', amount: '30.00', allocations: [{ category: t.c.office }], allowance: home.id }, t.sam, 400)
+  // Employees see their own allowances and recurring expenses; finance sees every allowance.
+  const mine = await h.get('allowances?day=2026-08-20', t.sam)
+  assert.deepEqual(mine.mine.map(a => a.name).sort(), ['Home office', 'Phone stipend'])
+  assert.deepEqual([mine.all, mine.recurring.map(r => r.merchant)], [[], ['Figma']])
+  assert.deepEqual((await h.get('allowances', t.jordan)).all.map(a => a.name).sort(), ['Home office', 'Phone stipend'])
 }))

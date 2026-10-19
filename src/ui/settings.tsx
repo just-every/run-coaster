@@ -7,6 +7,7 @@ import { Reports } from './reports';
 import { SpendAnalytics } from './spend';
 import { Budgets } from './budgets';
 import { Delegates } from './delegates';
+import { Allowances } from './allowances';
 import type { ViewProps } from './claims';
 
 const US_ZONES = [['America/New_York', 'Eastern'], ['America/Chicago', 'Central'], ['America/Denver', 'Mountain'], ['America/Phoenix', 'Arizona'], ['America/Los_Angeles', 'Pacific'], ['America/Anchorage', 'Alaska'], ['Pacific/Honolulu', 'Hawaii']].map(([value, label]) => ({ value, label: `${label} (${value})` }));
@@ -47,6 +48,7 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     </div>
     {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
+    {b && (roles.employee || roles.finance || owner) && <Allowances state={state} reload={reload} onNotice={setNotice} />}
     {(owner || roles.finance) && b && <Section title="Reminders">
       <p className="muted">Coaster emails whoever owes something (a receipt, a submission, a held claim, an answer or a decision) on the business days you set after it first opens, on US business days outside quiet hours ({b.timezone}), escalates what stays undone, and stops once it is done.</p>
       <Form label="Save reminders" onSubmit={async v => { await call('settings/reminders', v); await saved('Reminders saved.'); }}>
