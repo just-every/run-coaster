@@ -14,6 +14,7 @@ import { runReminders } from './coaster/reminders'
 import { runBudgets } from './coaster/budgets'
 import { runAllowances } from './coaster/allowances'
 import { runAutoSubmit } from './coaster/auto-reports'
+import { runRetention } from './coaster/retention'
 
 // Start documents keep their own cache policy and add no-transform, so no proxy
 // rewrites the HTML React hydrates (Cloudflare's email address obfuscation
@@ -38,13 +39,14 @@ const worker = {
     if (lobby) return lobby
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))
   },
-  // The hourly Cron Trigger chases open items (FOLLOWUP-001), alerts budgets (REPORT-004), pays stipends and opens recurring drafts (CLAIM-009), submits automatic reports on schedule (AUTO-001) and sends scheduled reports (REPORT-002).
+  // The hourly Cron Trigger chases open items (FOLLOWUP-001), alerts budgets (REPORT-004), pays stipends and opens recurring drafts (CLAIM-009), submits automatic reports on schedule (AUTO-001), proposes records past retention (RETAIN-001) and sends scheduled reports (REPORT-002).
   async scheduled(controller, env) {
     const at = new Date(controller.scheduledTime)
     await runReminders(runtimeBindings(env), at)
     await runBudgets(runtimeBindings(env), at)
     await runAllowances(runtimeBindings(env), at)
     await runAutoSubmit(runtimeBindings(env), at)
+    await runRetention(runtimeBindings(env), at)
     await deliverReports(runtimeBindings(env), at)
   },
 } satisfies ExportedHandler<Bindings>

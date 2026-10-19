@@ -1,4 +1,4 @@
-import { all, authority, commit, need, type Sql } from './session';
+import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { event } from './events';
 import { claimNumber, claimItems, type Claim } from './claims';
 import { exactKey } from './exceptions';
@@ -26,6 +26,9 @@ async function reimbursementKeys(db: D1Database, claims: Claim[]) {
     seen.set(k.key, k.claim);
     const taken = await db.prepare('SELECT c.number, b.number AS batch FROM c_reimbursement_keys k JOIN c_claims c ON c.id=k.claim_id JOIN c_batches b ON b.id=k.batch_id WHERE k.key=?').bind(k.key).first<{ number: number; batch: number }>();
     requireThat(!taken, `${claimNumber(k.claim.number)} repeats an expense already reimbursed through ${claimNumber(taken?.number ?? 0)} in ${batchNumber(taken?.batch ?? 0)}`, 409);
+    // A claim removed under the retention policy (RETAIN-001) leaves its keys behind as SHA-256.
+    const expired = await db.prepare('SELECT claim_number FROM c_expired_keys WHERE key_sha256=?').bind(await sha256Hex(k.key)).first<{ claim_number: number }>();
+    requireThat(!expired, `${claimNumber(k.claim.number)} repeats an expense already reimbursed through ${claimNumber(expired?.claim_number ?? 0)}, since removed under the retention policy`, 409);
   }
   return keys;
 }

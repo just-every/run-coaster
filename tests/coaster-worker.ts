@@ -5,9 +5,10 @@ import { runReminders } from '../src/coaster/reminders'
 import { runBudgets } from '../src/coaster/budgets'
 import { runAllowances } from '../src/coaster/allowances'
 import { runAutoSubmit } from '../src/coaster/auto-reports'
+import { runRetention } from '../src/coaster/retention'
 
 // The production API and native auth handlers, without Start's document renderer.
 export default {
   async fetch(request: Request, env: any, ctx: ExecutionContext) { return await authResponse(request, env) ?? api.fetch(request, env, ctx) },
-  async scheduled(controller: ScheduledController, env: any) { const at = new Date(controller.scheduledTime); await runReminders(runtimeBindings(env), at); await runBudgets(runtimeBindings(env), at); await runAllowances(runtimeBindings(env), at); await runAutoSubmit(runtimeBindings(env), at); await deliverReports(runtimeBindings(env), at) },
+  async scheduled(controller: ScheduledController, env: any) { const at = new Date(controller.scheduledTime); await runReminders(runtimeBindings(env), at); await runBudgets(runtimeBindings(env), at); await runAllowances(runtimeBindings(env), at); await runAutoSubmit(runtimeBindings(env), at); await runRetention(runtimeBindings(env), at); await deliverReports(runtimeBindings(env), at) },
 }

@@ -1401,3 +1401,66 @@ test('AUTO-001 expenses file themselves into a report by month or trip and submi
   await tick('2026-06-09', 10)
   assert.ok(h.messages.slice(before).some(m => m.to.includes(SAM) && m.subject === 'Reminder: Attach the receipt for Delta'), 'the held flight is still chased for its receipt')
 }))
+
+test('RETAIN-001 paid and rejected claims past the owner\'s retention are proposed, removed only on confirmation with a receipt, and a legal hold blocks expiry until released', () => withAgency(async (h, t) => {
+  const ALEX = 'alex@harbourfinch.example'
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', timezone: 'America/Chicago', perDiem: '75.00', receiptThreshold: '75.00' })
+  assert.equal((await h.get('retention')).years, 7, 'seven years unless the owner sets another period')
+  await h.post('settings/retention', { years: 1 }, t.jordan, 403)
+  await h.post('settings/retention', { years: 0 }, h.owner, 400)
+  await h.post('settings/retention', { years: 1 })
+  // A paid claim with a comment, a rejected claim, an approved but unpaid claim and a draft.
+  const paid = await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Client visit', [{ kind: 'receipt', date: '2026-05-04', merchant: 'Hotel Ibis', amount: '180.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }])))
+  await h.post(`claims/${paid.id}/comments`, { body: 'Thanks for the folio' }, t.priya)
+  let batch = await h.post('batches', { claims: [paid.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 18000 }, t.jordan)
+  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0510', paidOn: '2026-05-10' }, t.jordan)
+  const paidReceipt = (await h.get(`claims/${paid.id}`)).items[0].receipt_id
+  const sent = await submit(h, t.alex, await claim(h, t.alex, 'Gym', [{ kind: 'receipt', date: '2026-05-05', merchant: 'Equinox', amount: '60.00', allocations: [{ category: t.c.office }] }]))
+  const rejected = await h.post(`claims/${sent.id}/decision`, { revision: sent.revision, version: sent.version, decision: 'rejected', reason: 'Personal' }, t.priya)
+  const unpaid = await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Taxi', [{ kind: 'receipt', date: '2026-05-06', merchant: 'Uber', amount: '20.10', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' }])))
+  const draft = (await claim(h, t.alex, 'Supplies', [{ kind: 'receipt', date: '2026-05-07', merchant: 'Staples', amount: '12.00', allocations: [{ category: t.c.office }] }])).claim
+
+  // A legal hold on Alex, placed only by the owner.
+  await h.post('legal-holds', { scope: 'person', member: ALEX, reason: 'Wage claim' }, t.jordan, 403)
+  const hold = (await h.post('legal-holds', { scope: 'person', member: ALEX, reason: 'Wage claim' })).holds[0]
+  const worker = await h.mf.getWorker()
+  const tick = days => worker.scheduled({ scheduledTime: Date.now() + days * 86_400_000, cron: '17 * * * *' })
+  await tick(300)
+  assert.equal((await h.get('retention')).proposal, null, 'nothing is proposed inside the retention period')
+  await tick(370); await tick(371)
+  let state = await h.get('retention')
+  assert.deepEqual(state.proposal.claims.map(u => [u.batch, u.claims.map(c => c.id)]), [[batch.id, [paid.id]]], 'the held person\'s rejected claim and the unpaid claim are not proposed')
+  assert.equal((await h.get(`claims/${paid.id}`)).claim.status, 'reimbursed', 'a proposal removes nothing')
+  await h.post(`retention/${state.proposal.id}/confirm`, {}, t.jordan, 403)
+  const receiptOne = await h.post(`retention/${state.proposal.id}/confirm`, {})
+  assert.deepEqual(receiptOne.expired.map(e => [e.claim, e.status, e.totalMinor, e.expenseDates, e.receiptSha256]), [[`CL-${String(paid.number).padStart(4, '0')}`, 'reimbursed', 18000, { from: '2026-05-04', to: '2026-05-04' }, [sha(await readFile('tests/fixtures/receipts/hotel.png'))]]])
+  assert.deepEqual([receiptOne.confirmedBy, receiptOne.retentionYears, receiptOne.skipped], ['owner@harbourfinch.example', 1, []])
+  await h.get(`claims/${paid.id}`, h.owner, 404)
+  assert.equal((await h.send(`/api/coaster/receipts/${paidReceipt}`, undefined, h.owner)).status, 404, 'the receipt bytes are gone')
+  await h.get(`batches/${batch.id}`, t.jordan, 404)
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_comments').first()).n, 0)
+  assert.deepEqual((await h.get('history?q=claim-expired')).lines.map(l => [l.actor_email, l.detail.claim]), [['retention', `CL-${String(paid.number).padStart(4, '0')}`]])
+  assert.equal((await h.get('retention')).receipts.length, 1)
+  // The expired receipt can still never be reimbursed again.
+  const again = await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Client visit again', [{ kind: 'receipt', date: '2026-05-04', merchant: 'Hotel Ibis', amount: '180.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }])), { acknowledge: true })
+  const refused = await h.send('/api/coaster/batches', { claims: [again.id] }, t.morgan)
+  assert.equal(refused.status, 409); assert.match(refused.value.error, /since removed under the retention policy/)
+
+  // Releasing the hold lets the rejected claim be proposed and expired; open and unpaid claims stay.
+  await h.post(`legal-holds/${hold.id}/release`, {})
+  await tick(372)
+  state = await h.get('retention')
+  assert.deepEqual(state.proposal.claims.map(u => u.claims.map(c => c.id)), [[rejected.id]])
+  await h.post('legal-holds', { scope: 'period', from: '2026-05-01', to: '2026-05-31', reason: 'May audit' })
+  const receiptTwo = await h.post(`retention/${state.proposal.id}/confirm`, {})
+  assert.deepEqual([receiptTwo.expired, receiptTwo.skipped.map(s => s.reason)], [[], ['legal hold: May audit']], 'a hold placed after the proposal still blocks it')
+  const period = (await h.get('retention')).holds.find(x => x.scope === 'period')
+  await h.post(`legal-holds/${period.id}/release`, {})
+  await tick(373)
+  const third = (await h.get('retention')).proposal
+  assert.deepEqual((await h.post(`retention/${third.id}/confirm`, {})).expired.map(e => e.status), ['rejected'])
+  await h.get(`claims/${rejected.id}`, h.owner, 404)
+  for (const c of [unpaid, draft]) assert.ok((await h.get(`claims/${c.id}`, c === draft ? t.alex : h.owner)).claim)
+  for (const table of ['c_events', 'c_receipts', 'c_revisions', 'c_decisions']) await assert.rejects(h.db.prepare(`DELETE FROM ${table}`).run(), /permanent/, `${table} stays permanent outside a confirmed expiry`)
+}))
