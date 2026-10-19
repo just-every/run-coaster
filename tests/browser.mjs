@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, report, start } from './browser-runtime.mjs'
-import { api, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
+import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
 import { records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/coaster-browser-proof')
@@ -66,6 +66,19 @@ try {
   await copyFile(join(root, 'exports/installation.rer'), archive)
   await command(root, ['import', '--input', 'exports/installation.rer', '--yes'], { expected: 4 })
 
+  // ERASURE-001: the owner erases the departed employee in the screens; the later archive holds no trace of them and,
+  // supplied as the journal, makes an empty destination refuse the archive made before the erasure.
+  server = await start(root, port)
+  browser = await launch()
+  const erasing = await session(browser, root, server.origin, 'owner', 1440)
+  const erasure = await eraseEmployee(erasing, server.origin, before.claims.filter(c => c.claim.employee_email === PEOPLE.employee).map(c => c.claim.number).sort((a, b) => a - b), evidence, shots)
+  await erasing.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
+  await command(root, ['export', '--output', 'exports/after-erasure.rer'])
+  const later = join(evidence, 'after-erasure.rer')
+  await copyFile(join(root, 'exports/after-erasure.rer'), later)
+  const laterRows = JSON.stringify(rows(await records(later)))
+  assert.ok(!laterRows.includes(PEOPLE.employee) && laterRows.includes(erasure.retained.subject), 'the later archive carries the opaque subject, never the address')
+
   // Restore into a second, empty installation.
   second = await fresh()
   await command(second, ['install'])
@@ -77,6 +90,8 @@ try {
   assert.match(await command(second, ['import', '--input', 'exports/corrupt.rer', '--yes'], { expected: 2 }), /archive_json/)
   await rejectInconsistentArchives(second, archive)
   await copyFile(archive, join(second, 'exports/installation.rer'))
+  await copyFile(later, join(second, 'exports/after-erasure.rer'))
+  assert.match(await command(second, ['import', '--input', 'exports/installation.rer', '--journal', 'exports/after-erasure.rer', '--yes'], { expected: 4 }), /erasure_epoch/, 'the archive made before the erasure is refused, naming the erasure')
   await command(second, ['import', '--input', 'exports/installation.rer', '--yes'])
   await command(second, ['export', '--output', 'exports/restored.rer'])
   await copyFile(join(second, 'exports/restored.rer'), join(evidence, 'restored.rer'))
@@ -94,7 +109,7 @@ try {
   assert.deepEqual(rows(await records(join(evidence, 'restored.rer'))), rows(await records(archive)), 'every portable row survives export → restore → export')
   await command(second, ['reset', '--yes'])
   await writeFile(join(evidence, 'manifest.json'), JSON.stringify({ commit, business: 'Harbour & Finch Studio (synthetic)', scenario: 'Employee claim with receipts, mileage and an over-limit meal; manager return and approval; finance batch, export and payment; owner Expensify move-in and settings', screenshots: shots }, null, 2) + '\n')
-  await report(evidence, { passed: true, commit, journeys, archive: 'export → refused corrupt and three inconsistent archives → restore → identical export; restored owner undid the move-in', screenshots: shots.length })
+  await report(evidence, { passed: true, commit, journeys, archive: 'export → employee erased → refused corrupt, three inconsistent and the pre-erasure archive with the later journal → restore → identical export; restored owner undid the move-in', screenshots: shots.length })
   console.log(`Browser and CLI proof passed at ${commit}; screenshots and files: ${evidence}`)
 } finally {
   await browser?.close(); await server?.close()

@@ -18,6 +18,9 @@ function context(db: D1Database, actor: Actor, mappingVersion: string, namespace
   return { destination: 'main', namespace, mappingVersion, reversalPolicy: 'preserve-conflicts', storage: { database: db as any, targets: historyTargets }, authorization: { principalId: PRINCIPAL, predicate: () => guard }, batchSize: 50, maxBatches: 4 } as D1ImportContext;
 }
 
+/** The context ERASURE-001 erases imported history through: every import shares the destination. */
+export const erasureContext = (db: D1Database, actor: Actor) => context(db, actor, 'erasure', NAMESPACE);
+
 /** Preview writes nothing; commit applies only the exact previewed bytes and mapping; undo reverses the job. */
 export async function importAction(db: D1Database, actor: Actor, op: string, b: Data) {
   need(actor, 'owner');

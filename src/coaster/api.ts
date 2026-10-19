@@ -16,6 +16,7 @@ import { saveSpendView, spend } from './spend';
 import { budgetReport, importBudgets, saveBudget } from './budgets';
 import { addExpense, saveAutoSubmit } from './auto-reports';
 import { confirmExpiry, placeHold, releaseHold as releaseLegalHold, retention, saveRetention } from './retention';
+import { eraseMember, erasures } from './erasure';
 import { allowancesFor, saveAllowance, saveRecurring, stopAllowance, stopRecurring } from './allowances';
 import { reportSchedules, scheduleReport, stopReportSchedule } from './report-schedules';
 import { addComment, editComment } from './comments';
@@ -125,7 +126,8 @@ api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db
 api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalRule(db(c), a, await body(c))));
 api.post('/api/coaster/settings/auto-submit', as(async (a, c) => saveAutoSubmit(db(c), a, await body(c))));
 api.post('/api/coaster/settings/retention', as(async (a, c) => saveRetention(db(c), a, await body(c))));
-api.get('/api/coaster/retention', as(async (a, c) => retention(db(c), a)));
+api.get('/api/coaster/retention', as(async (a, c) => ({ ...await retention(db(c), a), erasures: await erasures(db(c)) })));
+api.post('/api/coaster/settings/members/erase', as(async (a, c) => eraseMember(db(c), a, await body(c))));
 api.post('/api/coaster/retention/:id/confirm', as(async (a, c) => confirmExpiry(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/legal-holds', as(async (a, c) => placeHold(db(c), a, await body(c))));
 api.post('/api/coaster/legal-holds/:id/release', as(async (a, c) => releaseLegalHold(db(c), a, param(c, 'id'))));

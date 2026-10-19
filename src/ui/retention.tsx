@@ -8,12 +8,13 @@ const SCOPES = [{ value: 'person', label: 'One person' }, { value: 'business', l
  * places or releases holds; every confirmed expiry keeps its receipt. */
 export function Retention({ state, onNotice }: { state: D; onNotice: (words: string) => void }) {
   const [r, setR] = useState<D>(), currency = state.business.currency;
-  useEffect(() => { call('retention').then(setR, () => setR(undefined)); }, []);
+  // Reloaded with the workspace, so an erasure from People shows its receipt here at once.
+  useEffect(() => { call('retention').then(setR, () => setR(undefined)); }, [state]);
   const act = async (path: string, body: D, words: string) => { const next = await call(path, body); onNotice(words); setR(path.includes('/confirm') ? await call('retention') : next); };
   if (!r) return null;
   const hold = (h: D) => h.scope === 'business' ? 'Whole business' : h.scope === 'person' ? state.names[h.member_email] ?? h.member_email : `Expenses dated ${day(h.from_day)} to ${day(h.to_day)}`;
   return <Section title="Retention and legal holds">
-    <p className="muted">Paid and rejected claims are kept for {r.years} {r.years === 1 ? 'year' : 'years'} after they were paid or rejected. Coaster proposes what has passed that; nothing is removed until you confirm, and each confirmation leaves a receipt. A legal hold stops expiry and erasure for what it covers until you release it.</p>
+    <p className="muted">Paid and rejected claims are kept for {r.years} {r.years === 1 ? 'year' : 'years'} after they were paid or rejected. Coaster proposes what has passed that; nothing is removed until you confirm, and each confirmation leaves a receipt. A legal hold stops expiry and erasure for what it covers until you release it. Erasing a deactivated person's personal data (under People) also leaves a receipt here.</p>
     <Form key={r.years} label="Save retention" onSubmit={v => act('settings/retention', v, 'Retention saved.')}>
       <Field label="Keep paid and rejected claims for (years)" name="years" inputMode="numeric" defaultValue={String(r.years)} hint="1 to 30; seven years by default" />
     </Form>
@@ -32,5 +33,6 @@ export function Retention({ state, onNotice }: { state: D; onNotice: (words: str
       </Form>
     </div>
     {r.receipts.length > 0 && <div className="sub-form"><h3>Expiry receipts</h3><ul className="ruled-list">{r.receipts.map((x: D) => <li key={x.proposal}>{moment(x.confirmedAt)} by {x.confirmedBy} · {x.expired.length} expired ({x.expired.map((e: D) => `${e.claim} ${money(e.totalMinor, currency)}`).join(', ') || 'none'}){x.skipped.length ? ` · ${x.skipped.length} skipped` : ''}</li>)}</ul></div>}
+    {r.erasures.length > 0 && <div className="sub-form"><h3>Erasure receipts</h3><ul className="ruled-list">{r.erasures.map((x: D) => <li key={x.id}>{moment(x.erasedAt)} by {x.erasedBy} · {x.label}: name, email{x.removed.signInAccount ? ', sign-in' : ''}, {x.removed.agentKeys} agent keys, {x.removed.delegations} delegations and {x.removed.comments} comments removed · kept {x.retained.claims.map((c: D) => `${c.claim} ${money(c.totalMinor, currency)}`).join(', ') || 'no claims'} and {x.retained.receiptSha256.length} receipts by SHA-256</li>)}</ul></div>}
   </Section>;
 }

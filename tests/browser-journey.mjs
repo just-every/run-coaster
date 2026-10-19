@@ -175,3 +175,22 @@ export async function ownerScreens(owner, origin, width, evidence, shots, import
   await noOverflow(page, width)
   await shot(page, evidence, 'settings', width, shots)
 }
+
+/** ERASURE-001 in the screens: the owner deactivates the employee, erases them from Settings and reads the receipt. */
+export async function eraseEmployee({ context, page }, origin, numbers, evidence, shots) {
+  await api(context, origin, 'settings/members', { email: PEOPLE.employee, name: 'Sam Taylor', employee: true, approver: PEOPLE.manager, active: false })
+  await page.goto(origin + '/app')
+  await nav(page, 'Settings')
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByRole('row', { name: /Sam Taylor \(inactive\)/ }).getByRole('button', { name: 'Erase', exact: true }).click()
+  await page.getByRole('status').filter({ hasText: /Sam Taylor is now Former member [0-9a-f]{8}/ }).waitFor()
+  await page.getByText('Erasure receipts').waitFor()
+  await shot(page, evidence, 'erasure', 1440, shots)
+  const receipt = (await api(context, origin, 'retention')).erasures[0]
+  assert.deepEqual(receipt.retained.claims.map(c => [c.claim, c.status]), numbers.map(n => [`CL-${String(n).padStart(4, '0')}`, 'reimbursed']), 'the paid claims stay, listed on the receipt')
+  assert.ok(receipt.retained.receiptSha256.length > 0)
+  const state = await api(context, origin, 'state')
+  assert.ok(state.members.every(m => m.email !== PEOPLE.employee && m.name !== 'Sam Taylor'))
+  assert.ok(state.claims.filter(c => c.employee_email === receipt.retained.subject).every(c => c.status === 'reimbursed' && c.employee_name === receipt.label))
+  return receipt
+}
