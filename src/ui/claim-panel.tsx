@@ -115,8 +115,9 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     {claim.held_from && claim.status === 'returned' && claim.revision === 0 && claim.approver_email === me && !mine && <section className="panel-block" aria-label="Release hold">
       <h3>Release hold</h3>
       <p className="muted">Approve these held expenses as they stand, without waiting for the employee to resubmit.</p>
-      <Form label="Release and approve" onSubmit={async v => { await call(`claims/${claim.id}/release`, { version: claim.version, reason: v.reason, acknowledge: v.acknowledge }); await done(); }}>
+      <Form label="Release and approve" onSubmit={async v => { await call(`claims/${claim.id}/release`, { version: claim.version, reason: v.reason, acknowledge: v.acknowledge, override: v.override }); await done(); }}>
         <Field label="Reason" name="reason" required={false} placeholder="For example, attendee list received by email" />
+        {exceptions.some((x: D) => x.code === 'needs-pre-approval') && <Field label="Reason to approve without a spend request" name="override" />}
         {exceptions.length > 0 && <Field label={`I reviewed the ${plural(exceptions.length, 'policy exception')} and the explanations`} name="acknowledge" type="checkbox" />}
       </Form>
     </section>}
@@ -153,11 +154,13 @@ const choices: Record<string, string> = { approved: 'Approve', returned: 'Return
 /** The approver's decision, asked as the pick asks it: one question, three choices, one button that does the chosen
     thing. Deciding later changes nothing. */
 function Decision({ claim, items, exceptions, onDone, back }: { claim: D; items: D[]; exceptions: D[]; onDone: () => Promise<void>; back: string }) {
-  const [hold, setHold] = useState<string[]>([]);
+  const [hold, setHold] = useState<string[]>([]), [override, setOverride] = useState('');
+  // Over the spend request threshold with no approved request linked: approving needs a recorded reason (CLAIM-005).
+  const ungated = exceptions.some((x: D) => x.code === 'needs-pre-approval' && !hold.includes(x.item));
   const [choice, setChoice] = useState('approved'), [reason, setReason] = useState(''), [acknowledged, setAcknowledged] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
   async function decide() {
     setBusy(true); setError('');
-    try { await call(`claims/${claim.id}/decision`, { revision: claim.revision, version: claim.version, decision: choice, reason, acknowledge: acknowledged, ...(choice === 'approved' && hold.length ? { hold } : {}) }); await onDone(); }
+    try { await call(`claims/${claim.id}/decision`, { revision: claim.revision, version: claim.version, decision: choice, reason, acknowledge: acknowledged, ...(choice === 'approved' && hold.length ? { hold } : {}), ...(choice === 'approved' && ungated ? { override } : {}) }); await onDone(); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
   return <section className="panel-block decision" aria-label="Decision">
@@ -170,6 +173,7 @@ function Decision({ claim, items, exceptions, onDone, back }: { claim: D; items:
       {items.map((i: D) => <label key={i.id} className="check"><input type="checkbox" checked={hold.includes(i.id)} onChange={e => setHold(e.target.checked ? [...hold, i.id] : hold.filter(x => x !== i.id))} /> Hold {i.merchant} · {money(i.amount_minor, claim.currency)}</label>)}
     </fieldset>}
     <label className="field"><span className="field-label">Reason (required if returning or rejecting)</span><textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Add a reason…" maxLength={1000} /></label>
+    {choice === 'approved' && ungated && <label className="field"><span className="field-label">Reason to approve without a spend request</span><textarea value={override} onChange={e => setOverride(e.target.value)} placeholder="Or return the claim so an approved request is linked" maxLength={1000} /></label>}
     {exceptions.length > 0 && <label className="check"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} /> I reviewed the {plural(exceptions.length, 'policy exception')} and the employee’s explanations</label>}
     <button className="button go" disabled={busy} onClick={decide}>{choice === 'approved' && hold.length ? `Approve the rest and hold ${plural(hold.length, 'expense')}` : choices[choice]}</button>
     <a className="button wide" href={`#/${back}`}>Decide later</a>

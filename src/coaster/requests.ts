@@ -69,3 +69,12 @@ export async function linkableRequest(db: D1Database, employee: string, value: u
   requireThat(r.status === 'approved', 'Link expenses only to an approved spend request', 409);
   return r.id;
 }
+
+/** Coaster cannot stop a booking made elsewhere, so "required before booking" is enforced at approval (CLAIM-005): an
+ * expense over the threshold with no approved request linked is approved only with the approver's recorded reason. */
+export function preApprovalOverride(exceptions: Data[], b: Data): string | null {
+  if (!exceptions.some(e => e.code === 'needs-pre-approval')) return null;
+  const reason = optionalText(b.override, 'Reason to approve without a spend request', 1000);
+  requireThat(reason, 'An expense over the spend request threshold has no approved request linked: return the claim so one is linked, or give your reason to approve without one', 409);
+  return reason;
+}

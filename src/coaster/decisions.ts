@@ -2,6 +2,7 @@ import { all, authority, commit, need } from './session';
 import { event } from './events';
 import { claimState, loadClaim } from './claims';
 import { approveWithHold } from './holds';
+import { preApprovalOverride } from './requests';
 import { email, now, optionalText, requireThat, uid, type Actor, type Data } from './types';
 
 /** The assigned manager approves, returns or rejects the exact submitted revision. */
@@ -23,12 +24,13 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data) 
   // Holding some expenses approves the rest of the same revision in one decision (APPROVE-005).
   if (b.decision === 'approved' && Array.isArray(b.hold) && b.hold.length) return approveWithHold(db, actor, claim, b, snapshot, decided);
   requireThat(b.decision !== 'approved' || !exceptions.length || b.acknowledge === true, 'Review and acknowledge the policy exceptions before approving', 409);
+  const override = b.decision === 'approved' ? preApprovalOverride(exceptions, b) : null, recorded = override ?? reason;
   // A Full delegate decides as the approver and is recorded as acting on their behalf, like an approval delegate.
   const at = now(), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of;
   await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['submitted']), decided), [
-    db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, reason, actor.delegate?.email ?? actor.email, at, JSON.stringify(exceptions), onBehalfOf),
+    db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, recorded, actor.delegate?.email ?? actor.email, at, JSON.stringify(exceptions), onBehalfOf),
     db.prepare('UPDATE c_claims SET status=?,version=version+1,updated_at=? WHERE id=?').bind(b.decision, at, claim.id),
-    event(db, actor, `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, reason, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf }),
+    event(db, actor, `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, reason: recorded, preApprovalOverride: override, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf }),
   ]);
   return loadClaim(db, id);
 }

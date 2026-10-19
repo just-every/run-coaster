@@ -573,7 +573,7 @@ test('CLAIM-007 a three-night folio is itemized into categorized parts, a dinner
   assert.equal(sum(csv, 'amount'), 103875 + 32000)
 }))
 
-test('CLAIM-005 a conference is requested and approved before spending, linked expenses show estimate against actual, and an unlinked expense over the threshold needs pre-approval', () => withAgency(async (h, t) => {
+test('CLAIM-005 a conference is requested and approved before spending, linked expenses show estimate against actual, and an unlinked expense over the threshold is approved only once a request is linked or with the approver\'s recorded override', () => withAgency(async (h, t) => {
   await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', perDiem: '75.00', receiptThreshold: '', preapprovalThreshold: '500.00' })
   const PRIYA = 'priya@harbourfinch.example'
   const trip = await h.post('requests', { title: 'Sydney design conference', purpose: 'Speaker slot and two nights', estimate: '2400.00' }, t.sam)
@@ -609,6 +609,25 @@ test('CLAIM-005 a conference is requested and approved before spending, linked e
   const mine = (await h.get('state', t.sam)).requests
   assert.deepEqual(mine.map(r => [r.title, r.status, r.actual_minor]), [['Laptop', 'rejected', 0], ['Sydney design conference', 'approved', 223000]])
   assert.equal((await h.get('state', t.alex)).requests.length, 0, 'another employee sees none of them')
+
+  // The gate sits at approval: acknowledging is not enough; link an approved request or record an override.
+  const gated = await h.send(`/api/coaster/claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', acknowledge: true }, t.priya)
+  assert.deepEqual([gated.status, /no approved request linked/.test(gated.value.error)], [409, true])
+  c = await h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'returned', reason: 'Link a spend request for the monitor' }, t.priya)
+  const screen = await h.post('requests', { title: 'Studio monitor', estimate: '650.00' }, t.sam)
+  await h.post(`requests/${screen.id}/decision`, { version: screen.version, decision: 'approved' }, t.priya)
+  c = await h.post(`claims/${c.id}/items`, { version: c.version, item: monitor.id, kind: 'receipt', date: monitor.spent_on, merchant: monitor.merchant, amount: '640.00', receipt: monitor.receipt_id, allocations: [{ category: t.c.office }], request: screen.id }, t.sam)
+  c = await approve(h, t.priya, await h.post(`claims/${c.id}/submit`, { version: c.version }, t.sam))
+  assert.deepEqual([c.status, (await h.get(`claims/${c.id}`, t.sam)).revisions.at(-1).snapshot.exceptions], ['approved', []])
+
+  const rush = await submit(h, t.sam, await claim(h, t.sam, 'Rush hardware', [{ kind: 'receipt', date: '2026-05-23', merchant: 'Camera store', amount: '820.00', allocations: [{ category: t.c.office }], receiptFixture: 'bistro', explanation: 'Shoot moved forward a week' }]))
+  const ok = await approve(h, t.priya, rush, { acknowledge: true, override: 'Client shoot moved forward; agreed with Jordan' })
+  assert.equal(ok.status, 'approved')
+  const record = await h.get(`claims/${rush.id}`, t.sam)
+  assert.deepEqual([record.decisions[0].reason, record.events.find(e => e.action === 'claim-approved').detail.preApprovalOverride], ['Client shoot moved forward; agreed with Jordan', 'Client shoot moved forward; agreed with Jordan'], 'the override is in the audit trail')
+  let batch = await h.post('batches', { claims: [ok.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 82000 }, t.jordan)
+  assert.match((await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, t.jordan)).text, /approved without a spend request: Client shoot moved forward; agreed with Jordan/, 'and in the accounting report')
 }))
 
 test('APPROVE-007 an employee or their delegate retracts a claim before any decision; the approver, finance or the owner unapproves it until its batch is reviewed', () => withAgency(async (h, t) => {
