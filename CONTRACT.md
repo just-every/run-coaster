@@ -377,7 +377,7 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 
 ## Status
 
-Judged from the current code and clause-named public-door tests below (19 October 2026).
+Judged from the code and tests at commit `f27f8157501b1c323d9c42e06c5a47a07a96bc85` (19 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
