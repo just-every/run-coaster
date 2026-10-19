@@ -78,7 +78,7 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Submit automatic reports" name="schedule" required={false} defaultValue={b.auto_submit ?? ''} options={[{ value: 'daily', label: 'Each business day' }, { value: 'weekly', label: 'Weekly (first business day)' }, { value: 'twice-monthly', label: 'Twice a month (1st and 16th)' }, { value: 'monthly', label: 'Monthly (first business day)' }]} hint="Choose… turns it off" />
       </Form>
     </Section>}
-    {(owner || roles.finance) && b && <PolicyRules state={state} onNotice={setNotice} />}
+    {(owner || roles.finance) && b && <PolicyRules state={state} onNotice={setNotice} onChanged={reload} />}
     {owner && b && <Retention state={state} onNotice={setNotice} />}
     {owner && b && <Section title="Mileage rates">
       <p className="muted">Each trip is priced at the rate in force on its date. {b.currency === 'USD' ? 'Seeded with the IRS standard business mileage rates; add next year\'s rate when the IRS announces it.' : 'Add the rate per mile your business pays from the day it applies.'}</p>

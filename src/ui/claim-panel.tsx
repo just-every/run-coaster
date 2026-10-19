@@ -62,7 +62,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     {unapproved && ['returned', 'submitted'].includes(claim.status) && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>Unapproved by {names[unapproved.actor_email] ?? unapproved.actor_email}:</strong> “{unapproved.detail.reason}”{claim.status === 'submitted' ? ' It is waiting for the approver again.' : editable ? ' Fix the expenses below and submit again.' : null}</p></div>}
     {exceptions.length > 0 && <div className="banner"><span className="banner-mark" aria-hidden="true">!</span><div>
       <p><strong>{plural(exceptions.length, 'policy exception')}</strong>{claim.status === 'draft' || claim.status === 'returned' ? ', sent to the approver with the explanations' : ' on this revision'}</p>
-      <ul className="ruled-list banner-list">{exceptions.map((x: D, i: number) => <li key={i}>{merchantOf(x.item) ? `${merchantOf(x.item)}: ` : ''}{x.message}</li>)}</ul>
+      <ul className="ruled-list banner-list">{exceptions.map((x: D, i: number) => <li key={i}>{merchantOf(x.item) ? `${merchantOf(x.item)}: ` : ''}{x.message}{x.policy && !x.message.includes('policy v') ? ` (policy v${x.policy})` : ''}</li>)}</ul>
     </div></div>}
     <section className="panel-block" aria-label="Details">
       <h3>Details</h3>

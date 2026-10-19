@@ -3,10 +3,11 @@ import type { Category } from './items';
 import type { Data } from './types';
 import { overBudget } from './budgets';
 import { overAllowance } from './allowances';
-import { policyExceptions } from './policy';
+import { evaluateRules } from './policy-rules';
+import { policyConfiguration } from './policy-configuration';
 
 /** `policy` names the POLICY-001 version that raised it; a `hard` exception stops the claim from being submitted. */
-export type PolicyException = { item: string; code: 'missing-receipt' | 'over-limit' | 'over-per-person' | 'needs-pre-approval' | 'duplicate-receipt' | 'possible-duplicate' | 'over-budget' | 'over-allowance' | 'over-daily-limit' | 'blocked-merchant' | 'past-deadline'; message: string; policy?: number; hard?: boolean };
+export type PolicyException = { item: string; code: 'missing-receipt' | 'over-limit' | 'over-per-person' | 'needs-pre-approval' | 'duplicate-receipt' | 'possible-duplicate' | 'over-budget' | 'over-allowance' | 'over-daily-limit' | 'blocked-merchant' | 'missing-field' | 'past-deadline' | 'over-trip-limit' | 'over-monthly-limit' | 'blocked-category' | 'weekend-spend' | 'holiday-spend'; message: string; policy?: number; hard?: boolean };
 export type ClaimItem = Data & { id: string; kind: string; spent_on: string; merchant: string; amount_minor: number; receipt_id: string | null; receipt_sha256?: string | null; allocations: Data[]; attendees: Data[]; fields: Record<string, string> };
 
 /** Each required custom field (CLAIM-007) a current expense leaves blank, named with the expense and category. */
@@ -42,7 +43,9 @@ export function perPersonShares(item: { attendees?: Data[]; allocations: Data[] 
 }
 
 /** Policy exceptions for a claim's current items. They are recorded with each submission and never hidden. */
-export async function findExceptions(db: D1Database, claim: { id: string; employee_email: string }, items: ClaimItem[], business: Business, known: Category[]): Promise<PolicyException[]> {
+export async function findExceptions(db: D1Database, claim: { id: string; employee_email: string }, items: ClaimItem[], business: Business, known: Category[], effective?: Awaited<ReturnType<typeof policyConfiguration>>): Promise<PolicyException[]> {
+  const active = effective ?? await policyConfiguration(db, business, known);
+  business = active.business; known = active.categories;
   const found: PolicyException[] = [];
   const byId = new Map(known.map(c => [c.id, c]));
   for (const item of items) {
@@ -76,9 +79,11 @@ export async function findExceptions(db: D1Database, claim: { id: string; employ
     if (twin) found.push({ item: item.id, code: 'possible-duplicate', message: `Same date, merchant and amount as claim CL-${String(twin.number).padStart(4, '0')}` });
     else if (history) found.push({ item: item.id, code: 'possible-duplicate', message: `Same date, merchant and amount as imported ${history.label}` });
   }
+  // Owner-controlled rules belong to the same effective version as finance's rules.
+  for (const e of found) if (['missing-receipt', 'over-limit', 'over-per-person', 'needs-pre-approval'].includes(e.code)) e.policy = active.version;
   // A budget whose policy rule is on marks the expense that would take it past its amount (REPORT-004).
   found.push(...await overBudget(db, claim, items));
-  found.push(...await policyExceptions(db, claim, items, business, known));
+  if (active.version) found.push(...await evaluateRules(db, { version: active.version, rules: active.rules }, claim, items, business, known));
   return found;
 }
 

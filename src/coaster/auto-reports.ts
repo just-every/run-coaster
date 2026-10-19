@@ -1,3 +1,4 @@
+import { policyConfiguration } from './policy-configuration';
 import { all, authority, commit, need } from './session';
 import { event, ruleEvent } from './events';
 import { business, requireBusiness, type Business } from './settings';
@@ -65,7 +66,7 @@ export function scheduledOn(day: string, schedule: NonNullable<Business['auto_su
 function incomplete(claim: Claim, items: Data[], exceptions: Data[], known: Awaited<ReturnType<typeof categories>>) {
   const repeated = new Set(repeatedInClaim(claim.employee_email, items as never).map(i => i.id));
   return items.map(item => ({ item, reasons: [
-    ...(item.explanation ? [] : exceptions.filter(e => e.item === item.id).map(e => e.message)),
+    ...exceptions.filter(e => e.item === item.id && (e.hard || !item.explanation)).map(e => e.message),
     ...missingFields([item as never], known).map(f => `Fill in ${f}`),
     ...(repeated.has(item.id) ? ['Appears twice on this report'] : []),
   ] })).filter(x => x.reasons.length);
@@ -80,7 +81,7 @@ export async function runAutoSubmit(env: Bindings, at: Date) {
   const day = localDate(at.toISOString(), settings.timezone);
   if (localHour(at, settings.timezone) < SUBMIT_HOUR || !scheduledOn(day, settings.auto_submit)) return;
   if (!await db.prepare('INSERT INTO c_auto_runs(day,ran_at) VALUES(?,?) ON CONFLICT DO NOTHING RETURNING day').bind(day, at.toISOString()).first()) return;
-  const known = await categories(db);
+  const { categories: known } = await policyConfiguration(db, settings, await categories(db));
   const drafts = (await db.prepare("SELECT * FROM c_claims WHERE status='draft' AND auto_key IS NOT NULL ORDER BY number").all<Claim & { auto_key: string }>()).results;
   for (const claim of drafts) {
     const items = await claimItems(db, claim.id);

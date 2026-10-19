@@ -1,8 +1,9 @@
+import { policyConfiguration, policyStill } from './policy-configuration';
 import { all, authority, commit, type Sql } from './session';
 import { event } from './events';
 import { claimNumber, claimItems, claimState, insertClaim, loadClaim, type Claim } from './claims';
 import { categories } from './items';
-import { findExceptions } from './exceptions';
+import { findExceptions, missingFields } from './exceptions';
 import { requireBusiness } from './settings';
 import { preApprovalOverride } from './requests';
 import { auditSample } from './audit-queue';
@@ -69,15 +70,19 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   requireThat(claim.status === 'returned' && claim.revision === 0, 'The employee has already resubmitted these expenses; decide them as a claim', 409);
   requireThat(b.version === claim.version, 'The claim changed since you opened it; reload and try again', 409);
   const items = await claimItems(db, claim.id), business = await requireBusiness(db);
-  const exceptions = await findExceptions(db, claim, items, business, await categories(db));
+  const active = await policyConfiguration(db, business, await categories(db));
+  const missing = missingFields(items, active.categories);
+  requireThat(!missing.length, `Fill in the required fields: ${missing.join('; ')} (policy v${active.version})`, 409);
+  const exceptions = await findExceptions(db, claim, items, business, active.categories, active);
+  requireThat(!exceptions.some(e => e.hard), `This claim breaks a hard policy rule and cannot be submitted: ${exceptions.filter(e => e.hard).map(e => e.message).join('; ')}`, 409);
   requireThat(!exceptions.length || b.acknowledge === true, 'Review and acknowledge the policy exceptions before approving', 409);
   const override = preApprovalOverride(exceptions, b);
   const original = await db.prepare('SELECT submitted_by FROM c_revisions WHERE claim_id=? ORDER BY revision DESC LIMIT 1').bind(claim.held_from).first<{ submitted_by: string }>();
   requireThat(original, 'Original claim missing', 409);
   const at = now(), total = items.reduce((n, i) => n + i.amount_minor, 0), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of, by = actor.delegate?.email ?? actor.email;
   const reason = override ?? optionalText(b.reason, 'Reason', 1000);
-  const snapshot = { title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['returned'])), [
+  const snapshot = { policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  await commit(db, all(authority(actor, 'manager'), policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['returned'])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,1,?,?,?,?)').bind(claim.id, original.submitted_by, at, total, JSON.stringify(snapshot)),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,1,'approved',?,?,?,?,?)").bind(uid(), claim.id, reason, by, at, JSON.stringify(exceptions), onBehalfOf),
     db.prepare("UPDATE c_claims SET status='approved',revision=1,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(total, at, claim.id),

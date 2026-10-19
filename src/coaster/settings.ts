@@ -3,6 +3,7 @@ import { event } from './events';
 import { mileageRates, seedIrsRates, type MileageRate } from './mileage';
 import { queueMoves } from './delegation';
 import { categories } from './items';
+import { ownerPolicyVersion } from './policy-configuration';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; reminder_days: number[]; quiet_from: number; quiet_until: number; service_level_days: number; escalation_days: number | null; auto_submit: 'daily' | 'weekly' | 'twice-monthly' | 'monthly' | null; retention_years: number; mileage_rates: MileageRate[] };
@@ -40,6 +41,7 @@ export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
   await commit(db, authority(actor, 'owner'), [
     db.prepare('INSERT INTO c_business(id,name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,sales_tax_account=excluded.sales_tax_account,sales_tax_code=excluded.sales_tax_code,preapproval_threshold_minor=excluded.preapproval_threshold_minor,updated_at=excluded.updated_at').bind(...values),
     ...(seed ? seedIrsRates(db) : []),
+    ...ownerPolicyVersion(db, actor.delegate?.email ?? actor.email, timezone, now()),
     event(db, actor, 'business-saved', {}, { name: values[0], currency, timezone, perDiemMinor: values[3], receiptThresholdMinor: values[4], salesTaxAccount: values[5], salesTaxCode: values[6], preapprovalThresholdMinor: values[7], irsMileageRates: seed }),
   ]);
   return business(db);
@@ -61,6 +63,7 @@ export async function saveCategory(db: D1Database, actor: Actor, b: Data) {
   const values = [id, name, text(b.accountCode, 'Account code', 40), text(b.taxCode, 'Tax code', 40), optionalAmount(b.limit, 'Limit per expense'), b.active === false || b.active === 'false' ? 0 : 1, receiptAlways, optionalAmount(b.perPersonLimit, 'Limit per person'), JSON.stringify(required)];
   await commit(db, authority(actor, 'owner'), [
     db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always,per_person_limit_minor,required_fields) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,account_code=excluded.account_code,tax_code=excluded.tax_code,limit_minor=excluded.limit_minor,active=excluded.active,receipt_always=excluded.receipt_always,per_person_limit_minor=excluded.per_person_limit_minor,required_fields=excluded.required_fields').bind(...values),
+    ...ownerPolicyVersion(db, actor.delegate?.email ?? actor.email, (await requireBusiness(db)).timezone, now()),
     event(db, actor, 'category-saved', {}, { id, name, accountCode: values[2], taxCode: values[3], limitMinor: values[4], active: values[5] === 1, receiptAlways: values[6] === 1, perPersonLimitMinor: values[7], requiredFields: required }),
   ]);
   return (await categories(db)).find(c => c.id === id);

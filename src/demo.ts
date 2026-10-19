@@ -7,6 +7,7 @@ import { IRS_MILEAGE_RATES, seedIrsRates } from './coaster/mileage';
 import { sha256Hex } from './coaster/session';
 import { business, batches, categories, claims, firstClaimNumber, ownerApprover, ownerName, people, proposal, signIns, type DemoClaim, type Expense, type Person } from './demo-data';
 import { receiptPdf } from './demo-receipt';
+import { ownerPolicyVersion } from './coaster/policy-configuration';
 import type { Data } from './coaster/types';
 
 const DAY = 86_400_000;
@@ -80,6 +81,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       files.forEach(f => f && setup.push(db.prepare("INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,'application/pdf',?,?,?,'upload',?,?) ON CONFLICT DO NOTHING").bind(f.id, c.id, employee, f.name, f.bytes.length, f.sha, f.bytes, employee, at(c.created, 5))));
       items.forEach((item, i) => setup.push(...insertItem(db, c.id, `${c.id}-item-${i + 1}`, i, item, files[i]?.id ?? null)));
     }
+    setup.push(...ownerPolicyVersion(db, ownerAddress, business.timezone, now.toISOString()));
     await db.batch(setup);
   }
 

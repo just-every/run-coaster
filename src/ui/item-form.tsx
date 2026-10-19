@@ -10,7 +10,7 @@ const parseAttendees = (text: string) => text.split('\n').map(line => line.trim(
 
 /** Add or change one expense: a receipt purchase, mileage or per diem, optionally split across categories. */
 export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; state: D; item?: D; onDone: () => Promise<void>; onCancel: () => void }) {
-  const business = state.business, active = state.categories.filter((c: D) => c.active === 1);
+  const business = state.business, active = state.categories.filter((c: D) => c.active === 1).map((c: D) => ({ ...c, required_fields: [...new Set([...c.required_fields, ...(state.policyFields ?? []).filter((r: D) => r.category === c.id).map((r: D) => r.field)])] }));
   const [kind, setKind] = useState<string>(item?.kind ?? 'receipt');
   const [split, setSplit] = useState<Part[] | null>(item && item.allocations.length > 1 ? item.allocations.map((a: D) => ({ category: a.category_id, costCentre: a.cost_centre, amount: amountText(a.amount_minor), description: a.description ?? '' })) : null);
   const categoryOptions = active.map((c: D) => ({ value: c.id, label: c.name }));

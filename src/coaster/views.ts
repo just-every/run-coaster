@@ -1,3 +1,4 @@
+import { policyConfiguration } from './policy-configuration';
 import { business } from './settings';
 import { canSee, claimItems, loadClaim, visible, type Claim } from './claims';
 import { categories } from './items';
@@ -13,6 +14,7 @@ import { currentRule } from './auto-approval';
 import { localDate } from './reports';
 import { businessDaysBetween } from './business-days';
 import { allowancesFor } from './allowances';
+import { policyOn } from './policy';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -27,11 +29,13 @@ export async function workspace(db: D1Database, actor: Actor) {
   const names = Object.fromEntries((members.results as Data[]).map(m => [m.email, m.name])), questions = await openQuestions(db);
   // A waiting claim shows its business days since submission against the approval service level (FOLLOWUP-002).
   const settings = await business(db), today = settings && localDate(new Date().toISOString(), settings.timezone);
+  const policy = settings && await policyOn(db, today!);
   const waiting = (c: Claim & { submitted_at?: string }) => settings && c.status === 'submitted' && c.submitted_at ? businessDaysBetween(localDate(c.submitted_at, settings.timezone), today!) : null;
   return {
     actor: { email: actor.email, name: actor.name, roles: actor.roles, delegate: actor.delegate ?? null },
     business: await business(db),
     categories: await categories(db),
+    policyFields: policy?.rules.filter(r => r.kind === 'required-field').map(r => ({ category: r.category, field: r.field })) ?? [],
     claims: seen.map(c => ({ ...c, open_questions: questions[c.id] ?? 0, waiting_business_days: waiting(c), over_service_level: settings ? (waiting(c) ?? 0) > settings.service_level_days : false, employee_name: names[c.employee_email] ?? c.employee_email, approver_name: c.approver_email ? names[c.approver_email] ?? c.approver_email : null })),
     names: Object.fromEntries((members.results as Data[]).filter(m => m.active).map(m => [m.email, m.name])),
     managers: (members.results as Data[]).filter(m => m.active && m.is_manager).map(m => m.email),
@@ -60,7 +64,9 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
     db.prepare('SELECT id,name,media_type,size,sha256,source,uploaded_by,uploaded_at FROM c_receipts WHERE claim_id=? ORDER BY uploaded_at, id').bind(claim.id),
   ]);
   const history = (revisions.results as Data[]).map(r => ({ ...r, snapshot: JSON.parse(r.snapshot) }));
-  const settings = await business(db), known = await categories(db), byId = new Map(known.map(c => [c.id, c]));
+  const settings = await business(db), known = await categories(db);
+  const configured = settings ? await policyConfiguration(db, settings, known, ['draft', 'returned'].includes(claim.status) ? undefined : history.at(-1)?.snapshot.policyVersion) : { categories: known };
+  const byId = new Map(configured.categories.map(c => [c.id, c]));
   const exceptions = ['draft', 'returned'].includes(claim.status) && settings
     ? await findExceptions(db, claim, items, settings, known)
     : history.at(-1)?.snapshot.exceptions ?? [];
