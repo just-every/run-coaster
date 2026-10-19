@@ -16,6 +16,7 @@ export function BatchDownloads({ id, templates }: { id: string; templates: D[] }
     <select value={value} onChange={e => set(e.target.value)}><option value="">Every field (default)</option>{templates.filter(t => t.kind === kind).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>;
   const link = (path: string, label: string) => <a className="button" href={apiHref(path)} download><Icon name="download" />{label}</a>;
   return <div className="downloads">
+    {link(`batches/${id}/pdf`, 'Download claims PDF with receipts')}
     {pick('accounting', accounting, setAccounting)}
     {link(`batches/${id}/accounting.csv${query(accounting)}`, 'Download accounting CSV')}{link(`batches/${id}/accounting.xlsx${query(accounting)}`, 'Download accounting XLSX')}{link(`batches/${id}/accounting.iif`, 'Download QuickBooks Desktop IIF')}
     {pick('reimbursements', people, setPeople)}

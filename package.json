@@ -36,9 +36,13 @@
     "test:site": "node --test tests/site/*.test.mjs"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "1.1.1",
+    "@stacksjs/ts-webp": "0.1.6",
     "@tanstack/react-router": "1.170.33",
     "@tanstack/react-start": "1.168.50",
     "hono": "4.13.7",
+    "libheif-js": "1.17.1",
+    "pdf-lib": "1.17.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
