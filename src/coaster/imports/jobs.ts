@@ -1,7 +1,7 @@
 import { applyD1ImportBatches, createD1ImportJob, planD1Import, readD1ImportJob, readD1ImportOriginals, readD1ImportUndoReport, resumeD1Import, undoD1Import, type D1ImportContext } from '../../modules/import-kit/src/d1/index';
 import { authority, need } from '../session';
 import { requireBusiness } from '../settings';
-import { requireThat, type Actor, type Data } from '../types';
+import { Fault, requireThat, type Actor, type Data } from '../types';
 import { expensifySource, NAMESPACE } from './expensify';
 import { HISTORY_SOURCES, cardSource, type CardSource } from './cards';
 import { historyTargetsFor } from './target';
@@ -10,6 +10,7 @@ import { refuseErasedConcurSource } from './concur-custody';
 import { concurSource } from './concur';
 import { concurConfiguration } from './concur-policy';
 import { categories } from '../items';
+import { event } from '../events';
 
 /** Jobs belong to the owner role, so a restored installation's owner can still resume or undo them. */
 const PRINCIPAL = 'role:owner';
@@ -44,14 +45,27 @@ export async function importAction(db: D1Database, actor: Actor, op: string, b: 
     // An undone import of the same file stays on record under its key; importing it again is a new operation.
     const undone = await db.prepare("SELECT COUNT(*) AS n FROM ik_jobs WHERE destination='main' AND namespace=? AND fingerprint=? AND state='undone'").bind(namespace, plan.fingerprint).first<{ n: number }>();
     const job = await createD1ImportJob(plan, { ...ctx, reviewedFingerprint: b.fingerprint, operationKey: undone?.n ? `${plan.fingerprint}:${undone.n}` : plan.fingerprint });
-    return { ...review, job: await applyD1ImportBatches(job.id, ctx) };
+    const applied = await applyD1ImportBatches(job.id, ctx);
+    await ran(db, actor, 'import-committed', namespace, applied, plan.counts);
+    return { ...review, job: applied };
   }
   requireThat(typeof b.id === 'string' && typeof b.mappingVersion === 'string', 'Import job and mapping version are required');
   const ctx = context(db, actor, b.mappingVersion, namespaceOf(b.source), (await requireBusiness(db)).timezone);
-  if (op === 'resume') return { job: await resumeD1Import(b.id, ctx) };
-  if (op === 'undo') return { job: await undoD1Import(b.id, ctx) };
-  if (op === 'status') return { job: await readD1ImportJob(b.id, ctx), originals: await readD1ImportOriginals(b.id, ctx), undo: await readD1ImportUndoReport(b.id, ctx) };
+  const id = b.id;
+  if (op === 'resume') { const job = await known(() => resumeD1Import(id, ctx)); await ran(db, actor, 'import-resumed', namespaceOf(b.source), job); return { job }; }
+  if (op === 'undo') { const job = await known(() => undoD1Import(id, ctx)); await ran(db, actor, 'import-undone', namespaceOf(b.source), job); return { job }; }
+  if (op === 'status') return { job: await known(() => readD1ImportJob(id, ctx)), originals: await readD1ImportOriginals(id, ctx), undo: await readD1ImportUndoReport(id, ctx) };
   requireThat(false, 'Unknown import action', 404);
+}
+
+/** A job id the kit has never recorded is a 404, not a fault. */
+async function known<T>(run: () => Promise<T>) {
+  try { return await run(); } catch (error) { if ((error as Error)?.message === 'IMPORT_JOB_NOT_FOUND') throw new Fault(404, 'Import job not found'); throw error; }
+}
+
+/** Each import run appends one history line once the kit has recorded it, with the job's state as the kit left it (AUDIT-001). */
+function ran(db: D1Database, actor: Actor, action: string, source: string, job: { id: string; state: string }, counts?: unknown) {
+  return event(db, actor, action, {}, { job: job.id, source, state: job.state, ...counts ? { counts } : {} }).run();
 }
 
 export async function importJobs(db: D1Database) {

@@ -20,14 +20,21 @@ export function startOf(day: string, timezone: string) {
 }
 export const nextDay = (day: string) => new Date(Date.parse(day + 'T00:00:00Z') + 86_400_000).toISOString().slice(0, 10);
 
-/** Which door a line came through: a person in the app, or an agent key acting for them. */
-const channel = (action: string, detail: Data) => detail.agent && !action.startsWith('proposal-') ? 'agent' : 'app';
+/** Which door a line came through (AUDIT-001): an agent key acting for a person, the owner's import door (the kit's
+ * `role:owner` principal or an import run), the owner's approval rule ("rule vN"), the hourly run (written under its
+ * name: schedule, allowance, budget, reminder, escalation, retention, report schedule), or a person in the app. */
+export function channel(actor: string, action: string, detail: Data) {
+  if (detail.agent && !action.startsWith('proposal-')) return 'agent';
+  if (actor.startsWith('role:') || action.startsWith('import-')) return 'import';
+  if (actor.startsWith('rule v')) return 'rule';
+  return actor.includes('@') || actor.startsWith('former-member-') || detail.confirmedBy ? 'app' : 'schedule';
+}
 
 const LINE = `SELECT e.seq,e.at,e.actor_email,e.action,e.detail,e.claim_id,c.number AS claim_number,e.batch_id,b.number AS batch_number
   FROM c_events e LEFT JOIN c_claims c ON c.id=e.claim_id LEFT JOIN c_batches b ON b.id=e.batch_id`;
 const line = (row: Data) => {
   const detail = JSON.parse(row.detail);
-  return { seq: row.seq, at: row.at, actor_email: row.actor_email, action: row.action, detail, channel: channel(row.action, detail), agent: detail.agent ?? null,
+  return { seq: row.seq, at: row.at, actor_email: row.actor_email, action: row.action, detail, channel: channel(row.actor_email, row.action, detail), agent: detail.agent ?? null,
     claim: row.claim_id ? { id: row.claim_id, number: row.claim_number } : null, batch: row.batch_id ? { id: row.batch_id, number: row.batch_number } : null };
 };
 

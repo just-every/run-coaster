@@ -34,6 +34,7 @@ import { claimPdf, batchPdf } from './claim-pdf';
 import { importAction, importJobs, importedHistory } from './imports/jobs';
 import { categories } from './items';
 import { business } from './settings';
+import { event } from './events';
 import { Fault, requireThat, type Actor, type Data } from './types';
 
 type C = Context<{ Bindings: Bindings }>;
@@ -98,7 +99,10 @@ api.post('/api/coaster/settings/members/invite', as(async (a, c) => {
   need(a, 'owner');
   const b = await body(c), member = await db(c).prepare('SELECT email,name FROM c_members WHERE email=? AND active=1').bind(String(b.email ?? '').toLowerCase()).first<{ email: string; name: string }>();
   requireThat(member, 'Save the member before inviting them', 404);
-  return operatorAuth(runtimeBindings(c.env)).invite(c.req.raw, { email: member.email, displayName: member.name, role: 'member', returnTo: '/app' });
+  const sent = await operatorAuth(runtimeBindings(c.env)).invite(c.req.raw, { email: member.email, displayName: member.name, role: 'member', returnTo: '/app' });
+  // Recorded only once the sign-in link was handed to the mail provider; a refused invitation adds nothing (AUDIT-001).
+  await event(db(c), a, 'member-invited', {}, { email: member.email }).run();
+  return sent;
 }));
 
 api.get('/api/coaster/batches/:id', as(async (a, c) => batchDetail(db(c), a, param(c, 'id'))));

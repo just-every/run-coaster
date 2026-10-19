@@ -104,7 +104,7 @@ try {
   browser = await launch()
   const restoredOwner = await session(browser, second, server.origin, 'owner', 1440)
   const after = await everything(restoredOwner.context, server.origin)
-  assert.deepEqual(after, before, 'claims, revisions, decisions, receipts, batches, history and imported reports survive restore')
+  assert.deepEqual(after, before, 'claims, revisions, decisions, receipts, batches, history (AUDIT-001) and imported reports survive restore')
   const receipt = before.claims[0].receipts[0]
   const download = await restoredOwner.context.request.get(`${server.origin}/api/coaster/receipts/${receipt.id}`)
   assert.equal(createHash('sha256').update(await download.body()).digest('hex'), receipt.sha256, 'restored receipt bytes are exact')
@@ -112,7 +112,7 @@ try {
   assert.ok(job, 'the completed Expensify move-in survives alongside undone Concur jobs')
   assert.equal((await api(restoredOwner.context, server.origin, 'import/undo', { source: job.source, id: job.id, mappingVersion: job.mappingVersion })).job.state, 'undone', 'the restored owner can still undo the move-in')
   await restoredOwner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
-  assert.deepEqual(rows(await records(join(evidence, 'restored.rer'))), rows(await records(archive)), 'every portable row survives export → restore → export')
+  assert.deepEqual(rows(await records(join(evidence, 'restored.rer'))), rows(await records(archive)), 'every portable row, every history line included (AUDIT-001), survives export → restore → export')
   await command(second, ['reset', '--yes'])
   await writeFile(join(evidence, 'manifest.json'), JSON.stringify({ commit, business: 'Harbour & Finch Studio (synthetic)', scenario: 'Employee claim with receipts, mileage and an over-limit meal; manager return and approval; finance batch, export and payment; owner Expensify move-in and settings', screenshots: shots }, null, 2) + '\n')
   await report(evidence, { passed: true, commit, journeys, archive: 'export → employee erased → refused corrupt, three inconsistent and the pre-erasure archive with the later journal → restore → identical export; restored owner undid the move-in', screenshots: shots.length })

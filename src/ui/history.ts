@@ -22,6 +22,8 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'batch-created': `Batch created by ${who}${d.preparedBy ? ` from ${d.preparedBy}’s proposal` : ''} · ${plural(d.claims, 'claim')} · ${money(d.totalMinor ?? 0)}`,
     'batch-approved': `Reviewed and approved by ${who} · ${money(d.totalMinor ?? 0)}`, 'batch-exported': `${d.file === 'accounting' ? 'Accounting' : 'Reimbursement'} file downloaded by ${who} · ${d.rows} rows`,
     'delegate-granted': `${who} gave ${names[d.delegate] ?? d.delegate} ${d.level === 'full' ? 'Full' : 'Submit only'} delegate access for ${names[d.grantor] ?? d.grantor}`,
+    'member-invited': `${who} invited ${names[d.email] ?? d.email} to sign in`,
+    'import-committed': `${who} imported ${d.source} history · ${d.state}`, 'import-resumed': `${who} resumed the ${d.source} import · ${d.state}`, 'import-undone': `${who} undid the ${d.source} import · ${d.state}`,
     'delegate-revoked': `${who} ended ${names[d.delegate] ?? d.delegate}’s delegate access for ${names[d.grantor] ?? d.grantor}`,
     'batch-reimbursed': `Marked paid by ${who} · reference ${d.reference} on ${day(d.paidOn)}`,
     'audit-pack-exported': `Audit pack for ${day(d.from)} to ${day(d.to)} downloaded by ${who} · ${plural(d.claims, 'claim')}, ${plural(d.receipts, 'receipt')}`,
