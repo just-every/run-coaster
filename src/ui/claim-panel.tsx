@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { amount, call, claimNumber, day, exceptionWords, money, moment, plural, rate, type D } from './api';
+import { amount, apiHref, call, claimNumber, day, exceptionWords, money, moment, plural, rate, type D } from './api';
 import { Badge, Details, Empty, Field, Form, Warning } from './parts';
 import { Icon } from './icons';
 import { ItemForm } from './item-form';
@@ -10,8 +10,8 @@ function Receipt({ item }: { item: D }) {
   if (item.kind === 'per_diem') return <span className="receipt" title="Per diem"><Icon name="calendar" /><span className="visually-hidden">Per diem</span></span>;
   if (!item.receipt_id) return <span className="receipt missing" title="No receipt"><Icon name="receipt" /><span className="visually-hidden">No receipt</span></span>;
   const image = String(item.receipt_media).startsWith('image/') && item.receipt_media !== 'image/heic';
-  return <a className="receipt" href={`/api/coaster/receipts/${item.receipt_id}?inline=1`} target="_blank" rel="noreferrer" aria-label={`Open receipt ${item.receipt_name}`}>
-    {image ? <img src={`/api/coaster/receipts/${item.receipt_id}?inline=1`} alt="" loading="lazy" /> : <span className="receipt-file">PDF</span>}
+  return <a className="receipt" href={apiHref(`receipts/${item.receipt_id}?inline=1`)} target="_blank" rel="noreferrer" aria-label={`Open receipt ${item.receipt_name}`}>
+    {image ? <img src={apiHref(`receipts/${item.receipt_id}?inline=1`)} alt="" loading="lazy" /> : <span className="receipt-file">PDF</span>}
   </a>;
 }
 
@@ -103,9 +103,9 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       <h3>History</h3>
       <ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol>
       {detail.revisions.length > 0 && <Details label="Earlier revisions and receipts">
-        {detail.revisions.map((r: D) => <div key={r.revision} className="revision"><h3>Revision {r.revision} · {money(r.total_minor, currency)} · submitted {moment(r.submitted_at)}</h3><ul className="ruled-list">{r.snapshot.items.map((i: D) => <li key={i.id}>{day(i.spent_on)} · {merchantLine(i, currency)} · {money(i.amount_minor, currency)}{i.receipt ? <> · <a href={`/api/coaster/receipts/${i.receipt.id}`}>{i.receipt.name}</a></> : ' · no receipt'}</li>)}</ul>{r.snapshot.exceptions.length > 0 && <p className="muted">Exceptions: {r.snapshot.exceptions.map((x: D) => x.message).join('; ')}</p>}</div>)}
+        {detail.revisions.map((r: D) => <div key={r.revision} className="revision"><h3>Revision {r.revision} · {money(r.total_minor, currency)} · submitted {moment(r.submitted_at)}</h3><ul className="ruled-list">{r.snapshot.items.map((i: D) => <li key={i.id}>{day(i.spent_on)} · {merchantLine(i, currency)} · {money(i.amount_minor, currency)}{i.receipt ? <> · <a href={apiHref(`receipts/${i.receipt.id}`)}>{i.receipt.name}</a></> : ' · no receipt'}</li>)}</ul>{r.snapshot.exceptions.length > 0 && <p className="muted">Exceptions: {r.snapshot.exceptions.map((x: D) => x.message).join('; ')}</p>}</div>)}
         <h3>All receipts on this claim</h3>
-        <ul className="ruled-list">{detail.receipts.map((r: D) => <li key={r.id}><a href={`/api/coaster/receipts/${r.id}`}>{r.name}</a> · {Math.ceil(r.size / 1024)} KB · {r.source === 'agent' ? `prepared by ${r.uploaded_by}` : `uploaded by ${names[r.uploaded_by] ?? r.uploaded_by}`} · {moment(r.uploaded_at)}<span className="machine" title={r.sha256}>Fingerprint (SHA-256) {r.sha256.slice(0, 16)}…</span></li>)}</ul>
+        <ul className="ruled-list">{detail.receipts.map((r: D) => <li key={r.id}><a href={apiHref(`receipts/${r.id}`)}>{r.name}</a> · {Math.ceil(r.size / 1024)} KB · {r.source === 'agent' ? `prepared by ${r.uploaded_by}` : `uploaded by ${names[r.uploaded_by] ?? r.uploaded_by}`} · {moment(r.uploaded_at)}<span className="machine" title={r.sha256}>Fingerprint (SHA-256) {r.sha256.slice(0, 16)}…</span></li>)}</ul>
       </Details>}
     </section>
   </aside>;

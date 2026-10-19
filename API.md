@@ -9,7 +9,11 @@ minor units in responses; requests take amounts as decimal text such as
 
 A person's requests carry their native session cookie. Writes must come from
 the same origin. Every handler checks the session and the person's current
-Coaster role itself.
+Coaster role itself. A delegate (ADMIN-005) sends `x-coaster-acting-for: <email>`
+(or `?actingFor=` on a link) to act in that person's name: Submit only reaches
+their own expenses, Full their whole role row; delegate access, agent keys and
+approval delegation stay the person's own. Each history line is the delegate's,
+with `actingFor`.
 
 | Route | Who | Does |
 |---|---|---|
@@ -30,6 +34,7 @@ Coaster role itself.
 | `POST batches/:id/paid` `{version, reference, paidOn}` | finance | Record the payment made outside Coaster. |
 | `POST settings/business`, `settings/categories`, `settings/members`, `settings/members/invite` | owner | Policy, categories, people and invitations. |
 | `POST agent-keys` `{label}` → `{token}`; `POST agent-keys/:id/revoke` | the person | Make (shown once) or revoke their agent's key. |
+| `POST delegates` `{delegate, level: submit\|full, grantor?}`; `POST delegates/:id/revoke` | the person (the owner for anyone; the delegate may end their own) | Give or end delegate access; the granting person is emailed each grant. |
 | `POST proposals/:id/accept`, `POST proposals/:id/decline` `{reason}` | the person it was prepared for | Turn a proposal into their own draft claim or draft batch, or decline it. |
 | `GET history?q=&from=&to=` | owner, finance, auditor | Search every history line (who, what, when, app or agent): `CL-0001` gives a claim with its batch's review, export and payment lines, `RB-0001` a batch, anything else matches people and words; dates are business-time days. |
 | `GET audit-pack?from=&to=` | owner, finance, auditor | A ZIP for the period: `manifest.json` (every claim submitted in it with revisions, exceptions, explanations, decisions and payment references), `history.csv` and each receipt's exact bytes under its SHA-256. |

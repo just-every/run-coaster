@@ -5,6 +5,7 @@ import { findExceptions } from './exceptions';
 import { batchLines, loadBatch } from './batches';
 import { requireThat, type Actor, type Data } from './types';
 import { delegations } from './delegation';
+import { delegateGrants } from './delegates';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -18,7 +19,7 @@ export async function workspace(db: D1Database, actor: Actor) {
   const seen = (claims.results as Claim[]).filter(c => canSee(actor, c));
   const names = Object.fromEntries((members.results as Data[]).map(m => [m.email, m.name]));
   return {
-    actor: { email: actor.email, name: actor.name, roles: actor.roles },
+    actor: { email: actor.email, name: actor.name, roles: actor.roles, delegate: actor.delegate ?? null },
     business: await business(db),
     categories: await categories(db),
     claims: seen.map(c => ({ ...c, employee_name: names[c.employee_email] ?? c.employee_email, approver_name: c.approver_email ? names[c.approver_email] ?? c.approver_email : null })),
@@ -26,9 +27,10 @@ export async function workspace(db: D1Database, actor: Actor) {
     managers: (members.results as Data[]).filter(m => m.active && m.is_manager).map(m => m.email),
     members: actor.roles.owner ? members.results : (members.results as Data[]).filter(m => m.email === actor.email),
     proposals: (proposals.results as Data[]).map(p => ({ ...p, payload: JSON.parse(p.payload) })),
-    agentKeys: keys.results,
+    agentKeys: actor.delegate ? [] : keys.results,
     batches: actor.roles.finance || actor.roles.auditor ? batches.results : [],
     delegations: actor.roles.manager ? await delegations(db, actor) : [],
+    delegates: await delegateGrants(db, actor),
   };
 }
 

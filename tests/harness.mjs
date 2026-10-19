@@ -52,7 +52,7 @@ export async function harness() {
       await post('settings/members/invite', { email })
       return confirmMail(email)
     }
-    return { db, mf, origin, owner, send, post, get, person, confirmMail, async close() { await mf.dispose(); await rm(dir, { recursive: true, force: true }) } }
+    return { db, mf, origin, owner, messages, send, post, get, person, confirmMail, async close() { await mf.dispose(); await rm(dir, { recursive: true, force: true }) } }
   } catch (error) { await mf.dispose(); await rm(dir, { recursive: true, force: true }); throw error }
 }
 

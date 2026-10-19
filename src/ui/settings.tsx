@@ -3,6 +3,7 @@ import { amountText, call, day, money, moment, rate, today, type D } from './api
 import { Badge, Empty, Field, Form, PageHead, Section } from './parts';
 import { Work } from './shell';
 import { AuditRecords } from './audit';
+import { Delegates } from './delegates';
 import type { ViewProps } from './claims';
 
 const US_ZONES = [['America/New_York', 'Eastern'], ['America/Chicago', 'Central'], ['America/Denver', 'Mountain'], ['America/Phoenix', 'Arizona'], ['America/Los_Angeles', 'Pacific'], ['America/Anchorage', 'Alaska'], ['Pacific/Honolulu', 'Hawaii']].map(([value, label]) => ({ value, label: `${label} (${value})` }));
@@ -41,6 +42,7 @@ export function Settings({ state, reload }: ViewProps) {
       </Form></div>
     </Section>}
     </div>
+    {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
     {(owner || roles.finance || roles.auditor) && <AuditRecords state={state} />}
     {owner && b && <Section title="Mileage rates">
       <p className="muted">Each trip is priced at the rate in force on its date. {b.currency === 'USD' ? 'Seeded with the IRS standard business mileage rates; add next year\'s rate when the IRS announces it.' : 'Add the rate per mile your business pays from the day it applies.'}</p>

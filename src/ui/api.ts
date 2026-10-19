@@ -1,8 +1,18 @@
 export type D = Record<string, any>;
 
+const ACTING = 'coaster-acting-for';
+const stored = () => { try { return sessionStorage.getItem(ACTING) ?? ''; } catch { return ''; } };
+let actingFor = typeof window === 'undefined' ? '' : stored();
+/** The person this delegate is working for (ADMIN-005), or '' for their own work; every call and link carries it. */
+export const acting = () => actingFor;
+export function actFor(address: string) { actingFor = address; try { if (address) sessionStorage.setItem(ACTING, address); else sessionStorage.removeItem(ACTING); } catch { /* the choice lasts this page only */ } }
+/** A same-origin API link (receipts, exports) that keeps the delegate's choice. */
+export const apiHref = (path: string) => actingFor ? `/api/coaster/${path}${path.includes('?') ? '&' : '?'}actingFor=${encodeURIComponent(actingFor)}` : `/api/coaster/${path}`;
+
 /** Same-origin JSON call to the Coaster API; a refusal throws its plain-words message. */
 export async function call(path: string, input?: D) {
-  const response = await fetch('/api/coaster/' + path, input ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) } : undefined);
+  const headers: Record<string, string> = actingFor ? { 'x-coaster-acting-for': actingFor } : {};
+  const response = await fetch('/api/coaster/' + path, input ? { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify(input) } : { headers });
   const body: any = await response.json().catch(() => ({ error: 'The server answered unexpectedly' }));
   if (!response.ok) throw new Error(body.error || 'Request failed');
   return body;

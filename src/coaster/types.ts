@@ -20,6 +20,8 @@ export type Actor = {
   session?: string;
   keyId?: string;
   agentLabel?: string;
+  /** Set when a person acts as someone's delegate (ADMIN-005): `email` is then the granting person's. */
+  delegate?: { email: string; name: string; level: 'submit' | 'full'; grant: string };
 };
 
 export const uid = () => crypto.randomUUID();

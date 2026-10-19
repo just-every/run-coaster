@@ -10,7 +10,7 @@ const activeManager = (db: D1Database, address: string) => db.prepare('SELECT 1 
 /** An approver (or the owner for anyone) hands approvals to another active manager for a date range. */
 export async function saveDelegation(db: D1Database, actor: Actor, b: Data) {
   need(actor, 'manager');
-  requireThat(actor.kind === 'person', 'Only a person delegates approvals', 403);
+  requireThat(actor.kind === 'person' && !actor.delegate, 'Only the approver themselves delegates approvals', 403);
   const approver = b.approver ? email(b.approver, 'Approver') : actor.email;
   requireThat(approver === actor.email || actor.roles.owner, 'Only the owner sets delegation for someone else', 403);
   const delegate = email(b.delegate, 'Delegate');
@@ -28,6 +28,7 @@ export async function saveDelegation(db: D1Database, actor: Actor, b: Data) {
 
 export async function revokeDelegation(db: D1Database, actor: Actor, id: string) {
   need(actor, 'manager');
+  requireThat(!actor.delegate, 'Only the approver themselves ends a delegation', 403);
   const found = await db.prepare('SELECT * FROM c_delegations WHERE id=? AND revoked_at IS NULL').bind(id).first<Data>();
   requireThat(found, 'Delegation not found', 404);
   requireThat(found.approver_email === actor.email || actor.roles.owner, 'Only the approver or the owner ends a delegation', 403);

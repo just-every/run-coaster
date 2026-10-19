@@ -382,8 +382,8 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 4 | 22 | 64 | 90 |
-| All | 17 | 22 | 64 | 103 |
+| Target and push further | 5 | 22 | 63 | 90 |
+| All | 18 | 22 | 63 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -464,7 +464,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `ADMIN-002` | HRIS roster sync | target | missing |  | No HRIS connection. |
 | `ADMIN-003` | Single sign-on and provisioning | target | partial | `src/auth.server.ts` | The Base identity-provider dependency is declared; no tested SAML/OIDC sign-in, SCIM provisioning or SSO-required journey. |
 | `ADMIN-004` | Multiple entities | target | missing |  | One business per installation. |
-| `ADMIN-005` | Delegates who prepare and submit for someone else | target | missing |  | No delegate access; agent keys (COA-010) cannot submit and are not people. |
+| `ADMIN-005` | Delegates who prepare and submit for someone else | target | done | `src/coaster/delegates.ts`; `src/coaster/session.ts`; `src/coaster/events.ts`; `src/ui/delegates.tsx`; `tests/coaster.test.mjs` (ADMIN-005) |  |
 | `MOBILE-001` | Phone-width web app | target | done | `src/ui/item-form.tsx`; `src/ui/approvals.tsx`; `tests/browser.mjs` |  |
 | `MOBILE-002` | Native iOS and Android apps | target | missing |  | No native apps. |
 | `MOVE-001` | Complete Expensify move-in | target | partial | `src/coaster/imports/expensify.ts`; `tests/coaster.test.mjs` (COA-011) | Report-template CSV history moves in; people, rules, tags, receipt images and card assignments do not. |

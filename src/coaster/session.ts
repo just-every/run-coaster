@@ -49,6 +49,13 @@ export function authority(actor: Actor, role?: Role): Sql {
     return { sql: `EXISTS(SELECT 1 FROM c_agent_keys k JOIN c_members m ON m.email=k.member_email AND m.active=1 WHERE k.id=? AND k.revoked_at IS NULL AND ${activeAccount}${roleCheck})`, params: [actor.keyId] };
   }
   const session = 'EXISTS(SELECT 1 FROM oa_sessions se JOIN oa_operators o ON o.id=se.operator_id WHERE se.id=? AND o.id=? AND o.version=se.operator_version AND o.status=\'active\' AND se.revoked_at IS NULL AND se.expires_at>unixepoch()*1000';
+  if (actor.delegate) {
+    // The delegate's own session, their live grant with both people active, and the granting person's role at the grant's
+    // level: Submit only covers their own expenses, Full their whole row (the owner's included).
+    const owner = "EXISTS(SELECT 1 FROM oa_operators go WHERE lower(go.email)=g.grantor_email AND go.role='owner' AND go.status='active')";
+    const level = role === 'owner' ? ` AND g.level='full' AND ${owner}` : role === 'employee' ? ` AND (gm.is_employee=1 OR ${owner})` : role ? ` AND g.level='full' AND (gm.${memberColumn[role]}=1 OR ${owner})` : '';
+    return { sql: `${session}) AND EXISTS(SELECT 1 FROM c_delegates g JOIN c_members gm ON gm.email=g.grantor_email AND gm.active=1 JOIN c_members dm ON dm.email=g.delegate_email AND dm.active=1 WHERE g.id=? AND g.revoked_at IS NULL${level})`, params: [actor.session, actor.operatorId, actor.delegate.grant] };
+  }
   if (!role) return { sql: session + ')', params: [actor.session, actor.operatorId] };
   if (role === 'owner') return { sql: session + " AND o.role='owner')", params: [actor.session, actor.operatorId] };
   return { sql: `${session} AND (o.role='owner' OR EXISTS(SELECT 1 FROM c_members m WHERE m.email=lower(o.email) AND m.active=1 AND m.${memberColumn[role]}=1)))`, params: [actor.session, actor.operatorId] };

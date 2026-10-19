@@ -127,7 +127,7 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
   editable(actor, claim, b);
   const { bytes, media, name } = receiptBytes(b), receiptId = uid(), sha = await sha256Hex(bytes);
   const source = b.source === 'camera' ? 'camera' : 'upload';
-  const statements = [db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(receiptId, claim.id, claim.employee_email, name, media, bytes.length, sha, bytes, source, actor.email, now())];
+  const statements = [db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(receiptId, claim.id, claim.employee_email, name, media, bytes.length, sha, bytes, source, actor.delegate?.email ?? actor.email, now())];
   if (b.item) {
     const item = await db.prepare('SELECT id FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first();
     requireThat(item, 'Expense not found on this claim', 404);
@@ -164,7 +164,7 @@ export async function submitClaim(db: D1Database, actor: Actor, id: string, b: D
   const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();
   const snapshot = { title: claim.title, approver, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
   await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }), [
-    db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, actor.email, at, total, JSON.stringify(snapshot)),
+    db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, actor.delegate?.email ?? actor.email, at, total, JSON.stringify(snapshot)),
     db.prepare("UPDATE c_claims SET status='submitted',revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(revision, approver, onBehalfOf, total, at, claim.id),
     event(db, actor, revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { claim: claim.id }, { revision, totalMinor: total, exceptions: exceptions.length, note: optionalText(b.note, 'Note', 1000), approver, onBehalfOf }),
   ]);

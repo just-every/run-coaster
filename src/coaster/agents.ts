@@ -8,7 +8,7 @@ import { now, optionalText, requireThat, text, uid, type Actor, type Data } from
 
 /** A person makes a key for their own agent. The secret is shown once and stored only as a hash. */
 export async function createAgentKey(db: D1Database, actor: Actor, b: Data) {
-  requireThat(actor.kind === 'person', 'Only a person makes agent keys', 403);
+  requireThat(actor.kind === 'person' && !actor.delegate, 'Only the person themselves makes their agent keys', 403);
   requireThat(actor.roles.owner || actor.roles.employee || actor.roles.manager || actor.roles.finance, 'Auditors read records and change nothing', 403);
   const member = await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1').bind(actor.email).first();
   requireThat(member, 'Ask the owner to add you as a member first', 409);
@@ -23,7 +23,7 @@ export async function createAgentKey(db: D1Database, actor: Actor, b: Data) {
 }
 
 export async function revokeAgentKey(db: D1Database, actor: Actor, id: string) {
-  requireThat(actor.kind === 'person', 'Only a person revokes agent keys', 403);
+  requireThat(actor.kind === 'person' && !actor.delegate, 'Only the person themselves or the owner revokes agent keys', 403);
   const key = await db.prepare('SELECT id,member_email,label FROM c_agent_keys WHERE id=? AND revoked_at IS NULL').bind(id).first<{ id: string; member_email: string; label: string }>();
   requireThat(key && (key.member_email === actor.email || actor.roles.owner), 'Agent key not found', 404);
   await commit(db, authority(actor), [db.prepare('UPDATE c_agent_keys SET revoked_at=? WHERE id=?').bind(now(), id), event(db, actor, 'agent-key-revoked', {}, { key: id, label: key.label })]);

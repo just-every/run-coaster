@@ -7,6 +7,7 @@ import { saveMileageRate } from './mileage';
 import { createClaim, removeItem, renameClaim, saveItem, submitClaim, uploadReceipt } from './claims';
 import { decide, reassign } from './decisions';
 import { revokeDelegation, saveDelegation } from './delegation';
+import { actingAs, grantDelegate, revokeDelegate } from './delegates';
 import { approveBatch, batchFile, createBatch, markReimbursed, removeFromBatch } from './batches';
 import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
@@ -36,9 +37,11 @@ async function body(c: C, limit = 3_000_000): Promise<Data> {
   requireThat(value && typeof value === 'object' && !Array.isArray(value), 'The request body must be a JSON object');
   return value;
 }
-/** Every person route checks the current native session itself; agent keys reach only /api/coaster/agent/*. */
+/** Every person route checks the current native session itself; agent keys reach only /api/coaster/agent/*. A delegate
+ * names the person they act for in `x-coaster-acting-for` (or `?actingFor=` on a link). */
 const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => {
-  const result = await handler(await person(c.req.raw, c.env), c);
+  const signedIn = await person(c.req.raw, c.env), actingFor = (c.req.header('x-coaster-acting-for') || c.req.query('actingFor') || '').toLowerCase();
+  const result = await handler(actingFor && actingFor !== signedIn.email ? await actingAs(db(c), signedIn, actingFor) : signedIn, c);
   return result instanceof Response ? result : c.json(result);
 };
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
@@ -55,6 +58,8 @@ api.post('/api/coaster/claims/:id/decision', as(async (a, c) => decide(db(c), a,
 api.post('/api/coaster/claims/:id/reassign', as(async (a, c) => reassign(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/delegations', as(async (a, c) => saveDelegation(db(c), a, await body(c))));
 api.post('/api/coaster/delegations/:id/revoke', as(async (a, c) => revokeDelegation(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/delegates', as(async (a, c) => grantDelegate(db(c), runtimeBindings(c.env), a, await body(c))));
+api.post('/api/coaster/delegates/:id/revoke', as(async (a, c) => revokeDelegate(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/receipts/:id', as(async (a, c) => receiptFile(db(c), a, param(c, 'id'), c.req.query('inline') === '1')));
 
 api.post('/api/coaster/settings/business', as(async (a, c) => saveBusiness(db(c), a, await body(c))));

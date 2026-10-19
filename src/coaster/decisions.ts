@@ -8,7 +8,7 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data) 
   need(actor, 'manager');
   requireThat(actor.kind === 'person', 'Only a person decides a claim', 403);
   const claim = await loadClaim(db, id);
-  requireThat(claim.employee_email !== actor.email, 'Nobody approves their own claim', 403);
+  requireThat(claim.employee_email !== actor.email && claim.employee_email !== actor.delegate?.email, 'Nobody approves their own claim', 403);
   requireThat(claim.approver_email === actor.email, 'This claim is waiting for another approver', 403);
   requireThat(claim.status === 'submitted', 'This claim is not waiting for a decision', 409);
   requireThat(b.revision === claim.revision && b.version === claim.version, 'The claim changed since you opened it; reload and review it again', 409);
@@ -19,11 +19,12 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data) 
   requireThat(revision, 'Submitted revision missing', 409);
   const exceptions = JSON.parse(revision.snapshot).exceptions ?? [];
   requireThat(b.decision !== 'approved' || !exceptions.length || b.acknowledge === true, 'Review and acknowledge the policy exceptions before approving', 409);
-  const at = now();
+  // A Full delegate decides as the approver and is recorded as acting on their behalf, like an approval delegate.
+  const at = now(), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of;
   await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['submitted']), { sql: 'EXISTS(SELECT 1 FROM c_claims WHERE id=? AND approver_email=? AND revision=?)', params: [claim.id, actor.email, claim.revision] }), [
-    db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, reason, actor.email, at, JSON.stringify(exceptions), claim.on_behalf_of),
+    db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, reason, actor.delegate?.email ?? actor.email, at, JSON.stringify(exceptions), onBehalfOf),
     db.prepare('UPDATE c_claims SET status=?,version=version+1,updated_at=? WHERE id=?').bind(b.decision, at, claim.id),
-    event(db, actor, `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, reason, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf: claim.on_behalf_of }),
+    event(db, actor, `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, reason, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf }),
   ]);
   return loadClaim(db, id);
 }

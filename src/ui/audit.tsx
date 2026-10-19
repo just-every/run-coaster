@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { batchNumber, call, claimNumber, moment, type D } from './api';
+import { apiHref, batchNumber, call, claimNumber, moment, type D } from './api';
 import { describe } from './history';
 import { Empty, Field, Form, Section } from './parts';
 
@@ -19,7 +19,7 @@ export function AuditRecords({ state }: { state: D }) {
     </li>)}</ol> : <Empty title="No history matches" />)}
     {more && <p className="muted">Showing the latest 500 lines; narrow the dates to see earlier ones.</p>}
     <div className="sub-form"><h3>Export an audit pack</h3><Form label="Download audit pack" onSubmit={async v => {
-      const response = await fetch(`/api/coaster/audit-pack?${new URLSearchParams({ from: v.from, to: v.to })}`);
+      const response = await fetch(apiHref(`audit-pack?${new URLSearchParams({ from: v.from, to: v.to })}`));
       if (!response.ok) { const refusal = (await response.json().catch(() => ({}))) as D; throw new Error(refusal.error || 'The audit pack could not be made'); }
       const link = document.createElement('a');
       link.href = URL.createObjectURL(await response.blob()); link.download = `coaster-audit-pack-${v.from}-to-${v.to}.zip`; link.click(); URL.revokeObjectURL(link.href);

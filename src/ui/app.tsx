@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { call, type D } from './api';
+import { actFor, acting, call, type D } from './api';
 import { Claims } from './claims';
 import { Approvals } from './approvals';
 import { Batches } from './batches';
@@ -38,7 +38,8 @@ export function App() {
   useEffect(() => {
     const update = () => setPlace(readHash());
     update(); window.addEventListener('hashchange', update);
-    reload().catch(e => setError(e.message));
+    // A delegate whose access ended goes back to their own work.
+    reload().catch(e => { if (!acting()) return setError(e.message); actFor(''); reload().catch(again => setError(again.message)); });
     return () => window.removeEventListener('hashchange', update);
   }, [reload]);
   if (!state) return <div className="app"><Rail /><div className="workspace"><Work><section className="panel section">{error ? <p role="alert">{error} · <a href="/signin">Sign in</a></p> : <p className="muted">Opening your claims…</p>}</section></Work></div></div>;
@@ -49,7 +50,8 @@ export function App() {
   return <div className="app">
     <Rail state={state} nav={nav} current={current} />
     <div className="workspace">
-      <Topbar state={state} query={query} onSearch={search} onNewClaim={startClaim} />
+      <Topbar state={state} query={query} onSearch={search} onNewClaim={startClaim} onActing={address => { actFor(address); go('claims'); reload().catch(e => setError(e.message)); }} />
+      {state.actor.delegate && <p className="notice" role="status">You are working for {state.actor.name} as their {state.actor.delegate.level === 'full' ? 'Full' : 'Submit only'} delegate; everything you do is recorded as yours on their behalf.</p>}
       {!state.business && !['settings', 'not-found'].includes(current) ? <FirstRun state={state} /> : <>
         {current === 'claims' && <Claims {...props} creating={creating} onCreating={setCreating} onNewClaim={startClaim} />}
         {current === 'approvals' && <Approvals {...props} />}

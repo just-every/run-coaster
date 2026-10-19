@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, plural, shortDay, today, type D } from './api';
+import { apiHref, batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, plural, shortDay, today, type D } from './api';
 import { Badge, Empty, Field, Form, Initials, PageHead, Section, Tiles, Warning } from './parts';
 import { Icon } from './icons';
 import { AgentStrip } from './proposals';
@@ -92,7 +92,7 @@ function BatchPanel({ id, reload, names }: { id: string; reload: () => Promise<D
     {batch.status === 'draft' && <section className="panel-block" aria-label="Review"><Form label="Approve batch" className="record-form-inline" onSubmit={async v => { if (!v.confirm) throw new Error('Confirm the reconciled total first'); await call(`batches/${id}/approve`, { version: batch.version, expectedTotal: batch.total_minor }); await done(); }}>
       <Field label={`I checked the reimbursements, accounting lines and exceptions add up to ${money(batch.total_minor, c)}`} name="confirm" type="checkbox" />
     </Form></section>}
-    {batch.status !== 'draft' && <div className="downloads"><a className="button" href={`/api/coaster/batches/${id}/accounting.csv`} download><Icon name="download" />Download accounting CSV</a><a className="button" href={`/api/coaster/batches/${id}/reimbursements.csv`} download><Icon name="download" />Download reimbursements CSV</a></div>}
+    {batch.status !== 'draft' && <div className="downloads"><a className="button" href={apiHref(`batches/${id}/accounting.csv`)} download><Icon name="download" />Download accounting CSV</a><a className="button" href={apiHref(`batches/${id}/reimbursements.csv`)} download><Icon name="download" />Download reimbursements CSV</a></div>}
     {batch.status === 'approved' && <section className="panel-block" aria-label="Payment"><h3>Record payment</h3><Form label="Record payment" className="record-form-inline" onSubmit={async v => { await call(`batches/${id}/paid`, { version: batch.version, reference: v.reference, paidOn: v.paidOn }); await done(); }}>
       <Field label="Payment reference" name="reference" placeholder="Bank batch or ACH reference" />
       <Field label="Paid on" name="paidOn" type="date" defaultValue={today()} />
