@@ -29,6 +29,7 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Time zone" name="timezone" defaultValue={b?.timezone ?? 'America/Chicago'} options={zones} />
         <Field label="Per diem per day" name="perDiem" inputMode="decimal" required={false} defaultValue={b?.per_diem_minor ? amountText(b.per_diem_minor) : ''} hint="Leave empty if you do not pay per diems" />
         <Field label="Receipts required above" name="receiptThreshold" inputMode="decimal" required={false} defaultValue={b ? b.receipt_threshold_minor ? amountText(b.receipt_threshold_minor) : '' : '75.00'} hint="$75 is the IRS documentary-evidence line; lodging always needs a receipt. Leave empty to require one for every purchase" />
+        <Field label="Spend request needed above" name="preapprovalThreshold" inputMode="decimal" required={false} defaultValue={b?.preapproval_threshold_minor == null ? '' : amountText(b.preapproval_threshold_minor)} hint="Expenses over this need an approved spend request; leave empty to turn it off" />
         <Field label="Sales tax account" name="salesTaxAccount" required={false} defaultValue={b?.sales_tax_account ?? ''} hint="Receipts' sales tax posts here on its own accounting line" />
         <Field label="Sales tax code" name="salesTaxCode" required={false} defaultValue={b?.sales_tax_code ?? ''} hint="For example TAX" />
       </Form>

@@ -10,7 +10,7 @@ export type Attendee = { name: string; kind: 'employee' | 'guest'; email?: strin
 export type ItemInput = {
   kind: 'receipt' | 'mileage' | 'per_diem'; spent_on: string; merchant: string; description: string; amount_minor: number;
   distance_hundredths: number | null; days: number | null; rate_thousandths: number | null; explanation: string; allocations: Allocation[];
-  sales_tax_minor: number; sales_tax_account: string; sales_tax_code: string; attendees?: Attendee[]; fields?: Record<string, string>;
+  sales_tax_minor: number; sales_tax_account: string; sales_tax_code: string; attendees?: Attendee[]; fields?: Record<string, string>; request_id?: string | null;
 };
 
 export async function categories(db: D1Database): Promise<Category[]> {

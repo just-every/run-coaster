@@ -121,7 +121,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **CLAIM-004 — Cash advances. Status: missing.** Approve and pay a $1,000 advance, claim $830 of expenses and see $170 owed back; claim $1,200 and see $200 reimbursed; let a return lapse and see it reach the overdue list. Open scope: No cash advances.
 
-- **CLAIM-005 — Spend requests and trip pre-approval. Status: missing.** Request a $2,400 conference trip, approve it, then file expenses linked to it and see estimate versus actual on the claim; file an unlinked expense over the threshold and see the pre-approval exception. Open scope: No spend requests or pre-approval.
+- **CLAIM-005 — Spend requests and trip pre-approval. Status: done.** Request a $2,400 conference trip, approve it, then file expenses linked to it and see estimate versus actual on the claim; file an unlinked expense over the threshold and see the pre-approval exception. Existing evidence: `src/coaster/requests.ts`; `src/coaster/exceptions.ts`; `src/coaster/views.ts`; `src/ui/requests.tsx`; `tests/coaster.test.mjs` (CLAIM-005).
 
 - **CLAIM-006 — Billable expenses and client rebilling. Status: missing.** Mark two expenses billable to a customer; see them as billable in the QuickBooks sandbox with attachments and as billable items in a Gauge test installation. Open scope: No billable flag or client rebilling.
 

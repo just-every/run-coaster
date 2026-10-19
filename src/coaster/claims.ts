@@ -4,6 +4,7 @@ import { categories, itemInput, type Allocation, type ItemInput } from './items'
 import { findExceptions, missingFields, repeatedInClaim, type ClaimItem } from './exceptions';
 import { requireBusiness } from './settings';
 import { localDay, routeFor } from './delegation';
+import { linkableRequest } from './requests';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null };
@@ -46,7 +47,7 @@ export function insertClaim(db: D1Database, id: string, employee: string, title:
 
 export function insertItem(db: D1Database, claimId: string, itemId: string, position: number, item: ItemInput, receiptId: string | null) {
   return [
-    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {})),
+    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null),
     ...item.allocations.map((a: Allocation, i) => db.prepare('INSERT INTO c_allocations(item_id,position,category_id,cost_centre,amount_minor,description) VALUES(?,?,?,?,?,?)').bind(itemId, i, a.category_id, a.cost_centre, a.amount_minor, a.description ?? '')),
   ];
 }
@@ -79,7 +80,8 @@ async function ownReceipt(db: D1Database, claim: Claim, receiptId: unknown) {
 export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
-  const business = await requireBusiness(db), item = itemInput(b, business, await categories(db)), receiptId = await ownReceipt(db, claim, b.receipt);
+  const business = await requireBusiness(db), receiptId = await ownReceipt(db, claim, b.receipt);
+  const item = { ...itemInput(b, business, await categories(db)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
   for (const a of item.attendees ?? []) if (a.email) requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=?').bind(a.email).first(), `${a.name} is not a Coaster member; add them as a guest`);
   const statements: D1PreparedStatement[] = [];
   let itemId: string = uid(), position: number;
@@ -93,7 +95,7 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
     requireThat((count?.n ?? 0) < 100, 'A claim holds at most 100 expenses');
     position = (count?.last ?? -1) + 1;
   }
-  statements.push(...insertItem(db, claim.id, itemId, position, item, receiptId), touch(db, claim.id), event(db, actor, b.item ? 'expense-changed' : 'expense-added', { claim: claim.id }, { item: itemId, merchant: item.merchant, amountMinor: item.amount_minor, receipt: receiptId }));
+  statements.push(...insertItem(db, claim.id, itemId, position, item, receiptId), touch(db, claim.id), event(db, actor, b.item ? 'expense-changed' : 'expense-added', { claim: claim.id }, { item: itemId, merchant: item.merchant, amountMinor: item.amount_minor, receipt: receiptId, request: item.request_id }));
   await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
   return loadClaim(db, id);
 }

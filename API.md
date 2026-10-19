@@ -26,6 +26,8 @@ with `actingFor`.
 | `POST claims/:id/submit` `{version}` | its employee | Submit the next revision to the approving manager. |
 | `POST claims/:id/decision` `{revision, version, decision: approved\|returned\|rejected, reason, acknowledge}` | the assigned manager | Decide the exact revision. |
 | `GET receipts/:id` | who may see its claim | The receipt bytes. |
+| `POST requests` `{title, estimate, purpose}` | employee | Ask before spending; routes to their approving manager (or that manager's delegate). |
+| `POST requests/:id/decision` `{version, decision: approved\|rejected, reason}` | the routed approver | Decide the exact request; expenses link to an approved one with `request` and claims show estimate against actual. |
 | `POST batches` `{claims: [id]}` | finance | Draft batch of approved claims. |
 | `GET batches/:id` | finance, auditor | Claims, people, accounting lines, history. |
 | `POST batches/:id/remove` `{version, claim}` | finance | Take a claim out of a draft batch. |

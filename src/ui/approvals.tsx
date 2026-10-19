@@ -4,6 +4,7 @@ import { ClaimsTable } from './claims-table';
 import { Empty, Field, Form, PageHead, Section, Tiles } from './parts';
 import { useDesktop, Work } from './shell';
 import { oldestWaiting } from './app';
+import { SpendRequests } from './requests';
 import { call, day, money, plural, today, type D } from './api';
 
 /** Claims routed to this manager, in the main screen's layout: waiting first, then the ones already decided. */
@@ -27,6 +28,7 @@ export function Approvals({ state, reload, id, query }: ViewProps) {
     {shown.length
       ? <ClaimsTable claims={shown} selected={open} view="approvals" label="Approvals" initialSort="status" foot={<span>Showing {shown.length} of {plural(routed.length, 'claim')} routed to you · waiting first</span>} />
       : <section className="panel"><Empty large title={query ? 'No claims match that search' : 'Nothing waiting for you'}>{query ? null : 'Claims your team submits appear here for a decision.'}</Empty></section>}
+    <SpendRequests state={state} reload={reload} deciding />
     <Delegation state={state} reload={reload} />
   </Work>;
 }

@@ -572,3 +572,41 @@ test('CLAIM-007 a three-night folio is itemized into categorized parts, a dinner
   assert.match(csv, /"Room tax","receipt","Lodging","6210","GST","","104.04"/); assert.match(csv, /"In-room dining","receipt","Meals","6300","GST","","52.71"/)
   assert.equal(sum(csv, 'amount'), 103875 + 32000)
 }))
+
+test('CLAIM-005 a conference is requested and approved before spending, linked expenses show estimate against actual, and an unlinked expense over the threshold needs pre-approval', () => withAgency(async (h, t) => {
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', perDiem: '75.00', receiptThreshold: '', preapprovalThreshold: '500.00' })
+  const PRIYA = 'priya@harbourfinch.example'
+  const trip = await h.post('requests', { title: 'Sydney design conference', purpose: 'Speaker slot and two nights', estimate: '2400.00' }, t.sam)
+  assert.deepEqual([trip.status, trip.approver_email, trip.estimate_minor, trip.actual_minor], ['submitted', PRIYA, 240000, 0])
+  const laptop = await h.post('requests', { title: 'Laptop', estimate: '1800.00' }, t.sam)
+  const draft = await h.post('claims', { title: 'Early booking' }, t.sam)
+  const linked = { version: draft.version, kind: 'receipt', date: '2026-05-20', merchant: 'Design Week tickets', amount: '1450.00', allocations: [{ category: t.c.travel }] }
+  await h.post(`claims/${draft.id}/items`, { ...linked, request: trip.id }, t.sam, 409)
+  await h.post(`requests/${trip.id}/decision`, { version: trip.version, decision: 'approved' }, t.sam, 403)
+  await h.post(`requests/${trip.id}/decision`, { version: trip.version, decision: 'approved' }, t.jordan, 403)
+  await h.post(`requests/${trip.id}/decision`, { version: trip.version + 1, decision: 'approved' }, t.priya, 409)
+  await h.post(`requests/${laptop.id}/decision`, { version: laptop.version, decision: 'rejected' }, t.priya, 400)
+  assert.equal((await h.post(`requests/${laptop.id}/decision`, { version: laptop.version, decision: 'rejected', reason: 'Use the studio spare' }, t.priya)).status, 'rejected')
+  assert.equal((await h.post(`requests/${trip.id}/decision`, { version: trip.version, decision: 'approved' }, t.priya)).status, 'approved')
+  await h.post(`claims/${draft.id}/items`, { ...linked, request: laptop.id }, t.sam, 409)
+  await h.post(`claims/${(await h.post('claims', { title: 'Not mine' }, t.alex)).id}/items`, { ...linked, version: 1, request: trip.id }, t.alex, 403)
+
+  const d = await claim(h, t.sam, 'Sydney design conference', [
+    { kind: 'receipt', date: '2026-05-20', merchant: 'Design Week tickets', amount: '1450.00', allocations: [{ category: t.c.travel }], receiptFixture: 'officeworks', request: trip.id },
+    { kind: 'receipt', date: '2026-05-21', merchant: 'Harbour Grand Hotel', amount: '780.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel', request: trip.id },
+    { kind: 'receipt', date: '2026-05-22', merchant: 'Studio monitor', amount: '640.00', allocations: [{ category: t.c.office }], receiptFixture: 'uber' },
+  ])
+  assert.deepEqual(d.requests.map(r => [r.number, r.estimate_minor, r.actual_minor, r.claim_minor]), [[trip.number, 240000, 223000, 223000]])
+  assert.deepEqual(d.exceptions.map(e => [e.code, d.items.find(i => i.id === e.item).merchant]), [['needs-pre-approval', 'Studio monitor']])
+  assert.match(d.exceptions[0].message, /Over AUD 500\.00 without an approved spend request/)
+  await h.post(`claims/${d.claim.id}/submit`, { version: d.claim.version }, t.sam, 409)
+  const monitor = d.items[2]
+  let c = await h.post(`claims/${d.claim.id}/items`, { version: d.claim.version, item: monitor.id, kind: 'receipt', date: monitor.spent_on, merchant: monitor.merchant, amount: '640.00', receipt: monitor.receipt_id, allocations: [{ category: t.c.office }], explanation: 'Replacement for a failed monitor before a deadline' }, t.sam)
+  c = await submit(h, t.sam, await h.get(`claims/${c.id}`, t.sam))
+  const seen = await h.get(`claims/${c.id}`, t.priya)
+  assert.deepEqual(seen.requests.map(r => [r.title, r.estimate_minor, r.actual_minor]), [['Sydney design conference', 240000, 223000]], 'the approver sees estimate against actual')
+  assert.deepEqual(seen.revisions[0].snapshot.items.map(i => i.request_id), [trip.id, trip.id, null])
+  const mine = (await h.get('state', t.sam)).requests
+  assert.deepEqual(mine.map(r => [r.title, r.status, r.actual_minor]), [['Laptop', 'rejected', 0], ['Sydney design conference', 'approved', 223000]])
+  assert.equal((await h.get('state', t.alex)).requests.length, 0, 'another employee sees none of them')
+}))

@@ -382,8 +382,8 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 6 | 22 | 62 | 90 |
-| All | 19 | 22 | 62 | 103 |
+| Target and push further | 7 | 22 | 61 | 90 |
+| All | 20 | 22 | 61 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -420,7 +420,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `CLAIM-002` | GSA per diem by location | target | partial | `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-002) | Per diem is days × one flat business rate; no GSA location tables, 75% travel days, meal deductions or fiscal-year rates. |
 | `CLAIM-003` | Foreign-currency expenses | target | missing |  | One currency per installation; no conversion. |
 | `CLAIM-004` | Cash advances | target | missing |  | No cash advances. |
-| `CLAIM-005` | Spend requests and trip pre-approval | target | missing |  | No spend requests or pre-approval. |
+| `CLAIM-005` | Spend requests and trip pre-approval | target | done | `src/coaster/requests.ts`; `src/coaster/exceptions.ts`; `src/coaster/views.ts`; `src/ui/requests.tsx`; `tests/coaster.test.mjs` (CLAIM-005) |  |
 | `CLAIM-006` | Billable expenses and client rebilling | target | missing |  | No billable flag or client rebilling. |
 | `CLAIM-007` | Itemization, attendees and required fields | target | done | `src/coaster/items.ts`; `src/coaster/exceptions.ts`; `src/coaster/claims.ts`; `src/ui/item-form.tsx`; `tests/coaster.test.mjs` (CLAIM-007) |  |
 | `CLAIM-008` | Accountable-plan compliance and non-employee claims | target | missing |  | No accountable-plan deadlines, payroll routing or 1099 flag. |

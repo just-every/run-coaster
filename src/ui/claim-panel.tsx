@@ -65,6 +65,10 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         {claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}
       </ul>
     </section>
+    {detail.requests.length > 0 && <section className="panel-block" aria-label="Spend requests">
+      <h3>Spend requests</h3>
+      <ul className="facts">{detail.requests.map((r: D) => <li key={r.id}><Icon name="document" /><span>SR-{String(r.number).padStart(4, '0')} {r.title}: estimate {money(r.estimate_minor, currency)}, spent {money(r.actual_minor, currency)}{r.actual_minor !== r.claim_minor ? ` (${money(r.claim_minor, currency)} on this claim)` : ''}{r.actual_minor > r.estimate_minor ? ` · ${money(r.actual_minor - r.estimate_minor, currency)} over` : ''}</span></li>)}</ul>
+    </section>}
     <section className="panel-block" aria-label="Expenses">
       <h3>Expenses</h3>
       {items.length ? <ul className="lines">{items.map((item: D) => {

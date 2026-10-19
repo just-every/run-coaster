@@ -16,6 +16,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
   const categoryOptions = active.map((c: D) => ({ value: c.id, label: c.name }));
   // Custom fields the owner requires in any active category, each saying where it is required.
   const fieldNames: string[] = [...new Set<string>(active.flatMap((c: D) => c.required_fields))];
+  const requests = state.requests.filter((r: D) => r.employee_email === claim.employee_email && r.status === 'approved').map((r: D) => ({ value: r.id, label: `SR-${String(r.number).padStart(4, '0')} ${r.title}` }));
   const kinds = [{ value: 'receipt', label: 'Purchase with receipt' }, ...(business.mileage_rates.length ? [{ value: 'mileage', label: 'Mileage at the rate for its date' }] : []), ...(business.per_diem_minor ? [{ value: 'per_diem', label: `Per diem at ${money(business.per_diem_minor, business.currency)} a day` }] : [])];
   async function save(v: D) {
     let version = claim.version, receipt = item?.receipt_id ?? null;
@@ -26,7 +27,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
     }
     const allocations = split ? split.map(p => ({ category: p.category, costCentre: p.costCentre, amount: p.amount, description: p.description })) : [{ category: v.category, costCentre: v.costCentre }];
     const fields = Object.fromEntries(fieldNames.map(name => [name, v[`field:${name}`] ?? '']));
-    await call(`claims/${claim.id}/items`, { version, item: item?.id, kind, date: v.date, merchant: v.merchant, amount: v.amount, salesTax: v.salesTax, distance: v.distance, days: v.days, description: v.description, explanation: v.explanation, receipt, allocations, attendees: parseAttendees(v.attendees ?? ''), fields });
+    await call(`claims/${claim.id}/items`, { version, item: item?.id, kind, date: v.date, merchant: v.merchant, amount: v.amount, salesTax: v.salesTax, distance: v.distance, days: v.days, description: v.description, explanation: v.explanation, receipt, allocations, attendees: parseAttendees(v.attendees ?? ''), fields, request: v.request || null });
     await onDone();
   }
   const first = item?.allocations?.[0];
@@ -51,6 +52,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
       : <><Field label="Category" name="category" options={categoryOptions} defaultValue={first?.category_id} /><Field label="Cost center" name="costCentre" required={false} defaultValue={first?.cost_centre} /><button type="button" className="button link-button field-wide" onClick={() => setSplit([{ category: first?.category_id ?? '', costCentre: first?.cost_centre ?? '', amount: '', description: '' }, { category: '', costCentre: '', amount: '', description: '' }])}>Split or itemize across categories</button></>}
     {kind === 'receipt' && <label className="field field-wide"><span className="field-label">{item?.receipt_id ? 'Replace receipt (the earlier one stays in the history)' : 'Receipt photo or PDF'}</span><input type="file" name="receiptFile" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" /></label>}
     {kind === 'receipt' && <Field label="Attendees" name="attendees" type="textarea" required={false} defaultValue={attendeeLines(item?.attendees)} hint="For meals: one person per line, yourself included; colleagues as Name <email>, guests by name" />}
+    {requests.length > 0 && <Field label="Spend request" name="request" required={false} options={requests} defaultValue={item?.request_id ?? ''} hint="Link the expense to the approved request it was for" />}
     {fieldNames.map(name => <Field key={name} label={name} name={`field:${name}`} required={false} defaultValue={item?.fields?.[name] ?? ''} hint={`Required for ${active.filter((c: D) => c.required_fields.includes(name)).map((c: D) => c.name).join(', ')}`} />)}
     <Field label="Explanation for your approver" name="explanation" type="textarea" required={false} defaultValue={item?.explanation} hint="Needed when an expense breaks policy, for example a missing receipt" />
   </Form>;

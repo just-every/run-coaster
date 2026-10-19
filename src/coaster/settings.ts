@@ -5,13 +5,13 @@ import { queueMoves } from './delegation';
 import { categories } from './items';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; mileage_rates: MileageRate[] };
+export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; mileage_rates: MileageRate[] };
 
 /** The IRS documentary-evidence line: a new business needs receipts above $75 unless the owner sets another threshold. */
 export const DEFAULT_RECEIPT_THRESHOLD_MINOR = 7500;
 
 export async function business(db: D1Database): Promise<Business | null> {
-  const found = await db.prepare('SELECT name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code FROM c_business WHERE id=1').first<Omit<Business, 'mileage_rates'>>();
+  const found = await db.prepare('SELECT name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor FROM c_business WHERE id=1').first<Omit<Business, 'mileage_rates'>>();
   return found && { ...found, mileage_rates: await mileageRates(db) };
 }
 export async function requireBusiness(db: D1Database) {
@@ -32,13 +32,15 @@ export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
   const timezone = text(b.timezone, 'Timezone', 64);
   try { new Intl.DateTimeFormat('en', { timeZone: timezone }); } catch { requireThat(false, 'Timezone must be an IANA name such as America/Chicago'); }
   const threshold = b.receiptThreshold === undefined ? current?.receipt_threshold_minor ?? DEFAULT_RECEIPT_THRESHOLD_MINOR : optionalAmount(b.receiptThreshold, 'Receipt threshold') ?? 0;
-  const values = [text(b.name, 'Business name', 200), currency, timezone, optionalAmount(b.perDiem, 'Per diem') ?? 0, threshold, optionalText(b.salesTaxAccount, 'Sales tax account', 40), optionalText(b.salesTaxCode, 'Sales tax code', 40), now()] as const;
+  // Expenses above this need an approved spend request (CLAIM-005); empty turns pre-approval off.
+  const preapproval = b.preapprovalThreshold === undefined ? current?.preapproval_threshold_minor ?? null : optionalAmount(b.preapprovalThreshold, 'Spend request needed above');
+  const values = [text(b.name, 'Business name', 200), currency, timezone, optionalAmount(b.perDiem, 'Per diem') ?? 0, threshold, optionalText(b.salesTaxAccount, 'Sales tax account', 40), optionalText(b.salesTaxCode, 'Sales tax code', 40), preapproval, now()] as const;
   // A new US business starts from the IRS mileage table; any other currency adds its own rates.
   const seed = !current && currency === 'USD' && !(await mileageRates(db)).length;
   await commit(db, authority(actor, 'owner'), [
-    db.prepare('INSERT INTO c_business(id,name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,updated_at) VALUES(1,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,sales_tax_account=excluded.sales_tax_account,sales_tax_code=excluded.sales_tax_code,updated_at=excluded.updated_at').bind(...values),
+    db.prepare('INSERT INTO c_business(id,name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,sales_tax_account=excluded.sales_tax_account,sales_tax_code=excluded.sales_tax_code,preapproval_threshold_minor=excluded.preapproval_threshold_minor,updated_at=excluded.updated_at').bind(...values),
     ...(seed ? seedIrsRates(db) : []),
-    event(db, actor, 'business-saved', {}, { name: values[0], currency, timezone, perDiemMinor: values[3], receiptThresholdMinor: values[4], salesTaxAccount: values[5], salesTaxCode: values[6], irsMileageRates: seed }),
+    event(db, actor, 'business-saved', {}, { name: values[0], currency, timezone, perDiemMinor: values[3], receiptThresholdMinor: values[4], salesTaxAccount: values[5], salesTaxCode: values[6], preapprovalThresholdMinor: values[7], irsMileageRates: seed }),
   ]);
   return business(db);
 }
