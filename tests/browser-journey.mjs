@@ -171,7 +171,7 @@ export async function ownerScreens(owner, origin, width, evidence, shots, import
   await noOverflow(page, width)
   await shot(page, evidence, 'move-in', width, shots)
   await nav(page, 'Settings')
-  await page.getByRole('heading', { name: 'People' }).waitFor()
+  await page.getByRole('heading', { name: 'People', exact: true }).waitFor()
   await noOverflow(page, width)
   await shot(page, evidence, 'settings', width, shots)
 }
