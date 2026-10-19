@@ -106,8 +106,9 @@
       "requiredWhen": "IDENTITY_PROVIDER names an Auth installation",
       "why": "Optional sign-in through the owner's own Auth installation (OpenID Connect); a blank answer keeps email-link sign-in, and nothing is sent until the owner links one.",
       "data": [
-        "Link handshake: Coaster's origin, name, callback and public signing key",
-        "OpenID Connect authorization requests, code redemption with a signed client assertion, and the signed-in person's email and name returned by Auth"
+        "Link handshake: Auth reads Coaster's public document (origin, name, callback, sector ID) and public signing key; Coaster redeems the one-use link code with its origin, callback, interface and a signed assertion",
+        "OpenID Connect: metadata and signing-key reads, the browser's authorization request, and code redemption with the PKCE verifier and a signed client assertion; Auth returns the signed-in person's email and name",
+        "No claim, expense, receipt, comment or member data is sent to Auth"
       ],
       "adapters": []
     }

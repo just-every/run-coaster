@@ -10,8 +10,8 @@ import { agency, harness, receipt } from './harness.mjs'
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
 const sum = (csv, column) => { const [head, ...rows] = csv.trim().split('\r\n').map(r => r.split('","').map(x => x.replace(/^"|"$/g, ''))); const i = head.indexOf(column); return Math.round(rows.reduce((n, r) => n + Number(r[i]) * 100, 0)) }
 
-async function withAgency(run) {
-  const h = await harness()
+async function withAgency(run, options) {
+  const h = await harness(options)
   try { await run(h, await agency(h)) } finally { await h.close() }
 }
 /** A claim with expenses; each expense may carry a receipt fixture. Returns the claim detail. */
@@ -791,7 +791,7 @@ test('APPROVE-005 an approver holds the dinner and approves the other four; the 
   assert.deepEqual([record.revisions[0].submitted_by, record.decisions[0].actor_email, record.events.at(-1).action], ['alex@harbourfinch.example', PRIYA, 'hold-released'])
 }))
 
-test('DATA-001 with no optional provider connected, the claim-to-batch journey sends data only through the declared mail adapter', () => withAgency(async (h, t) => {
+test('DATA-001 the claim-to-batch journey sends data only through the declared mail adapter until the owner links Auth, and then only the declared link and sign-in data reaches Auth', () => withAgency(async (h, t) => {
   const d = await claim(h, t.sam, 'Brisbane visit', [{ kind: 'receipt', date: '2026-06-02', merchant: 'Hotel Ibis', amount: '236.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }])
   let c = await submit(h, t.sam, d)
   await h.post(`claims/${c.id}/comments`, { body: 'Which client was this for?', asks: 'sam@harbourfinch.example' }, t.priya)
@@ -802,18 +802,46 @@ test('DATA-001 with no optional provider connected, the claim-to-batch journey s
   await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0603', paidOn: '2026-06-03' }, t.jordan)
   assert.equal((await h.get(`claims/${c.id}`, t.sam)).claim.status, 'reimbursed', 'the core flow works with no optional provider connected')
 
-  // Each outbound host belongs to a flow seed.json declares; with no identity provider linked, only mail leaves.
+  // Each outbound host belongs to a flow seed.json declares; with Auth named but not linked, only mail leaves.
   const declared = new Set(JSON.parse(await readFile('seed.json', 'utf8')).externals.map(e => e.id))
-  const flowOf = { 'api.resend.com': 'mail-provider' }
+  const authHost = new URL(h.auth.issuer).host
+  const flowOf = { 'api.resend.com': 'mail-provider', [authHost]: 'identity-provider' }
   assert.ok(h.outbound.length >= 6, 'invitations and the question were mailed')
-  for (const request of h.outbound) assert.ok(declared.has(flowOf[new URL(request.url).host]), `undeclared outbound ${request.method} ${request.url}`)
   assert.deepEqual([...new Set(h.outbound.map(r => `${r.method} ${r.url}`))], ['POST https://api.resend.com/emails'])
   const receiptBytes = (await readFile('tests/fixtures/receipts/hotel.png')).toString('base64').slice(0, 64)
   for (const message of h.messages) {
     assert.equal(message.attachments, undefined, 'no receipt or file leaves by mail')
     assert.ok(!JSON.stringify(message).includes(receiptBytes))
   }
-}))
+
+  // The owner connects Auth: a fresh email proof approves the link, Auth calls back, the owner turns on Auth sign-in and signs in through it.
+  const linkedFrom = h.outbound.length
+  await h.send('/auth/magic-link', { email: 'owner@harbourfinch.example' })
+  const fresh = await h.confirmMail('owner@harbourfinch.example')
+  assert.equal((await h.send('/auth/dependencies/relink', { issuer: h.auth.issuer, interface: 'oidc-provider@1' }, fresh)).status, 200)
+  assert.equal((await h.auth.link(h)).status, 200)
+  assert.equal((await h.send('/auth/settings/identity', { idpSignIn: true }, fresh)).status, 200)
+  const signedIn = await h.auth.signIn(h, 'owner@harbourfinch.example', 'Rose Owner')
+  assert.equal(signedIn.status, 303)
+  const session = signedIn.headers.getSetCookie().map(v => v.split(';')[0]).find(v => /operator_session/.test(v))
+  assert.equal((await h.get('state', session)).actor.email, 'owner@harbourfinch.example', 'the email Auth returned signs the owner in')
+
+  // Only Auth's declared link handshake and OpenID Connect exchange left, and none of it carries Coaster's records.
+  const sent = h.outbound.slice(linkedFrom).filter(r => !r.url.startsWith('https://api.resend.com/'))
+  for (const request of h.outbound) assert.ok(declared.has(flowOf[new URL(request.url).host]), `undeclared outbound ${request.method} ${request.url}`)
+  assert.deepEqual([...new Set(sent.map(r => `${r.method} ${new URL(r.url).pathname}`))].sort(), ['GET /.well-known/openid-configuration', 'GET /.well-known/rer-provider', 'GET /jwks', 'POST /redeem', 'POST /token'])
+  const claimsOf = jwt => Object.keys(JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url')))
+  const redeem = JSON.parse(sent.find(r => r.url.endsWith('/redeem')).body)
+  assert.deepEqual(Object.keys(redeem).sort(), ['callback', 'client_assertion', 'client_assertion_type', 'code', 'interface', 'origin'])
+  assert.deepEqual(claimsOf(redeem.client_assertion).sort(), ['aud', 'callback', 'code', 'exp', 'iat', 'interface', 'iss', 'jti', 'sector_id', 'sub'])
+  const token = new URLSearchParams(sent.find(r => r.url.endsWith('/token')).body)
+  assert.deepEqual([...token.keys()].sort(), ['client_assertion', 'client_assertion_type', 'client_id', 'code', 'code_verifier', 'grant_type', 'redirect_uri'])
+  assert.deepEqual(claimsOf(token.get('client_assertion')).sort(), ['aud', 'exp', 'iat', 'iss', 'jti', 'sub'])
+  for (const request of sent) {
+    if (request.method === 'GET') assert.equal(request.body, '', `${request.url} sends no body`)
+    for (const record of ['harbourfinch.example', 'Hotel Ibis', 'Brisbane visit', 'Which client', 'ACH-0603', receiptBytes]) assert.ok(!decodeURIComponent(request.body).includes(record), `${request.url} carries no ${record}`)
+  }
+}, { identityProvider: 'https://auth.harbourfinch.example' }))
 
 test('ACCT-005 a batch and a period export as CSV and XLSX through a saved column template and as QuickBooks Desktop IIF, naming each receipt by hash and link', () => withAgency(async (h, t) => {
   const one = await claim(h, t.sam, 'Perth pitch', [{ kind: 'receipt', date: '2026-06-04', merchant: 'Qantas', amount: '412.00', allocations: [{ category: t.c.travel, amount: '400.00' }, { category: t.c.meals, amount: '12.00' }], receiptFixture: 'hotel' }])
