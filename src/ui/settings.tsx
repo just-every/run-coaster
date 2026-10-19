@@ -5,6 +5,7 @@ import { Work } from './shell';
 import { AuditRecords } from './audit';
 import { Reports } from './reports';
 import { SpendAnalytics } from './spend';
+import { Budgets } from './budgets';
 import { Delegates } from './delegates';
 import type { ViewProps } from './claims';
 
@@ -57,6 +58,7 @@ export function Settings({ state, reload }: ViewProps) {
       </Form>
     </Section>}
     {b && (owner || roles.finance || roles.auditor || roles.manager) && <SpendAnalytics currency={b.currency} />}
+    {b && (owner || roles.finance || roles.auditor) && <Budgets state={state} canSet={owner || roles.finance} />}
     {(owner || roles.finance || roles.auditor) && <Reports owner={owner} schedules={owner || roles.finance} />}
     {(owner || roles.finance || roles.auditor) && <AuditRecords state={state} />}
     {owner && b && <Section title="Approval by rule">

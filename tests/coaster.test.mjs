@@ -926,6 +926,62 @@ test('REPORT-001 spend groups by employee, category, merchant, cost centre and m
   await h.get(`spend?view=${views[0].id}`, lee, 404)
 }))
 
+test('REPORT-004 budgets count spend from submission by period, alert the owner and finance once per threshold, flag an expense that would go over, reset each period and show in spend', () => withAgency(async (h, t) => {
+  const PRIYA = 'priya@harbourfinch.example', JORDAN = 'jordan@harbourfinch.example', MORGAN = 'morgan@harbourfinch.example'
+  const travelBudget = { name: 'Travel', scope: 'category', scopeKey: t.c.travel, period: 'monthly', amount: '5000.00', owner: PRIYA, thresholds: '80, 100', policyRule: true }
+  await h.post('budgets', travelBudget, t.sam, 403)
+  await h.post('budgets', { ...travelBudget, thresholds: '100, 80' }, t.jordan, 400)
+  let list = await h.post('budgets', travelBudget, t.jordan)
+  list = await h.post('budgets', { name: 'Meals per person', scope: 'category', scopeKey: t.c.meals, period: 'monthly', amount: '200.00', owner: JORDAN, thresholds: '80, 100', perMember: true }, t.jordan)
+  const travel = list.find(b => b.name === 'Travel')
+  const r = (date, merchant, amount, category, fixture, extra = {}) => ({ kind: 'receipt', date, merchant, amount, allocations: [{ category }], receiptFixture: fixture, ...extra })
+  await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Client visit', [r('2026-06-03', 'Uber', '1000.00', t.c.travel, 'uber')])))
+  await submit(h, t.alex, await claim(h, t.alex, 'Sales trip', [r('2026-06-10', 'Hotel Ibis', '3100.00', t.c.travel, 'hotel')]))
+  await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Team lunch', [r('2026-06-12', 'Bistro', '150.00', t.c.meals, 'bistro', { explanation: 'Client lunch' })])), { acknowledge: true })
+  await submit(h, t.alex, await claim(h, t.alex, 'Offsite lunch', [r('2026-06-15', 'Officeworks cafe', '250.00', t.c.meals, 'officeworks', { explanation: 'Offsite' })]))
+
+  const sydney = (day, hour) => {
+    const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:17:00Z`)
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]))
+    return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
+  }
+  const worker = await h.mf.getWorker()
+  const tick = async day => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, 9), cron: '17 * * * *' }); return h.messages.slice(before).filter(m => m.subject.startsWith('Budget alert: ')).map(m => [m.to, m.subject, /for (\S+@\S+) has/.exec(m.text)?.[1] ?? null]) }
+
+  // $4,100 of June travel: one 80% alert to the budget's owner and finance; only Alex is over the per-person meals budget.
+  assert.deepEqual(await tick('2026-06-30'), [
+    [[JORDAN, MORGAN], 'Budget alert: Meals per person at 100%', 'alex@harbourfinch.example'],
+    [[PRIYA, JORDAN, MORGAN], 'Budget alert: Travel at 80%', null],
+  ])
+  assert.deepEqual(await tick('2026-06-30'), [], 'once per threshold and period')
+  const june = await h.get('budgets?day=2026-06-30', t.jordan)
+  const tb = june.find(b => b.name === 'Travel')
+  assert.deepEqual([tb.period_key, tb.budgetMinor, tb.actualMinor, tb.percent, tb.approvedMinor, tb.pendingMinor, tb.remainingMinor], ['2026-06', 500000, 410000, 82, 100000, 310000, 90000])
+  assert.deepEqual(june.find(b => b.name === 'Meals per person').members.map(m => [m.member, m.actualMinor, m.percent]), [['alex@harbourfinch.example', 25000, 125], ['sam@harbourfinch.example', 15000, 75]])
+
+  // The next travel claim would take it past $5,000: a soft exception the approver sees, then the 100% alert.
+  const over = await claim(h, t.sam, 'Conference', [{ kind: 'per_diem', date: '2026-06-22', days: 14, allocations: [{ category: t.c.travel }] }])
+  await h.post(`claims/${over.claim.id}/submit`, { version: over.claim.version }, t.sam, 409)
+  await h.post(`claims/${over.claim.id}/items`, { version: over.claim.version, item: over.items[0].id, kind: 'per_diem', date: '2026-06-22', days: 14, allocations: [{ category: t.c.travel }], explanation: 'Conference week' }, t.sam)
+  const sent = await submit(h, t.sam, await h.get(`claims/${over.claim.id}`, t.sam))
+  assert.deepEqual((await h.get(`claims/${sent.id}`, t.priya)).revisions[0].snapshot.exceptions.map(e => [e.code, e.message]), [['over-budget', 'Over the Travel budget of 5000.00 for 2026-06']])
+  assert.deepEqual(await tick('2026-06-30'), [[[PRIYA, JORDAN, MORGAN], 'Budget alert: Travel at 100%', null]])
+
+  // July starts at zero with no repeat alert; spend analytics shows budget against actual.
+  assert.deepEqual(await tick('2026-07-01'), [])
+  assert.equal((await h.get('budgets?day=2026-07-01', t.jordan)).find(b => b.name === 'Travel').actualMinor, 0)
+  const spendView = await h.get('spend?by=category&from=2026-06-01&to=2026-06-30', t.jordan)
+  assert.deepEqual(spendView.budgets.filter(b => b.name === 'Travel').map(b => [b.actualMinor, b.remainingMinor]), [[515000, -15000]])
+
+  // A change is the next version; budgets import from CSV, all rows or none.
+  const v2 = await h.post('budgets', { ...travelBudget, id: travel.id, amount: '6000.00' }, t.jordan)
+  assert.deepEqual(v2.filter(b => b.id === travel.id).map(b => [b.version, b.amount_minor]), [[2, 600000]])
+  const header = 'name,scope,scopeKey,period,amount,owner,thresholds,perMember,policyRule'
+  await h.post('budgets/import', { csv: `${header}\nOffice,category,${t.c.office},quarterly,900.00,${JORDAN},100,no,no\nBad,planet,,monthly,10.00,${JORDAN},100,no,no\n` }, t.jordan, 400)
+  const imported = await h.post('budgets/import', { csv: `${header}\nOffice,category,${t.c.office},quarterly,900.00,${JORDAN},100,no,no\nEverything,entity,,yearly,250000.00,${JORDAN},"50,90",no,no\n` }, t.jordan)
+  assert.deepEqual(imported.map(b => b.name).sort(), ['Everything', 'Meals per person', 'Office', 'Travel'])
+}))
+
 test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt compliance, unsubmitted spend and exception trends, each matching the records and exportable as CSV', () => withAgency(async (h, t) => {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   const run = (name, cookie = t.jordan, status) => h.get(`reports/${name}?from=${today}&to=${today}`, cookie, status)

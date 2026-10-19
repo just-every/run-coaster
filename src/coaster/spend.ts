@@ -2,6 +2,7 @@ import { commit, authority } from './session';
 import { event } from './events';
 import { business } from './settings';
 import { claimNumber } from './claims';
+import { budgetReport } from './budgets';
 import { isoDate, now, requireThat, text, uid, type Actor, type Data } from './types';
 
 /** Spend analytics (REPORT-001). Departments (ADMIN-001), projects (CODE-001), cards (FEED-004) and budgets (REPORT-004)
@@ -19,8 +20,7 @@ function scope(actor: Actor) {
 
 /** One line per category split of each expense on the current revision of every submitted, approved, batched or
  * reimbursed claim, plus its sales tax as its own line, so every grouping adds up to the same total. */
-async function lines(db: D1Database, actor: Actor, from: string, to: string) {
-  const s = scope(actor);
+export async function spendLines(db: D1Database, from: string, to: string, s: { sql: string; params: unknown[] } = { sql: '', params: [] }) {
   const { results } = await db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,r.snapshot,m.name AS employee_name FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_members m ON m.email=c.employee_email WHERE c.status IN ('submitted','approved','batched','reimbursed')${s.sql} ORDER BY c.number`).bind(...s.params).all<Data>();
   const out: Data[] = [];
   for (const c of results) for (const item of JSON.parse(c.snapshot).items as Data[]) {
@@ -49,7 +49,7 @@ export async function spend(db: D1Database, actor: Actor, query: Record<string, 
   requireThat(isBy(q.by), 'Choose how to group spend', 400);
   const from = isoDate(q.from, 'From'), to = isoDate(q.to, 'Until');
   requireThat(to >= from, 'The period must end on or after it starts');
-  const all = await lines(db, actor, from, to), by = q.by;
+  const all = await spendLines(db, from, to, scope(actor)), by = q.by;
   if (q.key !== undefined) {
     const picked = all.filter(l => keyOf(by, l)[0] === q.key);
     return { by, from, to, key: q.key, currency: settings.currency, lines: picked.map(l => ({ ...l, receiptLink: l.receipt ? `/api/coaster/receipts/${l.receipt}` : null })), totalMinor: picked.reduce((n, l) => n + l.amountMinor, 0) };
@@ -61,7 +61,9 @@ export async function spend(db: D1Database, actor: Actor, query: Record<string, 
     groups.set(key, g);
   }
   const rows = [...groups.values()].map(g => ({ ...g, expenses: g.expenses.size }) as Data).sort((a, b) => by === 'month' ? a.key.localeCompare(b.key) : b.totalMinor - a.totalMinor || a.label.localeCompare(b.label));
-  return { by, from, to, currency: settings.currency, groups: rows, totalMinor: all.reduce((n, l) => n + l.amountMinor, 0), views: await spendViews(db, actor) };
+  // Budget against actual for the budget period holding the last day shown (REPORT-004), for those who read budgets.
+  const budgetsShown = actor.roles.finance || actor.roles.auditor || actor.roles.owner ? await budgetReport(db, actor, to) : [];
+  return { by, from, to, currency: settings.currency, groups: rows, totalMinor: all.reduce((n, l) => n + l.amountMinor, 0), budgets: budgetsShown, views: await spendViews(db, actor) };
 }
 
 export async function spendViews(db: D1Database, actor: Actor) {

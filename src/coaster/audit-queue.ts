@@ -5,7 +5,7 @@ import { requireBusiness } from './settings';
 import { now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 /** How much each exception weighs in the queue's risk order: duplicates first, then rule breaks, then missing evidence. */
-export const RISK: Record<string, number> = { 'duplicate-receipt': 5, 'possible-duplicate': 4, 'needs-pre-approval': 3, 'over-limit': 3, 'over-per-person': 2, 'missing-receipt': 2 };
+export const RISK: Record<string, number> = { 'duplicate-receipt': 5, 'possible-duplicate': 4, 'needs-pre-approval': 3, 'over-limit': 3, 'over-per-person': 2, 'over-budget': 2, 'missing-receipt': 2 };
 const DAY = 86_400_000;
 
 /** The approval just written is sampled when it crosses the next whole multiple of the percentage: the n-th approval

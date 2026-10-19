@@ -1,8 +1,9 @@
 import type { Business } from './settings';
 import type { Category } from './items';
 import type { Data } from './types';
+import { overBudget } from './budgets';
 
-export type PolicyException = { item: string; code: 'missing-receipt' | 'over-limit' | 'over-per-person' | 'needs-pre-approval' | 'duplicate-receipt' | 'possible-duplicate'; message: string };
+export type PolicyException = { item: string; code: 'missing-receipt' | 'over-limit' | 'over-per-person' | 'needs-pre-approval' | 'duplicate-receipt' | 'possible-duplicate' | 'over-budget'; message: string };
 export type ClaimItem = Data & { id: string; kind: string; spent_on: string; merchant: string; amount_minor: number; receipt_id: string | null; receipt_sha256?: string | null; allocations: Data[]; attendees: Data[]; fields: Record<string, string> };
 
 /** Each required custom field (CLAIM-007) a current expense leaves blank, named with the expense and category. */
@@ -69,6 +70,8 @@ export async function findExceptions(db: D1Database, claim: { id: string; employ
     if (twin) found.push({ item: item.id, code: 'possible-duplicate', message: `Same date, merchant and amount as claim CL-${String(twin.number).padStart(4, '0')}` });
     else if (history) found.push({ item: item.id, code: 'possible-duplicate', message: `Same date, merchant and amount as imported report ${history.report}` });
   }
+  // A budget whose policy rule is on marks the expense that would take it past its amount (REPORT-004).
+  found.push(...await overBudget(db, claim, items));
   return found;
 }
 
