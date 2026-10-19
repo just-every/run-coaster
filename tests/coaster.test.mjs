@@ -557,7 +557,8 @@ test('CLAIM-007 a three-night folio is itemized into categorized parts, a dinner
   assert.deepEqual(folio.allocations.map(a => [a.description, a.category_name, a.amount_minor]), [['Room, 3 nights', 'Lodging', 86700], ['Room tax', 'Lodging', 10404], ['In-room dining', 'Meals', 5271], ['Incidentals: parking', 'Travel', 1500]])
   assert.deepEqual(dinner.attendees.map(a => a.kind), ['employee', 'employee', 'guest', 'guest'])
   assert.deepEqual(d.exceptions.map(e => [e.code, e.item]), [['over-per-person', dinner.id]])
-  assert.match(d.exceptions[0].message, /80\.00 a person for 4 people, over the Meals limit of AUD 75\.00 a person/)
+  assert.match(d.exceptions[0].message, /AUD 320\.00 for 4 people is AUD 80\.00 a person, over the Meals limit of AUD 75\.00 a person/)
+  assert.deepEqual(dinner.per_person.map(p => [p.share_minor, p.limit_minor, p.over]), [[8000, 7500, true]])
   await h.post(`claims/${d.claim.id}/items`, { version: d.claim.version, item: dinner.id, kind: 'receipt', date: '2026-05-15', merchant: 'Rockpool', amount: '320.00', allocations: [{ category: t.c.meals }], attendees: [{ kind: 'employee', name: 'Stranger', email: 'stranger@elsewhere.example' }] }, t.sam, 400)
   const refused = await h.send(`/api/coaster/claims/${d.claim.id}/submit`, { version: d.claim.version }, t.sam)
   assert.equal(refused.status, 409); assert.match(refused.value.error, /Client for Rockpool \(Meals\)/); assert.doesNotMatch(refused.value.error, /Harbour Grand Hotel/)
@@ -571,6 +572,17 @@ test('CLAIM-007 a three-night folio is itemized into categorized parts, a dinner
   const csv = (await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, t.jordan)).text
   assert.match(csv, /"Room tax","receipt","Lodging","6210","GST","","104.04"/); assert.match(csv, /"In-room dining","receipt","Meals","6300","GST","","52.71"/)
   assert.equal(sum(csv, 'amount'), 103875 + 32000)
+
+  // The homepage's $101.95 dinner for three: each share shows rounded half up to the cent ($33.98), under $75; the limit
+  // is checked against the exact share, so a $33.98 limit is exceeded by $33.98333….
+  const three = [{ kind: 'employee', name: 'alex', email: 'alex@harbourfinch.example' }, { kind: 'guest', name: 'Dana Kim' }, { kind: 'guest', name: 'Lee Park' }]
+  const small = await claim(h, t.alex, 'Client dinner', [{ kind: 'receipt', date: '2026-05-16', merchant: 'Union Station Grill', amount: '101.95', receiptFixture: 'uber', allocations: [{ category: t.c.meals }], attendees: three }])
+  assert.deepEqual(small.items[0].per_person.map(p => [p.share_minor, p.limit_minor, p.over, p.people]), [[3398, 7500, false, 3]])
+  assert.deepEqual(small.exceptions, [])
+  await h.post('settings/categories', { id: t.c.meals, name: 'Meals', accountCode: '6300', taxCode: 'GST', perPersonLimit: '33.98', requiredFields: 'Business purpose, Client' })
+  const tight = await h.get(`claims/${small.claim.id}`, t.alex)
+  assert.deepEqual(tight.items[0].per_person.map(p => [p.share_minor, p.over]), [[3398, true]])
+  assert.deepEqual(tight.exceptions.map(e => [e.code, e.message]), [['over-per-person', 'AUD 101.95 for 3 people is AUD 33.98 a person, over the Meals limit of AUD 33.98 a person']])
 }))
 
 test('CLAIM-005 a conference is requested and approved before spending, linked expenses show estimate against actual, and an unlinked expense over the threshold is approved only once a request is linked or with the approver\'s recorded override', () => withAgency(async (h, t) => {
@@ -613,6 +625,7 @@ test('CLAIM-005 a conference is requested and approved before spending, linked e
   // The gate sits at approval: acknowledging is not enough; link an approved request or record an override.
   const gated = await h.send(`/api/coaster/claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', acknowledge: true }, t.priya)
   assert.deepEqual([gated.status, /no approved request linked/.test(gated.value.error)], [409, true])
+  await h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', acknowledge: true, hold: [seen.items[0].id], reason: 'Ticket invoice needed' }, t.priya, 409)
   c = await h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'returned', reason: 'Link a spend request for the monitor' }, t.priya)
   const screen = await h.post('requests', { title: 'Studio monitor', estimate: '650.00' }, t.sam)
   await h.post(`requests/${screen.id}/decision`, { version: screen.version, decision: 'approved' }, t.priya)

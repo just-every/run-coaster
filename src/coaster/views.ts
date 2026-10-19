@@ -1,7 +1,7 @@
 import { business } from './settings';
 import { canSee, claimItems, loadClaim, visible, type Claim } from './claims';
 import { categories } from './items';
-import { findExceptions } from './exceptions';
+import { findExceptions, perPersonShares } from './exceptions';
 import { batchLines, loadBatch } from './batches';
 import { requireThat, type Actor, type Data } from './types';
 import { delegations } from './delegation';
@@ -51,15 +51,15 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
     db.prepare('SELECT id,name,media_type,size,sha256,source,uploaded_by,uploaded_at FROM c_receipts WHERE claim_id=? ORDER BY uploaded_at, id').bind(claim.id),
   ]);
   const history = (revisions.results as Data[]).map(r => ({ ...r, snapshot: JSON.parse(r.snapshot) }));
-  const settings = await business(db);
+  const settings = await business(db), known = await categories(db), byId = new Map(known.map(c => [c.id, c]));
   const exceptions = ['draft', 'returned'].includes(claim.status) && settings
-    ? await findExceptions(db, claim, items, settings, await categories(db))
+    ? await findExceptions(db, claim, items, settings, known)
     : history.at(-1)?.snapshot.exceptions ?? [];
   // Estimate against actual for each spend request this claim's expenses link to, seen by anyone who sees the claim.
   const linked = [...new Set(items.map(i => i.request_id).filter(Boolean))];
   const requests = await Promise.all(linked.map(async id => ({ ...(await loadRequest(db, id)), claim_minor: items.filter(i => i.request_id === id).reduce((n, i) => n + i.amount_minor, 0) })));
   return {
-    claim, requests, comments: await claimComments(db, claim.id), items: items.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256 })), exceptions, receipts: receipts.results,
+    claim, requests, comments: await claimComments(db, claim.id), items: items.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: receipts.results,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
     events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
   };

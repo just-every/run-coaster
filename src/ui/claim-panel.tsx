@@ -84,6 +84,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
           <Receipt item={item} />
           <span className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}
             {item.attendees?.length > 0 && <span className="split-line">Attendees: {item.attendees.map((a: D) => a.kind === 'guest' ? `${a.name} (guest)` : a.name).join(', ')}</span>}
+            {(item.per_person ?? []).map((p: D) => <span key={p.category} className="split-line">{money(p.share_minor, currency)} a person · {p.over ? 'over' : p.amount_minor === p.limit_minor * p.people ? 'at' : 'under'} {money(p.limit_minor, currency)}</span>)}
             {Object.entries(item.fields ?? {}).map(([name, value]) => <span key={name} className="split-line">{name}: {String(value)}</span>)}</span>
           <span className="amount">{amount(item.amount_minor)}</span>
           {(flags.length > 0 || editable) && <span className="line-extra">

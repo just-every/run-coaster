@@ -22,6 +22,20 @@ export function exactKey(employee: string, item: ClaimItem) {
   return item.receipt_sha256 ? `receipt:${item.receipt_sha256}` : `expense:${employee}|${item.spent_on}|${item.kind}|${normal(item.merchant)}|${item.amount_minor}`;
 }
 
+/** Each per-person limit an expense meets: the expense's total share in that category divided by everyone listed at it
+ * (at least one). The share shown rounds half up to the cent; the limit is checked against the exact share, so it is over
+ * when amount > limit × people. */
+export function perPersonShares(item: { attendees?: Data[]; allocations: Data[] }, byId: Map<string, Category>) {
+  const perCategory = new Map<string, number>();
+  for (const part of item.allocations) perCategory.set(part.category_id, (perCategory.get(part.category_id) ?? 0) + part.amount_minor);
+  const people = Math.max(1, item.attendees?.length ?? 0);
+  return [...perCategory].flatMap(([id, amount]) => {
+    const category = byId.get(id);
+    if (category?.per_person_limit_minor == null) return [];
+    return [{ category: category.name, people, amount_minor: amount, share_minor: Math.round(amount / people), limit_minor: category.per_person_limit_minor, over: amount > category.per_person_limit_minor * people }];
+  });
+}
+
 /** Policy exceptions for a claim's current items. They are recorded with each submission and never hidden. */
 export async function findExceptions(db: D1Database, claim: { id: string; employee_email: string }, items: ClaimItem[], business: Business, known: Category[]): Promise<PolicyException[]> {
   const found: PolicyException[] = [];
@@ -39,11 +53,9 @@ export async function findExceptions(db: D1Database, claim: { id: string; employ
       const category = byId.get(id);
       if (category?.limit_minor != null && amount > category.limit_minor)
         found.push({ item: item.id, code: 'over-limit', message: `Over the ${category.name} limit of ${money(category.limit_minor, business.currency)}` });
-      // A per-person limit divides the category's share of the expense among everyone listed at it (at least the employee).
-      const people = Math.max(1, item.attendees?.length ?? 0), each = Math.ceil(amount / people);
-      if (category?.per_person_limit_minor != null && each > category.per_person_limit_minor)
-        found.push({ item: item.id, code: 'over-per-person', message: `${money(each, business.currency)} a person for ${people} ${people === 1 ? 'person' : 'people'}, over the ${category.name} limit of ${money(category.per_person_limit_minor, business.currency)} a person` });
     }
+    for (const share of perPersonShares(item, byId).filter(s => s.over))
+      found.push({ item: item.id, code: 'over-per-person', message: `${money(share.amount_minor, business.currency)} for ${share.people} ${share.people === 1 ? 'person' : 'people'} is ${money(share.share_minor, business.currency)} a person, over the ${share.category} limit of ${money(share.limit_minor, business.currency)} a person` });
     if (item.receipt_sha256) {
       const same = items.find(other => other.id !== item.id && other.receipt_sha256 === item.receipt_sha256);
       const elsewhere = await db.prepare("SELECT c.number FROM c_items i JOIN c_claims c ON c.id=i.claim_id JOIN c_receipts r ON r.id=i.receipt_id WHERE r.sha256=? AND i.id<>? AND c.status<>'rejected' ORDER BY c.number LIMIT 1").bind(item.receipt_sha256, item.id).first<{ number: number }>();
