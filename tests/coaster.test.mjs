@@ -1523,13 +1523,16 @@ test('ERASURE-001 the owner erases a departed employee\'s personal data and keep
   const file = async name => (await readFile(`tests/fixtures/receipts/${name}.png`)).toString('base64')
   const card = { source: 'ramp', csv: (await readFile('tests/fixtures/ramp-transactions.csv', 'utf8')).replaceAll(',USD,', ',AUD,'), filename: 'ramp.csv', mapping: { date: 'YYYY-MM-DD' }, receipts: [{ name: 'RT-1001.png', base64: await file('officeworks') }, { name: 'RT-1002.png', base64: await file('bistro') }] }
   await h.post('import/commit', { ...card, fingerprint: (await h.post('import/preview', card)).fingerprint })
-  const paid = await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Client visit', [{ kind: 'receipt', date: '2026-05-04', merchant: 'Hotel Ibis', amount: '180.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }])))
+  // The mileage expense reimburses under a key built from Sam's address (no receipt).
+  const paid = await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Client visit', [{ kind: 'receipt', date: '2026-05-04', merchant: 'Hotel Ibis', amount: '180.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }, { kind: 'mileage', date: '2026-05-04', merchant: 'Airport run', distance: '56', allocations: [{ category: t.c.car }] }])))
   const said = await h.post(`claims/${paid.id}/comments`, { body: 'Folio attached, two nights at the Ibis' }, t.sam)
   await h.post(`claims/${paid.id}/comments`, { body: 'Thanks, approved', parent: said.comment }, t.priya)
   let batch = await h.post('batches', { claims: [paid.id] }, t.morgan)
-  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 18000 }, t.jordan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 22928 }, t.jordan)
   await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0510', paidOn: '2026-05-10' }, t.jordan)
-  await h.post('agent-keys', { label: 'Sam receipts agent' }, t.sam)
+  // Sam's agent forwards a receipt, uploaded "Sam receipts agent for" Sam's address.
+  const key = await h.post('agent-keys', { label: 'Sam receipts agent' }, t.sam)
+  assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Forwarded receipt', items: [{ kind: 'receipt', date: '2026-05-09', merchant: 'Officeworks', amount: '18.00', allocations: [{ category: t.c.office }], receipt: { name: 'officeworks.png', base64: (await readFile('tests/fixtures/receipts/officeworks.png')).toString('base64') } }] }, '', { authorization: `Bearer ${key.token}` })).status, 200)
   await h.post('delegates', { delegate: 'alex@harbourfinch.example', level: 'submit' }, t.sam)
   const open = await submit(h, t.sam, await claim(h, t.sam, 'Taxi', [{ kind: 'receipt', date: '2026-05-06', merchant: 'Uber', amount: '20.10', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' }]))
 
@@ -1549,7 +1552,7 @@ test('ERASURE-001 the owner erases a departed employee\'s personal data and keep
   assert.match(receipt.label, /^Former member [0-9a-f]{8}$/); assert.equal(subject, 'former-member-' + receipt.label.slice(-8))
   assert.equal(receipt.erasedBy, 'owner@harbourfinch.example')
   assert.deepEqual(receipt.removed, { name: true, email: true, signInAccount: true, agentKeys: 1, delegations: 1, approverAssignments: 0, comments: 1, reminders: 0 })
-  assert.deepEqual(receipt.retained.claims.map(c => [c.claim, c.status, c.totalMinor]), [[`CL-${String(paid.number).padStart(4, '0')}`, 'reimbursed', 18000], [`CL-${String(rejected.number).padStart(4, '0')}`, 'rejected', 2010]])
+  assert.deepEqual(receipt.retained.claims.map(c => [c.claim, c.status, c.totalMinor]), [[`CL-${String(paid.number).padStart(4, '0')}`, 'reimbursed', 22928], [`CL-${String(rejected.number).padStart(4, '0')}`, 'rejected', 2010]])
   const hotel = sha(await readFile('tests/fixtures/receipts/hotel.png'))
   assert.deepEqual(receipt.retained.receiptSha256, [hotel, sha(await readFile('tests/fixtures/receipts/uber.png'))].sort())
   assert.deepEqual((await h.get('retention')).erasures, [receipt], 'the receipt stays with the owner')
@@ -1560,7 +1563,7 @@ test('ERASURE-001 the owner erases a departed employee\'s personal data and keep
   assert.equal((await h.send('/api/coaster/state', undefined, t.sam)).status, 401, 'their sign-in is gone')
   // Amounts and receipt hashes stay under the opaque subject.
   const kept = await h.get(`claims/${paid.id}`)
-  assert.deepEqual([kept.claim.employee_email, kept.claim.status, kept.claim.total_minor], [subject, 'reimbursed', 18000])
+  assert.deepEqual([kept.claim.employee_email, kept.claim.status, kept.claim.total_minor], [subject, 'reimbursed', 22928])
   assert.equal(sha(Buffer.from(await (await h.mf.dispatchFetch(`${h.origin}/api/coaster/receipts/${kept.items[0].receipt_id}`, { headers: { cookie: h.owner } })).arrayBuffer())), hotel, 'the receipt bytes stay')
   assert.deepEqual(kept.comments.map(c => [c.author_email, c.body, c.parent_id]), [['priya@harbourfinch.example', 'Thanks, approved', null]], 'their own comment is removed; the reply stays')
   assert.ok((await h.get(`history?q=CL-${String(paid.number).padStart(4, '0')}`)).lines.some(l => l.action === 'claim-submitted' && l.actor_email === subject))

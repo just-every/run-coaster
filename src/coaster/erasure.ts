@@ -102,6 +102,9 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     ...['c_escalations', 'c_reminders'].map(t => sql(`DELETE FROM ${t} WHERE key IN (SELECT key FROM c_reminder_items WHERE person=?)`, address)),
     sql('DELETE FROM c_reminder_items WHERE person=?', address),
     sql('UPDATE c_members SET approver_email=NULL WHERE approver_email=?', address),
+    // Text that embeds the address: a receipt-less expense's reimbursement key and an agent's "<label> for <address>" upload.
+    sql("UPDATE c_reimbursement_keys SET key='expense:'||?||substr(key,length(?)+9) WHERE substr(key,1,length(?)+9)='expense:'||?||'|'", subject, address, address, address),
+    sql("UPDATE c_receipts SET uploaded_by=substr(uploaded_by,1,length(uploaded_by)-length(?))||? WHERE source='agent' AND substr(uploaded_by,-(length(?)+5))=' for '||?", address, subject, address, address),
     // Kept, under the label: every column holding their address, and their address inside JSON.
     ...ADDRESS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=? WHERE ${c}=?`, subject, address))),
     ...JSON_COLUMNS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=replace(${c},?,?) WHERE instr(${c},?)>0`, quoted, quotedLabel, quoted))),
