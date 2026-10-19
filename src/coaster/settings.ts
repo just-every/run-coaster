@@ -5,14 +5,14 @@ import { queueMoves } from './delegation';
 import { categories } from './items';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; mileage_rates: MileageRate[] };
+export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; reminder_days: number[]; quiet_from: number; quiet_until: number; mileage_rates: MileageRate[] };
 
 /** The IRS documentary-evidence line: a new business needs receipts above $75 unless the owner sets another threshold. */
 export const DEFAULT_RECEIPT_THRESHOLD_MINOR = 7500;
 
 export async function business(db: D1Database): Promise<Business | null> {
-  const found = await db.prepare('SELECT name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,audit_sample_percent FROM c_business WHERE id=1').first<Omit<Business, 'mileage_rates'>>();
-  return found && { ...found, mileage_rates: await mileageRates(db) };
+  const found = await db.prepare('SELECT name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,audit_sample_percent,reminder_days,quiet_from,quiet_until FROM c_business WHERE id=1').first<Omit<Business, 'mileage_rates' | 'reminder_days'> & { reminder_days: string }>();
+  return found && { ...found, reminder_days: JSON.parse(found.reminder_days) as number[], mileage_rates: await mileageRates(db) };
 }
 export async function requireBusiness(db: D1Database) {
   const found = await business(db);

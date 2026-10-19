@@ -10,6 +10,7 @@ import { setupStateResponse } from './base/setup-state'
 import { authResponse, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { deliverReports } from './coaster/report-schedules'
+import { runReminders } from './coaster/reminders'
 
 // Start documents keep their own cache policy and add no-transform, so no proxy
 // rewrites the HTML React hydrates (Cloudflare's email address obfuscation
@@ -34,9 +35,11 @@ const worker = {
     if (lobby) return lobby
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))
   },
-  // The hourly Cron Trigger sends scheduled reports (REPORT-002).
+  // The hourly Cron Trigger chases open items (FOLLOWUP-001) and sends scheduled reports (REPORT-002).
   async scheduled(controller, env) {
-    await deliverReports(runtimeBindings(env), new Date(controller.scheduledTime))
+    const at = new Date(controller.scheduledTime)
+    await runReminders(runtimeBindings(env), at)
+    await deliverReports(runtimeBindings(env), at)
   },
 } satisfies ExportedHandler<Bindings>
 

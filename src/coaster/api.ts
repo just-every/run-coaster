@@ -11,6 +11,7 @@ import { releaseHold } from './holds';
 import { exceptionQueue, recordFinding, reviewException, saveAuditSample } from './audit-queue';
 import { saveApprovalRule } from './auto-approval';
 import { report } from './reports';
+import { saveReminderSettings } from './reminders';
 import { reportSchedules, scheduleReport, stopReportSchedule } from './report-schedules';
 import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
@@ -116,6 +117,7 @@ api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c
 api.get('/api/coaster/exceptions', as(async (a, c) => exceptionQueue(db(c), a, c.req.query('sort'))));
 api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db(c), a, await body(c))));
 api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalRule(db(c), a, await body(c))));
+api.post('/api/coaster/settings/reminders', as(async (a, c) => saveReminderSettings(db(c), a, await body(c))));
 api.post('/api/coaster/settings/audit-sample', as(async (a, c) => saveAuditSample(db(c), a, await body(c))));
 api.post('/api/coaster/audit-samples/finding', as(async (a, c) => recordFinding(db(c), a, await body(c))));
 api.get('/api/coaster/reports/:name', as(async (a, c) => report(db(c), a, param(c, 'name'), c.req.query())));

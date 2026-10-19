@@ -952,7 +952,8 @@ test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt 
     return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
   }
   const worker = await h.mf.getWorker()
-  const tick = async (day, hour) => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, hour), cron: '17 * * * *' }); return h.messages.slice(before) }
+  // The same hourly run also chases open items (FOLLOWUP-001); only the report mail is counted here.
+  const tick = async (day, hour) => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, hour), cron: '17 * * * *' }); return h.messages.slice(before).filter(m => !m.subject.startsWith('Reminder: ')) }
   assert.deepEqual(await tick('2026-10-29', 9), [], 'Thursday is not the last business day')
   assert.deepEqual(await tick('2026-10-30', 7), [], 'not before 08:00')
   const sent = await tick('2026-10-30', 8)
@@ -1035,6 +1036,64 @@ test('ACCT-005 a batch and a period export as CSV and XLSX through a saved colum
   await file('exports/accounting.csv?from=2026-01-01&to=2099-12-31', t.sam, 403)
   const events = (await h.get(`batches/${batch.id}`, t.jordan)).events.filter(e => e.action === 'batch-exported').map(e => e.detail.format)
   assert.deepEqual(events, ['csv', 'csv', 'xlsx', 'xlsx', 'iif'])
+}))
+
+test('FOLLOWUP-001 reminders chase receipts, drafts, holds, questions and decisions on the business days finance sets, never on a holiday or in quiet hours, and stop once done', () => withAgency(async (h, t) => {
+  await h.post('settings/reminders', { days: '2, 5, 10', quietFrom: '20', quietUntil: '8' }, t.sam, 403)
+  await h.post('settings/reminders', { days: '5, 2', quietFrom: '20', quietUntil: '8' }, t.jordan, 400)
+  await h.post('settings/reminders', { days: '2, 5, 10', quietFrom: '20', quietUntil: '8' }, t.jordan)
+  const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example'
+  // Sam's draft needs a receipt; Alex's claim waits for Priya, who asks Alex a question; Priya holds Sam's mileage.
+  const draft = await claim(h, t.sam, 'Supplies', [{ kind: 'receipt', date: '2026-10-30', merchant: 'Officeworks', amount: '80.00', allocations: [{ category: t.c.office }] }])
+  let pending = await submit(h, t.alex, await claim(h, t.alex, 'Hotel', [{ kind: 'receipt', date: '2026-10-29', merchant: 'Hotel Ibis', amount: '150.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }]))
+  const asked = await h.post(`claims/${pending.id}/comments`, { body: 'Which client?', asks: ALEX }, t.priya)
+  const split = await submit(h, t.sam, await claim(h, t.sam, 'Visits', [{ kind: 'receipt', date: '2026-10-28', merchant: 'Bistro', amount: '40.00', allocations: [{ category: t.c.meals }], receiptFixture: 'bistro' }, { kind: 'mileage', date: '2026-10-28', merchant: 'Studio to site', distance: '10', allocations: [{ category: t.c.car }] }]))
+  await approve(h, t.priya, split, { hold: [(await h.get(`claims/${split.id}`, t.sam)).items[1].id], reason: 'Which site?' })
+  const heldId = (await h.get(`claims/${split.id}`, t.priya)).revisions.at(-1).snapshot.split.heldClaim
+  const number = c => `CL-${String(c.number).padStart(4, '0')}`
+
+  const sydney = (day, hour) => {
+    const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:17:00Z`)
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]))
+    return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
+  }
+  const worker = await h.mf.getWorker()
+  const tick = async (day, hour = 9) => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, hour), cron: '17 * * * *' }); return h.messages.slice(before).map(m => [m.to[0], m.subject]).sort() }
+
+  // Monday 2 November: everything open is noted; two business days later each is reminded once, never in quiet hours.
+  assert.deepEqual(await tick('2026-11-02'), [])
+  assert.deepEqual(await tick('2026-11-03'), [], 'one business day is not yet two')
+  assert.deepEqual(await tick('2026-11-04', 6), [], 'quiet hours until 08:00')
+  const first = await tick('2026-11-04')
+  assert.deepEqual(first, [
+    [ALEX, `Reminder: Answer the question on ${number(pending)}`],
+    ['priya@harbourfinch.example', `Reminder: Decide ${number(pending)}`],
+    [SAM, `Reminder: Answer the hold on ${number(await h.get(`claims/${heldId}`, t.sam).then(d => d.claim))}`],
+    [SAM, `Reminder: Attach the receipt for Officeworks`],
+    [SAM, `Reminder: Submit ${number(draft.claim)}`],
+  ].sort())
+  assert.match(h.messages.findLast(m => m.subject.startsWith('Reminder: Decide')).text, new RegExp(`/app#/claims/${pending.id}$`), 'the reminder links straight to the claim')
+  assert.deepEqual(await tick('2026-11-04', 10), [], 'each step is sent once')
+
+  // Resolve some: Alex answers, then retracts the claim (the approver's reminders stop); Sam attaches the receipt.
+  await h.post(`claims/${pending.id}/comments`, { body: 'Harbour Bank', parent: asked.comment }, t.alex)
+  pending = await h.post(`claims/${pending.id}/retract`, { version: (await h.get(`claims/${pending.id}`, t.alex)).claim.version, reason: 'Wrong dates' }, t.alex)
+  const withReceipt = await h.post(`claims/${draft.claim.id}/receipts`, { version: draft.claim.version, item: draft.items[0].id, ...(await receipt('officeworks')) }, t.sam)
+  assert.ok(withReceipt.receipt)
+  assert.deepEqual(await tick('2026-11-09'), [[SAM, `Reminder: Answer the hold on ${number(await h.get(`claims/${heldId}`, t.sam).then(d => d.claim))}`], [SAM, `Reminder: Submit ${number(draft.claim)}`]].sort(), 'five business days: only what is still open')
+
+  // Veterans Day (Wednesday 11 November) is not a business day; Alex's retracted draft is reminded the day after.
+  assert.deepEqual(await tick('2026-11-11'), [])
+  assert.deepEqual(await tick('2026-11-12'), [[ALEX, `Reminder: Submit ${number(pending)}`]])
+
+  // Sam resubmits the held claim alone: its reminders stop, while the drafts reach their next steps.
+  const heldDetail = await h.get(`claims/${heldId}`, t.sam)
+  await h.post(`claims/${heldId}/submit`, { version: heldDetail.claim.version }, t.sam)
+  assert.deepEqual(await tick('2026-11-17'), [[ALEX, `Reminder: Submit ${number(pending)}`], [SAM, `Reminder: Submit ${number(draft.claim)}`]], 'Sam at ten business days, Alex at five since 9 November')
+  // Sam submits the draft: nothing chases Sam any more.
+  await submit(h, t.sam, await h.get(`claims/${draft.claim.id}`, t.sam))
+  assert.deepEqual((await tick('2026-12-01')).filter(([to]) => to === SAM), [])
+  assert.deepEqual((await h.get(`claims/${draft.claim.id}`, t.sam)).events.filter(e => e.action === 'reminder-sent').map(e => [e.actor_email, e.detail.item.split(':')[0], e.detail.step, e.detail.businessDays]), [['reminder', 'receipt', 1, 2], ['reminder', 'unsubmitted', 1, 2], ['reminder', 'unsubmitted', 2, 5], ['reminder', 'unsubmitted', 3, 10]], 'each reminder is a history line on its claim')
 }))
 
 test('POLICY-003 finance works one queue of open exceptions across claims by risk or age, and a 10% audit sample takes a recorded finding', () => withAgency(async (h, t) => {

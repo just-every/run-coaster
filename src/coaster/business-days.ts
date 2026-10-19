@@ -20,3 +20,10 @@ export function businessDayOfMonth(day: string, which: 'first' | 'last') {
   const order = Array.from({ length: days }, (_, i) => iso(y, m, i + 1));
   return (which === 'first' ? order : order.reverse()).find(isBusinessDay)!;
 }
+
+/** Business days after `from` up to and including `to` (both calendar dates). */
+export function businessDaysBetween(from: string, to: string) {
+  let n = 0;
+  for (let day = new Date(Date.parse(from + 'T00:00:00Z') + 86_400_000); day.toISOString().slice(0, 10) <= to; day = new Date(day.getTime() + 86_400_000)) if (isBusinessDay(day.toISOString().slice(0, 10))) n++;
+  return n;
+}
