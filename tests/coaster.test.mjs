@@ -758,3 +758,27 @@ test('APPROVE-005 an approver holds the dinner and approves the other four; the 
   const record = await h.get(`claims/${second}`, t.alex)
   assert.deepEqual([record.revisions[0].submitted_by, record.decisions[0].actor_email, record.events.at(-1).action], ['alex@harbourfinch.example', PRIYA, 'hold-released'])
 }))
+
+test('DATA-001 with no optional provider connected, the claim-to-batch journey sends data only through the declared mail adapter', () => withAgency(async (h, t) => {
+  const d = await claim(h, t.sam, 'Brisbane visit', [{ kind: 'receipt', date: '2026-06-02', merchant: 'Hotel Ibis', amount: '236.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }])
+  let c = await submit(h, t.sam, d)
+  await h.post(`claims/${c.id}/comments`, { body: 'Which client was this for?', asks: 'sam@harbourfinch.example' }, t.priya)
+  c = await approve(h, t.priya, c)
+  let batch = await h.post('batches', { claims: [c.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 23600 }, t.jordan)
+  assert.equal((await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, t.jordan)).status, 200)
+  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0603', paidOn: '2026-06-03' }, t.jordan)
+  assert.equal((await h.get(`claims/${c.id}`, t.sam)).claim.status, 'reimbursed', 'the core flow works with no optional provider connected')
+
+  // Each outbound host belongs to a flow seed.json declares; with no identity provider linked, only mail leaves.
+  const declared = new Set(JSON.parse(await readFile('seed.json', 'utf8')).externals.map(e => e.id))
+  const flowOf = { 'api.resend.com': 'mail-provider' }
+  assert.ok(h.outbound.length >= 6, 'invitations and the question were mailed')
+  for (const request of h.outbound) assert.ok(declared.has(flowOf[new URL(request.url).host]), `undeclared outbound ${request.method} ${request.url}`)
+  assert.deepEqual([...new Set(h.outbound.map(r => `${r.method} ${r.url}`))], ['POST https://api.resend.com/emails'])
+  const receiptBytes = (await readFile('tests/fixtures/receipts/hotel.png')).toString('base64').slice(0, 64)
+  for (const message of h.messages) {
+    assert.equal(message.attachments, undefined, 'no receipt or file leaves by mail')
+    assert.ok(!JSON.stringify(message).includes(receiptBytes))
+  }
+}))

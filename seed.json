@@ -87,6 +87,29 @@
         "HTTP requests"
       ],
       "adapters": []
+    },
+    {
+      "id": "mail-provider",
+      "required": false,
+      "requiredWhen": "MAIL_PROVIDER selects resend, sendgrid or cloudflare",
+      "why": "A hosted Coaster emails sign-in links, invitations, delegate-grant notices (ADMIN-005) and questions about a claim (APPROVE-006) through the owner's own Resend, SendGrid or Cloudflare Email account; with no provider set nothing is sent, and Coaster on your own computer keeps mail in a local outbox.",
+      "data": [
+        "Provider API key, sender and recipient email addresses",
+        "Message subject and text/HTML body: single-use sign-in and invitation links, the delegate's name and access level, or the question asked with the claim number and title",
+        "Delivery ID"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "identity-provider",
+      "required": false,
+      "requiredWhen": "IDENTITY_PROVIDER names an Auth installation",
+      "why": "Optional sign-in through the owner's own Auth installation (OpenID Connect); a blank answer keeps email-link sign-in, and nothing is sent until the owner links one.",
+      "data": [
+        "Link handshake: Coaster's origin, name, callback and public signing key",
+        "OpenID Connect authorization requests, code redemption with a signed client assertion, and the signed-in person's email and name returned by Auth"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

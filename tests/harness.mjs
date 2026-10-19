@@ -14,8 +14,10 @@ const freePort = async () => { const s = createServer(); await new Promise(r => 
 export async function harness() {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(join(tmpdir(), 'coaster-test-'))
   const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023' })
-  const messages = []
+  // Every request the Worker sends anywhere is recorded, so a test can prove where data leaves (DATA-001).
+  const messages = [], outbound = []
   const mailTransport = async request => {
+    outbound.push({ url: request.url, method: request.method })
     assert.equal(request.url, 'https://api.resend.com/emails')
     assert.equal(request.method, 'POST')
     messages.push(await request.json())
@@ -52,7 +54,7 @@ export async function harness() {
       await post('settings/members/invite', { email })
       return confirmMail(email)
     }
-    return { db, mf, origin, owner, messages, send, post, get, person, confirmMail, async close() { await mf.dispose(); await rm(dir, { recursive: true, force: true }) } }
+    return { db, mf, origin, owner, messages, outbound, send, post, get, person, confirmMail, async close() { await mf.dispose(); await rm(dir, { recursive: true, force: true }) } }
   } catch (error) { await mf.dispose(); await rm(dir, { recursive: true, force: true }); throw error }
 }
 
