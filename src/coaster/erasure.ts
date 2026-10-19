@@ -5,7 +5,7 @@ import { event } from './events';
 import { claimNumber } from './claims';
 import { holdOn } from './retention';
 import { erasureContext } from './imports/jobs';
-import { CARD_SOURCES } from './imports/cards';
+import { HISTORY_SOURCES } from './imports/cards';
 import { email, Fault, now, requireThat, uid, type Actor, type Data } from './types';
 
 /** Personal-data erasure with financial-record retention (ERASURE-001). */
@@ -43,8 +43,8 @@ const JSON_COLUMNS: [string, string[]][] = [
   ['c_report_schedules', ['recipients']], ['c_report_deliveries', ['recipients']], ['c_escalations', ['recipients']], ['c_budget_alerts', ['recipients']],
   ['c_spend_views', ['query']], ['c_expiry_proposals', ['claims', 'receipt']], ['c_items', ['attendees', 'fields']],
 ];
-/** Imported history names the person at these paths: history values, Expensify payloads and each card tool's raw row. */
-const IMPORTED_PATHS = [['employee'], ['manager'], ['accountEmail'], ['managerEmail'], ...Object.values(CARD_SOURCES).map(p => [p.employee])];
+/** Imported history names the person at these paths: history values, Expensify payloads and each card or Emburse export's raw row. */
+const IMPORTED_PATHS = [['employee'], ['manager'], ['approver'], ['accountEmail'], ['managerEmail'], ...[...new Set(Object.values(HISTORY_SOURCES).flatMap(p => [p.employee, p.approver ?? []].flat()))].map(c => [c])];
 /** Kept as US business records: every claim, expense, split, receipt and batch, and every history line. */
 const RETAINED = ['claim and spend request amounts, dates, merchants, categories, coding, descriptions and statuses', 'receipt bytes and SHA-256 hashes', 'decisions, revisions, reimbursement batches and history lines, under the opaque label', 'imported history amounts, dates and merchants', 'what other people wrote in their own comments'];
 

@@ -7,6 +7,7 @@ import { CardHistory } from './card-history';
 
 const HISTORY = [['open', 'Open (not submitted)'], ['submitted', 'Submitted'], ['approved', 'Approved'], ['reimbursed', 'Reimbursed'], ['closed', 'Closed']];
 const JOB_WORDS: Record<string, string> = { completed: 'Imported', undone: 'Undone', queued: 'Waiting to import', applying: 'Importing', failed: 'Stopped part way', undoing: 'Undoing' };
+const SOURCE_NAMES: Record<string, string> = { expensify: 'Expensify', ramp: 'Ramp', brex: 'Brex', navan: 'Navan', certify: 'Certify', chromeriver: 'Chrome River', abacus: 'Abacus' };
 const GUESS: Record<string, string> = { open: 'open', processing: 'submitted', approved: 'approved', reimbursed: 'reimbursed', closed: 'closed', archived: 'closed', paid: 'reimbursed' };
 
 /** The Expensify move-in kit: preview writes nothing, import applies exactly what was previewed, undo reverses it. */
@@ -50,7 +51,7 @@ export function MoveIn({ state }: ViewProps) {
         </Section>
         <Section title="Imports" label="Imports">
           {jobs?.jobs.length ? <ul className="ruled-list">{jobs.jobs.map((j: D) => <li key={j.id} className="job">
-            <span>{j.source === 'expensify' ? 'Expensify' : j.source[0].toUpperCase() + j.source.slice(1)} · {JOB_WORDS[j.state] ?? 'Import'} · {j.state === 'completed' || j.state === 'undone' ? `${j.total} records` : `${j.checkpoint} of ${j.total} records`}</span>
+            <span>{SOURCE_NAMES[j.source] ?? j.source} · {JOB_WORDS[j.state] ?? 'Import'} · {j.state === 'completed' || j.state === 'undone' ? `${j.total} records` : `${j.checkpoint} of ${j.total} records`}</span>
             <span className="actions">{['queued', 'applying', 'failed'].includes(j.state) && <button className="button small" disabled={busy} onClick={() => run(async () => { await call('import/resume', { source: j.source, id: j.id, mappingVersion: j.mappingVersion }); await refresh(); })}>Resume</button>}
               {j.state === 'completed' && <button className="button small" disabled={busy} onClick={() => run(async () => { await call('import/undo', { source: j.source, id: j.id, mappingVersion: j.mappingVersion }); setNotice('Import undone.'); await refresh(); })}>Undo import</button>}</span>
           </li>)}</ul> : <Empty title="Nothing imported yet">Each import is listed here with its records, and can be undone.</Empty>}
@@ -61,7 +62,8 @@ export function MoveIn({ state }: ViewProps) {
           {jobs.history.filter((h: D) => h.kind === 'report').map((r: D) => <tr key={r.id}><td>{r.name}</td><td>{r.employee}</td><td>{HISTORY.find(([v]) => v === r.status)?.[1] ?? r.status}{r.reimbursed ? ` · ${day(r.reimbursed)}` : ''}</td><td className="figure">{money(r.totalMinor, r.currency)}</td></tr>)}
         </tbody></table> : <Empty title="No imported reports">Reports you import from Expensify appear here, read-only.</Empty>}
       </Section>
-      <CardHistory history={jobs?.history ?? []} currency={currency} onImported={refresh} />
+      <CardHistory kind="card" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
+      <CardHistory kind="emburse" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
     </div>
   </Work>;
 }

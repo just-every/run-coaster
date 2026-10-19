@@ -3,15 +3,16 @@ import { authority, need } from '../session';
 import { requireBusiness } from '../settings';
 import { requireThat, type Actor, type Data } from '../types';
 import { expensifySource, NAMESPACE } from './expensify';
-import { CARD_SOURCES, cardSource, type CardSource } from './cards';
+import { HISTORY_SOURCES, cardSource, type CardSource } from './cards';
 import { historyTargets } from './target';
 
 /** Jobs belong to the owner role, so a restored installation's owner can still resume or undo them. */
 const PRINCIPAL = 'role:owner';
 
-/** Each kit imports under its own namespace: Expensify reports (COA-011) or one card tool's charges (MOVE-004). */
-const NAMESPACES = [NAMESPACE, ...Object.keys(CARD_SOURCES)];
-const namespaceOf = (value: unknown) => { const ns = value === undefined || value === null || value === '' ? NAMESPACE : String(value); requireThat(NAMESPACES.includes(ns), 'Import from Expensify, Ramp, Brex or Navan'); return ns; };
+/** Each kit imports under its own namespace: Expensify reports (COA-011), one card tool's charges (MOVE-004) or one
+ * Emburse product's expenses (MOVE-003). */
+const NAMESPACES = [NAMESPACE, ...Object.keys(HISTORY_SOURCES)];
+const namespaceOf = (value: unknown) => { const ns = value === undefined || value === null || value === '' ? NAMESPACE : String(value); requireThat(NAMESPACES.includes(ns), 'Import from Expensify, Ramp, Brex, Navan, Certify, Chrome River or Abacus'); return ns; };
 
 function context(db: D1Database, actor: Actor, mappingVersion: string, namespace: string): D1ImportContext {
   const guard = authority(actor, 'owner');

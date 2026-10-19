@@ -1505,6 +1505,44 @@ test('MOVE-004 Ramp, Brex and Navan card exports come in as read-only history wi
   assert.deepEqual((await h.get('import')).history.map(r => r.source).sort(), ['brex', 'navan'])
 }))
 
+test('MOVE-003 Emburse Certify and Chrome River exports come in as read-only expense history with their reports, approvers and receipts, flag a re-claim and undo', () => withAgency(async (h, t) => {
+  const SAM = 'sam@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', timezone: 'America/Chicago', perDiem: '75.00', receiptThreshold: '75.00' })
+  const office = await readFile('tests/fixtures/receipts/officeworks.png'), hotel = await readFile('tests/fixtures/receipts/hotel.png'), bistro = await readFile('tests/fixtures/receipts/bistro.png')
+  const csv = await readFile('tests/fixtures/certify-expenses.csv', 'utf8')
+  const certify = { source: 'certify', csv, filename: 'certify.csv', mapping: { date: 'YYYY-MM-DD' }, receipts: [{ name: 'CE-501.png', base64: office.toString('base64') }, { name: 'CE-502.png', base64: hotel.toString('base64') }] }
+  await h.post('import/preview', certify, t.jordan, 403)
+  const count = async () => (await h.db.prepare('SELECT (SELECT COUNT(*) FROM ik_jobs) + (SELECT COUNT(*) FROM c_history) AS n').first()).n, before = await count()
+  let preview = await h.post('import/preview', { ...certify, receipts: certify.receipts.slice(0, 1) })
+  assert.deepEqual(preview.summary.errors, ['Row 3: receipt CE-502.png was not added'])
+  preview = await h.post('import/preview', certify)
+  assert.deepEqual([preview.summary.errors, preview.summary.charges, preview.summary.receipts, preview.summary.totalMinor, preview.summary.credits], [[], 4, 2, 38840 + 21200 + 4210 - 800, ['CE-504']])
+  assert.ok(preview.summary.warnings.some(w => /Cost Center/.test(w)), 'unmapped columns are named')
+  assert.equal(await count(), before, 'preview writes nothing')
+  const done = await h.post('import/commit', { ...certify, fingerprint: preview.fingerprint })
+  assert.equal(done.job.state, 'completed')
+  const chrome = { source: 'chromeriver', csv: await readFile('tests/fixtures/chromeriver-expenses.csv', 'utf8'), filename: 'chromeriver.csv', mapping: { date: 'MM/DD/YYYY' }, receipts: [{ name: 'LI-9001.png', base64: bistro.toString('base64') }] }
+  const second = await h.post('import/commit', { ...chrome, fingerprint: (await h.post('import/preview', chrome)).fingerprint })
+  const history = (await h.get('import')).history
+  assert.deepEqual(history.filter(r => r.emburse).map(r => [r.label, r.report, r.employee, r.approver, r.date, r.merchant, r.amountMinor, r.memo, r.category, r.glCode, r.receipt?.sha256 ?? null]), [
+    ['Certify expense CE-501', 'CR-77', SAM, PRIYA, '2026-02-10', 'Delta Air Lines', 38840, 'Flight to Atlanta client', 'Airfare', '6200', sha(office)],
+    ['Certify expense CE-502', 'CR-77', SAM, PRIYA, '2026-02-11', 'Hilton Garden Inn', 21200, 'One night near the client', 'Lodging', '6210', sha(hotel)],
+    ['Certify expense CE-503', 'CR-78', 'alex@harbourfinch.example', PRIYA, '2026-02-15', 'Staples', 4210, 'Toner', 'Office Supplies', '6500', null],
+    ['Certify expense CE-504', 'CR-78', 'alex@harbourfinch.example', PRIYA, '2026-02-16', 'Staples', -800, 'Returned toner', 'Office Supplies', '6500', null],
+    ['Chrome River expense LI-9001', 'ER-3301', SAM, 'jordan@harbourfinch.example', '2026-03-03', 'Union Station Grill', 6450, 'Client dinner', 'Meals', '6300', sha(bistro)],
+    ['Chrome River expense LI-9002', 'ER-3301', SAM, 'jordan@harbourfinch.example', '2026-03-04', 'Lyft', 1875, 'Ride to the client', 'Ground Transportation', '6200', null],
+  ])
+  const status = await h.post('import/status', { source: 'certify', id: done.job.id, mappingVersion: done.mappingVersion })
+  assert.deepEqual(status.originals.map(o => o.sha256).sort(), [sha(Buffer.from(csv)), sha(office), sha(hotel)].sort(), 'the export and each receipt are kept byte for byte')
+  // Claiming an imported Emburse expense again is a possible duplicate; imported expenses never become claims.
+  const reclaim = await claim(h, t.sam, 'Atlanta flight', [{ kind: 'receipt', date: '2026-02-10', merchant: 'delta air lines', amount: '388.40', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' }])
+  assert.match(reclaim.exceptions.find(e => e.code === 'possible-duplicate').message, /imported Certify expense CE-501/)
+  assert.equal((await h.get('state', t.sam)).claims.length, 1)
+  // Undo takes back exactly that import.
+  assert.equal((await h.post('import/undo', { source: 'chromeriver', id: second.job.id, mappingVersion: second.mappingVersion })).job.state, 'undone')
+  assert.deepEqual((await h.get('import')).history.map(r => r.source), ['certify', 'certify', 'certify', 'certify'])
+}))
+
 /** Every row of every table as text (BLOBs decoded), to prove a value is nowhere in the database. */
 async function everywhere(db) {
   const tables = (await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").all()).results.map(r => r.name)

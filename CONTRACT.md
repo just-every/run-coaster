@@ -319,7 +319,7 @@ The commit the Status section was judged at is the `main` commit the `contract-t
 
 Every capability claim the homepage (run-coaster.com, `src/site/landing/`) states or draws, mapped to the clauses that promise it and judged against this commit's code: `done` when the claimed form runs today, `partial` when a narrower form is in code and the rest is contract, `missing` when it is contract only. The homepage shows the product being built toward (owner, 17 October 2026); this table and the Status table show how far the code has come. `OWN` is the MIT license and the public repository.
 
-**51 claims: 6 done, 12 partial, 33 missing.**
+**51 claims: 6 done, 13 partial, 32 missing.**
 
 | # | Section | Claim | Clause(s) | Status |
 | --- | --- | --- | --- | --- |
@@ -372,7 +372,7 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 | 47 | 12 | People from Gusto, approvers, categories → QuickBooks, tags, rules, 21,870 receipt images, 38 Amex cards | MOVE-001, ADMIN-002 | missing |
 | 48 | 12 | Nothing paid twice (47 overlapping charges, 0 doubled; open reports reimbursable once) | MOVE-005 | partial |
 | 49 | 12 | `npx -y @runeditrun/rer dev just-every/run-coaster` starts Coaster on your computer | COA-013 | partial |
-| 50 | 12 | "Also moves in from SAP Concur, Emburse, Ramp, Brex and Navan" | MOVE-002, MOVE-003, MOVE-004 | missing |
+| 50 | 12 | "Also moves in from SAP Concur, Emburse, Ramp, Brex and Navan" | MOVE-002, MOVE-003, MOVE-004 | partial |
 | 51 | 13 Closing | "100% free and open source. MIT licensed." | OWN | done |
 
 ## Status
@@ -382,8 +382,8 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 24 | 17 | 49 | 90 |
-| All | 37 | 17 | 49 | 103 |
+| Target and push further | 24 | 18 | 48 | 90 |
+| All | 37 | 18 | 48 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -469,7 +469,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `MOBILE-002` | Native iOS and Android apps | target | missing |  | No native apps. |
 | `MOVE-001` | Complete Expensify move-in | target | partial | `src/coaster/imports/expensify.ts`; `tests/coaster.test.mjs` (COA-011) | Report-template CSV history moves in; people, rules, tags, receipt images and card assignments do not. |
 | `MOVE-002` | SAP Concur move-in | target | missing |  | No SAP Concur importer. |
-| `MOVE-003` | Emburse move-in | target | missing |  | No Emburse importer. |
+| `MOVE-003` | Emburse move-in | target | partial | `src/coaster/imports/cards.ts`; `src/coaster/imports/jobs.ts`; `src/ui/card-history.tsx`; `IMPORTING.md`; `tests/coaster.test.mjs` (MOVE-003) | Expense history with its reports, approvers and receipts moves in from Certify, Chrome River and Abacus exports; users, categories and approval chains do not. |
 | `MOVE-004` | Ramp, Brex and Navan move-in | target | done | `src/coaster/imports/cards.ts`; `src/coaster/imports/jobs.ts`; `src/coaster/exceptions.ts`; `src/ui/card-history.tsx`; `IMPORTING.md`; `tests/coaster.test.mjs` (MOVE-004) |  |
 | `MOVE-005` | Cutover without double counting | target | partial | `src/coaster/exceptions.ts`; `tests/coaster.test.mjs` (COA-011) | Re-claims of imported Expensify expenses are flagged as possible duplicates; no feed deduplication, open-item carry-over or cutover report. |
 | `INTEG-001` | Travel booking context | target | missing |  | No travel tool connection. |

@@ -1,0 +1,3 @@
+Line Item ID,Report ID,Employee Email,Approver Email,Transaction Date,Merchant,Amount,Currency,Business Purpose,Expense Type,GL Account,Receipt File
+LI-9001,ER-3301,sam@harbourfinch.example,jordan@harbourfinch.example,03/03/2026,Union Station Grill,64.50,USD,Client dinner,Meals,6300,LI-9001.png
+LI-9002,ER-3301,sam@harbourfinch.example,jordan@harbourfinch.example,03/04/2026,Lyft,18.75,USD,Ride to the client,Ground Transportation,6200,

@@ -88,3 +88,31 @@ no row names are listed and left out.
 
 Limits: 2 MB and 2,000 charges per CSV, 50 receipt files of up to 1.5 MB each
 per import, 8 MB per request.
+
+# Expense history from Emburse
+
+Expense lines from Emburse's Certify, Chrome River and Abacus report exports
+come in the same way, as read-only history with their report, approver,
+coding and receipts (MOVE-003). On **Move in**, choose the Emburse product,
+the CSV of report expense lines and the receipt files it names, and the date
+format; preview, import and undo work as for the card tools, and the CSV and
+every receipt are kept byte for byte with the import. A later expense claimed
+again (same employee, date, merchant and amount) is flagged as a possible
+duplicate naming the imported expense.
+
+Required: the expense id, date, employee email, merchant, amount and currency
+columns; optional: report id, approver email, description, category, GL code
+and receipt file. An approver that is not an email address blocks the import
+like the other row errors above.
+
+| Product | Expense id | Report | Date | Employee | Approver | Merchant | Amount | Currency | Description | Category | GL code | Receipt file |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Certify | `Expense ID` | `Report ID` | `Expense Date` | `Employee Email` | `Approver Email` | `Vendor` | `Amount` | `Currency` | `Description` | `Category` | `GL Code` | `Receipt File` |
+| Chrome River | `Line Item ID` | `Report ID` | `Transaction Date` | `Employee Email` | `Approver Email` | `Merchant` | `Amount` | `Currency` | `Business Purpose` | `Expense Type` | `GL Account` | `Receipt File` |
+| Abacus | `Expense ID` | `Report ID` | `Date` | `User Email` | `Approver Email` | `Merchant` | `Amount` | `Currency` | `Description` | `Category` | `GL Code` | `Receipt File` |
+
+Rename an export's headers to these if it names a column differently.
+`tests/fixtures/certify-expenses.csv` and `tests/fixtures/chromeriver-expenses.csv`
+are synthetic files in the Certify and Chrome River shapes. Users, categories
+and approval chains do not move in from Emburse yet; add the people and
+categories in Settings. Coaster makes no calls to Emburse.

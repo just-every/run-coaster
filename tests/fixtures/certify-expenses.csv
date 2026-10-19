@@ -1,0 +1,5 @@
+Expense ID,Report ID,Employee Email,Approver Email,Expense Date,Vendor,Amount,Currency,Description,Category,GL Code,Receipt File,Cost Center
+CE-501,CR-77,sam@harbourfinch.example,priya@harbourfinch.example,2026-02-10,Delta Air Lines,388.40,USD,Flight to Atlanta client,Airfare,6200,CE-501.png,ATL
+CE-502,CR-77,sam@harbourfinch.example,priya@harbourfinch.example,2026-02-11,Hilton Garden Inn,212.00,USD,One night near the client,Lodging,6210,CE-502.png,ATL
+CE-503,CR-78,alex@harbourfinch.example,priya@harbourfinch.example,2026-02-15,Staples,42.10,USD,Toner,Office Supplies,6500,,HQ
+CE-504,CR-78,alex@harbourfinch.example,priya@harbourfinch.example,2026-02-16,Staples,-8.00,USD,Returned toner,Office Supplies,6500,,HQ

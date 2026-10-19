@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 37 done, 17 partial, 49 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
+**103 clauses: 37 done, 18 partial, 48 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -219,7 +219,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **MOVE-002 — SAP Concur move-in. Status: missing.** With a synthetic Concur standard accounting extract and receipt archive, preview, map expense types to categories, commit and see report history with receipts; undo. Open scope: No SAP Concur importer.
 
-- **MOVE-003 — Emburse move-in. Status: missing.** With synthetic Certify and Chrome River exports, preview, commit and undo, and see history and receipts carried. Open scope: No Emburse importer.
+- **MOVE-003 — Emburse move-in. Status: partial.** With synthetic Certify and Chrome River exports, preview, commit and undo, and see history and receipts carried. Existing evidence: `src/coaster/imports/cards.ts`; `src/coaster/imports/jobs.ts`; `src/ui/card-history.tsx`; `IMPORTING.md`; `tests/coaster.test.mjs` (MOVE-003): a Certify export with two receipts previews without writing (a missing receipt and unmapped columns named, a credit as a negative amount), imports each expense line as read-only history with its report, approver, coding and receipt SHA-256, keeps the export and receipts byte for byte, and a Chrome River export in its own columns and date format imports beside it; claiming an imported expense again is flagged naming it, and undo takes back exactly one import. Open scope: Users, categories and approval chains do not move in yet.
 
 - **MOVE-004 — Ramp, Brex and Navan move-in. Status: done.** Import a synthetic Ramp transaction export with receipts and see history; import synthetic Brex and Navan exports and see their history; claim an imported charge again and see it flagged; undo one import. Connecting a feed overlapping the same month and seeing no duplicates is in FEED-001's and FEED-002's acceptance. Existing evidence: `src/coaster/imports/cards.ts`; `src/coaster/imports/jobs.ts`; `src/coaster/exceptions.ts`; `src/ui/card-history.tsx`; `IMPORTING.md`; `tests/coaster.test.mjs` (MOVE-004): only the owner previews; `tests/fixtures/ramp-transactions.csv` with one of its two named receipts is blocked by row, and with both previews four records (three charges and a refund as a negative amount) and two receipts; the import keeps each charge's employee, date, merchant, amount, memo, category, GL code and receipt SHA-256, and the export and both receipts as byte-exact originals; an out-of-pocket claim of the bistro charge is flagged as a possible duplicate of "imported Ramp card charge RT-1002" and no imported charge becomes a claim; Brex (YYYY-MM-DD) and Navan (MM/DD/YYYY) exports import in their own columns; undoing the Ramp import removes exactly its charges.
 

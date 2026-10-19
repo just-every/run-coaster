@@ -4,6 +4,8 @@ import { day, DATE_FORMATS, minor } from './expensify';
 import { receiptBytes } from '../claims';
 import { Fault, requireThat, type Data } from '../types';
 
+type Profile = { label: string; id: string; date: string; employee: string; merchant: string; amount: string; currency: string; memo: string; category: string; gl: string; receipt: string; report?: string; approver?: string };
+
 /** Card transactions from Ramp, Brex and Navan CSV exports come in as read-only history with their receipts and coding
  * (MOVE-004). Each profile names the columns that tool's transaction export uses (IMPORTING.md); the fixtures are
  * synthetic, and no call is made to any of them. */
@@ -11,15 +13,23 @@ export const CARD_SOURCES = {
   ramp: { label: 'Ramp', id: 'Transaction ID', date: 'Transaction Date', employee: 'User Email', merchant: 'Merchant Name', amount: 'Amount', currency: 'Currency', memo: 'Memo', category: 'Ramp Category', gl: 'Accounting Category', receipt: 'Receipt File' },
   brex: { label: 'Brex', id: 'Transaction ID', date: 'Posted Date', employee: 'Card Member Email', merchant: 'Merchant', amount: 'Amount', currency: 'Currency', memo: 'Memo', category: 'Category', gl: 'GL Account', receipt: 'Receipt File' },
   navan: { label: 'Navan', id: 'Transaction ID', date: 'Transaction Date', employee: 'Employee Email', merchant: 'Merchant', amount: 'Amount', currency: 'Currency', memo: 'Description', category: 'Expense Type', gl: 'GL Code', receipt: 'Receipt File' },
-} as const;
-export type CardSource = keyof typeof CARD_SOURCES;
+} as const satisfies Record<string, Profile>;
+/** Expense lines from Emburse's Certify, Chrome River and Abacus report exports, with their report and approver, come in
+ * the same way (MOVE-003). */
+export const EMBURSE_SOURCES = {
+  certify: { label: 'Certify', id: 'Expense ID', report: 'Report ID', date: 'Expense Date', employee: 'Employee Email', approver: 'Approver Email', merchant: 'Vendor', amount: 'Amount', currency: 'Currency', memo: 'Description', category: 'Category', gl: 'GL Code', receipt: 'Receipt File' },
+  chromeriver: { label: 'Chrome River', id: 'Line Item ID', report: 'Report ID', date: 'Transaction Date', employee: 'Employee Email', approver: 'Approver Email', merchant: 'Merchant', amount: 'Amount', currency: 'Currency', memo: 'Business Purpose', category: 'Expense Type', gl: 'GL Account', receipt: 'Receipt File' },
+  abacus: { label: 'Abacus', id: 'Expense ID', report: 'Report ID', date: 'Date', employee: 'User Email', approver: 'Approver Email', merchant: 'Merchant', amount: 'Amount', currency: 'Currency', memo: 'Description', category: 'Category', gl: 'GL Code', receipt: 'Receipt File' },
+} as const satisfies Record<string, Profile>;
+export const HISTORY_SOURCES: Record<string, Profile> = { ...CARD_SOURCES, ...EMBURSE_SOURCES };
+export type CardSource = keyof typeof CARD_SOURCES | keyof typeof EMBURSE_SOURCES;
 const REQUIRED = ['id', 'date', 'employee', 'merchant', 'amount', 'currency'] as const;
-const OPTIONAL = ['memo', 'category', 'gl', 'receipt'] as const;
+const OPTIONAL = ['memo', 'category', 'gl', 'receipt', 'report', 'approver'] as const;
 
 /** Plan input for import-kit: one record per charge, the export and each receipt file kept as originals; diagnostics
  * that block commit. Refunds and credits come in as negative amounts. */
 export function cardSource(source: CardSource, raw: unknown, filename: unknown, config: unknown, files: unknown, currency: string) {
-  const profile = CARD_SOURCES[source];
+  const profile = HISTORY_SOURCES[source], card = source in CARD_SOURCES, noun = card ? 'card charge' : 'expense';
   requireThat(typeof raw === 'string' && raw.length > 0 && raw.length <= 2_000_000, `Choose the ${profile.label} CSV (at most 2 MB)`);
   const name = typeof filename === 'string' && filename.trim() ? filename.trim().slice(0, 200) : `${source}.csv`;
   const date = (config as Data)?.date;
@@ -36,7 +46,7 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
   const missing = REQUIRED.filter(k => !headers.includes(profile[k])).map(k => profile[k]);
   requireThat(!missing.length, `The ${profile.label} CSV is missing required columns: ${missing.join(', ')}`);
   requireThat(rows.length <= 2000, 'Import at most 2,000 charges per file');
-  const bytes = new TextEncoder().encode(raw), artifactHash = sha256(bytes), known = new Set<string>([...REQUIRED, ...OPTIONAL].map(k => profile[k]));
+  const bytes = new TextEncoder().encode(raw), artifactHash = sha256(bytes), known = new Set<string>([...REQUIRED, ...OPTIONAL].flatMap(k => profile[k] ?? []));
   const diagnostics: Diagnostic[] = [], charges = new Map<string, Data>(), used = new Set<string>(), credits: string[] = [];
   const ignored = headers.filter(h => !known.has(h));
   if (ignored.length) diagnostics.push({ severity: 'warning', code: 'IGNORED_COLUMNS', message: `Columns kept in the original file but not mapped: ${ignored.join(', ')}` });
@@ -54,12 +64,14 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
     if (amount === null || amount === 0) fail('BAD_AMOUNT', `${profile.amount} "${amountText}" must be an amount like 12.50 (a refund or credit like -12.50)`);
     if (at(profile.currency).toUpperCase() !== currency) fail('OTHER_CURRENCY', `currency ${at(profile.currency)} is not this business's ${currency}`);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(employee)) fail('BAD_EMPLOYEE', `${profile.employee} "${employee}" is not an email address`);
+    const approver = at(profile.approver).toLowerCase();
+    if (approver && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(approver)) fail('BAD_APPROVER', `${profile.approver} "${approver}" is not an email address`);
     const receipt = file ? receipts.get(file) : undefined;
     if (file && !receipt) fail('MISSING_RECEIPT', `receipt ${file} was not added`);
     if (receipt) used.add(file);
     charges.set(id, { payload: r, location, value: {
-      source, label: `${profile.label} card charge ${id}`, transactionId: id, employee, date: when, merchant: at(profile.merchant), amountMinor: amount, currency,
-      memo: at(profile.memo), category: at(profile.category), glCode: at(profile.gl), card: true,
+      source, label: `${profile.label} ${noun} ${id}`, transactionId: id, employee, date: when, merchant: at(profile.merchant), amountMinor: amount, currency,
+      memo: at(profile.memo), category: at(profile.category), glCode: at(profile.gl), ...(card ? { card: true } : { emburse: true, report: at(profile.report), approver }),
       receipt: receipt ? { name: receipt.name, sha256: receipt.sha, size: receipt.bytes.length, mediaType: receipt.media } : null,
     } });
   });
