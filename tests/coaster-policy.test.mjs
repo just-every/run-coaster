@@ -165,6 +165,8 @@ test('POLICY-001 releasing a held expense applies the current hard rules and ver
   await h.post(`claims/${sent.id}/decision`, { revision: sent.revision, version: sent.version, decision: 'approved', hold: [draft.items[1].id], reason: 'Need the project' }, t.priya)
   const heldId = (await h.get(`claims/${sent.id}`, t.priya)).revisions.at(-1).snapshot.split.heldClaim
   const held = (await h.get(`claims/${heldId}`, t.sam)).claim
+  await h.post('policy', { rules: [{ kind: 'blocked-merchant', merchant: 'Taxi ticket' }] }, t.morgan)
+  assert.match((await h.post(`claims/${held.id}/release`, { version: held.version, acknowledge: true }, t.priya, 409)).error, /Explain each policy exception/)
   await h.post('policy', { rules: [{ kind: 'blocked-merchant', merchant: 'Taxi ticket', hard: true }] }, t.morgan)
   assert.match((await h.post(`claims/${held.id}/release`, { version: held.version, acknowledge: true }, t.priya, 409)).error, /hard policy rule/)
   await h.post('policy', { rules: [] }, t.morgan)

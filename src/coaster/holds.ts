@@ -75,6 +75,7 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   requireThat(!missing.length, `Fill in the required fields: ${missing.join('; ')} (policy v${active.version})`, 409);
   const exceptions = await findExceptions(db, claim, items, business, active.categories, active);
   requireThat(!exceptions.some(e => e.hard), `This claim breaks a hard policy rule and cannot be submitted: ${exceptions.filter(e => e.hard).map(e => e.message).join('; ')}`, 409);
+  requireThat(!exceptions.some(e => !items.find(i => i.id === e.item)?.explanation), 'Explain each policy exception before releasing the hold', 409);
   requireThat(!exceptions.length || b.acknowledge === true, 'Review and acknowledge the policy exceptions before approving', 409);
   const override = preApprovalOverride(exceptions, b);
   const original = await db.prepare('SELECT submitted_by FROM c_revisions WHERE claim_id=? ORDER BY revision DESC LIMIT 1').bind(claim.held_from).first<{ submitted_by: string }>();
