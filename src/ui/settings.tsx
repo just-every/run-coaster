@@ -70,6 +70,12 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Every expense under" name="limit" inputMode="decimal" required={false} defaultValue={state.approvalRule?.limit_minor ? amountText(state.approvalRule.limit_minor) : '75.00'} hint="Each expense must be under this, carry its receipt and raise no policy exception" />
       </Form>
     </Section>}
+    {owner && b && <Section title="Scheduled submission">
+      <p className="muted">Expenses added without choosing a claim collect in a report for their month or trip. On this schedule, at 9:00 ({b.timezone}), each such report submits its complete expenses to the approver; anything missing a receipt, explanation or required field stays behind and keeps being reminded. Claims built by hand are never submitted for anyone.</p>
+      <Form key={b.auto_submit ?? 'off'} label="Save schedule" onSubmit={async v => { await call('settings/auto-submit', v); await saved('Schedule saved.'); }}>
+        <Field label="Submit automatic reports" name="schedule" required={false} defaultValue={b.auto_submit ?? ''} options={[{ value: 'daily', label: 'Each business day' }, { value: 'weekly', label: 'Weekly (first business day)' }, { value: 'twice-monthly', label: 'Twice a month (1st and 16th)' }, { value: 'monthly', label: 'Monthly (first business day)' }]} hint="Choose… turns it off" />
+      </Form>
+    </Section>}
     {owner && b && <Section title="Mileage rates">
       <p className="muted">Each trip is priced at the rate in force on its date. {b.currency === 'USD' ? 'Seeded with the IRS standard business mileage rates; add next year\'s rate when the IRS announces it.' : 'Add the rate per mile your business pays from the day it applies.'}</p>
       {b.mileage_rates.length ? <table className="plain"><thead><tr><th>From</th><th className="figure">Rate per mile</th><th><span className="visually-hidden">Remove</span></th></tr></thead><tbody>

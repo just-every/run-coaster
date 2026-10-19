@@ -1355,3 +1355,49 @@ test('CLAIM-009 finance pays a monthly stipend to every employee and caps a year
   assert.deepEqual([mine.all, mine.recurring.map(r => r.merchant)], [[], ['Figma']])
   assert.deepEqual((await h.get('allowances', t.jordan)).all.map(a => a.name).sort(), ['Home office', 'Phone stipend'])
 }))
+
+test('AUTO-001 expenses file themselves into a report by month or trip and submit on the owner\'s weekly schedule; an expense missing its receipt stays behind with its reminder', () => withAgency(async (h, t) => {
+  const SAM = 'sam@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', timezone: 'America/Chicago', perDiem: '75.00', receiptThreshold: '75.00' })
+  await h.post('settings/auto-submit', { schedule: 'weekly' }, t.sam, 403)
+  await h.post('settings/auto-submit', { schedule: 'hourly' }, h.owner, 400)
+  assert.deepEqual(await h.post('settings/auto-submit', { schedule: 'weekly' }), { schedule: 'weekly' })
+  // Five compliant expenses with their own receipts and one $320 flight without its receipt, in the first week of June.
+  const png = text => ({ name: `${text}.png`, source: 'upload', base64: Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from(text)]).toString('base64') })
+  const add = (date, merchant, amount, category, receiptFile) => h.post('expenses', { kind: 'receipt', date, merchant, amount, allocations: [{ category }], receiptFile }, t.sam)
+  await add('2026-06-01', 'Blue Bottle', '18.40', t.c.meals, png('blue-bottle'))
+  await add('2026-06-02', 'Lyft', '42.10', t.c.travel, png('lyft'))
+  await add('2026-06-02', 'Delta', '320.00', t.c.travel)
+  await add('2026-06-03', 'Staples', '64.95', t.c.office, png('staples'))
+  await add('2026-06-04', 'Sweetgreen', '23.75', t.c.meals, png('sweetgreen'))
+  const report = await add('2026-06-05', 'FedEx Office', '88.20', t.c.office, png('fedex'))
+  assert.deepEqual([report.title, report.status, report.total_minor], ['Expenses · 2026-06', 'draft', 1840 + 4210 + 32000 + 6495 + 2375 + 8820])
+  // An expense linked to an approved trip request files into that trip's report; a claim built by hand is left alone.
+  const trip = await h.post('requests', { title: 'Austin offsite', estimate: '900.00' }, t.sam)
+  await h.post(`requests/${trip.id}/decision`, { version: trip.version, decision: 'approved' }, t.priya)
+  const tripReport = await h.post('expenses', { kind: 'receipt', date: '2026-06-03', merchant: 'Hotel Van Zandt', amount: '412.00', allocations: [{ category: t.c.travel }], request: trip.id, receiptFile: png('van-zandt') }, t.sam)
+  assert.deepEqual([tripReport.title, tripReport.total_minor], ['Austin offsite', 41200])
+  const byHand = await claim(h, t.sam, 'Client lunch', [{ kind: 'receipt', date: '2026-06-03', merchant: 'Uchi', amount: '58.00', allocations: [{ category: t.c.meals }] }])
+
+  const worker = await h.mf.getWorker()
+  const tick = (day, hour = 9) => worker.scheduled({ scheduledTime: central(day, hour), cron: '17 * * * *' })
+  const mine = async () => (await h.get('state', t.sam)).claims.filter(c => c.employee_email === SAM).map(c => [c.title, c.status, c.total_minor]).sort()
+  await tick('2026-06-05'); await tick('2026-06-08', 8)
+  assert.deepEqual((await mine()).map(c => c[1]), ['draft', 'draft', 'draft'], 'nothing submits before 9:00 on the scheduled day')
+  await tick('2026-06-08'); await tick('2026-06-08', 10)
+  // Monday 8 June at 9:00 Central: five submitted to Sam's approver; the flight waits in a new report for June.
+  assert.deepEqual(await mine(), [['Austin offsite', 'submitted', 41200], ['Client lunch', 'draft', 5800], ['Expenses · 2026-06', 'draft', 32000], ['Expenses · 2026-06', 'submitted', 1840 + 4210 + 6495 + 2375 + 8820]])
+  const sent = (await h.get('state', t.sam)).claims.find(c => c.title === 'Expenses · 2026-06' && c.status === 'submitted')
+  const detail = await h.get(`claims/${sent.id}`, t.priya)
+  assert.equal(sent.approver_email, PRIYA)
+  assert.deepEqual(detail.items.map(i => i.merchant), ['Blue Bottle', 'Lyft', 'Staples', 'Sweetgreen', 'FedEx Office'])
+  assert.deepEqual([detail.revisions[0].submitted_by, detail.revisions[0].snapshot.exceptions], ['schedule', []])
+  const split = detail.events.find(e => e.action === 'auto-report-split')
+  assert.deepEqual(split.detail.held.map(x => [x.merchant, x.reasons]), [['Delta', ['No receipt for an expense over $75.00']]])
+  const held = (await h.get('state', t.sam)).claims.find(c => c.title === 'Expenses · 2026-06' && c.status === 'draft')
+  // The next expense for June joins the report still open, and the flight keeps being chased for its receipt.
+  assert.equal((await add('2026-06-09', 'Uber', '21.30', t.c.travel, png('uber-9'))).id, held.id)
+  const before = h.messages.length
+  await tick('2026-06-09', 10)
+  assert.ok(h.messages.slice(before).some(m => m.to.includes(SAM) && m.subject === 'Reminder: Attach the receipt for Delta'), 'the held flight is still chased for its receipt')
+}))

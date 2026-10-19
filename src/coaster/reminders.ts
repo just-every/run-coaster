@@ -52,7 +52,7 @@ export async function saveReminderSettings(db: D1Database, actor: Actor, b: Data
   return { days, quietFrom, quietUntil, serviceLevel, escalateAfter };
 }
 
-const localHour = (at: Date, timezone: string) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', hourCycle: 'h23' }).format(at));
+export const localHour = (at: Date, timezone: string) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', hourCycle: 'h23' }).format(at));
 /** Quiet hours run from `from` to `until` and may wrap midnight; equal hours mean none. */
 const quiet = (hour: number, from: number, until: number) => from === until ? false : from > until ? hour >= from || hour < until : hour >= from && hour < until;
 

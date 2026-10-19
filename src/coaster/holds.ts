@@ -8,6 +8,18 @@ import { preApprovalOverride } from './requests';
 import { auditSample } from './audit-queue';
 import { now, optionalText, requireThat, uid, type Actor, type Data } from './types';
 
+/** Moves expenses to another claim. They keep their ids, splits and attendees; each receipt is copied byte for byte onto
+ * the new claim, and the original stays on the old claim and its earlier revisions. */
+export function moveItems(db: D1Database, items: Data[], from: string, to: string) {
+  return items.flatMap(item => [
+    db.prepare('UPDATE c_items SET claim_id=? WHERE id=? AND claim_id=?').bind(to, item.id, from),
+    ...(item.receipt_id ? (copy => [
+      db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) SELECT ?,?,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at FROM c_receipts WHERE id=?').bind(copy, to, item.receipt_id),
+      db.prepare('UPDATE c_items SET receipt_id=? WHERE id=?').bind(copy, item.id),
+    ])(uid()) : []),
+  ]);
+}
+
 /** Approve part of the exact submitted revision and hold the rest. The approved expenses continue on this claim as the
  * next revision, approved at once; the held ones move to a new claim that stays with the employee, carrying the reason,
  * the approver and a link back. `guard` is the decision's own COA-006 condition (approver, revision, version). */
@@ -31,19 +43,8 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
     insertClaim(db, heldId, claim.employee_email, `${claim.title} (held)`, claim.currency, null),
     db.prepare("UPDATE c_claims SET status='returned',approver_email=?,on_behalf_of=?,held_from=?,held_by=?,held_at=?,hold_reason=? WHERE id=?").bind(claim.approver_email, onBehalfOf, claim.id, by, at, reason, heldId),
   ];
-  // The held expenses keep their ids, splits and attendees; each receipt is copied byte for byte onto the new claim, and
-  // the original stays on this claim and its earlier revisions.
-  for (const item of items.filter(i => hold.includes(i.id))) {
-    writes.push(db.prepare('UPDATE c_items SET claim_id=? WHERE id=? AND claim_id=?').bind(heldId, item.id, claim.id));
-    if (item.receipt_id) {
-      const copy = uid();
-      writes.push(
-        db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) SELECT ?,?,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at FROM c_receipts WHERE id=?').bind(copy, heldId, item.receipt_id),
-        db.prepare('UPDATE c_items SET receipt_id=? WHERE id=?').bind(copy, item.id),
-      );
-    }
-  }
   writes.push(
+    ...moveItems(db, items.filter(i => hold.includes(i.id)), claim.id, heldId),
     db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?').bind(heldId, at, heldId),
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, submitted.submitted_by, at, total, JSON.stringify({ ...snapshot, total_minor: total, exceptions, items: kept, split })),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,'approved',?,?,?,?,?)").bind(uid(), claim.id, revision, override ?? '', by, at, JSON.stringify(exceptions), onBehalfOf),

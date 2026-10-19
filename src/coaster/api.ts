@@ -14,6 +14,7 @@ import { report } from './reports';
 import { saveReminderSettings } from './reminders';
 import { saveSpendView, spend } from './spend';
 import { budgetReport, importBudgets, saveBudget } from './budgets';
+import { addExpense, saveAutoSubmit } from './auto-reports';
 import { allowancesFor, saveAllowance, saveRecurring, stopAllowance, stopRecurring } from './allowances';
 import { reportSchedules, scheduleReport, stopReportSchedule } from './report-schedules';
 import { addComment, editComment } from './comments';
@@ -62,6 +63,7 @@ const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c:
 api.get('/api/coaster/state', as(async (a, c) => workspace(db(c), a)));
 api.get('/api/coaster/claims/:id', as(async (a, c) => claimDetail(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/claims', as(async (a, c) => createClaim(db(c), a, await body(c))));
+api.post('/api/coaster/expenses', as(async (a, c) => addExpense(db(c), a, await body(c))));
 api.post('/api/coaster/claims/:id/title', as(async (a, c) => renameClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/items', as(async (a, c) => saveItem(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/items/remove', as(async (a, c) => removeItem(db(c), a, param(c, 'id'), await body(c))));
@@ -120,6 +122,7 @@ api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c
 api.get('/api/coaster/exceptions', as(async (a, c) => exceptionQueue(db(c), a, c.req.query('sort'))));
 api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db(c), a, await body(c))));
 api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalRule(db(c), a, await body(c))));
+api.post('/api/coaster/settings/auto-submit', as(async (a, c) => saveAutoSubmit(db(c), a, await body(c))));
 api.post('/api/coaster/settings/reminders', as(async (a, c) => saveReminderSettings(db(c), a, await body(c))));
 api.post('/api/coaster/settings/audit-sample', as(async (a, c) => saveAuditSample(db(c), a, await body(c))));
 api.post('/api/coaster/audit-samples/finding', as(async (a, c) => recordFinding(db(c), a, await body(c))));
