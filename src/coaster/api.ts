@@ -11,6 +11,7 @@ import { releaseHold } from './holds';
 import { exceptionQueue, recordFinding, reviewException, saveAuditSample } from './audit-queue';
 import { saveApprovalRule } from './auto-approval';
 import { report } from './reports';
+import { reportSchedules, scheduleReport, stopReportSchedule } from './report-schedules';
 import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
 import { actingAs, grantDelegate, revokeDelegate } from './delegates';
@@ -118,6 +119,9 @@ api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalR
 api.post('/api/coaster/settings/audit-sample', as(async (a, c) => saveAuditSample(db(c), a, await body(c))));
 api.post('/api/coaster/audit-samples/finding', as(async (a, c) => recordFinding(db(c), a, await body(c))));
 api.get('/api/coaster/reports/:name', as(async (a, c) => report(db(c), a, param(c, 'name'), c.req.query())));
+api.get('/api/coaster/report-schedules', as(async (a, c) => { requireThat(a.roles.finance || a.roles.auditor || a.roles.owner, 'Finance, auditor or owner access required', 403); return reportSchedules(db(c)); }));
+api.post('/api/coaster/report-schedules', as(async (a, c) => scheduleReport(db(c), a, await body(c))));
+api.post('/api/coaster/report-schedules/:id/stop', as(async (a, c) => stopReportSchedule(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));
 api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'))));
 

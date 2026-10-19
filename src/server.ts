@@ -9,6 +9,7 @@ import { lobbyResponse } from './base/lobby'
 import { setupStateResponse } from './base/setup-state'
 import { authResponse, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
+import { deliverReports } from './coaster/report-schedules'
 
 // Start documents keep their own cache policy and add no-transform, so no proxy
 // rewrites the HTML React hydrates (Cloudflare's email address obfuscation
@@ -32,6 +33,10 @@ const worker = {
     const lobby = await lobbyResponse(request, runtimeBindings(env), identity)
     if (lobby) return lobby
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))
+  },
+  // The hourly Cron Trigger sends scheduled reports (REPORT-002).
+  async scheduled(controller, env) {
+    await deliverReports(runtimeBindings(env), new Date(controller.scheduledTime))
   },
 } satisfies ExportedHandler<Bindings>
 

@@ -15,6 +15,7 @@ export const REPORTS = {
 type Name = keyof typeof REPORTS;
 type Period = { from: string; to: string; start: string; end: string; today: string };
 type Built = { columns: string[]; rows: unknown[][]; totals: Data; totalRow: unknown[] };
+export const reportCsv = (built: Built) => csv([built.columns, ...built.rows, built.totalRow]);
 
 const DAY = 86_400_000;
 const localDate = (iso: string, timezone: string) => new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
@@ -95,17 +96,24 @@ const builders: Record<Name, (db: D1Database, b: Business, p: Period) => Promise
   },
 };
 
-/** One report for the period (dates in the business time zone, both ends inclusive; by default this month to today), as JSON or CSV. */
+export const isReport = (name: unknown): name is Name => typeof name === 'string' && Object.hasOwn(REPORTS, name);
+export { localDate };
+
+/** Builds one report for calendar dates in the business time zone, both ends inclusive, as of `today`. */
+export function runReport(db: D1Database, settings: Business, name: Name, from: string, to: string, today: string) {
+  return builders[name](db, settings, { from, to, start: startOf(from, settings.timezone), end: startOf(nextDay(to), settings.timezone), today });
+}
+
+/** One report for the period (by default this month to today), as JSON or CSV. */
 export async function report(db: D1Database, actor: Actor, name: string, query: Record<string, string>) {
   requireThat(actor.roles.finance || actor.roles.auditor || actor.roles.owner, 'Finance, auditor or owner access required', 403);
-  requireThat(Object.hasOwn(REPORTS, name), 'Report not found', 404);
+  requireThat(isReport(name), 'Report not found', 404);
   const settings = await business(db);
   requireThat(settings, 'The owner has not set up the business yet', 409);
   const today = localDate(new Date().toISOString(), settings.timezone);
   const to = query.to ? isoDate(query.to, 'Until') : today, from = query.from ? isoDate(query.from, 'From') : to.slice(0, 8) + '01';
   requireThat(to >= from, 'The period must end on or after it starts');
-  const period = { from, to, start: startOf(from, settings.timezone), end: startOf(nextDay(to), settings.timezone), today };
-  const built = await builders[name as Name](db, settings, period);
-  if (query.format === 'csv') return new Response(csv([built.columns, ...built.rows, built.totalRow]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="coaster-${name}-${from}-to-${to}.csv"` } });
-  return { report: name, title: REPORTS[name as Name], period: { from, to }, asOf: today, currency: settings.currency, timezone: settings.timezone, columns: built.columns, rows: built.rows, totals: built.totals };
+  const built = await runReport(db, settings, name, from, to, today);
+  if (query.format === 'csv') return new Response(reportCsv(built), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="coaster-${name}-${from}-to-${to}.csv"` } });
+  return { report: name, title: REPORTS[name], period: { from, to }, asOf: today, currency: settings.currency, timezone: settings.timezone, columns: built.columns, rows: built.rows, totals: built.totals };
 }

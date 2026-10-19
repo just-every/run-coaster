@@ -940,6 +940,41 @@ test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt 
   assert.equal(file.headers.get('content-type'), 'text/csv; charset=utf-8')
   const rows = (await file.text()).trim().split('\r\n').map(r => r.split(',').map(x => x.replace(/^"|"$/g, '')))
   assert.deepEqual([rows[0], rows.at(-1)], [receipts.columns, ['Total', '5', '4', '1', '1', '80']])
+
+  // Scheduled delivery to people who may read reports: on the last US business day, from 08:00 business time, once a period.
+  const JORDAN = 'jordan@harbourfinch.example', MORGAN = 'morgan@harbourfinch.example'
+  await h.post('report-schedules', { report: 'unsubmitted', cadence: 'last-business-day', recipients: JORDAN }, t.sam, 403)
+  await h.post('report-schedules', { report: 'unsubmitted', cadence: 'last-business-day', recipients: 'sam@harbourfinch.example' }, t.jordan, 400)
+  const [schedule] = await h.post('report-schedules', { report: 'unsubmitted', cadence: 'last-business-day', recipients: `${JORDAN}, ${MORGAN}` }, t.jordan)
+  const sydney = (day, hour) => {
+    const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:17:00Z`)
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]))
+    return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
+  }
+  const worker = await h.mf.getWorker()
+  const tick = async (day, hour) => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, hour), cron: '17 * * * *' }); return h.messages.slice(before) }
+  assert.deepEqual(await tick('2026-10-29', 9), [], 'Thursday is not the last business day')
+  assert.deepEqual(await tick('2026-10-30', 7), [], 'not before 08:00')
+  const sent = await tick('2026-10-30', 8)
+  assert.deepEqual(sent.map(m => [m.to, m.subject]), [[[JORDAN, MORGAN], 'Unsubmitted spend for accruals: 2026-10-01 to 2026-10-30']], 'Friday 30 October: the 31st is a Saturday')
+  const link = sent[0].text.match(/https?:\/\/\S+/)[0]
+  assert.ok(!/163\.20|158\.80|alex@/.test(sent[0].text + sent[0].html), 'the mail carries no figures or names, only the link')
+  const delivered = await h.mf.dispatchFetch(link, { headers: { cookie: t.jordan } })
+  assert.equal(delivered.status, 200)
+  assert.equal((await delivered.text()).trim().split('\r\n').at(-1), '"Total","3","3","","163.20"', 'the delivered link opens the report for the period')
+  assert.equal((await h.mf.dispatchFetch(link)).status, 401, 'the link needs a Coaster sign-in')
+  assert.deepEqual(await tick('2026-10-30', 9), [], 'once a period')
+  assert.deepEqual(await tick('2027-05-31', 9), [], 'Memorial Day is not a business day')
+  assert.equal((await tick('2027-05-28', 8)).length, 1)
+  assert.ok((await h.get('history?q=report-delivered', t.jordan)).lines.length >= 2)
+  // Only the owner opts a schedule in to sending the figures, attached as CSV (first business day, for the month before).
+  await h.post('report-schedules', { report: 'unsubmitted', cadence: 'first-business-day', recipients: JORDAN, includeFigures: true }, t.jordan, 403)
+  await h.post('report-schedules', { report: 'unsubmitted', cadence: 'first-business-day', recipients: JORDAN, includeFigures: true })
+  const [figures] = await tick('2026-12-01', 8)
+  assert.equal(figures.subject, 'Unsubmitted spend for accruals: 2026-11-01 to 2026-11-30')
+  assert.deepEqual(figures.attachments.map(a => [a.filename, Buffer.from(a.content, 'base64').toString().trim().split('\r\n').at(-1)]), [['coaster-unsubmitted-2026-11-01-to-2026-11-30.csv', '"Total","3","3","","163.20"']])
+  await h.post(`report-schedules/${schedule.id}/stop`, {}, t.jordan)
+  assert.deepEqual(await tick('2027-06-30', 9), [], 'a stopped schedule sends nothing')
 }))
 
 test('ACCT-005 a batch and a period export as CSV and XLSX through a saved column template and as QuickBooks Desktop IIF, naming each receipt by hash and link', () => withAgency(async (h, t) => {
