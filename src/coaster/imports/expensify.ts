@@ -8,11 +8,11 @@ export const REQUIRED = ['reportID', 'reportName', 'accountEmail', 'status', 'tr
 export const OPTIONAL = ['managerEmail', 'submitted', 'approved', 'reimbursed', 'category', 'categoryGlCode', 'tag', 'comment', 'reimbursable', 'billable', 'isDistance', 'units.count', 'units.rate', 'receiptID', 'receiptFilename', 'receiptObject.url'];
 export const HISTORY_STATUSES = ['open', 'submitted', 'approved', 'reimbursed', 'closed'];
 const REPORT_FIELDS = ['reportName', 'accountEmail', 'managerEmail', 'status', 'submitted', 'approved', 'reimbursed'];
-const DATE_FORMATS = ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'];
+export const DATE_FORMATS = ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'];
 
 export type ExpensifyMapping = { date: string; statuses: Record<string, string> };
 
-function day(value: string, format: string): string | null {
+export function day(value: string, format: string): string | null {
   const v = value.trim().slice(0, 10);
   let y: string, m: string, d: string;
   if (format === 'YYYY-MM-DD') { const x = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v); if (!x) return null; [, y, m, d] = x; }
@@ -20,7 +20,7 @@ function day(value: string, format: string): string | null {
   const iso = `${y}-${m}-${d}`;
   return new Date(iso + 'T00:00:00Z').toISOString().slice(0, 10) === iso ? iso : null;
 }
-const minor = (value: string) => /^\d{1,10}(\.\d{1,2})?$/.test(value.trim()) ? Number(value.trim().split('.')[0]) * 100 + Number((value.trim().split('.')[1] ?? '').padEnd(2, '0')) : null;
+export const minor = (value: string) => /^\d{1,10}(\.\d{1,2})?$/.test(value.trim()) ? Number(value.trim().split('.')[0]) * 100 + Number((value.trim().split('.')[1] ?? '').padEnd(2, '0')) : null;
 const yes = (value: string | undefined) => ['true', 'yes', '1', 'y'].includes((value ?? '').trim().toLowerCase());
 
 /** Plan input for import-kit: report and expense records, exact bytes, and diagnostics that block commit. */

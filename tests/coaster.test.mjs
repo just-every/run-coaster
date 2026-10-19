@@ -1464,3 +1464,42 @@ test('RETAIN-001 paid and rejected claims past the owner\'s retention are propos
   for (const c of [unpaid, draft]) assert.ok((await h.get(`claims/${c.id}`, c === draft ? t.alex : h.owner)).claim)
   for (const table of ['c_events', 'c_receipts', 'c_revisions', 'c_decisions']) await assert.rejects(h.db.prepare(`DELETE FROM ${table}`).run(), /permanent/, `${table} stays permanent outside a confirmed expiry`)
 }))
+
+test('MOVE-004 Ramp, Brex and Navan card exports come in as read-only history with receipts, memos and coding, flag a re-claim and undo', () => withAgency(async (h, t) => {
+  const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example'
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', timezone: 'America/Chicago', perDiem: '75.00', receiptThreshold: '75.00' })
+  const csv = await readFile('tests/fixtures/ramp-transactions.csv', 'utf8')
+  const uber = await readFile('tests/fixtures/receipts/uber.png'), bistro = await readFile('tests/fixtures/receipts/bistro.png')
+  const receipts = [{ name: 'RT-1001.png', base64: uber.toString('base64') }, { name: 'RT-1002.png', base64: bistro.toString('base64') }]
+  const ramp = { source: 'ramp', csv, filename: 'ramp.csv', mapping: { date: 'YYYY-MM-DD' } }
+  await h.post('import/preview', { ...ramp, receipts }, t.jordan, 403)
+  let preview = await h.post('import/preview', { ...ramp, receipts: receipts.slice(0, 1) })
+  assert.deepEqual(preview.summary.errors, ['Row 3: receipt RT-1002.png was not added'])
+  await h.post('import/commit', { ...ramp, receipts: receipts.slice(0, 1), fingerprint: preview.fingerprint }, h.owner, 409)
+  preview = await h.post('import/preview', { ...ramp, receipts })
+  assert.deepEqual([preview.summary.errors, preview.summary.charges, preview.summary.totalMinor, preview.summary.receipts, preview.summary.skipped], [[], 3, 2010 + 15000 + 6495, 2, ['RT-1004']])
+  assert.ok(preview.summary.warnings.some(w => /Card Last 4/.test(w)) && preview.summary.warnings.some(w => /RT-1004 is a refund or credit/.test(w)))
+  const done = await h.post('import/commit', { ...ramp, receipts, fingerprint: preview.fingerprint })
+  assert.equal(done.job.state, 'completed')
+  const rows = (await h.get('import')).history.filter(r => r.source === 'ramp')
+  assert.deepEqual(rows.map(r => [r.transactionId, r.employee, r.date, r.merchant, r.amountMinor, r.memo, r.category, r.glCode, r.receipt?.sha256 ?? null]), [
+    ['RT-1001', SAM, '2026-04-02', 'Uber', 2010, 'Airport to client', 'Rideshare', '6200 Travel', sha(uber)],
+    ['RT-1002', SAM, '2026-04-03', 'Harbour View Bistro', 15000, 'Client lunch', 'Restaurants', '6300 Meals', sha(bistro)],
+    ['RT-1003', ALEX, '2026-04-07', 'Staples', 6495, 'Printer paper', 'Office Supplies', '6500 Office', null],
+  ])
+  const status = await h.post('import/status', { source: 'ramp', id: done.job.id, mappingVersion: done.mappingVersion })
+  assert.deepEqual(status.originals.map(o => o.sha256).sort(), [sha(Buffer.from(csv)), sha(uber), sha(bistro)].sort(), 'the export and each receipt are kept byte for byte')
+  // Claiming an imported card charge again out of pocket is a possible duplicate; imported charges never become claims.
+  const reclaim = await claim(h, t.sam, 'Client lunch', [{ kind: 'receipt', date: '2026-04-03', merchant: 'harbour view bistro', amount: '150.00', allocations: [{ category: t.c.meals }], receiptFixture: 'hotel' }])
+  assert.match(reclaim.exceptions.find(e => e.code === 'possible-duplicate').message, /imported Ramp card charge RT-1002/)
+  assert.equal((await h.get('state', t.sam)).claims.length, 1)
+
+  // Brex and Navan exports in their own columns and date formats.
+  const brex = { source: 'brex', filename: 'brex.csv', mapping: { date: 'YYYY-MM-DD' }, csv: 'Transaction ID,Posted Date,Card Member Email,Merchant,Amount,Currency,Memo,Category,GL Account,Receipt File\nBX-1,2026-04-10,sam@harbourfinch.example,Delta,320.00,USD,Flight to Austin,Airfare,6200,\n' }
+  const navan = { source: 'navan', filename: 'navan.csv', mapping: { date: 'MM/DD/YYYY' }, csv: 'Transaction ID,Transaction Date,Employee Email,Merchant,Amount,Currency,Description,Expense Type,GL Code,Receipt File\nNV-1,04/12/2026,alex@harbourfinch.example,Hilton Austin,412.00,USD,Offsite night,Lodging,6250,\n' }
+  for (const kit of [brex, navan]) assert.equal((await h.post('import/commit', { ...kit, fingerprint: (await h.post('import/preview', kit)).fingerprint })).job.state, 'completed')
+  assert.deepEqual((await h.get('import')).history.filter(r => r.source !== 'ramp').map(r => [r.source, r.label, r.date, r.amountMinor, r.memo, r.category]), [['brex', 'Brex card charge BX-1', '2026-04-10', 32000, 'Flight to Austin', 'Airfare'], ['navan', 'Navan card charge NV-1', '2026-04-12', 41200, 'Offsite night', 'Lodging']])
+  // Undo takes back exactly that import.
+  assert.equal((await h.post('import/undo', { source: 'ramp', id: done.job.id, mappingVersion: done.mappingVersion })).job.state, 'undone')
+  assert.deepEqual((await h.get('import')).history.map(r => r.source).sort(), ['brex', 'navan'])
+}))

@@ -1,0 +1,5 @@
+Transaction ID,Transaction Date,User Email,Merchant Name,Amount,Currency,Memo,Ramp Category,Accounting Category,Receipt File,Card Last 4
+RT-1001,2026-04-02,sam@harbourfinch.example,Uber,20.10,USD,Airport to client,Rideshare,6200 Travel,RT-1001.png,4242
+RT-1002,2026-04-03,sam@harbourfinch.example,Harbour View Bistro,150.00,USD,Client lunch,Restaurants,6300 Meals,RT-1002.png,4242
+RT-1003,2026-04-07,alex@harbourfinch.example,Staples,64.95,USD,Printer paper,Office Supplies,6500 Office,,1881
+RT-1004,2026-04-08,alex@harbourfinch.example,Staples,-12.00,USD,Returned toner,Office Supplies,6500 Office,,1881
