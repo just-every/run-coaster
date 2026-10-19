@@ -102,7 +102,9 @@ export async function saveMember(db: D1Database, actor: Actor, b: Data) {
   const roles = { employee: flag(b.employee), manager: flag(b.manager), finance: flag(b.finance), auditor: flag(b.auditor) };
   requireThat(roles.employee || roles.manager || roles.finance || roles.auditor, 'Choose at least one role');
   // The release grant (PAY-004) is the owner's to give, and only to finance.
-  const release = flag(b.release);
+  const release = flag(b.release), contractor = flag(b.contractor);
+  // A contractor claims as a non-employee (CLAIM-008): their reimbursements are flagged for 1099 review.
+  requireThat(!contractor || roles.employee, 'A contractor claims expenses, so give them the employee role');
   requireThat(!release || roles.finance, 'Only a finance member can be given release access');
   let approver: string | null = null;
   if (b.approver) {
@@ -117,8 +119,8 @@ export async function saveMember(db: D1Database, actor: Actor, b: Data) {
   const was = await db.prepare('SELECT active,may_release FROM c_members WHERE email=?').bind(address).first<{ active: number; may_release: number }>();
   const moves = was?.active === 1 && !active ? await queueMoves(db, actor, address, approver) : [];
   await commit(db, authority(actor, 'owner'), [
-    db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active,may_release,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,is_auditor=excluded.is_auditor,approver_email=excluded.approver_email,active=excluded.active,may_release=excluded.may_release,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, roles.auditor, approver, active, release, now()),
-    event(db, actor, 'member-saved', {}, { email: address, roles, approver, active: active === 1 }),
+    db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active,may_release,is_contractor,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,is_auditor=excluded.is_auditor,approver_email=excluded.approver_email,active=excluded.active,may_release=excluded.may_release,is_contractor=excluded.is_contractor,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, roles.auditor, approver, active, release, contractor, now()),
+    event(db, actor, 'member-saved', {}, { email: address, roles, approver, active: active === 1, contractor: contractor === 1 }),
     ...(release !== (was?.may_release ?? 0) ? [event(db, actor, release ? 'release-granted' : 'release-revoked', {}, { email: address })] : []),
     ...moves,
   ]);

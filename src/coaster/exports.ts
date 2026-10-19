@@ -12,9 +12,11 @@ type Row = Record<string, string | number>;
 
 /** Every field each file can carry, in the default template's order. */
 export const FIELDS: Record<Kind, string[]> = {
-  accounting: ['batch', 'claim', 'employee', 'date', 'merchant', 'description', 'type', 'category', 'account_code', 'tax_code', 'cost_center', 'amount', 'currency', 'receipt_sha256', 'receipt_link', 'policy_exceptions', 'explanation', 'approved_by', 'approved_at', 'memo', 'billable', 'customer', 'project'],
-  reimbursements: ['batch', 'employee', 'name', 'claims', 'amount', 'currency'],
+  accounting: ['batch', 'claim', 'employee', 'date', 'merchant', 'description', 'type', 'category', 'account_code', 'tax_code', 'cost_center', 'amount', 'currency', 'receipt_sha256', 'receipt_link', 'policy_exceptions', 'explanation', 'approved_by', 'approved_at', 'memo', 'billable', 'customer', 'project', 'taxable', 'form_1099_review'],
+  reimbursements: ['batch', 'employee', 'name', 'claims', 'amount', 'currency', 'taxable_amount', 'form_1099_review'],
 };
+/** Fields kept in minor units and written as money. */
+const MONEY = new Set(['amount', 'taxable_amount']);
 const defaultColumns = (kind: Kind): Column[] => FIELDS[kind].map(field => ({ field, header: field }));
 const exportReader = (actor: Actor) => requireThat(actor.roles.finance || actor.roles.auditor, 'Finance or auditor access required', 403);
 
@@ -57,8 +59,8 @@ async function batchRows(db: D1Database, batch: Batch, kind: Kind, origin: strin
   const { lines, people } = await batchLines(db, batch.id), name = batchNumber(batch.number);
   requireThat(lines.reduce((n, l) => n + l.amountMinor, 0) === batch.total_minor && people.reduce((n, p) => n + p.amountMinor, 0) === batch.total_minor, 'The batch does not reconcile; do not pay it and report this', 500);
   return kind === 'accounting'
-    ? lines.map(l => ({ batch: name, claim: l.claim, employee: l.employee, date: l.date, merchant: l.merchant, description: l.description, type: l.kind, category: l.category, account_code: l.account, tax_code: l.tax, cost_center: l.costCentre, amount: l.amountMinor, currency: batch.currency, receipt_sha256: l.receipt, receipt_link: l.receiptId ? `${origin}/api/coaster/receipts/${l.receiptId}` : '', policy_exceptions: l.exceptions, explanation: l.explanation, approved_by: l.approver, approved_at: l.approvedAt, memo: l.memo, billable: l.billable ? 'true' : 'false', customer: l.customer, project: l.project, employee_name: l.employeeName }))
-    : people.map(p => ({ batch: name, employee: p.email, name: p.name, claims: p.claims.join(' '), amount: p.amountMinor, currency: batch.currency }));
+    ? lines.map(l => ({ batch: name, claim: l.claim, employee: l.employee, date: l.date, merchant: l.merchant, description: l.description, type: l.kind, category: l.category, account_code: l.account, tax_code: l.tax, cost_center: l.costCentre, amount: l.amountMinor, currency: batch.currency, receipt_sha256: l.receipt, receipt_link: l.receiptId ? `${origin}/api/coaster/receipts/${l.receiptId}` : '', policy_exceptions: l.exceptions, explanation: l.explanation, approved_by: l.approver, approved_at: l.approvedAt, memo: l.memo, billable: l.billable ? 'true' : 'false', customer: l.customer, project: l.project, employee_name: l.employeeName, taxable: l.taxable ? 'true' : 'false', form_1099_review: l.form1099 ? 'true' : 'false' }))
+    : people.map(p => ({ batch: name, employee: p.email, name: p.name, claims: p.claims.join(' '), amount: p.amountMinor, currency: batch.currency, taxable_amount: p.taxableMinor, form_1099_review: p.form1099 ? 'true' : 'false' }));
 }
 
 /** QuickBooks Desktop IIF: one bill per claim to the employee as vendor, crediting Accounts Payable and debiting each
@@ -90,7 +92,7 @@ async function render(db: D1Database, batches: Batch[], kind: Kind, format: stri
   }
   const columns = await columnsFor(db, kind, template);
   // Amounts are decimal currency units in CSV and numbers in XLSX; every other field is text.
-  const cells = rows.map(r => columns.map(c => c.field === 'amount' ? (format === 'xlsx' ? Number(r.amount) / 100 : decimal(Number(r.amount))) : String(r[c.field] ?? '')));
+  const cells = rows.map(r => columns.map(c => MONEY.has(c.field) ? (format === 'xlsx' ? Number(r[c.field]) / 100 : decimal(Number(r[c.field]))) : String(r[c.field] ?? '')));
   const table = [columns.map(c => c.header), ...cells];
   return format === 'xlsx'
     ? { rows: rows.length, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', body: xlsx(table, new Date()) as BodyInit }

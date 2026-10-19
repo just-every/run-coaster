@@ -22,7 +22,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_requests', ['employee_email', 'approver_email', 'on_behalf_of', 'submitted_by', 'decided_by', 'decided_on_behalf_of']],
   ['c_comments', ['on_behalf_of', 'asks_email']],
   ['c_export_templates', ['created_by']],
-  ['c_exception_reviews', ['reviewed_by']],
+  ['c_exception_reviews', ['reviewed_by']], ['c_nonaccountable', ['marked_by']],
   ['c_audit_samples', ['finding_by']],
   ['c_approval_rules', ['set_by']],
   ['c_report_schedules', ['created_by', 'stopped_by']],

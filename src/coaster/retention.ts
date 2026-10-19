@@ -112,7 +112,7 @@ export async function confirmExpiry(db: D1Database, actor: Actor, id: string) {
       ...await Promise.all(keys.map(async k => db.prepare('INSERT INTO c_expired_keys(key_sha256,claim_number,expired_at) VALUES(?,?,?) ON CONFLICT DO NOTHING').bind(await sha256Hex(k.key), k.number, at))),
       db.prepare(`DELETE FROM c_escalations WHERE key IN (SELECT key FROM c_reminder_items WHERE claim_id ${inClaims})`).bind(list),
       db.prepare(`DELETE FROM c_reminders WHERE key IN (SELECT key FROM c_reminder_items WHERE claim_id ${inClaims})`).bind(list),
-      ...['c_reminder_items', 'c_exception_reviews', 'c_audit_samples', 'c_decisions', 'c_revisions', 'c_reimbursement_keys', 'c_batch_claims', 'c_allowance_runs'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),
+      ...['c_reminder_items', 'c_exception_reviews', 'c_audit_samples', 'c_decisions', 'c_revisions', 'c_reimbursement_keys', 'c_batch_claims', 'c_allowance_runs', 'c_nonaccountable'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),
       db.prepare(`DELETE FROM c_comments WHERE claim_id ${inClaims} AND parent_id IS NOT NULL`).bind(list),
       ...['c_comments', 'c_items', 'c_receipts', 'c_events'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),
       ...(unit.batch ? [db.prepare('DELETE FROM c_events WHERE batch_id=?').bind(unit.batch)] : []),

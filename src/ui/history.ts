@@ -28,6 +28,7 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'batch-reimbursed': `Marked paid by ${who} · reference ${d.reference} on ${day(d.paidOn)}`,
     'batch-release-first': `First release by ${who} · over ${money(d.dualReleaseOverMinor ?? 0)}, waiting for a second releaser`,
     'batch-released': `Released for payment by ${who}${d.firstReleasedBy ? ` after ${names[d.firstReleasedBy] ?? d.firstReleasedBy}` : ''} · ${money(d.totalMinor ?? 0)} · recent sign-in`,
+    'expense-non-accountable': `${who} marked ${d.merchant} on ${d.claim} non-accountable (taxable pay) · ${d.reason}`, 'expense-accountable': `${who} returned ${d.merchant} on ${d.claim} to the accountable plan · ${d.reason}`,
     'release-granted': `${who} gave ${names[d.email] ?? d.email} release access`, 'release-revoked': `${who} ended ${names[d.email] ?? d.email}’s release access`,
     'payment-controls-set': `Payment controls set by ${who} · dual release ${d.dualReleaseOverMinor == null ? 'off' : `above ${money(d.dualReleaseOverMinor)}`} · ${d.payWeekday ? `batches open every ${d.payWeekday}` : 'no reimbursement day'}`,
     'audit-pack-exported': `Audit pack for ${day(d.from)} to ${day(d.to)} downloaded by ${who} · ${plural(d.claims, 'claim')}, ${plural(d.receipts, 'receipt')}`,

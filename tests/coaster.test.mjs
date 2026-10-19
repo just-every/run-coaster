@@ -1404,6 +1404,48 @@ test('POLICY-003 finance works one queue of open exceptions across claims by ris
   assert.ok((await h.get(`claims/${sample.claim_id}`, t.alex)).events.some(e => e.action === 'audit-finding-recorded'))
 }))
 
+test('CLAIM-008 an expense filed 75 days after the spend is flagged to finance, marked non-accountable and labelled taxable; a contractor is flagged for 1099 review and a taxable stipend is labelled taxable', () => withAgency(async (h, t) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const ago = n => new Date(Date.parse(today + 'T00:00:00Z') - n * 86_400_000).toISOString().slice(0, 10)
+  await h.post('settings/members', { email: 'casey@harbourfinch.example', name: 'Casey', contractor: true, finance: true }, h.owner, 400)
+  const casey = await h.person('casey@harbourfinch.example', { employee: true, contractor: true }, 'priya@harbourfinch.example')
+  const late = await claim(h, t.sam, 'Spring conference', [
+    { kind: 'receipt', date: ago(75), merchant: 'Qantas', amount: '412.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' },
+    { kind: 'receipt', date: ago(10), merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' },
+  ])
+  const [lateItem, onTime] = late.items
+  const a = await approve(h, t.priya, await submit(h, t.sam, late))
+  const c = await approve(h, t.priya, await submit(h, casey, await claim(h, casey, 'Site visit', [{ kind: 'receipt', date: ago(5), merchant: 'Uber', amount: '20.10', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' }])))
+  // CLAIM-009's taxable stipend, paid by the hourly run and approved like any claim.
+  await h.post('allowances', { name: 'Phone stipend', type: 'stipend', category: t.c.office, period: 'monthly', amount: '30.00', tax: 'taxable', startsOn: '2026-06-01', member: 'sam@harbourfinch.example' }, t.jordan)
+  await (await h.mf.getWorker()).scheduled({ scheduledTime: central('2026-06-02', 9), cron: '17 * * * *' })
+  const stipendClaim = (await h.get('state', t.priya)).claims.find(x => x.title.startsWith('Phone stipend · '))
+  const s = await approve(h, t.priya, (await h.get(`claims/${stipendClaim.id}`, t.priya)).claim)
+
+  // Finance sees the 75-day expense, and only it, as an accountable-plan lapse; employees cannot read the list.
+  await h.get('accountable-plan', t.sam, 403)
+  const plan = await h.get('accountable-plan', t.morgan)
+  assert.deepEqual(plan.lapsed.map(x => [x.item, x.daysAfterSpend, x.filedOn, x.nonAccountable]), [[lateItem.id, 75, today, null]])
+  assert.ok(!plan.lapsed.some(x => x.item === onTime.id), 'the expense filed 10 days after the spend is within the plan')
+  await h.post(`claims/${a.id}/items/${lateItem.id}/accountable-plan`, { reason: 'Filed after the 60-day window' }, t.sam, 403)
+  const marked = await h.post(`claims/${a.id}/items/${lateItem.id}/accountable-plan`, { reason: 'Filed after the 60-day window' }, t.morgan)
+  assert.deepEqual(marked.nonAccountable.map(x => [x.item, x.nonAccountable.by, x.nonAccountable.reason]), [[lateItem.id, 'morgan@harbourfinch.example', 'Filed after the 60-day window']])
+
+  let batch = await h.post('batches', { claims: [a.id, c.id, s.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 41200 + 6495 + 2010 + 3000 }, t.jordan)
+  await h.post(`claims/${a.id}/items/${onTime.id}/accountable-plan`, { reason: 'Too late' }, t.morgan, 409)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-0820', paidOn: today }, t.jordan)
+  // The files label the non-accountable expense and the taxable stipend as taxable pay, and flag the contractor; the payroll
+  // handoff that carries taxable pay is PAY-003's.
+  const table = async file => { const [head, ...rows] = (await h.send(`/api/coaster/batches/${batch.id}/${file}`, undefined, t.jordan)).text.trim().split('\r\n').map(r => r.slice(1, -1).split('","')); return rows.map(r => Object.fromEntries(head.map((k, i) => [k, r[i]]))) }
+  const people = await table('reimbursements.csv'), lines = await table('accounting.csv')
+  assert.deepEqual(people.map(p => [p.employee, p.amount, p.taxable_amount, p.form_1099_review]).sort(), [
+    ['casey@harbourfinch.example', '20.10', '0.00', 'true'], ['sam@harbourfinch.example', '506.95', '442.00', 'false']])
+  assert.deepEqual(lines.map(l => [l.merchant, l.taxable, l.form_1099_review]).sort(), [['Officeworks', 'false', 'false'], ['Phone stipend', 'true', 'false'], ['Qantas', 'true', 'false'], ['Uber', 'false', 'true']])
+  const history = (await h.get('history')).lines
+  assert.deepEqual(history.filter(l => l.action === 'expense-non-accountable').map(l => [l.actor_email, l.detail.item, l.detail.reason]), [['morgan@harbourfinch.example', lateItem.id, 'Filed after the 60-day window']])
+}))
+
 test('CLAIM-009 finance pays a monthly stipend to every employee and caps a yearly allowance; employees claim against the cap, set recurring expenses and see what is left; a deactivated member\'s stipend stops', () => withAgency(async (h, t) => {
   const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example', JORDAN = 'jordan@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
   await h.post('settings/business', { name: 'Harbour & Finch Studio', timezone: 'America/Chicago', perDiem: '75.00', receiptThreshold: '75.00' })

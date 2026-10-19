@@ -30,3 +30,7 @@ A reviewed batch is released before anyone pays it. The owner, or a finance memb
 ## Record the payment
 
 Coaster does not move money. After releasing and paying, enter the **Payment reference** and **Paid on** date and choose **Record payment**. The batch shows **Paid** with its reference and date, and every claim in it shows **Reimbursed**.
+
+## Accountable plan
+
+Under **Accountable plan** on Batches, finance sees every expense filed more than 60 days after the spend. Choose **Mark non-accountable** with a reason to treat one as taxable pay: it is still reimbursed, and the reimbursements file shows it in the person's **taxable_amount** (with stipends set as taxable pay) while the accounting file marks its line **taxable**. The mark can change until the batch is reviewed. People the owner marks as **Contractor** under Settings → People are flagged **form_1099_review** in both files. Coaster supplies these flags; taxability and 1099 decisions stay with your accountant.

@@ -186,21 +186,32 @@ export const csv = (rows: unknown[][]) => rows.map(r => r.map(cell).join(',')).j
 export async function batchLines(db: D1Database, id: string) {
   const { results } = await db.prepare(`SELECT bc.claim_id, bc.revision, bc.amount_minor, c.number, c.employee_email, m.name AS employee_name, r.snapshot, r.submitted_by, d.actor_email AS approver, d.on_behalf_of, d.at AS approved_at, d.reason AS approval_reason FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id LEFT JOIN c_members m ON m.email=c.employee_email JOIN c_revisions r ON r.claim_id=bc.claim_id AND r.revision=bc.revision LEFT JOIN c_decisions d ON d.claim_id=bc.claim_id AND d.revision=bc.revision AND ${finalApproval('d')} WHERE bc.batch_id=? ORDER BY c.number`).bind(id).all<Data>();
   const lines: Data[] = [], people = new Map<string, Data>();
+  // Accountable-plan treatment (CLAIM-008): expenses finance marked non-accountable and taxable stipends are taxable pay;
+  // a contractor's reimbursements are flagged for 1099 review. Coaster only labels them; taxability stays with the accountant.
+  const [marked, taxableAllowances, contractors] = await db.batch([
+    db.prepare('SELECT n.item_id AS id FROM c_nonaccountable n JOIN c_batch_claims bc ON bc.claim_id=n.claim_id WHERE bc.batch_id=?').bind(id),
+    db.prepare("SELECT id FROM c_allowances WHERE tax='taxable'"),
+    db.prepare('SELECT email AS id FROM c_members WHERE is_contractor=1'),
+  ]).then(r => r.map(x => new Set((x.results as { id: string }[]).map(y => y.id))));
   for (const row of results) {
     const snapshot = JSON.parse(row.snapshot);
     // The ledger memo names anyone who acted for someone else: a delegate who submitted, or approved on an approver's behalf.
     const memo = [row.submitted_by !== row.employee_email && `submitted by ${row.submitted_by} on behalf of ${row.employee_email}`, row.on_behalf_of && `approved by ${row.approver} on behalf of ${row.on_behalf_of}`,
       snapshot.exceptions.some((e: Data) => e.code === 'needs-pre-approval') && `approved without a spend request: ${row.approval_reason}`].filter(Boolean).join('; ');
+    const form1099 = contractors.has(row.employee_email);
+    let taxableMinor = 0;
     for (const item of snapshot.items) {
+      const taxable = marked.has(item.id) || (!!item.allowance_id && taxableAllowances.has(item.allowance_id));
+      if (taxable) taxableMinor += item.amount_minor;
       const flags = snapshot.exceptions.filter((e: Data) => e.item === item.id).map((e: Data) => e.code).join(' ');
       // An itemized part's own description (room, tax, in-room dining) stands for the expense's on its accounting line.
-      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number, part = '') => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: part || item.description, kind: item.kind, billable: !!item.billable, customer: item.customer ?? '', project: item.project ?? '', category, account, tax, costCentre, amountMinor, receipt: item.receipt?.sha256 ?? '', receiptId: item.receipt?.id ?? '', employeeName: row.employee_name ?? row.employee_email, exceptions: flags, explanation: flags ? item.explanation : '', approver: row.approver, approvedAt: row.approved_at, memo });
+      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number, part = '') => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: part || item.description, kind: item.kind, billable: !!item.billable, customer: item.customer ?? '', project: item.project ?? '', category, account, tax, costCentre, amountMinor, receipt: item.receipt?.sha256 ?? '', receiptId: item.receipt?.id ?? '', employeeName: row.employee_name ?? row.employee_email, exceptions: flags, explanation: flags ? item.explanation : '', approver: row.approver, approvedAt: row.approved_at, memo, taxable, form1099 });
       for (const part of item.allocations) line(part.category_name, part.account_code, part.tax_code, part.cost_centre, part.amount_minor, part.description);
       // A receipt's sales tax posts on its own line to the sales tax account and code copied onto the expense.
       if (item.sales_tax_minor) line('Sales tax', item.sales_tax_account, item.sales_tax_code, '', item.sales_tax_minor);
     }
-    const person = people.get(row.employee_email) ?? { email: row.employee_email, name: row.employee_name ?? row.employee_email, claims: [] as string[], amountMinor: 0 };
-    person.claims.push(claimNumber(row.number)); person.amountMinor += row.amount_minor;
+    const person = people.get(row.employee_email) ?? { email: row.employee_email, name: row.employee_name ?? row.employee_email, claims: [] as string[], amountMinor: 0, taxableMinor: 0, form1099 };
+    person.claims.push(claimNumber(row.number)); person.amountMinor += row.amount_minor; person.taxableMinor += taxableMinor;
     people.set(row.employee_email, person);
   }
   return { lines, people: [...people.values()] };

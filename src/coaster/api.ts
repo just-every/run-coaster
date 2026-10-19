@@ -3,6 +3,7 @@ import { deploymentHealth } from '../base/deployment-health';
 import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server';
 import { agent, need, person } from './session';
 import { saveBusiness, saveCategory, saveMember, savePaymentControls } from './settings';
+import { accountablePlan, markNonAccountable } from './accountable-plan';
 import { saveMileageRate } from './mileage';
 import { createClaim, removeItem, renameClaim, saveItem, submitClaim, uploadReceipt } from './claims';
 import { decide, reassign } from './decisions';
@@ -131,6 +132,8 @@ api.get('/api/coaster/agent/proposals/:id', asAgent(async (a, c) => { const p = 
 api.post('/api/coaster/agent/claims', asAgent(async (a, c) => proposeClaim(db(c), a, await body(c, 8_000_000))));
 api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c), a, await body(c))));
 
+api.get('/api/coaster/accountable-plan', as(async (a, c) => accountablePlan(db(c), a)));
+api.post('/api/coaster/claims/:id/items/:item/accountable-plan', as(async (a, c) => markNonAccountable(db(c), a, param(c, 'id'), param(c, 'item'), await body(c))));
 api.get('/api/coaster/exceptions', as(async (a, c) => exceptionQueue(db(c), a, c.req.query('sort'))));
 api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db(c), a, await body(c))));
 api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalRule(db(c), a, await body(c))));
