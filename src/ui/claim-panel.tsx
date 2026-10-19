@@ -166,10 +166,10 @@ function Decision({ claim, items, exceptions, onDone, back }: { claim: D; items:
       {Object.entries(choices).map(([value, label]) => <label key={value} className="choice"><input type="radio" name="decision" value={value} checked={choice === value} onChange={() => setChoice(value)} />{label}</label>)}
     </fieldset>
     {choice === 'approved' && items.length > 1 && <fieldset className="choices" aria-label="Hold expenses">
-      <p className="muted">Hold any expense that needs more from the employee; the rest are approved now and the held ones move to a new claim.</p>
+      <p className="muted">Hold any expense that needs more from the employee; the rest are approved now and the held ones move to a new claim. Say what the employee must do in the reason below.</p>
       {items.map((i: D) => <label key={i.id} className="check"><input type="checkbox" checked={hold.includes(i.id)} onChange={e => setHold(e.target.checked ? [...hold, i.id] : hold.filter(x => x !== i.id))} /> Hold {i.merchant} · {money(i.amount_minor, claim.currency)}</label>)}
     </fieldset>}
-    <label className="field"><span className="field-label">Reason (required if holding, returning or rejecting)</span><textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Add a reason…" maxLength={1000} /></label>
+    <label className="field"><span className="field-label">Reason (required if returning or rejecting)</span><textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Add a reason…" maxLength={1000} /></label>
     {exceptions.length > 0 && <label className="check"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} /> I reviewed the {plural(exceptions.length, 'policy exception')} and the employee’s explanations</label>}
     <button className="button go" disabled={busy} onClick={decide}>{choice === 'approved' && hold.length ? `Approve the rest and hold ${plural(hold.length, 'expense')}` : choices[choice]}</button>
     <a className="button wide" href={`#/${back}`}>Decide later</a>

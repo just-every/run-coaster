@@ -122,7 +122,7 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     await shot(page, evidence, 'claims-list', width, shots)
 
     await manager.page.reload(); await manager.page.getByRole('heading', { name: title }).waitFor()
-    await manager.page.getByRole('checkbox').check()
+    await manager.page.getByRole('checkbox', { name: /I reviewed the/ }).check()
     await noOverflow(manager.page, width)
     await shot(manager.page, evidence, 'approvals', width, shots)
     await manager.page.getByRole('button', { name: 'Approve', exact: true }).click()
