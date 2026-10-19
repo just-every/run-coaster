@@ -67,7 +67,7 @@ const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c:
 
 api.get('/api/coaster/state', as(async (a, c) => workspace(db(c), a)));
 api.get('/api/coaster/claims/:id', as(async (a, c) => claimDetail(db(c), a, param(c, 'id'))));
-api.get('/api/coaster/claims/:id/pdf', as(async (a, c) => claimPdf(db(c), a, param(c, 'id'), c.req.query('customer'))));
+api.get('/api/coaster/claims/:id/pdf', as(async (a, c) => claimPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'))));
 api.post('/api/coaster/claims', as(async (a, c) => createClaim(db(c), a, await body(c))));
 api.post('/api/coaster/expenses', as(async (a, c) => addExpense(db(c), a, await body(c))));
 api.post('/api/coaster/claims/:id/title', as(async (a, c) => renameClaim(db(c), a, param(c, 'id'), await body(c))));
@@ -102,7 +102,7 @@ api.post('/api/coaster/settings/members/invite', as(async (a, c) => {
 }));
 
 api.get('/api/coaster/batches/:id', as(async (a, c) => batchDetail(db(c), a, param(c, 'id'))));
-api.get('/api/coaster/batches/:id/pdf', as(async (a, c) => batchPdf(db(c), a, param(c, 'id'), c.req.query('customer'))));
+api.get('/api/coaster/batches/:id/pdf', as(async (a, c) => batchPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'))));
 api.post('/api/coaster/batches', as(async (a, c) => createBatch(db(c), a, await body(c))));
 api.post('/api/coaster/batches/:id/remove', as(async (a, c) => removeFromBatch(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/batches/:id/approve', as(async (a, c) => approveBatch(db(c), a, param(c, 'id'), await body(c))));

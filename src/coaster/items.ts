@@ -13,7 +13,7 @@ export type ItemInput = {
   sales_tax_minor: number; sales_tax_account: string; sales_tax_code: string; attendees?: Attendee[]; fields?: Record<string, string>; request_id?: string | null;
   /** A stipend's allowance, or the cap a purchase is claimed against with the receipt's amount when it was capped (CLAIM-009). */
   allowance_id?: string | null; claimed_minor?: number | null;
-  billable?: boolean; customer?: string;
+  billable?: boolean; customer?: string; project?: string;
 };
 
 export async function categories(db: D1Database): Promise<Category[]> {
@@ -60,9 +60,9 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
   const sum = allocations.reduce((n, a) => n + a.amount_minor, 0);
   requireThat(sum === amount_minor - sales_tax_minor, sales_tax_minor ? 'The split must add up exactly to the expense amount less its sales tax' : 'The split must add up exactly to the expense amount');
   requireThat(b.billable === undefined || typeof b.billable === 'boolean', 'Billable must be true or false');
-  const billable = b.billable === true, customer = optionalText(b.customer, 'Customer', 200);
+  const billable = b.billable === true, customer = optionalText(b.customer, 'Customer', 200), project = optionalText(b.project, 'Project', 200);
   requireThat(!billable || customer, 'A billable expense needs a customer');
-  return { kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_thousandths, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations, billable, customer,
+  return { kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_thousandths, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations, billable, customer, project,
     sales_tax_minor, sales_tax_account: sales_tax_minor ? business.sales_tax_account : '', sales_tax_code: sales_tax_minor ? business.sales_tax_code : '', attendees: attendees(b.attendees), fields: customFields(b.fields) };
 }
 

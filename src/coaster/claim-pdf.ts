@@ -6,42 +6,50 @@ import { PdfLayout } from './pdf-layout';
 import { appendReceipt } from './pdf-receipts';
 
 /** The claim's normal visibility gate applies before querying receipt bytes. */
-export async function claimPdf(db: D1Database, actor: Actor, id: string, customer?: string) {
+export async function claimPdf(db: D1Database, actor: Actor, id: string, customer?: string, project?: string) {
   const detail = await claimDetail(db, actor, id);
-  const filter = optionalText(customer, 'Customer', 200);
+  const filter = billingFilter(customer, project);
   const layout = await PdfLayout.create();
   await appendClaim(db, layout, detail, filter);
-  return download(await layout.finish(), `${claimNumber(detail.claim.number)}${filter ? '-customer' : ''}.pdf`);
+  return download(await layout.finish(), `${claimNumber(detail.claim.number)}${filter.project ? '-project' : filter.customer ? '-customer' : ''}.pdf`);
 }
 
 /** A batch is one PDF, in claim-number order, with the same per-claim receipt ordering. */
-export async function batchPdf(db: D1Database, actor: Actor, id: string, customer?: string) {
+export async function batchPdf(db: D1Database, actor: Actor, id: string, customer?: string, project?: string) {
   const detail = await batchDetail(db, actor, id);
-  const filter = optionalText(customer, 'Customer', 200), layout = await PdfLayout.create();
+  const filter = billingFilter(customer, project), layout = await PdfLayout.create();
   layout.newPage(`Reimbursement batch RB-${String(detail.batch.number).padStart(4, '0')}`);
   layout.text(`Status: ${detail.batch.status}`);
   layout.text(`Payment reference: ${detail.batch.paid_reference || 'Not paid'}${detail.batch.paid_on ? ` | ${detail.batch.paid_on}` : ''}`);
-  if (filter) layout.text(`Billable customer: ${filter}`);
+  if (filter.customer) layout.text(`Billable customer: ${filter.customer}`);
+  if (filter.project) layout.text(`Project: ${filter.project}`);
   let total = 0, count = 0;
   for (const entry of detail.claims as Data[]) {
     const claim = await claimDetail(db, actor, entry.claim_id);
     const items = selectedItems(exportItems(claim), filter);
-    if (filter && !items.length) continue;
+    if (filter.active && !items.length) continue;
     total += items.reduce((sum, item) => sum + item.amount_minor, 0);
     count++;
     layout.text(`${claimNumber(claim.claim.number)} | ${claim.claim.title} | ${money(items.reduce((sum, item) => sum + item.amount_minor, 0), claim.claim.currency)}`);
   }
   requireThat(count, 'No matching claims in this batch', 404);
-  requireThat(filter || total === detail.batch.total_minor, 'The batch total no longer matches its claims; reload before downloading', 409);
+  requireThat(filter.active || total === detail.batch.total_minor, 'The batch total no longer matches its claims; reload before downloading', 409);
   layout.text(`Total: ${money(total, detail.batch.currency)}`);
   for (const entry of detail.claims as Data[]) {
     const claim = await claimDetail(db, actor, entry.claim_id);
-    if (!filter || selectedItems(exportItems(claim), filter).length) await appendClaim(db, layout, claim, filter);
+    if (!filter.active || selectedItems(exportItems(claim), filter).length) await appendClaim(db, layout, claim, filter);
   }
-  return download(await layout.finish(), `RB-${String(detail.batch.number).padStart(4, '0')}${filter ? '-customer' : ''}.pdf`);
+  return download(await layout.finish(), `RB-${String(detail.batch.number).padStart(4, '0')}${filter.project ? '-project' : filter.customer ? '-customer' : ''}.pdf`);
 }
 
-const selectedItems = (items: Data[], customer: string) => customer ? items.filter(i => i.billable && i.customer === customer) : items;
+function billingFilter(customer?: string, project?: string) {
+  const c = optionalText(customer, 'Customer', 200), p = optionalText(project, 'Project', 200);
+  return { customer: c, project: p, active: !!(c || p) };
+}
+type BillingFilter = ReturnType<typeof billingFilter>;
+const selectedItems = (items: Data[], filter: BillingFilter) => filter.active
+  ? items.filter(i => i.billable && (!filter.customer || i.customer === filter.customer) && (!filter.project || i.project === filter.project))
+  : items;
 
 /** Submitted coding is evidence: later category renames and account changes cannot rewrite it. */
 function exportItems(detail: Awaited<ReturnType<typeof claimDetail>>): Data[] {
@@ -50,11 +58,11 @@ function exportItems(detail: Awaited<ReturnType<typeof claimDetail>>): Data[] {
   return snapshot.items.map((item: Data) => ({ ...item, receipt_id: item.receipt?.id ?? item.receipt_id, receipt_sha256: item.receipt?.sha256, attendees: item.attendees ?? [], fields: item.fields ?? {} }));
 }
 
-async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<ReturnType<typeof claimDetail>>, customer: string) {
-  const { claim } = detail, items = selectedItems(exportItems(detail), customer);
-  requireThat(!customer || items.length, 'No billable expenses for this customer on this claim', 404);
+async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<ReturnType<typeof claimDetail>>, filter: BillingFilter) {
+  const { claim } = detail, items = selectedItems(exportItems(detail), filter);
+  requireThat(!filter.active || items.length, 'No billable expenses match this customer and project on this claim', 404);
   const ids = new Set(items.map(i => i.id)), total = items.reduce((sum, item) => sum + item.amount_minor, 0);
-  requireThat(customer || total === claim.total_minor, 'The claim total no longer matches its expenses; reload before downloading', 409);
+  requireThat(filter.active || total === claim.total_minor, 'The claim total no longer matches its expenses; reload before downloading', 409);
   const [members, payment] = await Promise.all([
     db.prepare('SELECT email,name FROM c_members').all<{ email: string; name: string }>(),
     claim.batch_id ? db.prepare('SELECT paid_reference,paid_on,paid_by,reviewed_by,reviewed_at FROM c_batches WHERE id=?').bind(claim.batch_id).first<Data>() : Promise.resolve(null),
@@ -65,8 +73,9 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
   layout.text(`Status: ${claim.status} | Revision: ${claim.revision}`);
   const days = items.map(i => i.spent_on).sort();
   layout.text(`Period: ${days[0] ?? 'No expenses'}${days.length ? ` to ${days.at(-1)}` : ''}`);
-  if (customer) layout.text(`Billable customer: ${customer}`);
-  layout.text(`${customer ? 'Customer total' : 'Claim total'}: ${money(total, claim.currency)} (${items.length} expenses)`, 14);
+  if (filter.customer) layout.text(`Billable customer: ${filter.customer}`);
+  if (filter.project) layout.text(`Project: ${filter.project}`);
+  layout.text(`${filter.customer ? 'Customer total' : filter.project ? 'Project total' : 'Claim total'}: ${money(total, claim.currency)} (${items.length} expenses)`, 14);
   layout.heading('Totals by category');
   const categories = new Map<string, number>();
   for (const item of items) {
@@ -96,6 +105,7 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
     if (item.kind === 'mileage') layout.text(`${item.distance_hundredths / 100} miles at ${item.rate_thousandths / 1000} ${claim.currency} per mile`);
     if (item.kind === 'per_diem') layout.text(`${item.days} days at ${item.rate_thousandths / 1000} ${claim.currency} per day`);
     if (item.customer) layout.text(`Customer: ${item.customer} | ${item.billable ? 'Billable' : 'Not billable'}`);
+    if (item.project) layout.text(`Project: ${item.project}`);
     for (const part of item.allocations) layout.text(`Coding: ${part.category_name} | Account ${part.account_code} | Tax ${part.tax_code}${part.cost_centre ? ` | Cost center ${part.cost_centre}` : ''}${part.description ? ` | ${part.description}` : ''} | ${money(part.amount_minor, claim.currency)}`);
     if (item.sales_tax_minor) layout.text(`Sales tax: ${money(item.sales_tax_minor, claim.currency)} | Account ${item.sales_tax_account} | Tax ${item.sales_tax_code}`);
     for (const exception of detail.exceptions.filter((x: Data) => x.item === item.id)) layout.text(`Exception: ${exception.message}`);

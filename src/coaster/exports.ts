@@ -12,7 +12,7 @@ type Row = Record<string, string | number>;
 
 /** Every field each file can carry, in the default template's order. */
 export const FIELDS: Record<Kind, string[]> = {
-  accounting: ['batch', 'claim', 'employee', 'date', 'merchant', 'description', 'type', 'category', 'account_code', 'tax_code', 'cost_center', 'amount', 'currency', 'receipt_sha256', 'receipt_link', 'policy_exceptions', 'explanation', 'approved_by', 'approved_at', 'memo'],
+  accounting: ['batch', 'claim', 'employee', 'date', 'merchant', 'description', 'type', 'category', 'account_code', 'tax_code', 'cost_center', 'amount', 'currency', 'receipt_sha256', 'receipt_link', 'policy_exceptions', 'explanation', 'approved_by', 'approved_at', 'memo', 'billable', 'customer', 'project'],
   reimbursements: ['batch', 'employee', 'name', 'claims', 'amount', 'currency'],
 };
 const defaultColumns = (kind: Kind): Column[] => FIELDS[kind].map(field => ({ field, header: field }));
@@ -57,7 +57,7 @@ async function batchRows(db: D1Database, batch: Batch, kind: Kind, origin: strin
   const { lines, people } = await batchLines(db, batch.id), name = batchNumber(batch.number);
   requireThat(lines.reduce((n, l) => n + l.amountMinor, 0) === batch.total_minor && people.reduce((n, p) => n + p.amountMinor, 0) === batch.total_minor, 'The batch does not reconcile; do not pay it and report this', 500);
   return kind === 'accounting'
-    ? lines.map(l => ({ batch: name, claim: l.claim, employee: l.employee, date: l.date, merchant: l.merchant, description: l.description, type: l.kind, category: l.category, account_code: l.account, tax_code: l.tax, cost_center: l.costCentre, amount: l.amountMinor, currency: batch.currency, receipt_sha256: l.receipt, receipt_link: l.receiptId ? `${origin}/api/coaster/receipts/${l.receiptId}` : '', policy_exceptions: l.exceptions, explanation: l.explanation, approved_by: l.approver, approved_at: l.approvedAt, memo: l.memo, employee_name: l.employeeName }))
+    ? lines.map(l => ({ batch: name, claim: l.claim, employee: l.employee, date: l.date, merchant: l.merchant, description: l.description, type: l.kind, category: l.category, account_code: l.account, tax_code: l.tax, cost_center: l.costCentre, amount: l.amountMinor, currency: batch.currency, receipt_sha256: l.receipt, receipt_link: l.receiptId ? `${origin}/api/coaster/receipts/${l.receiptId}` : '', policy_exceptions: l.exceptions, explanation: l.explanation, approved_by: l.approver, approved_at: l.approvedAt, memo: l.memo, billable: l.billable ? 'true' : 'false', customer: l.customer, project: l.project, employee_name: l.employeeName }))
     : people.map(p => ({ batch: name, employee: p.email, name: p.name, claims: p.claims.join(' '), amount: p.amountMinor, currency: batch.currency }));
 }
 

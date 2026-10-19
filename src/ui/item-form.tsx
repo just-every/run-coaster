@@ -29,7 +29,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
     }
     const allocations = split ? split.map(p => ({ category: p.category, costCentre: p.costCentre, amount: p.amount, description: p.description })) : [{ category: v.category, costCentre: v.costCentre }];
     const fields = Object.fromEntries(fieldNames.map(name => [name, v[`field:${name}`] ?? '']));
-    await call(`claims/${claim.id}/items`, { version, item: item?.id, kind, date: v.date, merchant: v.merchant, amount: v.amount, salesTax: v.salesTax, distance: v.distance, days: v.days, description: v.description, explanation: v.explanation, receipt, allocations, attendees: parseAttendees(v.attendees ?? ''), fields, request: v.request || null, allowance: kind === 'receipt' ? v.allowance || null : null, billable: !!v.billable, customer: v.customer });
+    await call(`claims/${claim.id}/items`, { version, item: item?.id, kind, date: v.date, merchant: v.merchant, amount: v.amount, salesTax: v.salesTax, distance: v.distance, days: v.days, description: v.description, explanation: v.explanation, receipt, allocations, attendees: parseAttendees(v.attendees ?? ''), fields, request: v.request || null, allowance: kind === 'receipt' ? v.allowance || null : null, billable: !!v.billable, customer: v.customer, project: v.project });
     await onDone();
   }
   const first = item?.allocations?.[0];
@@ -42,6 +42,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
     {kind === 'per_diem' && <><Field label="Location" name="merchant" required={false} defaultValue={item?.kind === 'per_diem' ? item.merchant : ''} /><Field label="Days" name="days" type="number" min="1" max="60" defaultValue={item?.days ?? ''} /></>}
     <Field label="Description" name="description" required={false} defaultValue={item?.description} />
     <Field label="Customer" name="customer" required={false} defaultValue={item?.customer} />
+    <Field label="Project" name="project" required={false} defaultValue={item?.project} />
     <Field label="Billable to this customer" name="billable" type="checkbox" required={false} defaultChecked={!!item?.billable} />
     {split
       ? <fieldset className="split field-wide"><legend>Split across categories</legend>

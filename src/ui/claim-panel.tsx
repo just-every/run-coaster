@@ -21,6 +21,8 @@ function split(item: D, currency: string) {
   return item.allocations.map((a: D) => <span key={a.position} className="split-line">{a.description ? `${a.description} · ` : ''}{a.category_name}{a.cost_centre ? ` · ${a.cost_centre}` : ''}{item.allocations.length > 1 ? ` · ${money(a.amount_minor, currency)}` : ''}</span>);
 }
 
+const billing = (item: D) => [item.customer && `Customer: ${item.customer}`, item.project && `Project: ${item.project}`, (item.customer || item.project) && (item.billable ? 'Billable' : 'Not billable')].filter(Boolean).join(' · ');
+
 function merchantLine(item: D, currency: string) {
   if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${rate(item.rate_thousandths, currency)}`;
   if (item.kind === 'per_diem') return `${item.merchant} · ${plural(item.days, 'day')} at ${rate(item.rate_thousandths, currency)}`;
@@ -59,6 +61,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     <p className="panel-date">{claimNumber(claim.number)} · {submitted ? `submitted ${day(submitted.submitted_at)}` : `started ${day(claim.created_at)}`}</p>
     <p><a className="button small" href={apiHref(`claims/${claim.id}/pdf`)} download><Icon name="download" />Download claim PDF</a></p>
     {[...new Set<string>(items.filter((i: D) => i.billable && i.customer).map((i: D) => i.customer))].map(customer => <p key={customer}><a href={apiHref(`claims/${claim.id}/pdf?customer=${encodeURIComponent(customer)}`)} download>Download {customer} billable PDF</a></p>)}
+    {[...new Map<string, D>(items.filter((i: D) => i.billable && i.customer && i.project).map((i: D) => [JSON.stringify([i.customer, i.project]), i])).values()].map(i => <p key={JSON.stringify([i.customer, i.project])}><a href={apiHref(`claims/${claim.id}/pdf?customer=${encodeURIComponent(i.customer)}&project=${encodeURIComponent(i.project)}`)} download>Download {i.customer} · {i.project} billable PDF</a></p>)}
     {claim.status === 'returned' && lastReturn && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>Returned for correction:</strong> “{lastReturn.reason}”{editable ? <> Fix the expenses below and submit again; the earlier revision stays in the history.</> : null}</p></div>}
     {claim.held_from && claim.status === 'returned' && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>On hold from <a href={`#/${back}/${claim.held_from}`}>{claimNumber(state.claims.find((c: D) => c.id === claim.held_from)?.number ?? 0)}</a> by {names[claim.held_by] ?? claim.held_by}:</strong> “{claim.hold_reason}”{editable ? ' Fix these expenses and submit them on their own.' : null}</p></div>}
     {unapproved && ['returned', 'submitted'].includes(claim.status) && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>Unapproved by {names[unapproved.actor_email] ?? unapproved.actor_email}:</strong> “{unapproved.detail.reason}”{claim.status === 'submitted' ? ' It is waiting for the approver again.' : editable ? ' Fix the expenses below and submit again.' : null}</p></div>}
@@ -88,6 +91,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         return <li className="line" key={item.id}>
           <Receipt item={item} />
           <span className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}
+            {(item.customer || item.project) && <span className="split-line">{billing(item)}</span>}
             {item.attendees?.length > 0 && <span className="split-line">Attendees: {item.attendees.map((a: D) => a.kind === 'guest' ? `${a.name} (guest)` : a.name).join(', ')}</span>}
             {(item.per_person ?? []).map((p: D) => <span key={p.category} className="split-line">{money(p.share_minor, currency)} a person · {p.over ? 'over' : p.amount_minor === p.limit_minor * p.people ? 'at' : 'under'} {money(p.limit_minor, currency)}</span>)}
             {Object.entries(item.fields ?? {}).map(([name, value]) => <span key={name} className="split-line">{name}: {String(value)}</span>)}</span>
@@ -147,7 +151,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       <h3>History</h3>
       <ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol>
       {detail.revisions.length > 0 && <Details label="Earlier revisions and receipts">
-        {detail.revisions.map((r: D) => <div key={r.revision} className="revision"><h3>Revision {r.revision} · {money(r.total_minor, currency)} · submitted {moment(r.submitted_at)}</h3><ul className="ruled-list">{r.snapshot.items.map((i: D) => <li key={i.id}>{day(i.spent_on)} · {merchantLine(i, currency)} · {money(i.amount_minor, currency)}{i.receipt ? <> · <a href={apiHref(`receipts/${i.receipt.id}`)}>{i.receipt.name}</a></> : ' · no receipt'}</li>)}</ul>{r.snapshot.exceptions.length > 0 && <p className="muted">Exceptions: {r.snapshot.exceptions.map((x: D) => x.message).join('; ')}</p>}</div>)}
+        {detail.revisions.map((r: D) => <div key={r.revision} className="revision"><h3>Revision {r.revision} · {money(r.total_minor, currency)} · submitted {moment(r.submitted_at)}</h3><ul className="ruled-list">{r.snapshot.items.map((i: D) => <li key={i.id}>{day(i.spent_on)} · {merchantLine(i, currency)} · {money(i.amount_minor, currency)}{billing(i) ? ` · ${billing(i)}` : ''}{i.receipt ? <> · <a href={apiHref(`receipts/${i.receipt.id}`)}>{i.receipt.name}</a></> : ' · no receipt'}</li>)}</ul>{r.snapshot.exceptions.length > 0 && <p className="muted">Exceptions: {r.snapshot.exceptions.map((x: D) => x.message).join('; ')}</p>}</div>)}
         <h3>All receipts on this claim</h3>
         <ul className="ruled-list">{detail.receipts.map((r: D) => <li key={r.id}><a href={apiHref(`receipts/${r.id}`)}>{r.name}</a> · {Math.ceil(r.size / 1024)} KB · {r.source === 'agent' ? `prepared by ${r.uploaded_by}` : `uploaded by ${names[r.uploaded_by] ?? r.uploaded_by}`} · {moment(r.uploaded_at)}<span className="machine" title={r.sha256}>Fingerprint (SHA-256) {r.sha256.slice(0, 16)}…</span></li>)}</ul>
       </Details>}

@@ -32,7 +32,7 @@ function attachments(doc) {
   })
 }
 
-test('REPORT-005 paid claim and batch PDFs reconcile, preserve ordered receipt pages and bytes, filter real billable customers and enforce claim access', async () => {
+test('REPORT-005 / CLAIM-006 paid claim and batch PDFs reconcile, preserve ordered receipt pages and bytes, filter real billable customers and enforce claim access', async () => {
   const h = await harness()
   try {
     const team = await agency(h)
@@ -44,9 +44,9 @@ test('REPORT-005 paid claim and batch PDFs reconcile, preserve ordered receipt p
     const receipts = [await readFile('tests/fixtures/receipts/report-bistro.jpg'), await readFile('tests/fixtures/receipts/report-bistro.heic'), Buffer.from(await invoice.save())]
     let claim = await h.post('claims', { title: 'Paid client trip' }, team.sam)
     const entries = [
-      { merchant: 'Client dinner', amount: '180.00', category: team.c.meals, billable: true, customer: 'Acme', explanation: 'Three guests; approved client dinner' },
-      { merchant: 'Other customer taxi', amount: '60.00', category: team.c.travel, billable: true, customer: 'Other' },
-      { merchant: 'Acme hotel', amount: '120.00', category: team.c.travel, billable: true, customer: 'Acme' },
+      { merchant: 'Client dinner', amount: '180.00', category: team.c.meals, billable: true, customer: 'Acme', project: 'Discovery', explanation: 'Three guests; approved client dinner' },
+      { merchant: 'Other customer taxi', amount: '60.00', category: team.c.travel, billable: true, customer: 'Other', project: 'Delivery' },
+      { merchant: 'Acme hotel', amount: '120.00', category: team.c.travel, billable: true, customer: 'Acme', project: 'Hosting' },
     ]
     for (const [index, entry] of entries.entries()) {
       const upload = await h.post(`claims/${claim.id}/receipts`, { version: claim.version, name: ['dinner.jpg', 'taxi.heic', 'hotel.pdf'][index], base64: receipts[index].toString('base64') }, team.sam)
@@ -57,14 +57,35 @@ test('REPORT-005 paid claim and batch PDFs reconcile, preserve ordered receipt p
     await h.post(`claims/${claim.id}/comments`, { body: 'Café workshop: dinner confirmed.' }, team.sam)
     await h.post(`claims/${claim.id}/comments`, { body: 'Only for the other customer', item: draft.items[1].id }, team.sam)
     claim = await h.post(`claims/${claim.id}/submit`, { version: claim.version }, team.sam)
+    claim = await h.post(`claims/${claim.id}/decision`, { revision: claim.revision, version: claim.version, decision: 'returned', reason: 'Code the dinner to Delivery' }, team.priya)
+    claim = await h.post(`claims/${claim.id}/items`, { version: claim.version, item: draft.items[0].id, kind: 'receipt', date: draft.items[0].spent_on, ...entries[0], project: ' Delivery ', receipt: draft.items[0].receipt_id, allocations: [{ category: team.c.meals, costCentre: 'Delivery' }], description: 'Client workshop' }, team.sam)
+    claim = await h.post(`claims/${claim.id}/submit`, { version: claim.version }, team.sam)
+    const revised = await h.get(`claims/${claim.id}`, team.sam)
+    assert.equal(revised.items[0].project, 'Delivery')
+    assert.deepEqual(revised.revisions.map(r => r.snapshot.items[0].project), ['Discovery', 'Delivery'], 'correcting a project preserves the earlier submitted coding')
     claim = await h.post(`claims/${claim.id}/decision`, { revision: claim.revision, version: claim.version, decision: 'approved', acknowledge: true, reason: 'Client work checked' }, team.priya)
-    let second = await h.post('claims', { title: 'Nonbillable Acme mileage' }, team.sam)
-    second = await h.post(`claims/${second.id}/items`, { version: second.version, kind: 'mileage', date: '2026-05-04', merchant: 'Office trip', distance: '10', customer: 'Acme', billable: false, category: team.c.car }, team.sam)
+    const key = await h.post('agent-keys', { label: 'Project coding agent' }, team.sam)
+    const proposal = await h.send('/api/coaster/agent/claims', { title: 'Nonbillable Acme mileage', items: [{ kind: 'mileage', date: '2026-05-04', merchant: 'Office trip', distance: '10', customer: 'Acme', project: 'Delivery', billable: true, category: team.c.car }] }, '', { authorization: `Bearer ${key.token}` })
+    assert.equal(proposal.status, 200)
+    assert.equal(proposal.value.payload.items[0].project, 'Delivery')
+    let second = (await h.post(`proposals/${proposal.value.id}/accept`, {}, team.sam)).claim
+    const agentDraft = await h.get(`claims/${second.id}`, team.sam)
+    assert.deepEqual([agentDraft.items[0].customer, agentDraft.items[0].project, !!agentDraft.items[0].billable], ['Acme', 'Delivery', true])
+    second = await h.post(`claims/${second.id}/items`, { version: second.version, item: agentDraft.items[0].id, kind: 'mileage', date: '2026-05-04', merchant: 'Office trip', distance: '10', customer: 'Acme', project: 'Delivery', billable: false, category: team.c.car }, team.sam)
     second = await h.post(`claims/${second.id}/submit`, { version: second.version }, team.sam)
     second = await h.post(`claims/${second.id}/decision`, { revision: second.revision, version: second.version, decision: 'approved' }, team.priya)
     const batch = await h.post('batches', { claims: [second.id, claim.id] }, team.morgan)
     let reviewed = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 36880 }, team.morgan)
     await h.post(`batches/${batch.id}/paid`, { version: reviewed.version, reference: 'ACH-REPORT-005', paidOn: '2026-05-10' }, team.morgan)
+    const batchDetail = await h.get(`batches/${batch.id}`, team.morgan)
+    const dinner = batchDetail.lines.find(l => l.merchant === 'Client dinner')
+    assert.deepEqual([dinner.billable, dinner.customer, dinner.project, dinner.amountMinor], [true, 'Acme', 'Delivery', 18000])
+    const columns = ['merchant', 'billable', 'customer', 'project', 'amount', 'receipt_sha256'].map(field => ({ field }))
+    const template = await h.post('export-templates', { name: 'Client rebilling', kind: 'accounting', columns }, team.morgan)
+    const ledger = await h.send(`/api/coaster/batches/${batch.id}/accounting.csv?template=${template.id}`, undefined, team.morgan)
+    assert.equal(ledger.status, 200)
+    assert.ok(ledger.text.includes(`"Client dinner","true","Acme","Delivery","180.00","${sha(receipts[0])}"`))
+    assert.ok(ledger.text.includes('"Office trip","false","Acme","Delivery","8.80"'))
     await h.post('settings/categories', { id: team.c.meals, name: 'Recoded meals', accountCode: '9999', taxCode: 'Changed tax', limit: '120.00' })
     const fetchPdf = async (path, cookie, status = 200) => {
       const response = await h.mf.dispatchFetch(`${h.origin}/api/coaster/${path}`, { headers: { cookie } })
@@ -89,6 +110,14 @@ test('REPORT-005 paid claim and batch PDFs reconcile, preserve ordered receipt p
     assert.match(filteredText, /Customer total: AUD 300\.00/)
     assert.ok(!filteredText.includes('Other customer taxi')); assert.ok(!filteredText.includes('Only for the other customer'))
     assert.deepEqual(attachments(filtered.doc).map(sha).sort(), [receipts[0], receipts[2]].map(sha).sort())
+    const projectPdf = await fetchPdf(`claims/${claim.id}/pdf?customer=Acme&project=Delivery`, team.morgan)
+    const projectText = projectPdf.pages.join('\n')
+    assert.match(projectText, /Customer total: AUD 180\.00/)
+    assert.ok(projectText.includes('Project: Delivery'))
+    assert.ok(!projectText.includes('Acme hotel') && !projectText.includes('Other customer taxi'))
+    assert.deepEqual(attachments(projectPdf.doc).map(sha), [sha(receipts[0])])
+    await fetchPdf(`claims/${claim.id}/pdf?customer=Other&project=Hosting`, team.morgan, 404)
+    await fetchPdf(`claims/${claim.id}/pdf?customer=Acme&project=delivery`, team.sam, 404)
     const batchPdf = await fetchPdf(`batches/${batch.id}/pdf`, team.morgan)
     const batchText = batchPdf.pages.join('\n')
     assert.match(batchText, /Total: AUD 368\.80/)
@@ -99,6 +128,9 @@ test('REPORT-005 paid claim and batch PDFs reconcile, preserve ordered receipt p
     const customerBatch = await fetchPdf(`batches/${batch.id}/pdf?customer=Acme`, team.morgan)
     assert.match(customerBatch.pages.join('\n'), /Total: AUD 300\.00/)
     assert.ok(!customerBatch.pages.join('\n').includes('Nonbillable Acme mileage'))
+    const projectBatch = await fetchPdf(`batches/${batch.id}/pdf?customer=Acme&project=Delivery`, team.morgan)
+    assert.match(projectBatch.pages.join('\n'), /Total: AUD 180\.00/)
+    assert.ok(!projectBatch.pages.join('\n').includes('Nonbillable Acme mileage'))
     await fetchPdf(`claims/${claim.id}/pdf`, team.alex, 403)
     await fetchPdf(`claims/${claim.id}/pdf?customer=Acme`, team.alex, 403)
     await fetchPdf(`batches/${batch.id}/pdf`, team.sam, 403)
@@ -108,6 +140,11 @@ test('REPORT-005 paid claim and batch PDFs reconcile, preserve ordered receipt p
     await fetchPdf(`claims/${privateClaim.id}/pdf?customer=Acme`, team.sam, 404)
     await fetchPdf(`claims/${privateClaim.id}/pdf`, team.morgan, 403)
     await h.post(`claims/${privateClaim.id}/items`, { version: privateClaim.version, kind: 'receipt', date: '2026-06-02', merchant: 'Invalid billable expense', amount: '10.00', billable: true, category: team.c.travel }, team.sam, 400)
+    const beforeInvalid = await h.get(`claims/${privateClaim.id}`, team.sam)
+    await h.post(`claims/${privateClaim.id}/items`, { version: privateClaim.version, kind: 'mileage', date: '2026-06-02', distance: '1', category: team.c.car, customer: 'Acme', project: { forged: 'Delivery' } }, team.sam, 400)
+    const afterInvalid = await h.get(`claims/${privateClaim.id}`, team.sam)
+    assert.deepEqual([afterInvalid.claim.version, afterInvalid.items], [beforeInvalid.claim.version, beforeInvalid.items], 'invalid project coding writes nothing')
+    await fetchPdf(`claims/${privateClaim.id}/pdf?project=Delivery`, team.sam, 404)
     const blank = await PDFDocument.create(); blank.addPage()
     const pixels = Uint8Array.from({ length: 8 * 8 * 4 }, (_, i) => i % 4 === 3 ? 255 : (Math.floor(i / 4) + i % 4) % 3 === 0 ? 255 : 0)
     const extra = [await readFile('tests/fixtures/receipts/bistro.png'), Buffer.from(encodeWebp({ width: 8, height: 8, data: pixels }, { backend: 'pure-ts', lossless: true })), Buffer.from(await blank.save())]
@@ -131,10 +168,39 @@ test('REPORT-005 paid claim and batch PDFs reconcile, preserve ordered receipt p
     const original = await h.mf.dispatchFetch(`${h.origin}/api/coaster/receipts/${oversizedUpload.receipt}`, { headers: { cookie: team.sam } })
     assert.equal(original.status, 200)
     assert.equal(sha(Buffer.from(await original.arrayBuffer())), sha(oversized), 'a rendering refusal never removes or rewrites the original')
+    // CLAIM-006: every native kind carries project coding, including each split and sales-tax export line.
+    await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', receiptThreshold: '', perDiem: '75', salesTaxAccount: 'Tax control', salesTaxCode: 'Sales tax' })
+    let coded = await h.post('claims', { title: 'Project cost export' }, team.sam)
+    coded = await h.post(`claims/${coded.id}/items`, { version: coded.version, kind: 'per_diem', date: '2026-07-10', days: 1, category: team.c.travel, billable: true, customer: 'Acme', project: 'Strategy' }, team.sam)
+    coded = await h.post(`claims/${coded.id}/items`, { version: coded.version, kind: 'receipt', date: '2026-07-10', merchant: 'Project materials', amount: '100', salesTax: '10', allocations: [{category:team.c.office,amount:'40'},{category:team.c.travel,amount:'50'}], explanation: 'Client materials', billable: true, customer: 'Acme', project: 'Strategy' }, team.sam)
+    coded = await h.post(`claims/${coded.id}/submit`, { version: coded.version }, team.sam)
+    coded = await h.post(`claims/${coded.id}/decision`, { version: coded.version, revision: coded.revision, decision: 'approved', acknowledge: true }, team.priya)
+    const codedBatch = await h.post('batches', { claims: [coded.id] }, team.morgan)
+    await h.post(`batches/${codedBatch.id}/approve`, { version: codedBatch.version, expectedTotal: 17500 }, team.morgan)
+    const codedLines = (await h.get(`batches/${codedBatch.id}`, team.morgan)).lines
+    assert.deepEqual(codedLines.map(l => l.amountMinor).sort((a,b)=>a-b), [1000,4000,5000,7500])
+    assert.ok(codedLines.every(l => l.billable && l.customer === 'Acme' && l.project === 'Strategy'), 'project coding reaches per diem, both allocations and the tax line')
+    const book = await h.mf.dispatchFetch(`${h.origin}/api/coaster/batches/${codedBatch.id}/accounting.xlsx?template=${template.id}`, {headers:{cookie:team.morgan}})
+    assert.equal(book.status,200)
+    const workbook = Buffer.from(await book.arrayBuffer()), view = new DataView(workbook.buffer,workbook.byteOffset,workbook.length)
+    let end=workbook.length-22; while(view.getUint32(end,true)!==0x06054b50) end--
+    let directory=view.getUint32(end+16,true), sheet=''
+    for(let n=view.getUint16(end+10,true);n>0;n--) {
+      const size=view.getUint32(directory+20,true), length=view.getUint16(directory+28,true), offset=view.getUint32(directory+42,true)
+      const name=workbook.subarray(directory+46,directory+46+length).toString()
+      const data=offset+30+view.getUint16(offset+26,true)+view.getUint16(offset+28,true)
+      if(name==='xl/worksheets/sheet1.xml') sheet=workbook.subarray(data,data+size).toString()
+      directory+=46+length+view.getUint16(directory+30,true)+view.getUint16(directory+32,true)
+    }
+    const exportedRows=[...sheet.matchAll(/<row[^>]*>(.*?)<\/row>/g)].slice(1).map(m=>m[1])
+    assert.equal(exportedRows.length,4)
+    assert.ok(exportedRows.every(row=>['true','Acme','Strategy'].every(value=>row.includes(`>${value}</t>`))), 'XLSX preserves billing coding on all four accounting lines')
     if (process.env.PDF_EVIDENCE_DIR) {
       await mkdir(process.env.PDF_EVIDENCE_DIR, { recursive: true })
       await writeFile(`${process.env.PDF_EVIDENCE_DIR}/paid-claim.pdf`, full.bytes)
       await writeFile(`${process.env.PDF_EVIDENCE_DIR}/customer-claim.pdf`, filtered.bytes)
+      await writeFile(`${process.env.PDF_EVIDENCE_DIR}/project-claim.pdf`, projectPdf.bytes)
+      await writeFile(`${process.env.PDF_EVIDENCE_DIR}/project-batch.pdf`, projectBatch.bytes)
       await writeFile(`${process.env.PDF_EVIDENCE_DIR}/paid-batch.pdf`, batchPdf.bytes)
       await writeFile(`${process.env.PDF_EVIDENCE_DIR}/draft-extra-formats.pdf`, extraPdf.bytes)
     }
