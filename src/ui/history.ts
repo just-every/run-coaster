@@ -13,6 +13,8 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'claim-unapproved': `Unapproved by ${who} and sent back to the ${d.to === 'approver' ? 'approver' : 'employee'} · ${d.reason}`,
     'comment-added': `${who} commented · “${d.body}”`, 'question-asked': `${who} asked ${names[d.asks] ?? d.asks} · “${d.body}”`,
     'question-answered': `${who} answered · “${d.body}”`, 'comment-edited': `${who} edited a comment · was “${d.previous}”`,
+    'claim-split': `${who} held ${plural(d.held, 'expense')} and approved the rest${d.onBehalfOf ? ` on behalf of ${names[d.onBehalfOf] ?? d.onBehalfOf}` : ''} · ${d.reason}`,
+    'claim-held': `Held by ${who} from ${d.fromNumber} revision ${d.fromRevision} · ${d.reason}`, 'hold-released': `Hold released and approved by ${who}${d.reason ? ` · ${d.reason}` : ''}`,
     'claim-reassigned': `Moved from ${names[d.from] ?? d.from} to ${names[d.to] ?? d.to} by ${who}${d.reason ? ` · ${d.reason}` : ''}`,
     'claim-batched': d.claim && d.batch ? `${d.claim} added to ${d.batch} by ${who}` : `Added to a reimbursement batch by ${who}`, 'claim-unbatched': `Taken out of a draft batch by ${who}${d.unapproved ? ' when it was unapproved' : ''}`,
     'proposal-accepted': `Prepared by ${d.agent} and accepted by ${who}`,

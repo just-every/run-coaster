@@ -7,7 +7,7 @@ import { localDay, routeFor } from './delegation';
 import { linkableRequest } from './requests';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null };
+export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null };
 
 export const claimNumber = (n: number) => `CL-${String(n).padStart(4, '0')}`;
 export const RECEIPT_LIMIT = 1_500_000;

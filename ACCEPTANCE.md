@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 22 done, 22 partial, 59 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
+**103 clauses: 23 done, 22 partial, 58 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -149,7 +149,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **APPROVE-004 — Rule-based auto-approval. Status: missing.** Enable the rule; see a compliant $40 matched charge approved by rule and a $40 charge with an exception routed to a person. Open scope: No auto-approval.
 
-- **APPROVE-005 — Hold one expense, approve the rest. Status: missing.** Submit a five-expense claim; as the approver hold the dinner with "Add the attendee list" and approve the other four; see the four reach a batch and be paid (PAY-001) while the dinner sits in a new claim with the employee, with the reason and a link to the original; advance the clock and see FOLLOWUP-001 remind the employee; add the attendees and resubmit the held claim alone and see it approved and paid separately. The employee cannot hold or approve their own claim, a hold sent against an older revision is refused, and history on both claims shows the split with who and when. Open scope: COA-006 decides the whole revision only (`src/coaster/decisions.ts`); no per-expense hold or claim split.
+- **APPROVE-005 — Hold one expense, approve the rest. Status: done.** Submit a five-expense claim; as the approver hold the dinner with "Add the attendee list" and approve the other four; see the four reach a batch and be paid (PAY-001) while the dinner sits in a new claim with the employee, with the reason and a link to the original; advance the clock and see FOLLOWUP-001 remind the employee; add the attendees and resubmit the held claim alone and see it approved and paid separately. The employee cannot hold or approve their own claim, a hold sent against an older revision is refused, and history on both claims shows the split with who and when. Existing evidence: `src/coaster/holds.ts`; `src/coaster/decisions.ts`; `migrations/core/0024_holds.sql`; `src/ui/claim-panel.tsx`; `tests/coaster.test.mjs` (APPROVE-005): both parts are paid through the finance-recorded payment (COA-009) until PAY-001, and the FOLLOWUP-001 reminder is an obligation that clause carries before it ships (CONTRACT.md APPROVE-005).
 
 - **APPROVE-006 — Comments and questions without a decision. Status: done.** As an approver ask "Which client was this for?" on one expense of a pending claim; see the claim stay pending with the question marked open, the employee notified, the employee answer from a Slack reply, and the approver approve with the answer visible; try to edit the question after the reply and be refused. Existing evidence: `src/coaster/comments.ts`; `migrations/core/0023_comments.sql`; `src/ui/comments.tsx`; `tests/coaster.test.mjs` (APPROVE-006): the employee is emailed and answers in Coaster; answering from a Slack reply is an obligation APPROVE-003 and CAPTURE-006 carry before they ship (CONTRACT.md APPROVE-006).
 

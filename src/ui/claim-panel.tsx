@@ -55,6 +55,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     <p className="panel-amount"><strong>{money(claim.total_minor, currency)}</strong> for {names[claim.employee_email] ?? claim.employee_email}</p>
     <p className="panel-date">{claimNumber(claim.number)} · {submitted ? `submitted ${day(submitted.submitted_at)}` : `started ${day(claim.created_at)}`}</p>
     {claim.status === 'returned' && lastReturn && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>Returned for correction:</strong> “{lastReturn.reason}”{editable ? <> Fix the expenses below and submit again; the earlier revision stays in the history.</> : null}</p></div>}
+    {claim.held_from && claim.status === 'returned' && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>On hold from <a href={`#/${back}/${claim.held_from}`}>{claimNumber(state.claims.find((c: D) => c.id === claim.held_from)?.number ?? 0)}</a> by {names[claim.held_by] ?? claim.held_by}:</strong> “{claim.hold_reason}”{editable ? ' Fix these expenses and submit them on their own.' : null}</p></div>}
     {unapproved && ['returned', 'submitted'].includes(claim.status) && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>Unapproved by {names[unapproved.actor_email] ?? unapproved.actor_email}:</strong> “{unapproved.detail.reason}”{claim.status === 'submitted' ? ' It is waiting for the approver again.' : editable ? ' Fix the expenses below and submit again.' : null}</p></div>}
     {exceptions.length > 0 && <div className="banner"><span className="banner-mark" aria-hidden="true">!</span><div>
       <p><strong>{plural(exceptions.length, 'policy exception')}</strong>{claim.status === 'draft' || claim.status === 'returned' ? ', sent to the approver with the explanations' : ' on this revision'}</p>
@@ -110,7 +111,15 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         <Field label="Reason" name="reason" required={false} placeholder="For example, adding the hotel receipt" />
       </Form>
     </section>}
-    {deciding && <Decision claim={claim} exceptions={exceptions} onDone={done} back={back} />}
+    {deciding && <Decision claim={claim} items={items} exceptions={exceptions} onDone={done} back={back} />}
+    {claim.held_from && claim.status === 'returned' && claim.revision === 0 && claim.approver_email === me && !mine && <section className="panel-block" aria-label="Release hold">
+      <h3>Release hold</h3>
+      <p className="muted">Approve these held expenses as they stand, without waiting for the employee to resubmit.</p>
+      <Form label="Release and approve" onSubmit={async v => { await call(`claims/${claim.id}/release`, { version: claim.version, reason: v.reason, acknowledge: v.acknowledge }); await done(); }}>
+        <Field label="Reason" name="reason" required={false} placeholder="For example, attendee list received by email" />
+        {exceptions.length > 0 && <Field label={`I reviewed the ${plural(exceptions.length, 'policy exception')} and the explanations`} name="acknowledge" type="checkbox" />}
+      </Form>
+    </section>}
     {unapprovable && <section className="panel-block" aria-label="Unapprove">
       <h3>Unapprove</h3>
       <p className="muted">Until its batch is reviewed, an approved claim can go back for another look. The approval stays in the history.</p>
@@ -143,11 +152,12 @@ const choices: Record<string, string> = { approved: 'Approve', returned: 'Return
 
 /** The approver's decision, asked as the pick asks it: one question, three choices, one button that does the chosen
     thing. Deciding later changes nothing. */
-function Decision({ claim, exceptions, onDone, back }: { claim: D; exceptions: D[]; onDone: () => Promise<void>; back: string }) {
+function Decision({ claim, items, exceptions, onDone, back }: { claim: D; items: D[]; exceptions: D[]; onDone: () => Promise<void>; back: string }) {
+  const [hold, setHold] = useState<string[]>([]);
   const [choice, setChoice] = useState('approved'), [reason, setReason] = useState(''), [acknowledged, setAcknowledged] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
   async function decide() {
     setBusy(true); setError('');
-    try { await call(`claims/${claim.id}/decision`, { revision: claim.revision, version: claim.version, decision: choice, reason, acknowledge: acknowledged }); await onDone(); }
+    try { await call(`claims/${claim.id}/decision`, { revision: claim.revision, version: claim.version, decision: choice, reason, acknowledge: acknowledged, ...(choice === 'approved' && hold.length ? { hold } : {}) }); await onDone(); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
   return <section className="panel-block decision" aria-label="Decision">
@@ -155,9 +165,13 @@ function Decision({ claim, exceptions, onDone, back }: { claim: D; exceptions: D
     <fieldset className="choices" aria-labelledby="decision-question">
       {Object.entries(choices).map(([value, label]) => <label key={value} className="choice"><input type="radio" name="decision" value={value} checked={choice === value} onChange={() => setChoice(value)} />{label}</label>)}
     </fieldset>
-    <label className="field"><span className="field-label">Reason (required if returning or rejecting)</span><textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Add a reason…" maxLength={1000} /></label>
+    {choice === 'approved' && items.length > 1 && <fieldset className="choices" aria-label="Hold expenses">
+      <p className="muted">Hold any expense that needs more from the employee; the rest are approved now and the held ones move to a new claim.</p>
+      {items.map((i: D) => <label key={i.id} className="check"><input type="checkbox" checked={hold.includes(i.id)} onChange={e => setHold(e.target.checked ? [...hold, i.id] : hold.filter(x => x !== i.id))} /> Hold {i.merchant} · {money(i.amount_minor, claim.currency)}</label>)}
+    </fieldset>}
+    <label className="field"><span className="field-label">Reason (required if holding, returning or rejecting)</span><textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Add a reason…" maxLength={1000} /></label>
     {exceptions.length > 0 && <label className="check"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} /> I reviewed the {plural(exceptions.length, 'policy exception')} and the employee’s explanations</label>}
-    <button className="button go" disabled={busy} onClick={decide}>{choices[choice]}</button>
+    <button className="button go" disabled={busy} onClick={decide}>{choice === 'approved' && hold.length ? `Approve the rest and hold ${plural(hold.length, 'expense')}` : choices[choice]}</button>
     <a className="button wide" href={`#/${back}`}>Decide later</a>
     {error && <p className="form-error" role="alert">{error}</p>}
   </section>;

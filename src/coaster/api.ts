@@ -7,6 +7,7 @@ import { saveMileageRate } from './mileage';
 import { createClaim, removeItem, renameClaim, saveItem, submitClaim, uploadReceipt } from './claims';
 import { decide, reassign } from './decisions';
 import { retractClaim, unapproveClaim } from './reversals';
+import { releaseHold } from './holds';
 import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
 import { actingAs, grantDelegate, revokeDelegate } from './delegates';
@@ -62,6 +63,7 @@ api.post('/api/coaster/claims/:id/retract', as(async (a, c) => retractClaim(db(c
 api.post('/api/coaster/claims/:id/unapprove', as(async (a, c) => unapproveClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/comments', as(async (a, c) => addComment(db(c), runtimeBindings(c.env), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/comments/:id/edit', as(async (a, c) => editComment(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/claims/:id/release', as(async (a, c) => releaseHold(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/reassign', as(async (a, c) => reassign(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/requests', as(async (a, c) => createRequest(db(c), a, await body(c))));
 api.post('/api/coaster/requests/:id/decision', as(async (a, c) => decideRequest(db(c), a, param(c, 'id'), await body(c))));

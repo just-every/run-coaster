@@ -702,3 +702,59 @@ test('APPROVE-006 an approver asks a named person about one expense without deci
   assert.deepEqual(history.map(e => [e.action, e.actor_email]), [['question-asked', PRIYA], ['comment-edited', PRIYA], ['comment-added', 'jordan@harbourfinch.example'], ['comment-added', 'audrey@harbourfinch.example'], ['question-answered', SAM]])
   assert.equal(history[1].detail.previous, 'Which client was thsi for?', 'the earlier wording stays in history')
 }))
+
+test('APPROVE-005 an approver holds the dinner and approves the other four; the held expense moves to its own claim, is fixed and paid separately, or its hold is released', () => withAgency(async (h, t) => {
+  const PRIYA = 'priya@harbourfinch.example'
+  const five = [
+    { kind: 'receipt', date: '2026-05-25', merchant: 'Rockpool', amount: '96.00', allocations: [{ category: t.c.meals }], receiptFixture: 'bistro' },
+    { kind: 'receipt', date: '2026-05-25', merchant: 'Uber', amount: '18.40', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' },
+    { kind: 'receipt', date: '2026-05-26', merchant: 'Hotel Ibis', amount: '236.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' },
+    { kind: 'receipt', date: '2026-05-26', merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' },
+    { kind: 'mileage', date: '2026-05-27', merchant: 'Airport run', distance: '20', allocations: [{ category: t.c.car }] },
+  ]
+  const d = await claim(h, t.sam, 'Melbourne client week', five)
+  let c = await submit(h, t.sam, d)
+  const dinner = d.items[0].id, dinnerReceipt = d.items[0].receipt_id, holdDinner = { decision: 'approved', hold: [dinner], reason: 'Add the attendee list' }
+  await h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, ...holdDinner }, t.sam, 403)
+  await h.post(`claims/${c.id}/decision`, { revision: c.revision - 1, version: c.version, ...holdDinner }, t.priya, 409)
+  await h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, ...holdDinner, reason: '' }, t.priya, 400)
+  await h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, ...holdDinner, hold: d.items.map(i => i.id) }, t.priya, 400)
+  c = await h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, ...holdDinner }, t.priya)
+  const rest = 1840 + 23600 + 6495 + 1760
+  assert.deepEqual([c.status, c.revision, c.total_minor], ['approved', 2, rest])
+  let original = await h.get(`claims/${c.id}`, t.sam)
+  assert.deepEqual(original.items.map(i => i.merchant), ['Uber', 'Hotel Ibis', 'Officeworks', 'Airport run'])
+  assert.deepEqual(original.revisions.map(r => r.snapshot.items.length), [5, 4], 'revision 1 keeps all five; revision 2 is the approved four')
+  assert.deepEqual(original.decisions.map(x => [x.revision, x.decision, x.actor_email]), [[2, 'approved', PRIYA]])
+  const heldId = original.revisions[1].snapshot.split.heldClaim
+  let held = await h.get(`claims/${heldId}`, t.sam)
+  assert.deepEqual([held.claim.status, held.claim.held_from, held.claim.held_by, held.claim.hold_reason, held.claim.approver_email, held.claim.total_minor], ['returned', c.id, PRIYA, 'Add the attendee list', PRIYA, 9600])
+  assert.deepEqual(held.items.map(i => [i.id, i.merchant]), [[dinner, 'Rockpool']])
+  assert.notEqual(held.items[0].receipt_id, dinnerReceipt); assert.equal(held.items[0].receipt_sha256, d.items[0].receipt_sha256, 'the receipt moves byte for byte')
+  assert.equal((await h.send(`/api/coaster/receipts/${dinnerReceipt}`, undefined, t.priya)).status, 200, 'revision 1\'s receipt stays readable')
+  assert.deepEqual(original.events.filter(e => e.action === 'claim-split').map(e => [e.actor_email, e.detail.revision, e.detail.heldClaim, e.detail.reason]), [[PRIYA, 1, heldId, 'Add the attendee list']])
+  assert.deepEqual(held.events.filter(e => e.action === 'claim-held').map(e => [e.actor_email, e.detail.from, e.detail.reason]), [[PRIYA, c.id, 'Add the attendee list']])
+
+  // The four go to a batch and are paid; the dinner is fixed, resubmitted alone, approved and paid separately.
+  let batch = await h.post('batches', { claims: [c.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: rest }, t.jordan)
+  batch = await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0601', paidOn: '2026-06-01' }, t.jordan)
+  assert.equal((await h.get(`claims/${c.id}`, t.sam)).claim.status, 'reimbursed')
+  let hc = await h.post(`claims/${heldId}/items`, { version: held.claim.version, item: dinner, kind: 'receipt', date: '2026-05-25', merchant: 'Rockpool', amount: '96.00', receipt: held.items[0].receipt_id, allocations: [{ category: t.c.meals }], attendees: [{ kind: 'employee', name: 'sam', email: 'sam@harbourfinch.example' }, { kind: 'guest', name: 'Dana Kim' }] }, t.sam)
+  await h.post(`claims/${heldId}/release`, { version: hc.version }, t.sam, 403)
+  hc = await approve(h, t.priya, await h.post(`claims/${heldId}/submit`, { version: hc.version }, t.sam))
+  assert.deepEqual([hc.status, hc.revision, hc.total_minor], ['approved', 1, 9600])
+  batch = await h.post('batches', { claims: [heldId] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 9600 }, t.jordan)
+  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0608', paidOn: '2026-06-08' }, t.jordan)
+  assert.equal((await h.get(`claims/${heldId}`, t.sam)).claim.status, 'reimbursed')
+
+  // Or the approver releases a hold before the employee resubmits.
+  const again = await submit(h, t.alex, await claim(h, t.alex, 'Two site visits', [{ ...five[4], merchant: 'Site visit north' }, { ...five[4], merchant: 'Site visit south', date: '2026-05-28' }]))
+  const split = await h.post(`claims/${again.id}/decision`, { revision: again.revision, version: again.version, decision: 'approved', hold: [(await h.get(`claims/${again.id}`, t.alex)).items[1].id], reason: 'Which project?' }, t.priya)
+  const second = (await h.get(`claims/${split.id}`, t.priya)).revisions.at(-1).snapshot.split.heldClaim
+  const released = await h.post(`claims/${second}/release`, { version: (await h.get(`claims/${second}`, t.priya)).claim.version, reason: 'Answered by phone' }, t.priya)
+  assert.deepEqual([released.status, released.revision], ['approved', 1])
+  const record = await h.get(`claims/${second}`, t.alex)
+  assert.deepEqual([record.revisions[0].submitted_by, record.decisions[0].actor_email, record.events.at(-1).action], ['alex@harbourfinch.example', PRIYA, 'hold-released'])
+}))
