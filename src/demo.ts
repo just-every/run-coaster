@@ -38,7 +38,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   const email = (p: Person) => p === 'owner' ? ownerAddress : people[p].email;
   const owner = await db.prepare('SELECT id FROM oa_operators WHERE lower(email)=? AND role=\'owner\'').bind(ownerAddress).first<{ id: string }>();
   if (!owner) throw new Error('The demo owner does not exist yet');
-  const policy = { name: business.name, currency: business.currency, timezone: business.timezone, per_diem_minor: business.perDiemMinor, receipt_threshold_minor: business.receiptThresholdMinor, sales_tax_account: '', sales_tax_code: '', preapproval_threshold_minor: null, audit_sample_percent: null, reminder_days: [2, 5, 10], quiet_from: 20, quiet_until: 8, service_level_days: 3, escalation_days: 2, auto_submit: null, retention_years: 7, mileage_rates: IRS_MILEAGE_RATES };
+  const policy = { name: business.name, currency: business.currency, timezone: business.timezone, per_diem_minor: business.perDiemMinor, receipt_threshold_minor: business.receiptThresholdMinor, sales_tax_account: '', sales_tax_code: '', preapproval_threshold_minor: null, audit_sample_percent: null, reminder_days: [2, 5, 10], quiet_from: 20, quiet_until: 8, service_level_days: 3, escalation_days: 2, auto_submit: null, retention_years: 7, dual_release_over_minor: null, pay_weekday: null, mileage_rates: IRS_MILEAGE_RATES };
   const known: Category[] = categories.map(c => ({ id: c.id, name: c.name, account_code: c.account, tax_code: c.tax, limit_minor: c.limitMinor, active: 1, receipt_always: +(c.id === 'demo-cat-lodging'), per_person_limit_minor: null, required_fields: [] }));
   const raw = (e: Expense) => ({ kind: e.kind, date: date(e.day), merchant: e.merchant, description: e.description, explanation: e.explanation,
     amount: e.kind === 'receipt' ? e.amount : undefined, distance: e.kind === 'mileage' ? e.miles : undefined, days: e.kind === 'per_diem' ? e.days : undefined,
@@ -61,7 +61,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       ...seedIrsRates(db),
       ...known.map(c => db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always) VALUES(?,?,?,?,?,1,?) ON CONFLICT DO NOTHING').bind(c.id, c.name, c.account_code, c.tax_code, c.limit_minor, c.receipt_always)),
       db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,1,1,1,?,1,?) ON CONFLICT DO NOTHING').bind(ownerAddress, ownerName, people[ownerApprover].email, at(31)),
-      ...Object.values(people).map(p => db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(p.email, p.name, +p.employee, +p.manager, +p.finance, p.approver && email(p.approver), +p.active, at(31))),
+      ...Object.values(people).map(p => db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,may_release,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING').bind(p.email, p.name, +p.employee, +p.manager, +p.finance, +p.finance, p.approver && email(p.approver), +p.active, at(31))),
       // Jordan, Dana and Ruth sign in as themselves from the demo's sign-in page (one-click, as invited people do).
       ...signIns.map((p, i) => db.prepare("INSERT INTO oa_operators(id,email,display_name,role,status,created_at) VALUES(?,?,?,'member','active',?) ON CONFLICT(email) DO NOTHING").bind(`demo-operator-${p}`, people[p].email, people[p].name, Date.parse(at(31)) + i)),
       db.prepare('INSERT INTO oa_first_run(singleton,completed_by,completed_at) VALUES(1,?,?) ON CONFLICT DO NOTHING').bind(owner.id, Date.parse(at(31))),
@@ -122,11 +122,13 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const members = claims.filter(c => c.batch === b.id);
     const total = members.reduce((n, c) => n + totals.get(c.id)!, 0);
     const state = b.paid ? 'reimbursed' : b.reviewedBy ? 'approved' : 'draft', version = 1 + (b.reviewedBy ? 1 : 0) + (b.paid ? 1 : 0);
-    history.unshift(db.prepare('INSERT INTO c_batches(id,number,status,currency,total_minor,version,created_by,created_at,reviewed_by,reviewed_at,paid_reference,paid_on,paid_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING')
-      .bind(b.id, b.number, state, business.currency, total, version, email(b.createdBy), at(b.created, (b.minutes ?? 0) + 30), b.reviewedBy ? email(b.reviewedBy) : null, b.reviewed !== undefined ? at(b.reviewed, (b.minutes ?? 0) + 60) : null, b.paid?.reference ?? null, b.paid ? date(b.paid.day) : null, b.paid ? email(b.paid.by) : null));
+    // A paid batch was released (PAY-004) by whoever recorded its payment, a minute before.
+    history.unshift(db.prepare('INSERT INTO c_batches(id,number,status,currency,total_minor,version,created_by,created_at,reviewed_by,reviewed_at,paid_reference,paid_on,paid_by,released_by,released_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING')
+      .bind(b.id, b.number, state, business.currency, total, version + (b.paid ? 1 : 0), email(b.createdBy), at(b.created, (b.minutes ?? 0) + 30), b.reviewedBy ? email(b.reviewedBy) : null, b.reviewed !== undefined ? at(b.reviewed, (b.minutes ?? 0) + 60) : null, b.paid?.reference ?? null, b.paid ? date(b.paid.day) : null, b.paid ? email(b.paid.by) : null, b.paid ? email(b.paid.by) : null, b.paid ? at(b.paid.day, 29) : null));
     event(`${b.id}-created`, at(b.created, (b.minutes ?? 0) + 30), email(b.createdBy), 'batch-created', { batch: b.id }, { claims: members.length, totalMinor: total, preparedBy: null });
     if (b.reviewedBy && b.reviewed !== undefined) event(`${b.id}-approved`, at(b.reviewed, (b.minutes ?? 0) + 60), email(b.reviewedBy), 'batch-approved', { batch: b.id }, { totalMinor: total, claims: members.length });
     if (b.exported !== undefined) event(`${b.id}-exported`, at(b.exported, (b.minutes ?? 0) + 90), email(b.reviewedBy ?? b.createdBy), 'batch-exported', { batch: b.id }, { file: 'accounting', rows: members.reduce((n, c) => n + c.expenses.length, 0), totalMinor: total });
+    if (b.paid) event(`${b.id}-released`, at(b.paid.day, 29), email(b.paid.by), 'batch-released', { batch: b.id }, { totalMinor: total, recentSignIn: at(b.paid.day, 28) });
     if (b.paid) event(`${b.id}-paid`, at(b.paid.day, 30), email(b.paid.by), 'batch-reimbursed', { batch: b.id }, { reference: b.paid.reference, paidOn: date(b.paid.day), note: '' });
   }
 

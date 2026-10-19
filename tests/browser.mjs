@@ -104,7 +104,7 @@ try {
   browser = await launch()
   const restoredOwner = await session(browser, second, server.origin, 'owner', 1440)
   const after = await everything(restoredOwner.context, server.origin)
-  assert.deepEqual(after, before, 'claims, revisions, decisions, receipts, batches, history (AUDIT-001) and imported reports survive restore')
+  assert.deepEqual(after, before, 'claims, revisions, decisions, receipts, batches with their releases (PAY-004), history (AUDIT-001) and imported reports survive restore')
   const receipt = before.claims[0].receipts[0]
   const download = await restoredOwner.context.request.get(`${server.origin}/api/coaster/receipts/${receipt.id}`)
   assert.equal(createHash('sha256').update(await download.body()).digest('hex'), receipt.sha256, 'restored receipt bytes are exact')

@@ -61,7 +61,9 @@ export async function harness({ identityProvider } = {}) {
       await post('settings/members/invite', { email })
       return confirmMail(email)
     }
-    return { db, mf, origin, owner, messages, outbound, auth, send, post, get, person, confirmMail, async close() { await mf.dispose(); await rm(dir, { recursive: true, force: true }) } }
+    /** Release a reviewed batch (PAY-004; the owner by default) and record the payment made outside Coaster. */
+    const paid = async (id, version, body, cookie = owner, releaser = owner) => post(`batches/${id}/paid`, { ...body, version: (await post(`batches/${id}/release`, { version }, releaser)).version }, cookie)
+    return { db, mf, origin, owner, messages, outbound, auth, send, post, get, person, paid, confirmMail, async close() { await mf.dispose(); await rm(dir, { recursive: true, force: true }) } }
   } catch (error) { await mf.dispose(); await rm(dir, { recursive: true, force: true }); throw error }
 }
 

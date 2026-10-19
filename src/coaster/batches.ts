@@ -1,11 +1,12 @@
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { finalApproval } from './approval-chain';
-import { event } from './events';
+import { event, ruleEvent } from './events';
+import { business } from './settings';
 import { claimNumber, claimItems, type Claim } from './claims';
 import { exactKey } from './exceptions';
 import { isoDate, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Batch = { id: string; number: number; status: string; currency: string; total_minor: number; version: number; created_by: string; created_at: string; prepared_by: string | null; reviewed_by: string | null; reviewed_at: string | null; paid_reference: string | null; paid_on: string | null; paid_by: string | null };
+export type Batch = { id: string; number: number; status: string; currency: string; total_minor: number; version: number; created_by: string; created_at: string; prepared_by: string | null; reviewed_by: string | null; reviewed_at: string | null; paid_reference: string | null; paid_on: string | null; paid_by: string | null; first_released_by: string | null; first_released_at: string | null; released_by: string | null; released_at: string | null };
 export const batchNumber = (n: number) => `RB-${String(n).padStart(4, '0')}`;
 
 export async function loadBatch(db: D1Database, id: unknown): Promise<Batch> {
@@ -46,20 +47,53 @@ export async function createBatch(db: D1Database, actor: Actor, b: Data, prepare
     claims.push(claim);
   }
   requireThat(new Set(claims.map(c => c.currency)).size === 1, 'A batch reimburses in one currency');
-  const keys = await reimbursementKeys(db, claims), id = uid(), at = now(), total = claims.reduce((n, c) => n + c.total_minor, 0);
+  const keys = await reimbursementKeys(db, claims), id = uid();
+  await commit(db, all(authority(actor, 'finance'), unchanged(claims)), await openBatch(db, id, claims, keys, actor.email, (action, target, detail) => event(db, actor, action, target, detail), { preparedBy }));
+  return loadBatch(db, id);
+}
+
+type Line = (action: string, target: { claim?: string; batch?: string }, detail: Data) => D1PreparedStatement;
+const unchanged = (claims: Claim[]): Sql => ({ sql: `(SELECT COUNT(*) FROM c_claims WHERE status='approved' AND (${claims.map(() => '(id=? AND version=?)').join(' OR ')}))=?`, params: [...claims.flatMap(c => [c.id, c.version]), claims.length] });
+
+/** The writes that open a draft batch of these claims, each history line written by `line`. */
+async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awaited<ReturnType<typeof reimbursementKeys>>, by: string, line: Line, detail: Data) {
+  const at = now(), total = claims.reduce((n, c) => n + c.total_minor, 0);
   const next = await db.prepare('SELECT COALESCE(MAX(number),0)+1 AS n FROM c_batches').first<{ n: number }>(), number = next?.n ?? 1;
-  const unchanged: Sql = { sql: `(SELECT COUNT(*) FROM c_claims WHERE status='approved' AND (${claims.map(() => '(id=? AND version=?)').join(' OR ')}))=?`, params: [...claims.flatMap(c => [c.id, c.version]), claims.length] };
-  await commit(db, all(authority(actor, 'finance'), unchanged), [
-    db.prepare("INSERT INTO c_batches(id,number,status,currency,total_minor,created_by,created_at,prepared_by) VALUES(?,?,'draft',?,?,?,?,?)").bind(id, number, claims[0].currency, total, actor.email, at, preparedBy),
+  return [
+    db.prepare("INSERT INTO c_batches(id,number,status,currency,total_minor,created_by,created_at,prepared_by) VALUES(?,?,'draft',?,?,?,?,?)").bind(id, number, claims[0].currency, total, by, at, detail.preparedBy ?? null),
     ...claims.flatMap(c => [
       db.prepare('INSERT INTO c_batch_claims(batch_id,claim_id,revision,amount_minor) VALUES(?,?,?,?)').bind(id, c.id, c.revision, c.total_minor),
       db.prepare("UPDATE c_claims SET status='batched',batch_id=?,version=version+1,updated_at=? WHERE id=?").bind(id, at, c.id),
-      event(db, actor, 'claim-batched', { claim: c.id, batch: id }, { claim: claimNumber(c.number), batch: batchNumber(number) }),
+      line('claim-batched', { claim: c.id, batch: id }, { claim: claimNumber(c.number), batch: batchNumber(number) }),
     ]),
     ...keys.map(k => db.prepare('INSERT INTO c_reimbursement_keys(key,batch_id,claim_id,item_id) VALUES(?,?,?,?)').bind(k.key, id, k.claim.id, k.item)),
-    event(db, actor, 'batch-created', { batch: id }, { claims: claims.length, totalMinor: total, preparedBy }),
-  ]);
-  return loadBatch(db, id);
+    line('batch-created', { batch: id }, { claims: claims.length, totalMinor: total, ...detail }),
+  ];
+}
+
+/** The name the reimbursement schedule writes under. */
+export const PAY_SCHEDULE = 'pay schedule';
+/** The schedule opens its batch at the first hourly run at or after this hour (business time zone). */
+const PAY_HOUR = 9;
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** The hourly run: on the owner's reimbursement weekday at or after 9:00 (business time zone), once that day, every
+ * approved claim not yet in a batch goes into one draft batch for finance to review, oldest claim first and at most 200
+ * (the rest wait for the next pay day). A claim whose exact expense is already reimbursed stays out, as createBatch would
+ * refuse it. The schedule only opens the batch: review and release stay with people. */
+export async function runPaySchedule(db: D1Database, at: Date) {
+  const settings = await business(db);
+  if (settings?.pay_weekday == null) return;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: settings.timezone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', weekday: 'long' }).formatToParts(at).map(p => [p.type, p.value]));
+  if (parts.weekday !== WEEKDAYS[settings.pay_weekday] || Number(parts.hour) < PAY_HOUR) return;
+  const day = `${parts.year}-${parts.month}-${parts.day}`;
+  if (await db.prepare('SELECT 1 FROM c_pay_runs WHERE day=?').bind(day).first()) return;
+  const { results } = await db.prepare("SELECT * FROM c_claims WHERE status='approved' AND currency=? ORDER BY number LIMIT 200").bind(settings.currency).all<Claim>();
+  const claims: Claim[] = [];
+  for (const claim of results) if (await reimbursementKeys(db, [...claims, claim]).then(() => true, () => false)) claims.push(claim);
+  const id = uid(), run = db.prepare('INSERT INTO c_pay_runs(day,ran_at,batch_id) VALUES(?,?,?)').bind(day, at.toISOString(), claims.length ? id : null);
+  if (!claims.length) { await run.run(); return; }
+  await commit(db, all({ sql: '1', params: [] }, unchanged(claims)), [run, ...await openBatch(db, id, claims, await reimbursementKeys(db, claims), PAY_SCHEDULE, (action, target, detail) => ruleEvent(db, PAY_SCHEDULE, action, target, detail), { payDay: day })]);
 }
 
 export async function removeFromBatch(db: D1Database, actor: Actor, id: string, b: Data) {
@@ -97,12 +131,45 @@ export async function approveBatch(db: D1Database, actor: Actor, id: string, b: 
   return loadBatch(db, id);
 }
 
-/** Record that the batch was paid outside Coaster. Coaster never moves money. */
+/** A release needs a sign-in completed within this many minutes (PAY-004's step-up; no second factor exists, so it is a
+ * recent sign-in, not MFA). Base sessions are never extended, so the session's creation time is the sign-in time. */
+export const RELEASE_SIGN_IN_MINUTES = 10;
+
+/** Release a reviewed batch for payment: the owner, or a finance member the owner granted release, signed in as themselves
+ * within the last 10 minutes, with no claim of their own in the batch. Above the owner's dual-release amount the first
+ * release is recorded and the batch waits for a second, different releaser. */
+export async function releaseBatch(db: D1Database, actor: Actor, id: string, b: Data) {
+  need(actor, 'finance');
+  requireThat(actor.kind === 'person' && !actor.delegate, 'Only a person with release access, signed in as themselves, releases a batch', 403);
+  const batch = await loadBatch(db, id);
+  requireThat(batch.status === 'approved' && !batch.released_at && b.version === batch.version, 'Only a reviewed batch not yet released can be released; reload', 409);
+  const granted = actor.roles.owner || !!await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_finance=1 AND may_release=1').bind(actor.email).first();
+  requireThat(granted, 'The owner has not given you release access', 403);
+  const own = await db.prepare('SELECT COUNT(*) AS n FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id WHERE bc.batch_id=? AND c.employee_email=?').bind(id, actor.email).first<{ n: number }>();
+  requireThat(!own?.n, 'Someone else must release a batch holding your own claim', 403);
+  const recent: Sql = { sql: 'EXISTS(SELECT 1 FROM oa_sessions WHERE id=? AND created_at>=unixepoch()*1000-?)', params: [actor.session, RELEASE_SIGN_IN_MINUTES * 60_000] };
+  const signedIn = await db.prepare('SELECT created_at FROM oa_sessions WHERE id=? AND created_at>=?').bind(actor.session, Date.now() - RELEASE_SIGN_IN_MINUTES * 60_000).first<{ created_at: number }>();
+  requireThat(signedIn, `Sign in again to release: releasing needs a sign-in within the last ${RELEASE_SIGN_IN_MINUTES} minutes`, 401);
+  const threshold = (await business(db))?.dual_release_over_minor ?? null, dual = threshold !== null && batch.total_minor > threshold;
+  requireThat(!dual || batch.first_released_by !== actor.email, 'A second, different person must release this batch', 409);
+  const first = dual && !batch.first_released_by, at = now(), signedInAt = new Date(signedIn.created_at).toISOString();
+  const grant: Sql = actor.roles.owner ? authority(actor, 'owner') : { sql: `(${authority(actor, 'finance').sql}) AND EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_finance=1 AND may_release=1)`, params: [...authority(actor, 'finance').params, actor.email] };
+  await commit(db, all({ sql: `(${grant.sql}) AND (${recent.sql})`, params: [...grant.params, ...recent.params] }, batchState(id, batch.version, 'approved')), [
+    first
+      ? db.prepare('UPDATE c_batches SET first_released_by=?,first_released_at=?,version=version+1 WHERE id=?').bind(actor.email, at, id)
+      : db.prepare('UPDATE c_batches SET released_by=?,released_at=?,version=version+1 WHERE id=?').bind(actor.email, at, id),
+    event(db, actor, first ? 'batch-release-first' : 'batch-released', { batch: id }, { totalMinor: batch.total_minor, recentSignIn: signedInAt, ...(dual ? { dualReleaseOverMinor: threshold, firstReleasedBy: first ? actor.email : batch.first_released_by } : {}) }),
+  ]);
+  return loadBatch(db, id);
+}
+
+/** Record that the released batch was paid outside Coaster. Coaster never moves money. */
 export async function markReimbursed(db: D1Database, actor: Actor, id: string, b: Data) {
   need(actor, 'finance');
   requireThat(actor.kind === 'person', 'Only a person records payment', 403);
   const batch = await loadBatch(db, id);
   requireThat(batch.status === 'approved' && b.version === batch.version, 'Only a reviewed batch can be marked paid; reload', 409);
+  requireThat(batch.released_at, 'Release the batch before recording its payment', 409);
   const reference = text(b.reference, 'Payment reference', 200), paidOn = isoDate(b.paidOn, 'Paid on'), at = now();
   await commit(db, all(authority(actor, 'finance'), batchState(id, batch.version, 'approved')), [
     db.prepare("UPDATE c_batches SET status='reimbursed',paid_reference=?,paid_on=?,paid_by=?,version=version+1 WHERE id=?").bind(reference, paidOn, actor.email, id),

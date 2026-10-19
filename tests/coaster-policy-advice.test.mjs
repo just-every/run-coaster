@@ -144,7 +144,7 @@ test('AGENT-003 finance previews tightening, approval effort and reimbursement e
     const t=await fixture(h),minutesPerException=4
     let batch=await h.post('batches',{claims:t.claims.map(c=>c.id)},t.morgan)
     batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:20500},t.morgan)
-    await h.post(`batches/${batch.id}/paid`,{version:batch.version,reference:'External payroll 910',paidOn:new Date().toISOString().slice(0,10)},t.morgan)
+    await h.paid(batch.id, batch.version, { reference:'External payroll 910',paidOn:new Date().toISOString().slice(0,10)},t.morgan)
     const original=await h.get(`claims/${t.claims[0].id}`,t.sam)
     const proposedRules=[{kind:'per-expense-limit',category:t.c.meals,limit:'55',hard:true}]
     const versions=(await h.get('policy',t.morgan)).versions.length

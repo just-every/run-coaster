@@ -37,7 +37,7 @@ export async function setUp(owner, origin) {
   for (const [name, accountCode, taxCode, limit] of [['Meals', '6300', 'GST', '120.00'], ['Travel', '6200', 'GST', ''], ['Car', '6400', 'GST Free', ''], ['Office supplies', '6500', 'GST', '']])
     await api(owner.context, origin, 'settings/categories', { name, accountCode, taxCode, limit })
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.manager, name: 'Priya Nair', employee: true, manager: true })
-  await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Morgan Lee', employee: true, finance: true, approver: PEOPLE.manager })
+  await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Morgan Lee', employee: true, finance: true, release: true, approver: PEOPLE.manager })
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.employee, name: 'Sam Taylor', employee: true, approver: PEOPLE.manager })
 }
 
@@ -142,6 +142,9 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     assert.equal(rows.length, 3)
     assert.equal(Math.round(rows.reduce((n, r) => n + Number(r[head.indexOf('amount')]) * 100, 0)), total)
     assert.ok(rows.some(r => r[head.indexOf('policy_exceptions')] === 'over-limit'))
+    // PAY-004: the owner gave Morgan release access and Morgan signed in minutes ago, so one release opens payment.
+    await finance.page.getByRole('button', { name: 'Release payment' }).click()
+    await finance.page.getByText(/^Released by Morgan Lee/).waitFor()
     await fill(finance.page, 'Payment reference', `CBA-${width}`)
     await finance.page.getByRole('button', { name: 'Record payment' }).click()
     await finance.page.getByText(`reference CBA-${width}`).first().waitFor()

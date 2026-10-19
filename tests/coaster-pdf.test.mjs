@@ -76,7 +76,7 @@ test('REPORT-005 / CLAIM-006 paid claim and batch PDFs reconcile, preserve order
     second = await h.post(`claims/${second.id}/decision`, { revision: second.revision, version: second.version, decision: 'approved' }, team.priya)
     const batch = await h.post('batches', { claims: [second.id, claim.id] }, team.morgan)
     let reviewed = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 36880 }, team.morgan)
-    await h.post(`batches/${batch.id}/paid`, { version: reviewed.version, reference: 'ACH-REPORT-005', paidOn: '2026-05-10' }, team.morgan)
+    await h.paid(batch.id, reviewed.version, { reference: 'ACH-REPORT-005', paidOn: '2026-05-10' }, team.morgan)
     const batchDetail = await h.get(`batches/${batch.id}`, team.morgan)
     const dinner = batchDetail.lines.find(l => l.merchant === 'Client dinner')
     assert.deepEqual([dinner.billable, dinner.customer, dinner.project, dinner.amountMinor], [true, 'Acme', 'Delivery', 18000])

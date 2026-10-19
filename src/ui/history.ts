@@ -26,6 +26,10 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'import-committed': `${who} imported ${d.source} history · ${d.state}`, 'import-resumed': `${who} resumed the ${d.source} import · ${d.state}`, 'import-undone': `${who} undid the ${d.source} import · ${d.state}`,
     'delegate-revoked': `${who} ended ${names[d.delegate] ?? d.delegate}’s delegate access for ${names[d.grantor] ?? d.grantor}`,
     'batch-reimbursed': `Marked paid by ${who} · reference ${d.reference} on ${day(d.paidOn)}`,
+    'batch-release-first': `First release by ${who} · over ${money(d.dualReleaseOverMinor ?? 0)}, waiting for a second releaser`,
+    'batch-released': `Released for payment by ${who}${d.firstReleasedBy ? ` after ${names[d.firstReleasedBy] ?? d.firstReleasedBy}` : ''} · ${money(d.totalMinor ?? 0)} · recent sign-in`,
+    'release-granted': `${who} gave ${names[d.email] ?? d.email} release access`, 'release-revoked': `${who} ended ${names[d.email] ?? d.email}’s release access`,
+    'payment-controls-set': `Payment controls set by ${who} · dual release ${d.dualReleaseOverMinor == null ? 'off' : `above ${money(d.dualReleaseOverMinor)}`} · ${d.payWeekday ? `batches open every ${d.payWeekday}` : 'no reimbursement day'}`,
     'audit-pack-exported': `Audit pack for ${day(d.from)} to ${day(d.to)} downloaded by ${who} · ${plural(d.claims, 'claim')}, ${plural(d.receipts, 'receipt')}`,
   };
   // A delegate's line is theirs, on behalf of the person they acted for (approvals already say so).

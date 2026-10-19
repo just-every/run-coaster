@@ -16,7 +16,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_receipts', ['owner_email', 'uploaded_by']],
   ['c_revisions', ['submitted_by']],
   ['c_decisions', ['actor_email', 'on_behalf_of']],
-  ['c_batches', ['created_by', 'prepared_by', 'reviewed_by', 'paid_by']],
+  ['c_batches', ['created_by', 'prepared_by', 'reviewed_by', 'first_released_by', 'released_by', 'paid_by']],
   ['c_events', ['actor_email']],
   ['c_proposals', ['for_email', 'decided_by']],
   ['c_requests', ['employee_email', 'approver_email', 'on_behalf_of', 'submitted_by', 'decided_by', 'decided_on_behalf_of']],

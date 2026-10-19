@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, plural, shortDay, today, type D } from './api';
+import { batchNumber, batchStage, batchWords, call, claimNumber, day, exceptionWords, money, moment, plural, shortDay, today, type D } from './api';
 import { Badge, Empty, Field, Form, Initials, PageHead, Section, Tiles, Warning } from './parts';
 import { Icon } from './icons';
 import { AgentStrip } from './proposals';
@@ -11,9 +11,10 @@ import { BatchDownloads, Exports } from './exports';
 import { ExceptionQueue } from './exception-queue';
 
 const batchStatus = (b: D) => b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed';
+const tone = (b: D) => b.status === 'reimbursed' || batchStage(b) === 'released' ? 'done' : 'wait';
 const sum = (rows: D[]) => rows.reduce((n, r) => n + r.total_minor, 0);
 
-/** Finance turns approved claims into a reviewed batch, exports it, and records the payment made outside Coaster. */
+/** Finance turns approved claims into a reviewed batch, releases it, exports it, and records the payment made outside Coaster. */
 export function Batches({ state, reload, id, query }: ViewProps) {
   const ready = state.claims.filter((c: D) => c.status === 'approved'), shown = ready.filter((c: D) => matches(c, query));
   const [chosen, setChosen] = useState<string[]>([]);
@@ -24,7 +25,7 @@ export function Batches({ state, reload, id, query }: ViewProps) {
   const panel = id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} templates={state.exportTemplates} />
     : <aside className="side side-empty"><Empty large title="Choose a batch">Review its totals, download the accounting and reimbursement files, and record the payment.</Empty></aside>;
   return <Work panel={panel} wide selected={!!id} className="batches-work">
-    <PageHead title="Batches" line={`${plural(ready.length, 'approved claim')} ready to batch, ${plural(drafts.length, 'batch', 'batches')} to review, ${reviewed.length} ready to pay`} />
+    <PageHead title="Batches" line={`${plural(ready.length, 'approved claim')} ready to batch, ${plural(drafts.length, 'batch', 'batches')} to review, ${reviewed.length} to release or pay`} />
     <Tiles label="Batch totals" tiles={[
       { label: 'To review or pay', value: drafts.length + reviewed.length, note: money(sum([...drafts, ...reviewed]), currency) },
       { label: 'Paid', value: paid.length, note: paid[0] ? `Last paid ${shortDay(paid[0].paid_on)} · ${money(sum(paid), currency)}` : 'None yet' },
@@ -54,7 +55,7 @@ export function Batches({ state, reload, id, query }: ViewProps) {
             <td data-cell="person"><a className="title-link" href={`#/batches/${b.id}`} aria-current={b.id === id ? 'true' : undefined}>{batchNumber(b.number)}</a></td>
             <td data-cell="updated" className="soft nowrap">{shortDay(b.created_at)}</td>
             <td data-cell="amount" className="figure amount">{money(b.total_minor, b.currency)}</td>
-            <td data-cell="status"><Badge status={batchStatus(b)} tone={b.status === 'draft' ? 'wait' : 'done'} words={batchWords[b.status]} /></td>
+            <td data-cell="status"><Badge status={batchStatus(b)} tone={tone(b)} words={batchWords[batchStage(b)]} /></td>
           </tr>)}</tbody>
         </table></div> : <Empty title="No batches yet">Choose approved claims above to start one.</Empty>}
       </Section>
@@ -79,7 +80,7 @@ function BatchPanel({ id, reload, names, templates }: { id: string; reload: () =
     <div className="panel-head"><h2>{batchNumber(batch.number)} · {money(batch.total_minor, c)}</h2>{close}</div>
     <p className="panel-amount">{plural(claims.length, 'claim')} · {plural(people.length, 'person', 'people')}{batch.prepared_by ? ` · prepared by ${batch.prepared_by}` : ''}</p>
     <p className="panel-date">Created {day(batch.created_at)}</p>
-    <div className="metadata panel-block"><Badge status={batchStatus(batch)} tone={batch.status === 'draft' ? 'wait' : 'done'} words={batchWords[batch.status]} /></div>
+    <div className="metadata panel-block"><Badge status={batchStatus(batch)} tone={tone(batch)} words={batchWords[batchStage(batch)]} /></div>
     {reconciled
       ? <p className="reconciled" role="status"><Icon name="check" /><span>Reconciled: {plural(lines.length, 'accounting line')} and {plural(people.length, 'reimbursement')} {lines.length === 1 && people.length === 1 ? 'both add' : 'each add'} up to {money(batch.total_minor, c)}.</span></p>
       : <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>These totals do not reconcile.</strong> Do not pay this batch.</p></div>}
@@ -97,7 +98,12 @@ function BatchPanel({ id, reload, names, templates }: { id: string; reload: () =
       <Field label={`I checked the reimbursements, accounting lines and exceptions add up to ${money(batch.total_minor, c)}`} name="confirm" type="checkbox" />
     </Form></section>}
     {batch.status !== 'draft' && <BatchDownloads id={id} templates={templates} />}
-    {batch.status === 'approved' && <section className="panel-block" aria-label="Payment"><h3>Record payment</h3><Form label="Record payment" className="record-form-inline" onSubmit={async v => { await call(`batches/${id}/paid`, { version: batch.version, reference: v.reference, paidOn: v.paidOn }); await done(); }}>
+    {batch.status === 'approved' && !batch.released_at && <section className="panel-block" aria-label="Release"><h3>Release for payment</h3>
+      {batch.first_released_by && <p className="muted">Released once by {names[batch.first_released_by] ?? batch.first_released_by} on {moment(batch.first_released_at)}; a second, different person releases it.</p>}
+      <Form label={batch.first_released_by ? 'Second release' : 'Release payment'} className="record-form-inline" onSubmit={async () => { await call(`batches/${id}/release`, { version: batch.version }); await done(); }}>
+        <p className="muted field-wide">Releasing needs a sign-in within the last 10 minutes and release access from the owner; nobody releases a batch holding their own claim.</p>
+      </Form></section>}
+    {batch.status === 'approved' && batch.released_at && <section className="panel-block" aria-label="Payment"><h3>Record payment</h3><p className="muted">Released by {names[batch.released_by] ?? batch.released_by}{batch.first_released_by ? ` after ${names[batch.first_released_by] ?? batch.first_released_by}` : ''} on {moment(batch.released_at)}.</p><Form label="Record payment" className="record-form-inline" onSubmit={async v => { await call(`batches/${id}/paid`, { version: batch.version, reference: v.reference, paidOn: v.paidOn }); await done(); }}>
       <Field label="Payment reference" name="reference" placeholder="Bank batch or ACH reference" />
       <Field label="Paid on" name="paidOn" type="date" defaultValue={today()} />
       <p className="muted field-wide">Coaster does not move money: pay the reimbursements file from your bank, then record it here.</p>

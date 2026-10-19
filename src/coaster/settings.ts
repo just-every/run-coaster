@@ -6,13 +6,13 @@ import { categories } from './items';
 import { ownerPolicyVersion } from './policy-configuration';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; reminder_days: number[]; quiet_from: number; quiet_until: number; service_level_days: number; escalation_days: number | null; auto_submit: 'daily' | 'weekly' | 'twice-monthly' | 'monthly' | null; retention_years: number; mileage_rates: MileageRate[] };
+export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; reminder_days: number[]; quiet_from: number; quiet_until: number; service_level_days: number; escalation_days: number | null; auto_submit: 'daily' | 'weekly' | 'twice-monthly' | 'monthly' | null; retention_years: number; dual_release_over_minor: number | null; pay_weekday: number | null; mileage_rates: MileageRate[] };
 
 /** The IRS documentary-evidence line: a new business needs receipts above $75 unless the owner sets another threshold. */
 export const DEFAULT_RECEIPT_THRESHOLD_MINOR = 7500;
 
 export async function business(db: D1Database): Promise<Business | null> {
-  const found = await db.prepare('SELECT name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,audit_sample_percent,reminder_days,quiet_from,quiet_until,service_level_days,escalation_days,auto_submit,retention_years FROM c_business WHERE id=1').first<Omit<Business, 'mileage_rates' | 'reminder_days'> & { reminder_days: string }>();
+  const found = await db.prepare('SELECT name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,audit_sample_percent,reminder_days,quiet_from,quiet_until,service_level_days,escalation_days,auto_submit,retention_years,dual_release_over_minor,pay_weekday FROM c_business WHERE id=1').first<Omit<Business, 'mileage_rates' | 'reminder_days'> & { reminder_days: string }>();
   return found && { ...found, reminder_days: JSON.parse(found.reminder_days) as number[], mileage_rates: await mileageRates(db) };
 }
 export async function requireBusiness(db: D1Database) {
@@ -45,6 +45,24 @@ export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
     event(db, actor, 'business-saved', {}, { name: values[0], currency, timezone, perDiemMinor: values[3], receiptThresholdMinor: values[4], salesTaxAccount: values[5], salesTaxCode: values[6], preapprovalThresholdMinor: values[7], irsMileageRates: seed }),
   ]);
   return business(db);
+}
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** The owner's payment controls (PAY-004): dual release above an amount (empty turns it off; a batch over the amount,
+ * not at it, needs two releasers) and the weekday the hourly run opens a reimbursement batch (empty turns it off). */
+export async function savePaymentControls(db: D1Database, actor: Actor, b: Data) {
+  need(actor, 'owner');
+  requireThat(actor.kind === 'person', 'Only a person changes payment controls', 403);
+  await requireBusiness(db);
+  const dual = optionalAmount(b.dualReleaseOver, 'Dual release above');
+  const weekday = b.payWeekday === undefined || b.payWeekday === null || b.payWeekday === '' ? null : WEEKDAYS.indexOf(String(b.payWeekday));
+  requireThat(weekday === null || weekday >= 0, 'Choose a weekday such as Friday, or turn the schedule off');
+  await commit(db, authority(actor, 'owner'), [
+    db.prepare('UPDATE c_business SET dual_release_over_minor=?,pay_weekday=?,updated_at=? WHERE id=1').bind(dual, weekday, now()),
+    event(db, actor, 'payment-controls-set', {}, { dualReleaseOverMinor: dual, payWeekday: weekday === null ? null : WEEKDAYS[weekday] }),
+  ]);
+  return { dualReleaseOverMinor: dual, payWeekday: weekday === null ? null : WEEKDAYS[weekday] };
 }
 
 const flag = (v: unknown) => v === true || v === 'true' || v === 'on' ? 1 : 0;
@@ -83,6 +101,9 @@ export async function saveMember(db: D1Database, actor: Actor, b: Data) {
   const address = email(b.email);
   const roles = { employee: flag(b.employee), manager: flag(b.manager), finance: flag(b.finance), auditor: flag(b.auditor) };
   requireThat(roles.employee || roles.manager || roles.finance || roles.auditor, 'Choose at least one role');
+  // The release grant (PAY-004) is the owner's to give, and only to finance.
+  const release = flag(b.release);
+  requireThat(!release || roles.finance, 'Only a finance member can be given release access');
   let approver: string | null = null;
   if (b.approver) {
     approver = email(b.approver, 'Approving manager');
@@ -93,11 +114,12 @@ export async function saveMember(db: D1Database, actor: Actor, b: Data) {
   const active = b.active === false || b.active === 'false' ? 0 : 1;
   const name = text(b.name, 'Name', 120);
   // Deactivating an approver moves their waiting claims to their own manager.
-  const was = await db.prepare('SELECT active FROM c_members WHERE email=?').bind(address).first<{ active: number }>();
+  const was = await db.prepare('SELECT active,may_release FROM c_members WHERE email=?').bind(address).first<{ active: number; may_release: number }>();
   const moves = was?.active === 1 && !active ? await queueMoves(db, actor, address, approver) : [];
   await commit(db, authority(actor, 'owner'), [
-    db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,is_auditor=excluded.is_auditor,approver_email=excluded.approver_email,active=excluded.active,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, roles.auditor, approver, active, now()),
+    db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active,may_release,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,is_auditor=excluded.is_auditor,approver_email=excluded.approver_email,active=excluded.active,may_release=excluded.may_release,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, roles.auditor, approver, active, release, now()),
     event(db, actor, 'member-saved', {}, { email: address, roles, approver, active: active === 1 }),
+    ...(release !== (was?.may_release ?? 0) ? [event(db, actor, release ? 'release-granted' : 'release-revoked', {}, { email: address })] : []),
     ...moves,
   ]);
   return db.prepare('SELECT * FROM c_members WHERE email=?').bind(address).first();

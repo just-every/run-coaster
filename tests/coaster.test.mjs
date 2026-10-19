@@ -225,11 +225,74 @@ test('COA-009 finance batches approved claims, reviews reconciled totals, export
   assert.equal(accounting.trim().split('\r\n').length, 1 + 4); assert.equal(people.trim().split('\r\n').length, 1 + 3)
   assert.match(accounting, new RegExp(sha(await readFile('tests/fixtures/receipts/hotel.png'))))
   await h.post(`batches/${batch.id}/remove`, { version: batch.version, claim: a.id }, t.jordan, 409)
-  batch = await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'CBA-ABA-0517', paidOn: '2026-05-17' }, t.jordan)
+  batch = await h.paid(batch.id, batch.version, { reference: 'CBA-ABA-0517', paidOn: '2026-05-17' }, t.jordan)
   assert.equal(batch.status, 'reimbursed')
   assert.deepEqual((await h.get('state', t.jordan)).claims.filter(c => [a.id, b.id, m.id].includes(c.id)).map(c => c.status), ['reimbursed', 'reimbursed', 'reimbursed'])
   const events = (await h.get(`batches/${batch.id}`, t.jordan)).events.map(e => e.action)
-  assert.deepEqual(events.filter(e => e.startsWith('batch-')), ['batch-created', 'batch-approved', 'batch-exported', 'batch-exported', 'batch-reimbursed'])
+  assert.deepEqual(events.filter(e => e.startsWith('batch-')), ['batch-created', 'batch-approved', 'batch-exported', 'batch-exported', 'batch-released', 'batch-reimbursed'])
+}))
+
+test('PAY-004 the owner sets dual release over $5,000 and a Friday schedule; a $7,200 batch waits for a second releaser, own-claim and stale-sign-in releases are refused, and batch, payment and ledger totals agree', () => withAgency(async (h, t) => {
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'USD', timezone: 'America/Chicago' })
+  await h.post('settings/payment-controls', { dualReleaseOver: '5000.00', payWeekday: 'Friday' }, t.jordan, 403)
+  assert.deepEqual(await h.post('settings/payment-controls', { dualReleaseOver: '5000.00', payWeekday: 'Friday' }), { dualReleaseOverMinor: 500000, payWeekday: 'Friday' })
+  await h.post('settings/payment-controls', { payWeekday: 'Caturday' }, h.owner, 400)
+  // The owner gives release access to finance only.
+  await h.post('settings/members', { email: 'sam@harbourfinch.example', name: 'sam', employee: true, release: true, approver: 'priya@harbourfinch.example' }, h.owner, 400)
+  for (const [address, roles] of [['morgan@harbourfinch.example', { employee: true, finance: true, approver: 'priya@harbourfinch.example' }], ['jordan@harbourfinch.example', { employee: true, manager: true, finance: true }]])
+    await h.post('settings/members', { email: address, name: address.split('@')[0], ...roles, release: true })
+  const riley = await h.person('riley@harbourfinch.example', { finance: true })
+
+  const sam = await claim(h, t.sam, 'Client summit travel', [{ kind: 'receipt', date: '2026-10-19', merchant: 'Hilton Chicago', amount: '4000.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel', explanation: 'Three nights for the summit team' }])
+  const own = await claim(h, t.morgan, 'Finance conference', [{ kind: 'receipt', date: '2026-10-19', merchant: 'United Airlines', amount: '3200.00', allocations: [{ category: t.c.travel }], receiptFixture: 'uber', explanation: 'Flights for the audit conference' }])
+  const a = await approve(h, t.priya, await submit(h, t.sam, sam), { acknowledge: true }), m = await approve(h, t.priya, await submit(h, t.morgan, own), { acknowledge: true })
+  assert.deepEqual([a.status, m.status], ['approved', 'approved'])
+
+  // The Friday schedule opens the draft batch at the first hourly run at or after 9:00 Central, once, and never on Thursday.
+  const cron = async (day, hour) => (await h.mf.getWorker()).scheduled({ scheduledTime: central(day, hour), cron: '17 * * * *' })
+  await cron('2026-10-22', 9); await cron('2026-10-23', 8)
+  assert.equal((await h.get('state', t.jordan)).batches.length, 0, 'no batch on Thursday or before 9:00 on Friday')
+  await cron('2026-10-23', 9); await cron('2026-10-23', 10)
+  const batches = (await h.get('state', t.jordan)).batches
+  assert.equal(batches.length, 1, 'one batch for the pay day')
+  let batch = batches[0]
+  assert.deepEqual([batch.status, batch.created_by, batch.total_minor, batch.released_at], ['draft', 'pay schedule', 720000, null], 'the schedule opens a draft and never releases')
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 720000 }, t.jordan)
+  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-1023', paidOn: '2026-10-23' }, t.jordan, 409)
+
+  const lines = async () => (await h.db.prepare('SELECT COUNT(*) AS n FROM c_events').first()).n, before = await lines()
+  await h.post(`batches/${batch.id}/release`, { version: batch.version }, riley, 403)
+  assert.match((await h.send(`/api/coaster/batches/${batch.id}/release`, { version: batch.version }, t.morgan)).value.error, /own claim/, 'a releaser with their own claim in the batch is refused')
+  // A sign-in older than 10 minutes cannot release; signing in again can.
+  await h.db.prepare("UPDATE oa_sessions SET created_at=created_at-660000 WHERE operator_id=(SELECT id FROM oa_operators WHERE lower(email)='jordan@harbourfinch.example')").run()
+  const stale = await h.send(`/api/coaster/batches/${batch.id}/release`, { version: batch.version }, t.jordan)
+  assert.equal(stale.status, 401); assert.match(stale.value.error, /Sign in again to release/)
+  assert.equal(await lines(), before, 'refused releases wrote nothing')
+  assert.equal((await h.send('/auth/magic-link', { email: 'jordan@harbourfinch.example' })).status, 202)
+  const jordan = await h.confirmMail('jordan@harbourfinch.example')
+
+  batch = await h.post(`batches/${batch.id}/release`, { version: batch.version }, jordan)
+  assert.deepEqual([batch.first_released_by, batch.released_at], ['jordan@harbourfinch.example', null], 'over $5,000 the first release waits for a second releaser')
+  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-1023', paidOn: '2026-10-23' }, jordan, 409)
+  assert.match((await h.send(`/api/coaster/batches/${batch.id}/release`, { version: batch.version }, jordan)).value.error, /second, different person/)
+  batch = await h.post(`batches/${batch.id}/release`, { version: batch.version }, h.owner)
+  assert.equal(batch.released_by, 'owner@harbourfinch.example')
+  batch = await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-1023', paidOn: '2026-10-23' }, jordan)
+  assert.equal(batch.status, 'reimbursed')
+  // Batch, payment file and ledger export agree to the cent.
+  assert.equal(sum((await h.send(`/api/coaster/batches/${batch.id}/reimbursements.csv`, undefined, jordan)).text, 'amount'), 720000)
+  assert.equal(sum((await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, jordan)).text, 'amount'), 720000)
+
+  // Each schedule change, release grant, scheduled batch and release is its own history line, in order, that nothing edits.
+  const history = (await h.get('history')).lines, at = action => history.filter(l => l.action === action)
+  assert.deepEqual(at('payment-controls-set').map(l => [l.actor_email, l.detail.dualReleaseOverMinor, l.detail.payWeekday]), [['owner@harbourfinch.example', 500000, 'Friday']])
+  assert.deepEqual(at('release-granted').map(l => l.detail.email), ['morgan@harbourfinch.example', 'jordan@harbourfinch.example'])
+  const created = at('batch-created')[0], first = at('batch-release-first')[0], released = at('batch-released')[0]
+  assert.deepEqual([created.actor_email, created.channel, created.detail.payDay], ['pay schedule', 'schedule', '2026-10-23'])
+  assert.deepEqual([first.actor_email, first.channel, released.actor_email, released.detail.firstReleasedBy], ['jordan@harbourfinch.example', 'app', 'owner@harbourfinch.example', 'jordan@harbourfinch.example'])
+  assert.ok(Date.parse(released.at) - Date.parse(released.detail.recentSignIn) < 600000, 'the release names the recent sign-in it relied on')
+  assert.ok(at('payment-controls-set')[0].seq < at('release-granted')[0].seq && created.seq < first.seq && first.seq < released.seq && released.seq < at('batch-reimbursed')[0].seq)
+  await assert.rejects(h.db.prepare("UPDATE c_events SET actor_email='mallory@example.com' WHERE seq=?").bind(released.seq).run(), /history is permanent/)
 }))
 
 test('COA-010 an agent prepares claims and batches; only the person accepts them', () => withAgency(async (h, t) => {
@@ -412,7 +475,7 @@ test('REPORT-003 history is searchable across a claim\'s capture, approval and p
   c = await approve(h, t.priya, await h.post(`claims/${c.id}/submit`, { version: c.version }, t.sam), { acknowledge: true })
   let batch = await h.post('batches', { claims: [c.id] }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 18860 }, t.jordan)
-  batch = await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-2026-0517', paidOn: '2026-05-17' }, t.jordan)
+  batch = await h.paid(batch.id, batch.version, { reference: 'ACH-2026-0517', paidOn: '2026-05-17' }, t.jordan)
   const number = `CL-${String(c.number).padStart(4, '0')}`
 
   const found = (await h.get(`history?q=${number}`, audrey)).lines
@@ -482,7 +545,7 @@ test('AUDIT-001 one action of each kind reads back in order with actor, agent, c
   assert.equal(ride.status, 'approved', 'the approval rule decided it')
   let batch = await h.post('batches', { claims: [lunch.id, ride.id] }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 6450 + 3860 }, t.jordan)
-  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-2026-0520', paidOn: '2026-05-20' }, t.jordan)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-2026-0520', paidOn: '2026-05-20' }, t.jordan)
   const key = await h.post('agent-keys', { label: 'Receipt inbox agent' }, t.sam)
   assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Parking', items: [{ kind: 'receipt', date: '2026-05-10', merchant: 'Wilson Parking', amount: '18.00', allocations: [{ category: t.c.travel }], receipt: await receipt('uber') }] }, '', { authorization: `Bearer ${key.token}` })).status, 200)
   const csv = await readFile('tests/fixtures/expensify-report-template.csv', 'utf8'), mapping = { date: 'YYYY-MM-DD', statuses: { Reimbursed: 'reimbursed', Approved: 'approved', Open: 'open' } }
@@ -868,7 +931,7 @@ test('APPROVE-005 an approver holds the dinner and approves the other four; the 
   // The four go to a batch and are paid; the dinner is fixed, resubmitted alone, approved and paid separately.
   let batch = await h.post('batches', { claims: [c.id] }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: rest }, t.jordan)
-  batch = await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0601', paidOn: '2026-06-01' }, t.jordan)
+  batch = await h.paid(batch.id, batch.version, { reference: 'ACH-0601', paidOn: '2026-06-01' }, t.jordan)
   assert.equal((await h.get(`claims/${c.id}`, t.sam)).claim.status, 'reimbursed')
   let hc = await h.post(`claims/${heldId}/items`, { version: held.claim.version, item: dinner, kind: 'receipt', date: '2026-05-25', merchant: 'Rockpool', amount: '96.00', receipt: held.items[0].receipt_id, allocations: [{ category: t.c.meals }], attendees: [{ kind: 'employee', name: 'sam', email: 'sam@harbourfinch.example' }, { kind: 'guest', name: 'Dana Kim' }] }, t.sam)
   await h.post(`claims/${heldId}/release`, { version: hc.version }, t.sam, 403)
@@ -876,7 +939,7 @@ test('APPROVE-005 an approver holds the dinner and approves the other four; the 
   assert.deepEqual([hc.status, hc.revision, hc.total_minor], ['approved', 1, 9600])
   batch = await h.post('batches', { claims: [heldId] }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 9600 }, t.jordan)
-  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0608', paidOn: '2026-06-08' }, t.jordan)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-0608', paidOn: '2026-06-08' }, t.jordan)
   assert.equal((await h.get(`claims/${heldId}`, t.sam)).claim.status, 'reimbursed')
 
   // Or the approver releases a hold before the employee resubmits.
@@ -897,7 +960,7 @@ test('DATA-001 the claim-to-batch journey sends data only through the declared m
   let batch = await h.post('batches', { claims: [c.id] }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 23600 }, t.jordan)
   assert.equal((await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, t.jordan)).status, 200)
-  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0603', paidOn: '2026-06-03' }, t.jordan)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-0603', paidOn: '2026-06-03' }, t.jordan)
   assert.equal((await h.get(`claims/${c.id}`, t.sam)).claim.status, 'reimbursed', 'the core flow works with no optional provider connected')
 
   // Each outbound host belongs to a flow seed.json declares; with Auth named but not linked, only mail leaves.
@@ -1076,7 +1139,7 @@ test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt 
   assert.deepEqual(aging.rows.map(r => [r[0], r[3], r[4], r[5], r[6]]).sort(), [[number(a), 0, '0–7 days', 'batched', '60.00'], [number(d), 0, '0–7 days', 'approved', '64.95'], [number(held.claim), 0, '0–7 days', 'held', '4.40']].sort())
   assert.deepEqual([aging.totals.claims, aging.totals.amountMinor, aging.totals.buckets['0–7 days'].claims], [3, 6000 + 6495 + 440, 3])
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 6000 }, t.jordan)
-  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-1', paidOn: today }, t.jordan)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-1', paidOn: today }, t.jordan)
   assert.deepEqual((await run('aging')).totals.amountMinor, 6495 + 440, 'a paid claim leaves the aging report')
 
   // Cycle time: each decision timed from its revision's submission, per approver.
@@ -1384,7 +1447,7 @@ test('CLAIM-009 finance pays a monthly stipend to every employee and caps a year
   let batch = await h.post('batches', { claims: sams.map(c => c.id) }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 22500 }, t.jordan)
   assert.equal(sum((await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, t.jordan)).text, 'amount'), 22500)
-  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0815', paidOn: '2026-08-15' }, t.jordan)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-0815', paidOn: '2026-08-15' }, t.jordan)
   assert.deepEqual((await h.get('state', t.sam)).claims.filter(c => c.title.startsWith('Phone stipend · ')).map(c => c.status), ['reimbursed', 'reimbursed', 'reimbursed'])
 
   // $320 then $250 against the $500 home-office cap: the second is reimbursed $180 and the $70 over is flagged.
@@ -1467,7 +1530,7 @@ test('RETAIN-001 paid and rejected claims past the owner\'s retention are propos
   await h.post(`claims/${paid.id}/comments`, { body: 'Thanks for the folio' }, t.priya)
   let batch = await h.post('batches', { claims: [paid.id] }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 18000 }, t.jordan)
-  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0510', paidOn: '2026-05-10' }, t.jordan)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-0510', paidOn: '2026-05-10' }, t.jordan)
   const paidReceipt = (await h.get(`claims/${paid.id}`)).items[0].receipt_id
   const sent = await submit(h, t.alex, await claim(h, t.alex, 'Gym', [{ kind: 'receipt', date: '2026-05-05', merchant: 'Equinox', amount: '60.00', allocations: [{ category: t.c.office }] }]))
   const rejected = await h.post(`claims/${sent.id}/decision`, { revision: sent.revision, version: sent.version, decision: 'rejected', reason: 'Personal' }, t.priya)
@@ -1622,7 +1685,7 @@ test('ERASURE-001 the owner erases a departed employee\'s personal data and keep
   await h.post(`claims/${paid.id}/comments`, { body: 'Thanks, approved', parent: said.comment }, t.priya)
   let batch = await h.post('batches', { claims: [paid.id] }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 22928 }, t.jordan)
-  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-0510', paidOn: '2026-05-10' }, t.jordan)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-0510', paidOn: '2026-05-10' }, t.jordan)
   // Sam's agent forwards a receipt, uploaded "Sam receipts agent for" Sam's address.
   const key = await h.post('agent-keys', { label: 'Sam receipts agent' }, t.sam)
   assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Forwarded receipt', items: [{ kind: 'receipt', date: '2026-05-09', merchant: 'Officeworks', amount: '18.00', allocations: [{ category: t.c.office }], receipt: { name: 'officeworks.png', base64: (await readFile('tests/fixtures/receipts/officeworks.png')).toString('base64') } }] }, '', { authorization: `Bearer ${key.token}` })).status, 200)

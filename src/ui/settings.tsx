@@ -13,6 +13,8 @@ import { PolicyAdvice } from './policy-advice';
 import { PolicyRules } from './policy';
 import type { ViewProps } from './claims';
 
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 const US_ZONES = [['America/New_York', 'Eastern'], ['America/Chicago', 'Central'], ['America/Denver', 'Mountain'], ['America/Phoenix', 'Arizona'], ['America/Los_Angeles', 'Pacific'], ['America/Anchorage', 'Alaska'], ['Pacific/Honolulu', 'Hawaii']].map(([value, label]) => ({ value, label: `${label} (${value})` }));
 
 /** Business policy, mileage rates, categories and people for the owner; everyone manages their own agent keys here. */
@@ -73,6 +75,13 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Every expense under" name="limit" inputMode="decimal" required={false} defaultValue={state.approvalRule?.limit_minor ? amountText(state.approvalRule.limit_minor) : '75.00'} hint="Each expense must be under this, carry its receipt and raise no policy exception" />
       </Form>
     </Section>}
+    {owner && b && <Section title="Payment controls">
+      <p className="muted">Releasing a reviewed batch needs you, or a finance member you give release access under People, signed in within the last 10 minutes (a recent sign-in, not a second factor), and never someone with a claim in the batch. On the reimbursement day, at 9:00 ({b.timezone}), Coaster opens a draft batch of every approved claim for finance to review; it never releases one.</p>
+      <Form key={`${b.dual_release_over_minor ?? 'off'}-${b.pay_weekday ?? 'off'}`} label="Save payment controls" onSubmit={async v => { await call('settings/payment-controls', v); await saved('Payment controls saved.'); }}>
+        <Field label="Dual release above" name="dualReleaseOver" inputMode="decimal" required={false} defaultValue={b.dual_release_over_minor == null ? '' : amountText(b.dual_release_over_minor)} hint="A batch over this needs a second, different person to release it; leave empty to turn it off" />
+        <Field label="Reimbursement day" name="payWeekday" required={false} defaultValue={b.pay_weekday == null ? '' : WEEKDAYS[b.pay_weekday]} options={WEEKDAYS.map(d => ({ value: d, label: `Every ${d}` }))} hint="Choose… turns it off" />
+      </Form>
+    </Section>}
     {owner && b && <Section title="Scheduled submission">
       <p className="muted">Expenses added without choosing a claim collect in a report for their month or trip. On this schedule, at 9:00 ({b.timezone}), each such report submits its complete expenses to the approver; anything missing a receipt, explanation or required field stays behind and keeps being reminded. Claims built by hand are never submitted for anyone.</p>
       <Form key={b.auto_submit ?? 'off'} label="Save schedule" onSubmit={async v => { await call('settings/auto-submit', v); await saved('Schedule saved.'); }}>
@@ -109,7 +118,7 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     {owner && b && <Section title="People">
       {state.members.length ? <table className="plain"><thead><tr><th>Name</th><th>Email</th><th>Roles</th><th>Approver</th><th><span className="visually-hidden">Actions</span></th></tr></thead><tbody>
-        {state.members.map((m: D) => <tr key={m.email}><td>{m.name}{!m.active && ' (inactive)'}</td><td>{m.email}</td><td>{[m.is_employee && 'Employee', m.is_manager && 'Manager', m.is_finance && 'Finance', m.is_auditor && 'Auditor'].filter(Boolean).join(', ')}</td><td><span className="mobile-label">Approver </span>{state.members.find((x: D) => x.email === m.approver_email)?.name ?? '—'}</td><td className="row-actions"><button className="button small" onClick={() => setMember(m)}>Change</button><button className="button small" onClick={async () => { try { await call('settings/members/invite', { email: m.email }); setNotice(`Invitation sent to ${m.email}.`); } catch (e) { setNotice((e as Error).message); } }}>Invite</button>{!m.active && m.email.includes('@') && <button className="button small" onClick={async () => { if (!window.confirm(`Erase ${m.name}'s personal data? Their name, email, sign-in, agent keys, delegations and own comments are removed for good; their claims, receipts and history stay under an anonymous label.`)) return; try { const r = await call('settings/members/erase', { email: m.email }); await saved(`${m.name} is now ${r.label}; the erasure receipt is under Retention.`); } catch (e) { setNotice((e as Error).message); } }}>Erase</button>}</td></tr>)}
+        {state.members.map((m: D) => <tr key={m.email}><td>{m.name}{!m.active && ' (inactive)'}</td><td>{m.email}</td><td>{[m.is_employee && 'Employee', m.is_manager && 'Manager', m.is_finance && 'Finance', m.is_auditor && 'Auditor', m.may_release && 'Releases payments'].filter(Boolean).join(', ')}</td><td><span className="mobile-label">Approver </span>{state.members.find((x: D) => x.email === m.approver_email)?.name ?? '—'}</td><td className="row-actions"><button className="button small" onClick={() => setMember(m)}>Change</button><button className="button small" onClick={async () => { try { await call('settings/members/invite', { email: m.email }); setNotice(`Invitation sent to ${m.email}.`); } catch (e) { setNotice((e as Error).message); } }}>Invite</button>{!m.active && m.email.includes('@') && <button className="button small" onClick={async () => { if (!window.confirm(`Erase ${m.name}'s personal data? Their name, email, sign-in, agent keys, delegations and own comments are removed for good; their claims, receipts and history stay under an anonymous label.`)) return; try { const r = await call('settings/members/erase', { email: m.email }); await saved(`${m.name} is now ${r.label}; the erasure receipt is under Retention.`); } catch (e) { setNotice((e as Error).message); } }}>Erase</button>}</td></tr>)}
       </tbody></table> : <Empty title="Nobody added yet">Add yourself and your team. Each employee needs an approving manager.</Empty>}
       <div className="sub-form"><h3>{member ? `Change ${member.name}` : 'Add a person'}</h3><Form key={member?.email ?? 'new'} label={member ? 'Save person' : 'Add person'} onSubmit={async v => { await call('settings/members', v); setMember(null); await saved('Person saved.'); }} secondary={member ? <button type="button" className="button" onClick={() => setMember(null)}>Cancel</button> : undefined}>
         <Field label="Name" name="name" defaultValue={member?.name} />
@@ -119,6 +128,7 @@ export function Settings({ state, reload }: ViewProps) {
           <Field label="Manager" name="manager" type="checkbox" defaultValue={member?.is_manager} />
           <Field label="Finance" name="finance" type="checkbox" defaultValue={member?.is_finance} />
           <Field label="Auditor (reads everything, changes nothing)" name="auditor" type="checkbox" defaultValue={member?.is_auditor} />
+          <Field label="May release payments (finance only)" name="release" type="checkbox" defaultValue={member?.may_release} />
         </fieldset>
         <Field label="Approving manager" name="approver" required={false} defaultValue={member?.approver_email ?? ''} options={managers.filter((m: D) => m.email !== member?.email).map((m: D) => ({ value: m.email, label: m.name }))} />
         <Field label="Active" name="active" type="checkbox" defaultValue={member ? member.active === 1 : true} />
