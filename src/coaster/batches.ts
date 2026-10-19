@@ -1,4 +1,5 @@
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
+import { finalApproval } from './approval-chain';
 import { event } from './events';
 import { claimNumber, claimItems, type Claim } from './claims';
 import { exactKey } from './exceptions';
@@ -116,7 +117,7 @@ export const csv = (rows: unknown[][]) => rows.map(r => r.map(cell).join(',')).j
 
 /** Accounting lines (one per category split) and per-employee totals, both from the approved revisions. */
 export async function batchLines(db: D1Database, id: string) {
-  const { results } = await db.prepare('SELECT bc.claim_id, bc.revision, bc.amount_minor, c.number, c.employee_email, m.name AS employee_name, r.snapshot, r.submitted_by, d.actor_email AS approver, d.on_behalf_of, d.at AS approved_at, d.reason AS approval_reason FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id LEFT JOIN c_members m ON m.email=c.employee_email JOIN c_revisions r ON r.claim_id=bc.claim_id AND r.revision=bc.revision LEFT JOIN c_decisions d ON d.claim_id=bc.claim_id AND d.revision=bc.revision WHERE bc.batch_id=? ORDER BY c.number').bind(id).all<Data>();
+  const { results } = await db.prepare(`SELECT bc.claim_id, bc.revision, bc.amount_minor, c.number, c.employee_email, m.name AS employee_name, r.snapshot, r.submitted_by, d.actor_email AS approver, d.on_behalf_of, d.at AS approved_at, d.reason AS approval_reason FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id LEFT JOIN c_members m ON m.email=c.employee_email JOIN c_revisions r ON r.claim_id=bc.claim_id AND r.revision=bc.revision LEFT JOIN c_decisions d ON d.claim_id=bc.claim_id AND d.revision=bc.revision AND ${finalApproval('d')} WHERE bc.batch_id=? ORDER BY c.number`).bind(id).all<Data>();
   const lines: Data[] = [], people = new Map<string, Data>();
   for (const row of results) {
     const snapshot = JSON.parse(row.snapshot);

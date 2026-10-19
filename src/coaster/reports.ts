@@ -4,6 +4,7 @@ import { csv } from './batches';
 import { claimNumber } from './claims';
 import { decimal, isoDate, requireThat, type Actor, type Data } from './types';
 import { businessDaysBetween } from './business-days';
+import { finalApproval } from './approval-chain';
 
 /** Operational and compliance reports (REPORT-002). Card spend and feed coverage join when FEED-003 and FEED-004 ship. */
 export const REPORTS = {
@@ -37,7 +38,7 @@ const builders: Record<Name, (db: D1Database, b: Business, p: Period) => Promise
   /** Every approved claim not yet reimbursed, aged in whole business-time-zone days from its approval to today, and every
    * held claim (APPROVE-005) the employee has not resubmitted yet, aged from its hold. */
   async aging(db, b, p) {
-    const { results } = await db.prepare("SELECT c.number,c.employee_email,c.status,c.total_minor,d.at AS since FROM c_claims c JOIN c_decisions d ON d.claim_id=c.id AND d.revision=c.revision AND d.decision='approved' WHERE c.status IN ('approved','batched') UNION ALL SELECT number,employee_email,'held',total_minor,held_at FROM c_claims WHERE held_from IS NOT NULL AND status='returned' AND revision=0 ORDER BY since,number").all<Data>();
+    const { results } = await db.prepare(`SELECT c.number,c.employee_email,c.status,c.total_minor,d.at AS since FROM c_claims c JOIN c_decisions d ON d.claim_id=c.id AND d.revision=c.revision AND ${finalApproval('d')} WHERE c.status IN ('approved','batched') UNION ALL SELECT number,employee_email,'held',total_minor,held_at FROM c_claims WHERE held_from IS NOT NULL AND status='returned' AND revision=0 ORDER BY since,number`).all<Data>();
     const buckets = Object.fromEntries(BUCKETS.map(([, label]) => [label, { claims: 0, amountMinor: 0 }]));
     const rows = results.map(c => {
       const approved = localDate(c.since, b.timezone), days = daysBetween(approved, p.today), bucket = BUCKETS.find(([limit]) => days <= limit)![1];

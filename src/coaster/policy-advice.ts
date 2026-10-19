@@ -2,6 +2,7 @@ import { all, authority, commit, need, sha256Hex } from './session';
 import { captureConfiguration, policyStill, type Configuration } from './policy-configuration';
 import { event } from './events';
 import { localDay } from './delegation';
+import { finalApproval } from './approval-chain';
 import { money, type ClaimItem, type PolicyException } from './exceptions';
 import type { Category } from './items';
 import type { Rule } from './policy';
@@ -72,7 +73,7 @@ async function inputs(db: D1Database) {
     db.prepare('SELECT timezone,currency FROM c_business WHERE id=1'),
     db.prepare('SELECT id,name,active,limit_minor FROM c_categories ORDER BY id'),
     db.prepare('SELECT p.version,p.effective_from,p.rules,c.configuration FROM c_policies p JOIN c_policy_configurations c ON c.version=p.version ORDER BY p.version'),
-    db.prepare("SELECT c.id,c.number,c.employee_email,c.status,c.revision,r.snapshot,d.decision,d.exceptions AS approved_exceptions FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_decisions d ON d.claim_id=r.claim_id AND d.revision=r.revision WHERE c.status IN ('submitted','approved','batched','reimbursed') AND NOT EXISTS(SELECT 1 FROM c_revisions newer WHERE newer.claim_id=c.id AND newer.revision>r.revision) ORDER BY c.number,c.id"),
+    db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,c.revision,r.snapshot,d.decision,d.exceptions AS approved_exceptions FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_decisions d ON d.claim_id=r.claim_id AND d.revision=r.revision AND ${finalApproval('d')} WHERE c.status IN ('submitted','approved','batched','reimbursed') AND NOT EXISTS(SELECT 1 FROM c_revisions newer WHERE newer.claim_id=c.id AND newer.revision>r.revision) ORDER BY c.number,c.id`),
     db.prepare('SELECT COALESCE(MAX(seq),0) AS seq FROM c_events'),
   ]);
   const businessRow = business.results[0] as { timezone: string; currency: string } | undefined;

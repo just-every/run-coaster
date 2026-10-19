@@ -4,7 +4,8 @@ import { requireBusiness } from '../settings';
 import { requireThat, type Actor, type Data } from '../types';
 import { expensifySource, NAMESPACE } from './expensify';
 import { HISTORY_SOURCES, cardSource, type CardSource } from './cards';
-import { historyTargets } from './target';
+import { historyTargetsFor } from './target';
+import { configurationSource } from './configuration';
 
 /** Jobs belong to the owner role, so a restored installation's owner can still resume or undo them. */
 const PRINCIPAL = 'role:owner';
@@ -14,9 +15,9 @@ const PRINCIPAL = 'role:owner';
 const NAMESPACES = [NAMESPACE, ...Object.keys(HISTORY_SOURCES)];
 const namespaceOf = (value: unknown) => { const ns = value === undefined || value === null || value === '' ? NAMESPACE : String(value); requireThat(NAMESPACES.includes(ns), 'Import from Expensify, Ramp, Brex, Navan, Certify, Chrome River or Abacus'); return ns; };
 
-function context(db: D1Database, actor: Actor, mappingVersion: string, namespace: string): D1ImportContext {
+function context(db: D1Database, actor: Actor, mappingVersion: string, namespace: string, timezone = 'UTC'): D1ImportContext {
   const guard = authority(actor, 'owner');
-  return { destination: 'main', namespace, mappingVersion, reversalPolicy: 'preserve-conflicts', storage: { database: db as any, targets: historyTargets }, authorization: { principalId: PRINCIPAL, predicate: () => guard }, batchSize: 50, maxBatches: 4 } as D1ImportContext;
+  return { destination: 'main', namespace, mappingVersion, reversalPolicy: 'preserve-conflicts', storage: { database: db as any, targets: historyTargetsFor(timezone) }, authorization: { principalId: PRINCIPAL, predicate: () => guard }, batchSize: 50, maxBatches: 4 } as D1ImportContext;
 }
 
 /** The context ERASURE-001 erases imported history through: every import shares the destination. */
@@ -28,8 +29,8 @@ export async function importAction(db: D1Database, actor: Actor, op: string, b: 
   requireThat(actor.kind === 'person', 'Only the owner imports', 403);
   if (op === 'preview' || op === 'commit') {
     const business = await requireBusiness(db), namespace = namespaceOf(b.source);
-    const { source, mapping, summary } = namespace === NAMESPACE ? expensifySource(b.csv, b.filename, b.mapping, business.currency) : cardSource(namespace as CardSource, b.csv, b.filename, b.mapping, b.receipts, business.currency);
-    const ctx = context(db, actor, mapping.version, namespace), plan = await planD1Import(source, mapping, ctx);
+    const { source, mapping, summary } = b.configuration !== undefined ? (requireThat(namespace in HISTORY_SOURCES && ['certify','chromeriver','abacus'].includes(namespace), 'Configuration move-in is for Emburse'), await configurationSource(db,namespace,b.configuration,b.mapping?.crosswalk)) : namespace === NAMESPACE ? expensifySource(b.csv, b.filename, b.mapping, business.currency) : cardSource(namespace as CardSource, b.csv, b.filename, b.mapping, b.receipts, business.currency);
+    const ctx = context(db, actor, mapping.version, namespace, business.timezone), plan = await planD1Import(source, mapping, ctx);
     const review = { fingerprint: plan.fingerprint, mappingVersion: mapping.version, counts: plan.counts, summary };
     if (op === 'preview') return review;
     requireThat(!summary.errors.length && plan.counts.rejected === 0, 'Resolve the file errors before importing', 409);
@@ -40,7 +41,7 @@ export async function importAction(db: D1Database, actor: Actor, op: string, b: 
     return { ...review, job: await applyD1ImportBatches(job.id, ctx) };
   }
   requireThat(typeof b.id === 'string' && typeof b.mappingVersion === 'string', 'Import job and mapping version are required');
-  const ctx = context(db, actor, b.mappingVersion, namespaceOf(b.source));
+  const ctx = context(db, actor, b.mappingVersion, namespaceOf(b.source), (await requireBusiness(db)).timezone);
   if (op === 'resume') return { job: await resumeD1Import(b.id, ctx) };
   if (op === 'undo') return { job: await undoD1Import(b.id, ctx) };
   if (op === 'status') return { job: await readD1ImportJob(b.id, ctx), originals: await readD1ImportOriginals(b.id, ctx), undo: await readD1ImportUndoReport(b.id, ctx) };

@@ -40,7 +40,7 @@ const ADDRESS: [string, string[]][] = [
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
-  ['c_revisions', ['snapshot']], ['c_decisions', ['exceptions']], ['c_events', ['detail']], ['c_proposals', ['payload']],
+  ['c_claim_chains', ['steps']], ['c_revisions', ['snapshot']], ['c_decisions', ['exceptions']], ['c_events', ['detail']], ['c_proposals', ['payload']],
   ['c_report_schedules', ['recipients']], ['c_report_deliveries', ['recipients']], ['c_escalations', ['recipients']], ['c_budget_alerts', ['recipients']],
   ['c_spend_views', ['query']], ['c_expiry_proposals', ['claims', 'receipt']], ['c_items', ['attendees', 'fields']],
 ];
@@ -63,7 +63,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   need(actor, 'owner');
   requireThat(actor.kind === 'person' && !actor.delegate, 'Only the owner erases personal data', 403);
   const address = email(b.email, 'Person');
-  const member = await db.prepare('SELECT email,name,active FROM c_members WHERE email=?').bind(address).first<{ email: string; name: string; active: number }>();
+  const member = await db.prepare('SELECT email,name,active,member_id FROM c_members WHERE email=?').bind(address).first<{ email: string; name: string; active: number; member_id: string }>();
   requireThat(member, 'Person not found', 404);
   requireThat(member.active === 0, `Deactivate ${member.name} before erasing their personal data`, 409);
   requireThat(!await db.prepare("SELECT 1 FROM oa_operators WHERE lower(email)=? AND role='owner'").bind(address).first(), 'The owner cannot be erased', 409);
@@ -72,10 +72,12 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   requireThat(!unpaid.length, `${member.name} still has unpaid claims (${unpaid.map(c => claimNumber(c.number)).join(', ')}); pay, reject or remove them first`, 409);
   requireThat(!await db.prepare("SELECT 1 FROM c_requests WHERE employee_email=? AND status='submitted'").bind(address).first(), `${member.name} has a spend request waiting for a decision`, 409);
   requireThat(!await db.prepare("SELECT 1 FROM c_claims WHERE approver_email=? AND status='submitted'").bind(address).first(), `Claims are still waiting for ${member.name} to decide; reassign them first`, 409);
+  requireThat(!await db.prepare("SELECT 1 FROM c_claim_chains cc JOIN c_claims c ON c.id=cc.claim_id AND c.revision=cc.revision JOIN json_each(cc.steps) s WHERE c.status='submitted' AND CAST(s.key AS INTEGER)>=cc.position AND json_extract(s.value,'$.memberId')=?").bind(member.member_id).first(), `Claims are still waiting for ${member.name} in an approval chain; complete or return them first`, 409);
   // The person themselves (a hold on them or the business), then each claim's expense dates.
   const hold = await holdOn(db, [{ id: '', employee_email: address }, ...claims]);
   if (hold) throw new Fault(409, `A legal hold covers ${member.name} (${hold.reason}); release it before erasing`);
 
+  const memberKeys = (await db.prepare("SELECT json_extract(value,'$.sourceKey') AS key FROM c_history WHERE kind='crosswalk' AND json_extract(value,'$.targetId')=?").bind(member.member_id).all<{key:string}>()).results.map(r=>r.key);
   const { subject, label } = opaque(), at = now(), id = uid(), quoted = JSON.stringify(address), quotedLabel = JSON.stringify(subject);
   const receipts = (await db.prepare('SELECT DISTINCT r.sha256 FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id JOIN c_claims c ON c.id=i.claim_id WHERE c.employee_email=? ORDER BY r.sha256').bind(address).all<{ sha256: string }>()).results.map(r => r.sha256);
   const count = async (query: string, ...params: unknown[]) => (await db.prepare(`SELECT COUNT(*) AS n FROM ${query}`).bind(...params).first<{ n: number }>())!.n;
@@ -103,13 +105,16 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     ...['c_escalations', 'c_reminders'].map(t => sql(`DELETE FROM ${t} WHERE key IN (SELECT key FROM c_reminder_items WHERE person=?)`, address)),
     sql('DELETE FROM c_reminder_items WHERE person=?', address),
     sql('UPDATE c_members SET approver_email=NULL WHERE approver_email=?', address),
+    sql("DELETE FROM c_import_targets WHERE kind='approval-chain' AND id IN (SELECT id FROM c_import_chains WHERE employee_id=? OR EXISTS(SELECT 1 FROM json_each(steps) WHERE value=?))",member.member_id,member.member_id),
+    sql('DELETE FROM c_import_chains WHERE employee_id=? OR EXISTS(SELECT 1 FROM json_each(steps) WHERE value=?)',member.member_id,member.member_id),
+    sql("DELETE FROM c_import_targets WHERE kind='member' AND id=?",member.member_id),
     // Text that embeds the address: a receipt-less expense's reimbursement key and an agent's "<label> for <address>" upload.
     sql("UPDATE c_reimbursement_keys SET key='expense:'||?||substr(key,length(?)+9) WHERE substr(key,1,length(?)+9)='expense:'||?||'|'", subject, address, address, address),
     sql("UPDATE c_receipts SET uploaded_by=substr(uploaded_by,1,length(uploaded_by)-length(?))||? WHERE source='agent' AND substr(uploaded_by,-(length(?)+5))=' for '||?", address, subject, address, address),
     // Kept, under the label: every column holding their address, and their address inside JSON.
     ...ADDRESS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=? WHERE ${c}=?`, subject, address))),
     ...JSON_COLUMNS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=replace(${c},?,?) WHERE instr(${c},?)>0`, quoted, quotedLabel, quoted))),
-    sql("UPDATE c_members SET email=?,name=?,approver_email=NULL,updated_at=? WHERE email=?", subject, label, at, address),
+    sql("UPDATE c_members SET email=?,name=?,member_id=?,approver_email=NULL,updated_at=? WHERE email=?", subject, label, uid(), at, address),
     // The Base sign-in account and everything that let it sign in.
     ...(operator ? [
       sql('DELETE FROM oa_provider_session_pins WHERE session_id IN (SELECT id FROM oa_sessions WHERE operator_id=?)', operator.id),
@@ -126,7 +131,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   ];
   const checkpoint = [...await redactionStatements(db), ...await invalidateTransfersStatements(db)].map(asSql);
   try {
-    await retireD1ImportCustody({ values: [address], related: { fields: IMPORTED_PATHS.map(path => ({ path, value: address, optional: true })) } }, native, erasureContext(db, actor), checkpoint);
+    await retireD1ImportCustody({ target: {kind:'member',id:member.member_id}, values: [address], related: { source: record => record.kind === 'approval-chain' && (memberKeys.includes((record.payload as Data).employee) || ((record.payload as Data).steps ?? []).some((key:string)=>memberKeys.includes(key))), original: bytes => { const content = new TextDecoder().decode(bytes); return content.includes(address) || content.includes(member.name); }, fields: [...IMPORTED_PATHS.map(path => ({ path, value: address, optional: true })), {path:['email'],value:address,optional:true}, {path:['targetId'],value:member.member_id,optional:true}] } }, native, erasureContext(db, actor), checkpoint);
   } catch (error) {
     const message = String((error as Error)?.message ?? error); 
     if (message.includes('c_guard') || message.includes('CHECK constraint failed')) throw new Fault(409, 'This changed while you were working, or your access changed; reload and try again');

@@ -49,7 +49,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   const lastDecision = detail.decisions.at(-1), submitted = detail.revisions.at(-1);
   // An unapproval sent to the employee keeps its revision; one sent to the approver reopens it as the next revision.
   const unapproved = [...detail.events].reverse().find((e: D) => e.action === 'claim-unapproved' && (e.detail.revision === claim.revision || submitted?.snapshot.reopened?.fromRevision === e.detail.revision));
-  const approval = detail.decisions.find((d: D) => d.decision === 'approved' && d.revision === claim.revision);
+  const approval = [...detail.decisions].reverse().find((d: D) => d.decision === 'approved' && d.revision === claim.revision);
   const unapprovable = approval && (claim.status === 'approved' || (claim.status === 'batched' && state.actor.roles.finance)) && (state.actor.roles.finance || state.actor.roles.owner || (state.actor.roles.manager && [approval.actor_email, approval.on_behalf_of].includes(me)));
   const merchantOf = (item: string) => items.find((i: D) => i.id === item)?.merchant;
   const categories = [...new Set(items.flatMap((i: D) => i.allocations.map((a: D) => a.category_name)))];

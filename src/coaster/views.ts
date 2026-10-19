@@ -20,7 +20,7 @@ import { policyOn } from './policy';
 export async function workspace(db: D1Database, actor: Actor) {
   const [claims, members, proposals, keys, batches] = await db.batch([
     db.prepare('SELECT id,number,employee_email,approver_email,on_behalf_of,title,status,revision,version,total_minor,currency,prepared_by,batch_id,created_at,updated_at,(SELECT submitted_at FROM c_revisions r WHERE r.claim_id=c_claims.id AND r.revision=c_claims.revision) AS submitted_at FROM c_claims ORDER BY number DESC'),
-    db.prepare('SELECT email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active FROM c_members ORDER BY name'),
+    db.prepare('SELECT member_id,email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active FROM c_members ORDER BY name'),
     db.prepare('SELECT id,kind,agent_label,payload,status,created_at,decided_at,result_id FROM c_proposals WHERE for_email=? ORDER BY created_at DESC').bind(actor.email),
     db.prepare('SELECT id,label,created_at,revoked_at FROM c_agent_keys WHERE member_email=? ORDER BY created_at DESC').bind(actor.email),
     db.prepare('SELECT * FROM c_batches ORDER BY number DESC'),
@@ -59,7 +59,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const items = await claimItems(db, claim.id);
   const [revisions, decisions, events, receipts] = await db.batch([
     db.prepare('SELECT revision,submitted_by,submitted_at,total_minor,snapshot FROM c_revisions WHERE claim_id=? ORDER BY revision').bind(claim.id),
-    db.prepare('SELECT revision,decision,reason,actor_email,on_behalf_of,at,exceptions FROM c_decisions WHERE claim_id=? ORDER BY revision').bind(claim.id),
+    db.prepare('SELECT revision,decision_step,decision,reason,actor_email,on_behalf_of,at,exceptions FROM c_decisions WHERE claim_id=? ORDER BY revision,decision_step').bind(claim.id),
     db.prepare('SELECT at,actor_email,action,detail FROM c_events WHERE claim_id=? ORDER BY seq').bind(claim.id),
     db.prepare('SELECT id,name,media_type,size,sha256,source,uploaded_by,uploaded_at FROM c_receipts WHERE claim_id=? ORDER BY uploaded_at, id').bind(claim.id),
   ]);

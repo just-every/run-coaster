@@ -4,6 +4,9 @@ import { claimState, loadClaim } from './claims';
 import { approveWithHold } from './holds';
 import { preApprovalOverride } from './requests';
 import { auditSample } from './audit-queue';
+import { advanceChain, chainRoute, chainState, claimChain } from './approval-chain';
+import { localDay } from './delegation';
+import { requireBusiness } from './settings';
 import { email, now, optionalText, requireThat, uid, type Actor, type Data } from './types';
 
 /** The assigned manager approves, returns or rejects the exact submitted revision. */
@@ -20,19 +23,23 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data) 
   requireThat(b.decision === 'approved' || reason, b.decision === 'returned' ? 'Say what needs correcting' : 'Give the reason for rejecting');
   const revision = await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(claim.id, claim.revision).first<{ snapshot: string }>();
   requireThat(revision, 'Submitted revision missing', 409);
+  const chain = await claimChain(db, claim.id, claim.revision);
   const snapshot = JSON.parse(revision.snapshot), exceptions = snapshot.exceptions ?? [];
   const decided = { sql: 'EXISTS(SELECT 1 FROM c_claims WHERE id=? AND approver_email=? AND revision=?)', params: [claim.id, actor.email, claim.revision] };
   // Holding some expenses approves the rest of the same revision in one decision (APPROVE-005).
   if (b.decision === 'approved' && Array.isArray(b.hold) && b.hold.length) return approveWithHold(db, actor, claim, b, snapshot, decided);
   requireThat(b.decision !== 'approved' || !exceptions.length || b.acknowledge === true, 'Review and acknowledge the policy exceptions before approving', 409);
   const override = b.decision === 'approved' ? preApprovalOverride(exceptions, b) : null, recorded = override ?? reason;
+  const pending = b.decision === 'approved' && chain && chain.position < chain.steps.length - 1;
+  const next = pending ? await chainRoute(db, chain.steps, chain.position + 1, claim.employee_email, localDay((await requireBusiness(db)).timezone)) : null;
   // A Full delegate decides as the approver and is recorded as acting on their behalf, like an approval delegate.
   const at = now(), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of;
-  await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['submitted']), decided), [
-    db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, recorded, actor.delegate?.email ?? actor.email, at, JSON.stringify(exceptions), onBehalfOf),
-    db.prepare('UPDATE c_claims SET status=?,version=version+1,updated_at=? WHERE id=?').bind(b.decision, at, claim.id),
-    ...(b.decision === 'approved' ? [auditSample(db, claim.id, claim.revision)] : []),
-    event(db, actor, `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, reason: recorded, preApprovalOverride: override, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf }),
+  await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['submitted']), decided, chainState(chain, claim.id, claim.revision), ...(next ? [next.guard] : [])), [
+    db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, recorded, actor.delegate?.email ?? actor.email, at, JSON.stringify(exceptions), onBehalfOf, chain?.position ?? 0),
+    db.prepare('UPDATE c_claims SET status=?,approver_email=?,on_behalf_of=?,version=version+1,updated_at=? WHERE id=?').bind(next ? 'submitted' : b.decision, next?.approver ?? claim.approver_email, next ? next.onBehalfOf : claim.on_behalf_of, at, claim.id),
+    ...(next ? [advanceChain(db, chain!)] : []),
+    ...(b.decision === 'approved' && !next ? [auditSample(db, claim.id, claim.revision)] : []),
+    event(db, actor, next ? 'claim-step-approved' : `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, ...(chain ? { step: chain.position + 1, steps: chain.steps.length, nextApprover: next?.approver ?? null } : {}), reason: recorded, preApprovalOverride: override, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf }),
   ]);
   return loadClaim(db, id);
 }

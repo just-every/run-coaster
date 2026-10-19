@@ -113,6 +113,58 @@ like the other row errors above.
 
 Rename an export's headers to these if it names a column differently.
 `tests/fixtures/certify-expenses.csv` and `tests/fixtures/chromeriver-expenses.csv`
-are synthetic files in the Certify and Chrome River shapes. Users, categories
-and approval chains do not move in from Emburse yet; add the people and
-categories in Settings. Coaster makes no calls to Emburse.
+are synthetic files in the Certify and Chrome River shapes. Users, categories and ordered approval chains move in through the reviewed
+configuration envelope below. Coaster makes no calls to Emburse.
+
+## Emburse people, categories and ordered approval chains
+
+Choose **Emburse configuration JSON** on Move in after translating the product's
+people/category/approval exports into this envelope. Expense CSVs and receipts
+continue through the history importer above; configuration imports are reviewed
+and undone separately. The JSON file's exact bytes are retained as an original.
+Each source row has an opaque random UUID `key`, saved with the export for later
+imports. A key must never contain a name, email or upstream identifier.
+Replace the angle-bracket placeholders below with separately generated random UUIDs;
+references to a person reuse that person's row UUID.
+
+```json
+{
+  "members": [
+    {"key":"<employee-row UUID>", "email":"employee@example.com", "name":"Employee", "employee":true},
+    {"key":"<manager-row UUID>", "email":"manager@example.com", "name":"Manager", "employee":true, "manager":true}
+  ],
+  "categories": [
+    {"key":"<category-row UUID>", "name":"Supplies", "accountCode":"6500", "taxCode":"NONE"}
+  ],
+  "chains": [
+    {"key":"<chain-row UUID>", "employee":"<employee-row UUID>", "steps":["<manager-row UUID>"]}
+  ]
+}
+```
+
+A preview writes nothing and returns `summary.crosswalk`, from source row UUIDs
+to native random UUIDs. The screen keeps that exact crosswalk for commit. API
+callers send it back as `mapping.crosswalk`, with the reviewed fingerprint.
+To reuse a native person or category, choose it explicitly in the screen or
+provide its `member_id`/`id` in that crosswalk. Names and addresses never infer a
+match: a collision refuses until explicitly mapped. Previously imported keys
+reuse their saved crosswalk; changing it is refused. Existing mapped people and
+categories retain their native values, roles and access. Additional row fields
+are named as unmapped and kept in the original.
+
+New people have random UUID member identities, remain inactive and receive no
+invitation or access. Activate and invite them explicitly in Settings. A chain
+has one employee and distinct ordered managers, with no self-approval. Once all
+its managers are active, a submitted claim freezes that exact chain: each step
+approves the submitted revision in turn, only the last makes it reimbursable,
+and automatic approval never skips the chain. Delegation substitutes the current
+step. A correction uses the then-current configured chain; reopening approval
+restarts its frozen chain. Partial holds are available at the final step only;
+held expenses go through submission again.
+
+Undo removes unchanged configuration unless native claims or other live records
+need it, preserving activated/edited people, used categories and frozen chains;
+the undo report explains retained rows. Erasure withdraws affected originals and
+retires the erased person's import records, so undo and reimport cannot restore
+their identity. Configuration: at most 500 rows of each kind, 20 managers per
+chain, within the 8 MB request limit.

@@ -7,6 +7,7 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'claim-created': `Started by ${who}`, 'claim-renamed': `Renamed by ${who} to “${d.title}”`,
     'expense-added': `${who} added ${d.merchant} · ${money(d.amountMinor ?? 0)}`, 'expense-changed': `${who} changed ${d.merchant}`, 'expense-removed': `${who} removed ${d.merchant}`,
     'receipt-added': `${who} added receipt ${d.name}`, 'claim-submitted': `Submitted by ${who}${d.exceptions ? ` · ${plural(d.exceptions, 'exception')} explained` : ''}`,
+    'claim-step-approved': `Step ${d.step} of ${d.steps} approved by ${who}; next: ${names[d.nextApprover] ?? d.nextApprover}${d.reason ? ` · ${d.reason}` : ''}`,
     'claim-resubmitted': `Resubmitted by ${who} as revision ${d.revision}`, 'claim-approved': `Approved by ${who}${d.onBehalfOf ? ` on behalf of ${names[d.onBehalfOf] ?? d.onBehalfOf}` : ''}${d.reason ? ` · ${d.reason}` : ''}${d.exceptionsAcknowledged ? ` · ${plural(d.exceptionsAcknowledged, 'exception')} acknowledged` : ''}`,
     'claim-returned': `Returned by ${who}${d.onBehalfOf ? ` on behalf of ${names[d.onBehalfOf] ?? d.onBehalfOf}` : ''} · ${d.reason}`, 'claim-rejected': `Rejected by ${who}${d.onBehalfOf ? ` on behalf of ${names[d.onBehalfOf] ?? d.onBehalfOf}` : ''} · ${d.reason}`,
     'claim-retracted': `Retracted by ${who} before any decision on revision ${d.revision}${d.reason ? ` · ${d.reason}` : ''}`,

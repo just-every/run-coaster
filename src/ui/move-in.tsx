@@ -4,6 +4,7 @@ import { Choice, Empty, PageHead, Section } from './parts';
 import { Work } from './shell';
 import type { ViewProps } from './claims';
 import { CardHistory } from './card-history';
+import { EmburseConfiguration } from './emburse-configuration';
 
 const HISTORY = [['open', 'Open (not submitted)'], ['submitted', 'Submitted'], ['approved', 'Approved'], ['reimbursed', 'Reimbursed'], ['closed', 'Closed']];
 const JOB_WORDS: Record<string, string> = { completed: 'Imported', undone: 'Undone', queued: 'Waiting to import', applying: 'Importing', failed: 'Stopped part way', undoing: 'Undoing' };
@@ -11,10 +12,10 @@ const SOURCE_NAMES: Record<string, string> = { expensify: 'Expensify', ramp: 'Ra
 const GUESS: Record<string, string> = { open: 'open', processing: 'submitted', approved: 'approved', reimbursed: 'reimbursed', closed: 'closed', archived: 'closed', paid: 'reimbursed' };
 
 /** The Expensify move-in kit: preview writes nothing, import applies exactly what was previewed, undo reverses it. */
-export function MoveIn({ state }: ViewProps) {
+export function MoveIn({ state, reload }: ViewProps) {
   const [file, setFile] = useState<{ name: string; csv: string }>(), [date, setDate] = useState('YYYY-MM-DD'), [statuses, setStatuses] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<D>(), [jobs, setJobs] = useState<D>(), [error, setError] = useState(''), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
-  const refresh = async () => setJobs(await call('import'));
+  const refresh = async () => { setJobs(await call('import')); await reload(); };
   useEffect(() => { refresh().catch(e => setError(e.message)); }, []);
   const input = () => ({ csv: file?.csv, filename: file?.name, mapping: { date, statuses } });
   async function run(work: () => Promise<void>) { setBusy(true); setError(''); setNotice(''); try { await work(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }
@@ -63,6 +64,7 @@ export function MoveIn({ state }: ViewProps) {
         </tbody></table> : <Empty title="No imported reports">Reports you import from Expensify appear here, read-only.</Empty>}
       </Section>
       <CardHistory kind="card" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
+      <EmburseConfiguration state={state} onImported={refresh} />
       <CardHistory kind="emburse" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
     </div>
   </Work>;

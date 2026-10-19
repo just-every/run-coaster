@@ -2,6 +2,7 @@ import { all, authority, commit, need } from './session';
 import { event } from './events';
 import { claimNumber, loadClaim } from './claims';
 import { requireBusiness } from './settings';
+import { finalApproval } from './approval-chain';
 import { now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 /** How much each exception weighs in the queue's risk order: duplicates first, then rule breaks, then missing evidence. */
@@ -12,7 +13,7 @@ const DAY = 86_400_000;
  * ever is sampled when floor(n × p / 100) > floor((n − 1) × p / 100), so exactly p in every 100 approvals are. Runs in the
  * approval's own write batch, after its decision row. */
 export const auditSample = (db: D1Database, claimId: string, revision: number) => db.prepare(
-  "INSERT INTO c_audit_samples(claim_id,revision,ordinal,percent,sampled_at) SELECT ?,?,a.n,b.audit_sample_percent,? FROM (SELECT COUNT(*) AS n FROM c_decisions WHERE decision='approved') a JOIN c_business b ON b.id=1 WHERE b.audit_sample_percent IS NOT NULL AND (a.n * b.audit_sample_percent) / 100 > ((a.n - 1) * b.audit_sample_percent) / 100",
+  `INSERT INTO c_audit_samples(claim_id,revision,ordinal,percent,sampled_at) SELECT ?,?,a.n,b.audit_sample_percent,? FROM (SELECT COUNT(*) AS n FROM c_decisions d WHERE ${finalApproval('d')}) a JOIN c_business b ON b.id=1 WHERE b.audit_sample_percent IS NOT NULL AND (a.n * b.audit_sample_percent) / 100 > ((a.n - 1) * b.audit_sample_percent) / 100`,
 ).bind(claimId, revision, now());
 
 const reader = (actor: Actor) => requireThat(actor.roles.finance || actor.roles.auditor, 'Finance or auditor access required', 403);

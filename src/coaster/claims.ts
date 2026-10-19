@@ -8,6 +8,7 @@ import { linkableRequest } from './requests';
 import { approvesByRule, currentRule, ruleApproval, ruleStill } from './auto-approval';
 import { capToAllowance } from './allowances';
 import { policyConfiguration, policyStill } from './policy-configuration';
+import { configuredChain, freezeChain } from './approval-chain';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null };
@@ -175,26 +176,29 @@ export async function submitScheduled(db: D1Database, id: string, by: string) {
 async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, history: (action: string, detail: Data) => D1PreparedStatement, note: string) {
   const items = await claimItems(db, claim.id);
   requireThat(items.length > 0, 'Add at least one expense before submitting');
+  const configured = await configuredChain(db, claim.employee_email);
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(claim.employee_email).first<{ approver_email: string | null }>();
-  requireThat(member?.approver_email && member.approver_email !== claim.employee_email, 'Ask the owner to set your approving manager before submitting', 409);
+  const first = configured.chain?.steps[0].email ?? member?.approver_email;
+  requireThat(member && first && first !== claim.employee_email, 'Ask the owner to set your approving manager before submitting', 409);
   const active = await policyConfiguration(db, await requireBusiness(db), await categories(db));
   const known = active.categories, missing = missingFields(items, known);
   requireThat(!missing.length, `Fill in the required ${missing.length === 1 ? 'field' : 'fields'} before submitting: ${missing.join('; ')} (policy v${active.version})`, 409);
-  const business = await requireBusiness(db), { approver, onBehalfOf } = await routeFor(db, member.approver_email, claim.employee_email, localDay(business.timezone));
+  const business = await requireBusiness(db), { approver, onBehalfOf } = await routeFor(db, first, claim.employee_email, localDay(business.timezone));
   const repeated = repeatedInClaim(claim.employee_email, items);
   requireThat(!repeated.length, `${repeated.map(i => i.merchant).join(', ')} appears twice on this claim with the same ${repeated.some(i => i.receipt_sha256) ? 'receipt' : 'date, merchant and amount and no receipt'}; only one could be reimbursed. Attach each one's own receipt, or correct or remove one, before submitting`, 409);
   const exceptions = await findExceptions(db, claim, items, business, known, active), hard = exceptions.filter(e => e.hard);
   requireThat(!hard.length, `This claim breaks a hard policy rule and cannot be submitted: ${hard.map(e => e.message).join('; ')}`, 409);
   const unexplained = exceptions.filter(e => !items.find(i => i.id === e.item)?.explanation);
   requireThat(!unexplained.length, `Explain each policy exception before submitting: ${unexplained.map(e => e.message).join('; ')}`, 409);
-  const rule = await currentRule(db), byRule = approvesByRule(rule, items, exceptions);
+  const rule = await currentRule(db), byRule = !configured.chain && approvesByRule(rule, items, exceptions);
   const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();
-  const snapshot = { policyVersion: active.version, title: claim.title, approver, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(auth, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule)] : [])), [
+  const snapshot = { policyVersion: active.version, title: claim.title, approver, onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  await commit(db, all(auth, ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),
+    ...(configured.chain ? [freezeChain(db, claim.id, revision, configured.chain.id, configured.chain.steps)] : []),
     db.prepare('UPDATE c_claims SET status=?,revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?').bind(byRule ? 'approved' : 'submitted', revision, approver, onBehalfOf, total, at, claim.id),
     history(revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { revision, totalMinor: total, exceptions: exceptions.length, note, approver, onBehalfOf }),
-    ...(byRule ? ruleApproval(db, claim.id, revision, rule, claim.currency) : []),
+    ...(byRule ? ruleApproval(db, claim.id, revision, rule!, claim.currency) : []),
   ]);
   return loadClaim(db, claim.id);
 }

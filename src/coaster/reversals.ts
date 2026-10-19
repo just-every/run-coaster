@@ -3,6 +3,9 @@ import { event } from './events';
 import { claimState, loadClaim } from './claims';
 import { loadBatch } from './batches';
 import { now, optionalText, requireThat, type Actor, type Data } from './types';
+import { chainRoute, chainState, claimChain, freezeChain } from './approval-chain';
+import { localDay } from './delegation';
+import { requireBusiness } from './settings';
 
 /** The employee (or their delegate) takes a submitted claim back before anyone decides it: it returns to draft, leaves the
  * approver's queue, and the next submission is the next revision. The retraction is a history line on that revision. */
@@ -13,6 +16,7 @@ export async function retractClaim(db: D1Database, actor: Actor, id: string, b: 
   requireThat(!['approved', 'batched', 'reimbursed'].includes(claim.status), 'This claim has been approved; ask the approver to unapprove it', 409);
   requireThat(claim.status === 'submitted', 'Only a claim waiting for a decision can be retracted', 409);
   requireThat(b.version === claim.version, 'This claim changed; reload before trying again', 409);
+  requireThat(!await db.prepare('SELECT 1 FROM c_decisions WHERE claim_id=? AND revision=? LIMIT 1').bind(claim.id, claim.revision).first(), 'An approver has already decided a step; ask the current approver to return the claim', 409);
   const reason = optionalText(b.reason, 'Reason', 1000);
   await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['submitted'])), [
     db.prepare("UPDATE c_claims SET status='draft',approver_email=NULL,on_behalf_of=NULL,version=version+1,updated_at=? WHERE id=?").bind(now(), claim.id),
@@ -30,7 +34,7 @@ export async function unapproveClaim(db: D1Database, actor: Actor, id: string, b
   const batch = claim.batch_id ? await loadBatch(db, claim.batch_id) : null;
   requireThat(claim.status !== 'reimbursed' && (!batch || batch.status === 'draft'), 'This claim is in a reviewed batch; it can no longer be unapproved', 409);
   requireThat(['approved', 'batched'].includes(claim.status), 'Only an approved claim can be unapproved', 409);
-  const approval = await db.prepare("SELECT actor_email,on_behalf_of FROM c_decisions WHERE claim_id=? AND revision=? AND decision='approved'").bind(claim.id, claim.revision).first<{ actor_email: string; on_behalf_of: string | null }>();
+  const approval = await db.prepare("SELECT actor_email,on_behalf_of FROM c_decisions WHERE claim_id=? AND revision=? AND decision='approved' ORDER BY decision_step DESC LIMIT 1").bind(claim.id, claim.revision).first<{ actor_email: string; on_behalf_of: string | null }>();
   requireThat(approval, 'Approval missing', 409);
   const own = actor.roles.manager && (approval.actor_email === actor.email || approval.on_behalf_of === actor.email);
   requireThat(actor.roles.finance || actor.roles.owner || own, 'Only the approver who approved, finance or the owner can unapprove a claim', 403);
@@ -40,6 +44,8 @@ export async function unapproveClaim(db: D1Database, actor: Actor, id: string, b
   requireThat(reason, 'Say why you are unapproving');
   const at = now(), role = actor.roles.finance ? 'finance' : 'manager';
   const state: Sql[] = [claimState(claim.id, claim.version, [claim.status])];
+  const chain = await claimChain(db, claim.id, claim.revision);
+  state.push(chainState(chain, claim.id, claim.revision));
   const writes: D1PreparedStatement[] = [];
   if (batch) {
     state.push({ sql: "EXISTS(SELECT 1 FROM c_batches WHERE id=? AND status='draft')", params: [batch.id] });
@@ -54,11 +60,14 @@ export async function unapproveClaim(db: D1Database, actor: Actor, id: string, b
     // The approver decides again on a new revision: the same frozen expenses, marked as reopened from the approved one.
     const previous = await db.prepare('SELECT submitted_by,total_minor,snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(claim.id, claim.revision).first<{ submitted_by: string; total_minor: number; snapshot: string }>();
     requireThat(previous, 'Approved revision missing', 409);
-    state.push({ sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [claim.approver_email] });
-    const snapshot = { ...JSON.parse(previous.snapshot), reopened: { fromRevision: claim.revision, by: actor.delegate?.email ?? actor.email, reason } };
+    const route = chain ? await chainRoute(db, chain.steps, 0, claim.employee_email, localDay((await requireBusiness(db)).timezone)) : null;
+    state.push(route?.guard ?? { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [claim.approver_email] });
+    const approver = route?.approver ?? claim.approver_email, onBehalfOf = route ? route.onBehalfOf : claim.on_behalf_of;
+    const snapshot = { ...JSON.parse(previous.snapshot), approver, onBehalfOf, reopened: { fromRevision: claim.revision, by: actor.delegate?.email ?? actor.email, reason } };
     writes.push(
       db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, claim.revision + 1, previous.submitted_by, at, previous.total_minor, JSON.stringify(snapshot)),
-      db.prepare("UPDATE c_claims SET status='submitted',revision=?,batch_id=NULL,version=version+1,updated_at=? WHERE id=?").bind(claim.revision + 1, at, claim.id),
+      ...(chain ? [freezeChain(db, claim.id, claim.revision + 1, chain.chain_id, chain.steps)] : []),
+      db.prepare("UPDATE c_claims SET status='submitted',revision=?,approver_email=?,on_behalf_of=?,batch_id=NULL,version=version+1,updated_at=? WHERE id=?").bind(claim.revision + 1, approver, onBehalfOf, at, claim.id),
     );
   } else {
     writes.push(db.prepare("UPDATE c_claims SET status='returned',batch_id=NULL,version=version+1,updated_at=? WHERE id=?").bind(at, claim.id));
