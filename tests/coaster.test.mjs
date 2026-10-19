@@ -928,6 +928,9 @@ test('REPORT-001 spend groups by employee, category, merchant, cost centre and m
 
 test('REPORT-004 budgets count spend from submission by period, alert the owner and finance once per threshold, flag an expense that would go over, reset each period and show in spend', () => withAgency(async (h, t) => {
   const PRIYA = 'priya@harbourfinch.example', JORDAN = 'jordan@harbourfinch.example', MORGAN = 'morgan@harbourfinch.example'
+  // A US business: saved with no currency named, it is in USD (LOCALE-001), on Central time.
+  await h.post('settings/business', { name: 'Harbour & Finch Studio', timezone: 'America/Chicago', perDiem: '75.00', receiptThreshold: '' })
+  assert.equal((await h.get('state')).business.currency, 'USD')
   const travelBudget = { name: 'Travel', scope: 'category', scopeKey: t.c.travel, period: 'monthly', amount: '5000.00', owner: PRIYA, thresholds: '80, 100', policyRule: true }
   await h.post('budgets', travelBudget, t.sam, 403)
   await h.post('budgets', { ...travelBudget, thresholds: '100, 80' }, t.jordan, 400)
@@ -940,13 +943,13 @@ test('REPORT-004 budgets count spend from submission by period, alert the owner 
   await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Team lunch', [r('2026-06-12', 'Bistro', '150.00', t.c.meals, 'bistro', { explanation: 'Client lunch' })])), { acknowledge: true })
   await submit(h, t.alex, await claim(h, t.alex, 'Offsite lunch', [r('2026-06-15', 'Officeworks cafe', '250.00', t.c.meals, 'officeworks', { explanation: 'Offsite' })]))
 
-  const sydney = (day, hour) => {
+  const central = (day, hour) => {
     const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:17:00Z`)
-    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]))
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]))
     return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
   }
   const worker = await h.mf.getWorker()
-  const tick = async day => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, 9), cron: '17 * * * *' }); return h.messages.slice(before).filter(m => m.subject.startsWith('Budget alert: ')).map(m => [m.to, m.subject, /for (\S+@\S+) has/.exec(m.text)?.[1] ?? null]) }
+  const tick = async day => { const before = h.messages.length; await worker.scheduled({ scheduledTime: central(day, 9), cron: '17 * * * *' }); return h.messages.slice(before).filter(m => m.subject.startsWith('Budget alert: ')).map(m => [m.to, m.subject, /for (\S+@\S+) has/.exec(m.text)?.[1] ?? null]) }
 
   // $4,100 of June travel: one 80% alert to the budget's owner and finance; only Alex is over the per-person meals budget.
   assert.deepEqual(await tick('2026-06-30'), [
@@ -954,7 +957,7 @@ test('REPORT-004 budgets count spend from submission by period, alert the owner 
     [[PRIYA, JORDAN, MORGAN], 'Budget alert: Travel at 80%', null],
   ])
   const alertText = h.messages.filter(m => m.subject.startsWith('Budget alert: ')).map(m => m.text + m.html).join(' ')
-  assert.ok(!/4,?100|5,?000|AUD/.test(alertText), 'by default an alert names the percentage and period, never amounts')
+  assert.ok(!/\$|4,?100|5,?000/.test(alertText), 'by default an alert names the percentage and period, never amounts')
   assert.deepEqual(await tick('2026-06-30'), [], 'once per threshold and period')
   const june = await h.get('budgets?day=2026-06-30', t.jordan)
   const tb = june.find(b => b.name === 'Travel')
@@ -966,7 +969,7 @@ test('REPORT-004 budgets count spend from submission by period, alert the owner 
   await h.post(`claims/${over.claim.id}/submit`, { version: over.claim.version }, t.sam, 409)
   await h.post(`claims/${over.claim.id}/items`, { version: over.claim.version, item: over.items[0].id, kind: 'per_diem', date: '2026-06-22', days: 14, allocations: [{ category: t.c.travel }], explanation: 'Conference week' }, t.sam)
   const sent = await submit(h, t.sam, await h.get(`claims/${over.claim.id}`, t.sam))
-  assert.deepEqual((await h.get(`claims/${sent.id}`, t.priya)).revisions[0].snapshot.exceptions.map(e => [e.code, e.message]), [['over-budget', 'Over the Travel budget of 5000.00 for 2026-06']])
+  assert.deepEqual((await h.get(`claims/${sent.id}`, t.priya)).revisions[0].snapshot.exceptions.map(e => [e.code, e.message]), [['over-budget', 'Over the Travel budget of $5,000.00 for 2026-06']])
   assert.deepEqual(await tick('2026-06-30'), [[[PRIYA, JORDAN, MORGAN], 'Budget alert: Travel at 100%', null]])
 
   // Only the owner may let a budget's alerts carry amounts.
@@ -974,7 +977,7 @@ test('REPORT-004 budgets count spend from submission by period, alert the owner 
   await h.post('budgets', allSpend, t.jordan, 403)
   await h.post('budgets', allSpend)
   assert.deepEqual(await tick('2026-06-30'), [[[JORDAN, MORGAN], 'Budget alert: All spend at 100%', null]])
-  assert.match(h.messages.findLast(m => m.subject === 'Budget alert: All spend at 100%').text, /has reached 100% of its budget \(AUD 5550\.00 of AUD 1000\.00\) for 2026-06/)
+  assert.match(h.messages.findLast(m => m.subject === 'Budget alert: All spend at 100%').text, /has reached 100% of its budget \(\$5,550\.00 of \$1,000\.00\) for 2026-06/)
 
   // July starts at zero with no repeat alert; spend analytics shows budget against actual.
   assert.deepEqual(await tick('2026-07-01'), [])

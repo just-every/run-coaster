@@ -6,8 +6,8 @@ import { localDate } from './reports';
 import { parseCsv } from './imports/csv';
 import { operatorMail } from '../mail.server.mjs';
 import type { Bindings } from '../auth.server';
-import type { ClaimItem, PolicyException } from './exceptions';
-import { amount, decimal, email, now, requireThat, text, uid, type Actor, type Data } from './types';
+import { money, type ClaimItem, type PolicyException } from './exceptions';
+import { amount, email, now, requireThat, text, uid, type Actor, type Data } from './types';
 
 /** Budgets with threshold alerts (REPORT-004). Departments (ADMIN-001), projects and tags (CODE-001) and card charges
  * (FEED-004) become budget scopes when those clauses ship. */
@@ -104,6 +104,7 @@ export async function budgetReport(db: D1Database, actor: Actor, day?: string) {
  * every other submitted claim and this claim's earlier expenses in order) is a soft exception the approver sees. */
 export async function overBudget(db: D1Database, claim: { id: string; employee_email: string }, items: ClaimItem[]): Promise<PolicyException[]> {
   const ruled = (await budgets(db)).filter(b => b.policy_rule), found: PolicyException[] = [];
+  const currency = ruled.length ? (await requireBusiness(db)).currency : '';
   for (const b of ruled) {
     const used = new Map<string, number>();
     for (const item of items) {
@@ -113,7 +114,7 @@ export async function overBudget(db: D1Database, claim: { id: string; employee_e
       if (!used.has(p.key)) used.set(p.key, (await spendLines(db, p.from, p.to)).filter(l => l.claim !== claim.id && inScope(b, l) && (!b.per_member || l.employee === claim.employee_email)).reduce((n, l) => n + l.amountMinor, 0));
       const total = used.get(p.key)! + amountMinor;
       used.set(p.key, total);
-      if (total > b.amount_minor) found.push({ item: item.id, code: 'over-budget', message: `Over the ${b.name} budget of ${decimal(b.amount_minor)} for ${p.key}${b.per_member ? ' a person' : ''}` });
+      if (total > b.amount_minor) found.push({ item: item.id, code: 'over-budget', message: `Over the ${b.name} budget of ${money(b.amount_minor, currency)} for ${p.key}${b.per_member ? ' a person' : ''}` });
     }
   }
   return found;
@@ -137,7 +138,7 @@ export async function runBudgets(env: Bindings, at: Date) {
       const to = [...new Set([b.owner_email, ...finance])];
       const claimed = await db.prepare('INSERT INTO c_budget_alerts(budget_id,period,member,threshold,recipients,sent_at) VALUES(?,?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING budget_id').bind(b.id, result.period_key, member, top, JSON.stringify(to), at.toISOString()).first();
       if (!claimed) continue;
-      const link = `${env.AUTH_ORIGIN}/app#/settings`, amounts = b.alert_amounts ? ` (${settings.currency} ${decimal(row.actualMinor)} of ${settings.currency} ${decimal(b.amount_minor)})` : '', words = `${b.name}${member ? ` for ${member}` : ''} has reached ${top}% of its budget${amounts} for ${result.period_key}. See it in Coaster under Settings, Budgets: ${link}`;
+      const link = `${env.AUTH_ORIGIN}/app#/settings`, amounts = b.alert_amounts ? ` (${money(row.actualMinor, settings.currency)} of ${money(b.amount_minor, settings.currency)})` : '', words = `${b.name}${member ? ` for ${member}` : ''} has reached ${top}% of its budget${amounts} for ${result.period_key}. See it in Coaster under Settings, Budgets: ${link}`;
       const sent = mail ? await mail.send({ deliveryId: `budget-${b.id}-${result.period_key}-${member}-${top}`, from: env.MAIL_FROM ?? '', to, subject: `Budget alert: ${b.name} at ${top}%`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
       await ruleEvent(db, 'budget', 'budget-alert', {}, { budget: b.id, name: b.name, period: result.period_key, member: member || null, threshold: top, to, mail: sent?.status ?? 'mail not set up' }).run();
     }
