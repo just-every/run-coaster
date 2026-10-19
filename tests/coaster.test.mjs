@@ -643,6 +643,45 @@ test('CLAIM-005 a conference is requested and approved before spending, linked e
   assert.match((await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, t.jordan)).text, /approved without a spend request: Client shoot moved forward; agreed with Jordan/, 'and in the accounting report')
 }))
 
+test('APPROVE-004 the owner lets a claim approve itself by rule when every expense is under the amount with its receipt and no exception; anything else goes to a person', () => withAgency(async (h, t) => {
+  await h.post('settings/approval-rule', { enabled: true, limit: '75.00' }, t.jordan, 403)
+  await h.post('settings/approval-rule', { enabled: true, limit: '' }, h.owner, 400)
+  assert.deepEqual(await h.post('settings/approval-rule', { enabled: true, limit: '75.00' }), { ...(await h.get('state')).approvalRule, version: 1, enabled: 1, limit_minor: 7500 })
+  await h.post('settings/audit-sample', { percent: '100' }, t.jordan)
+  const receiptOf = (merchant, amount, category, fixture) => ({ kind: 'receipt', date: '2026-06-10', merchant, amount, allocations: [{ category }], receiptFixture: fixture })
+
+  // A compliant $40 claim approves at submission, recorded as approved by rule v1 and sampled like any approval.
+  const lunch = await submit(h, t.sam, await claim(h, t.sam, 'Client lunch', [receiptOf('Bills Surry Hills', '40.00', t.c.meals, 'bistro')]))
+  assert.equal(lunch.status, 'approved')
+  const detail = await h.get(`claims/${lunch.id}`, t.sam)
+  assert.deepEqual(detail.decisions.map(d => [d.revision, d.decision, d.actor_email]), [[1, 'approved', 'rule v1']])
+  assert.match(detail.decisions[0].reason, /under AUD 75\.00 with its receipt and no policy exception/)
+  assert.deepEqual(detail.events.filter(e => e.action === 'claim-approved').map(e => [e.actor_email, e.detail.rule]), [['rule v1', 1]])
+  assert.deepEqual((await h.get('exceptions', t.jordan)).samples.map(s => [s.claim_id, s.percent]), [[lunch.id, 100]], 'POLICY-003 samples rule approvals')
+  await h.post(`claims/${lunch.id}/decision`, { revision: 1, version: lunch.version, decision: 'approved' }, t.priya, 409)
+  let batch = await h.post('batches', { claims: [lunch.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 4000 }, t.jordan)
+  assert.equal((await h.get(`batches/${batch.id}`, t.jordan)).lines.find(l => l.claim === `CL-${String(lunch.number).padStart(4, '0')}`).approver, 'rule v1', 'the accounting line names the rule version as approver')
+
+  // A $40 expense with an exception, an expense at or over the amount, and an expense with no receipt each route to the approver.
+  const unreceipted = await submit(h, t.alex, await claim(h, t.alex, 'Taxi', [{ kind: 'receipt', date: '2026-06-11', merchant: 'Taxi', amount: '40.00', allocations: [{ category: t.c.travel }], explanation: 'Driver had no printer' }]))
+  const over = await submit(h, t.alex, await claim(h, t.alex, 'Hotel', [receiptOf('Hotel Ibis', '75.00', t.c.travel, 'hotel')]))
+  const mileage = await submit(h, t.sam, await claim(h, t.sam, 'Site visit', [{ kind: 'mileage', date: '2026-06-12', merchant: 'Studio to site', distance: '10', allocations: [{ category: t.c.car }] }]))
+  for (const c of [unreceipted, over, mileage]) assert.deepEqual([c.status, c.approver_email], ['submitted', 'priya@harbourfinch.example'])
+  assert.equal((await h.get(`claims/${unreceipted.id}`, t.alex)).revisions[0].snapshot.exceptions[0].code, 'missing-receipt')
+  assert.equal((await approve(h, t.priya, over)).status, 'approved', 'the approver decides what the rule does not cover')
+
+  // Each change is the next version: a claim approved under v2 says v2, earlier approvals keep v1; turned off, everything goes to a person.
+  assert.equal((await h.post('settings/approval-rule', { enabled: 'on', limit: '50.00' })).version, 2)
+  const paper = await submit(h, t.alex, await claim(h, t.alex, 'Printer paper', [receiptOf('Officeworks', '40.00', t.c.office, 'officeworks')]))
+  assert.deepEqual([paper.status, (await h.get(`claims/${paper.id}`, t.alex)).decisions[0].actor_email], ['approved', 'rule v2'])
+  assert.equal((await h.get(`claims/${lunch.id}`, t.sam)).decisions[0].actor_email, 'rule v1')
+  assert.deepEqual(await h.post('settings/approval-rule', { enabled: false }), { ...(await h.get('state')).approvalRule, version: 3, enabled: 0, limit_minor: null })
+  const ride = await submit(h, t.sam, await claim(h, t.sam, 'Airport ride', [receiptOf('Uber', '30.00', t.c.travel, 'uber')]))
+  assert.equal(ride.status, 'submitted')
+  await assert.rejects(h.db.prepare('UPDATE c_approval_rules SET limit_minor=1').run(), /permanent/)
+}))
+
 test('APPROVE-007 an employee or their delegate retracts a claim before any decision; the approver, finance or the owner unapproves it until its batch is reviewed', () => withAgency(async (h, t) => {
   const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
   const d = await claim(h, t.sam, 'Sydney workshop', [{ kind: 'receipt', date: '2026-05-20', merchant: 'Hotel Ibis', amount: '236.00', allocations: [{ category: t.c.travel }], explanation: 'Folio to follow' }])

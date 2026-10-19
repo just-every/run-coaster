@@ -9,6 +9,7 @@ import { delegateGrants } from './delegates';
 import { loadRequest, requestsFor } from './requests';
 import { claimComments, openQuestions } from './comments';
 import { exportTemplates } from './exports';
+import { currentRule } from './auto-approval';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -36,6 +37,7 @@ export async function workspace(db: D1Database, actor: Actor) {
     delegations: actor.roles.manager ? await delegations(db, actor) : [],
     delegates: await delegateGrants(db, actor),
     requests: await requestsFor(db, actor),
+    approvalRule: actor.roles.owner || actor.roles.finance || actor.roles.auditor ? await currentRule(db) : null,
   };
 }
 

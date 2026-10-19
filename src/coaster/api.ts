@@ -9,6 +9,7 @@ import { decide, reassign } from './decisions';
 import { retractClaim, unapproveClaim } from './reversals';
 import { releaseHold } from './holds';
 import { exceptionQueue, recordFinding, reviewException, saveAuditSample } from './audit-queue';
+import { saveApprovalRule } from './auto-approval';
 import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
 import { actingAs, grantDelegate, revokeDelegate } from './delegates';
@@ -112,6 +113,7 @@ api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c
 
 api.get('/api/coaster/exceptions', as(async (a, c) => exceptionQueue(db(c), a, c.req.query('sort'))));
 api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db(c), a, await body(c))));
+api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalRule(db(c), a, await body(c))));
 api.post('/api/coaster/settings/audit-sample', as(async (a, c) => saveAuditSample(db(c), a, await body(c))));
 api.post('/api/coaster/audit-samples/finding', as(async (a, c) => recordFinding(db(c), a, await body(c))));
 api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));

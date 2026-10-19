@@ -5,6 +5,7 @@ import { findExceptions, missingFields, repeatedInClaim, type ClaimItem } from '
 import { requireBusiness } from './settings';
 import { localDay, routeFor } from './delegation';
 import { linkableRequest } from './requests';
+import { approvesByRule, currentRule, ruleApproval, ruleStill } from './auto-approval';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null };
@@ -150,7 +151,8 @@ export async function claimItems(db: D1Database, claimId: string): Promise<Claim
   return (items.results as Data[]).map(item => ({ ...item, attendees: JSON.parse(item.attendees), fields: JSON.parse(item.fields), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id) }) as ClaimItem);
 }
 
-/** Submission freezes the exact claim as a new revision and routes it to the employee's manager. */
+/** Submission freezes the exact claim as a new revision and routes it to the employee's manager, or approves it at
+ * once when the owner's approval rule covers every expense (APPROVE-004). */
 export async function submitClaim(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
@@ -166,12 +168,14 @@ export async function submitClaim(db: D1Database, actor: Actor, id: string, b: D
   const exceptions = await findExceptions(db, claim, items, business, known);
   const unexplained = exceptions.filter(e => !items.find(i => i.id === e.item)?.explanation);
   requireThat(!unexplained.length, `Explain each policy exception before submitting: ${unexplained.map(e => e.message).join('; ')}`, 409);
+  const rule = await currentRule(db), byRule = approvesByRule(rule, items, exceptions);
   const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();
   const snapshot = { title: claim.title, approver, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }), [
+  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, actor.delegate?.email ?? actor.email, at, total, JSON.stringify(snapshot)),
-    db.prepare("UPDATE c_claims SET status='submitted',revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(revision, approver, onBehalfOf, total, at, claim.id),
+    db.prepare('UPDATE c_claims SET status=?,revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?').bind(byRule ? 'approved' : 'submitted', revision, approver, onBehalfOf, total, at, claim.id),
     event(db, actor, revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { claim: claim.id }, { revision, totalMinor: total, exceptions: exceptions.length, note: optionalText(b.note, 'Note', 1000), approver, onBehalfOf }),
+    ...(byRule ? ruleApproval(db, claim.id, revision, rule, claim.currency) : []),
   ]);
   return loadClaim(db, id);
 }

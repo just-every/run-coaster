@@ -45,6 +45,13 @@ export function Settings({ state, reload }: ViewProps) {
     </div>
     {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
     {(owner || roles.finance || roles.auditor) && <AuditRecords state={state} />}
+    {owner && b && <Section title="Approval by rule">
+      <p className="muted">{state.approvalRule?.enabled ? `Rule v${state.approvalRule.version}: a claim approves itself when every expense is under ${money(state.approvalRule.limit_minor, b.currency)}, has its receipt attached and raises no policy exception. Every other claim goes to its approver.` : 'Off: every claim goes to its approver.'} Rule approvals are recorded with the rule's version and audit-sampled like any approval.</p>
+      <Form key={state.approvalRule?.version ?? 0} label="Save approval rule" onSubmit={async v => { await call('settings/approval-rule', v); await saved('Approval rule saved.'); }}>
+        <Field label="Approve qualifying claims by rule" name="enabled" type="checkbox" defaultValue={state.approvalRule?.enabled === 1} />
+        <Field label="Every expense under" name="limit" inputMode="decimal" required={false} defaultValue={state.approvalRule?.limit_minor ? amountText(state.approvalRule.limit_minor) : '75.00'} hint="Each expense must be under this, carry its receipt and raise no policy exception" />
+      </Form>
+    </Section>}
     {owner && b && <Section title="Mileage rates">
       <p className="muted">Each trip is priced at the rate in force on its date. {b.currency === 'USD' ? 'Seeded with the IRS standard business mileage rates; add next year\'s rate when the IRS announces it.' : 'Add the rate per mile your business pays from the day it applies.'}</p>
       {b.mileage_rates.length ? <table className="plain"><thead><tr><th>From</th><th className="figure">Rate per mile</th><th><span className="visually-hidden">Remove</span></th></tr></thead><tbody>
