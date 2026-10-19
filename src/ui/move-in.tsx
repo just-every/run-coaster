@@ -5,10 +5,11 @@ import { Work } from './shell';
 import type { ViewProps } from './claims';
 import { CardHistory } from './card-history';
 import { EmburseConfiguration } from './emburse-configuration';
+import { ConcurImport } from './concur-import';
 
 const HISTORY = [['open', 'Open (not submitted)'], ['submitted', 'Submitted'], ['approved', 'Approved'], ['reimbursed', 'Reimbursed'], ['closed', 'Closed']];
 const JOB_WORDS: Record<string, string> = { completed: 'Imported', undone: 'Undone', queued: 'Waiting to import', applying: 'Importing', failed: 'Stopped part way', undoing: 'Undoing' };
-const SOURCE_NAMES: Record<string, string> = { expensify: 'Expensify', ramp: 'Ramp', brex: 'Brex', navan: 'Navan', certify: 'Certify', chromeriver: 'Chrome River', abacus: 'Abacus' };
+const SOURCE_NAMES: Record<string, string> = { expensify: 'Expensify', ramp: 'Ramp', brex: 'Brex', navan: 'Navan', certify: 'Certify', chromeriver: 'Chrome River', abacus: 'Abacus', concur: 'SAP Concur' };
 const GUESS: Record<string, string> = { open: 'open', processing: 'submitted', approved: 'approved', reimbursed: 'reimbursed', closed: 'closed', archived: 'closed', paid: 'reimbursed' };
 
 /** The Expensify move-in kit: preview writes nothing, import applies exactly what was previewed, undo reverses it. */
@@ -66,6 +67,7 @@ export function MoveIn({ state, reload }: ViewProps) {
       <CardHistory kind="card" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
       <EmburseConfiguration state={state} onImported={refresh} />
       <CardHistory kind="emburse" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
+      <ConcurImport state={state} history={jobs?.history??[]} onImported={refresh}/>
     </div>
   </Work>;
 }

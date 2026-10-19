@@ -6,13 +6,17 @@ import { expensifySource, NAMESPACE } from './expensify';
 import { HISTORY_SOURCES, cardSource, type CardSource } from './cards';
 import { historyTargetsFor } from './target';
 import { configurationSource } from './configuration';
+import { refuseErasedConcurSource } from './concur-custody';
+import { concurSource } from './concur';
+import { concurConfiguration } from './concur-policy';
+import { categories } from '../items';
 
 /** Jobs belong to the owner role, so a restored installation's owner can still resume or undo them. */
 const PRINCIPAL = 'role:owner';
 
 /** Each kit imports under its own namespace: Expensify reports (COA-011), one card tool's charges (MOVE-004) or one
  * Emburse product's expenses (MOVE-003). */
-const NAMESPACES = [NAMESPACE, ...Object.keys(HISTORY_SOURCES)];
+const NAMESPACES = [NAMESPACE, ...Object.keys(HISTORY_SOURCES), 'concur'];
 const namespaceOf = (value: unknown) => { const ns = value === undefined || value === null || value === '' ? NAMESPACE : String(value); requireThat(NAMESPACES.includes(ns), 'Import from Expensify, Ramp, Brex, Navan, Certify, Chrome River or Abacus'); return ns; };
 
 function context(db: D1Database, actor: Actor, mappingVersion: string, namespace: string, timezone = 'UTC'): D1ImportContext {
@@ -29,7 +33,9 @@ export async function importAction(db: D1Database, actor: Actor, op: string, b: 
   requireThat(actor.kind === 'person', 'Only the owner imports', 403);
   if (op === 'preview' || op === 'commit') {
     const business = await requireBusiness(db), namespace = namespaceOf(b.source);
-    const { source, mapping, summary } = b.configuration !== undefined ? (requireThat(namespace in HISTORY_SOURCES && ['certify','chromeriver','abacus'].includes(namespace), 'Configuration move-in is for Emburse'), await configurationSource(db,namespace,b.configuration,b.mapping?.crosswalk)) : namespace === NAMESPACE ? expensifySource(b.csv, b.filename, b.mapping, business.currency) : cardSource(namespace as CardSource, b.csv, b.filename, b.mapping, b.receipts, business.currency);
+    if(namespace==='concur' && b.configuration===undefined){const active=new Set((await categories(db)).filter(c=>c.active).map(c=>c.id));requireThat(Object.values(b.mapping?.categories??{}).every(id=>typeof id==='string'&&active.has(id)), 'Map Concur expense types to active categories');}
+    const { source, mapping, summary } = namespace==='concur' ? b.configuration!==undefined ? await concurConfiguration(db,b.configuration,b.mapping?.crosswalk,business.timezone) : await concurSource(b.csv,b.filename,b.mapping,b.receipts,business.currency) : b.configuration !== undefined ? (requireThat(namespace in HISTORY_SOURCES && ['certify','chromeriver','abacus'].includes(namespace), 'Configuration move-in is for Emburse'), await configurationSource(db,namespace,b.configuration,b.mapping?.crosswalk)) : namespace === NAMESPACE ? expensifySource(b.csv, b.filename, b.mapping, business.currency) : cardSource(namespace as CardSource, b.csv, b.filename, b.mapping, b.receipts, business.currency);
+    if (namespace === 'concur') await refuseErasedConcurSource(db, source);
     const ctx = context(db, actor, mapping.version, namespace, business.timezone), plan = await planD1Import(source, mapping, ctx);
     const review = { fingerprint: plan.fingerprint, mappingVersion: mapping.version, counts: plan.counts, summary };
     if (op === 'preview') return review;

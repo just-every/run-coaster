@@ -7,7 +7,7 @@ const uuid = (v: unknown) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-
 export async function configurationSource(db: D1Database, namespace: string, input: unknown, supplied: unknown) {
   const originalText = typeof input === 'string' ? input : canonicalJson(input as Data);
   const config = (typeof input === 'string' ? JSON.parse(input) : input) as Data;
-  requireThat(config && typeof config === 'object' && !Array.isArray(config), 'Choose an Emburse configuration JSON');
+  requireThat(config && typeof config === 'object' && !Array.isArray(config), namespace==='concur'?'Choose a Concur configuration JSON':'Choose an Emburse configuration JSON');
   const crosswalk = { ...(supplied as Record<string,string> ?? {}) };
   const members: Data[] = config.members ?? [], categories: Data[] = config.categories ?? [], chains: Data[] = config.chains ?? [];
   requireThat([members,categories,chains].every(a => Array.isArray(a) && a.length <= 500), 'Import at most 500 people, categories or chains at a time');

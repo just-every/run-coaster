@@ -168,3 +168,114 @@ the undo report explains retained rows. Erasure withdraws affected originals and
 retires the erased person's import records, so undo and reimport cannot restore
 their identity. Configuration: at most 500 rows of each kind, 20 managers per
 chain, within the 8 MB request limit.
+
+# Moving in from SAP Concur
+
+On **Move in**, use **SAP Concur** to review configuration first, then the
+accounting extract and receipt ZIP. Both use the existing owner-only
+preview/import/status/resume/undo doors with `source: "concur"`. No Concur
+account, credentials or network access are used. The fixtures are synthetic;
+operation against an owner's real export has not been demonstrated.
+
+Export without banking fields or full card numbers. Coaster refuses populated
+SAE bank/routing fields 16–17, card-account fields 130 and 154, banking fields
+291–310, and banking/account-number columns in a header export **before retaining
+the input**. The error identifies the export requirement without reproducing
+the value. Safe explicitly named token/last-four fields may be retained.
+
+## Configuration translation and review
+
+Translate the Concur user/approver, expense-type and policy exports into the
+same reviewed `members`, `categories` and ordered `chains` envelope described
+above, adding a `policies` array. Preserve the opaque random UUID row keys with
+the export; use explicit crosswalk choices to reuse native people/categories.
+New people are inactive, receive no invitation and cannot use Coaster until
+the owner activates them. Existing native people retain their roles and access.
+
+Each policy has an opaque UUID `key`, `name` and `rules`, for example:
+
+```json
+{
+  "key": "<random policy UUID>",
+  "name": "US company policy",
+  "rules": [
+    {"kind": "per-expense-limit", "category": "<category row UUID>", "limit": "70.00", "hard": false}
+  ]
+}
+```
+
+Rules use POLICY-001's public input fields (`kind`, `hard`, and the applicable
+`category`, `limit`, `field`, `merchant` or `days`). A category refers to its
+configuration row UUID or an explicitly chosen native category. Only supported
+company-wide semantics are translated: a department/group scope, unknown rule,
+unknown rule property or conflicting deadline is listed as an error and blocks
+commit. A source policy name alone is not treated as an implemented rule.
+
+The imported company-wide rules add to existing finance rules and the immutable
+owner floor in one new policy version effective today. Original configuration
+bytes are retained. Undo appends a compensating version with the previous
+finance rules; it never changes an earlier version or submitted revision. If a
+native policy version has been published since adoption, undo preserves it and
+reports the imported policy as edited. Activated people, frozen chains and
+categories referenced by claims or permanent policy history are preserved too.
+
+## Accounting extract and expense-type mapping
+
+Select **Standard Accounting Extract v4** explicitly for pipe-delimited SAE
+input. Its `EXTRACT` header supplies the detail record count and signed journal
+total, both reconciled before commit. The documented v4 column positions are
+used; no layout is guessed. For a CSV report/accounting export select
+**Documented headers**, with SAP's field names shown by
+`CONCUR_HEADERS` in `src/coaster/imports/concur.ts`. An API caller may supply
+`mapping.columns` with those normalized field keys mapped to exact header names
+or one-based positions, and `mapping.delimiter` of `|`, comma or tab. Other SAE
+versions require an explicit, documented mapping rather than silent detection.
+
+Preview names employee source IDs and expense types. Explicitly map employees
+to their addresses and expense types to active native categories, then preview
+again. API fields are `mapping.employees: {sourceEmployeeId: email}` and
+`mapping.categories: {sourceExpenseType: nativeCategoryId}`. Dates default to
+`YYYY-MM-DD`; explicit `YYYYMMDD`, `MM/DD/YYYY` and `DD/MM/YYYY` are supported.
+Header exports with a report status use `mapping.statuses` to choose `open`,
+`submitted`, `approved`, `reimbursed` or `closed`; SAE history is processor-approved
+history and is not asserted paid.
+
+Repeated allocation/journal rows group by Report Entry ID. The approved entry
+amount is counted once, all signed allocations are preserved and must sum to
+that amount, and report totals sum the distinct entries. Journal IDs must be
+unique; contradictory repeated entry/report fields, parent itemization rows,
+bad dates, non-cent amounts and missing mappings block import. Credits and
+refunds retain their negative values. Foreign currency needs CLAIM-003's
+conversion path before import; it is refused rather than silently relabeled.
+Every report and entry remains read-only history, never a reimbursable claim;
+later matching claims show the imported expense as a possible duplicate.
+
+## Receipt ZIP and index
+
+Supply the decrypted SAP Image Delivery ZIP with its index CSV. The index joins
+`Report ID,Employee_ID,Report_Key,Entry_ID(optional)::Image ID`; multiple
+`entry::image` pairs are separated by `||`. A pair with no entry stays a report
+attachment. An explicit CSV with `Report ID,Entry ID,Image ID,Receipt File` is
+also accepted. When an image ID differs from its filename, supply the reviewed
+`mapping.imageFiles: {imageId: filename}` crosswalk; ambiguous names block.
+
+Both stored and deflated ZIPs are accepted. Paths, member names, declared sizes
+and CRCs are validated; encrypted, multi-volume, unsupported or malformed ZIPs
+refuse. Indexed missing files, unindexed files, invalid receipt signatures and
+unknown report/entry associations block commit. Receipt formats match native
+Coaster capture: JPEG, PNG, WebP, HEIC and PDF. The extract, ZIP, index and indexed
+receipt originals are retained byte for byte. Erasure links the extract and
+ZIP/index to the employee through structured provenance, including originals
+that contain only an upstream employee ID, so status/undo/reimport cannot
+resurrect erased identity.
+
+Limits: 2 MB extract, 4,000 journal rows, 8 MB compressed/extracted receipt ZIP,
+1.5 MB per extracted receipt, 100 archive members/receipt associations and 8 MB
+per HTTP request. Larger exports must be split into complete reports. Fixtures:
+`tests/fixtures/concur-sae-v4.txt`, `concur-accounting.csv` and
+`concur-receipts.zip` (including entry-level and report-level images).
+
+Source references: SAP's [extract structure](https://help.sap.com/docs/CONCUR_EXPENSE/bb83754b1c5541808d50c09901e11475/188c1bc36f0910148e1d8a01eccf5155.html),
+[journal fields](https://help.sap.com/docs/concur-expense/concur-expense-professional-edition-administration-guides/journal-entry-data-a64f2d9ffa1c409b855d03d412785456),
+[report fields](https://help.sap.com/docs/CONCUR_EXPENSE/bb83754b1c5541808d50c09901e11475/8bd1d4553ea24fb8abfe37e327c4fde4.html)
+and [Image Delivery index](https://help.sap.com/docs/SAP_CONCUR/ceeea7fe419f4997bd53f60c0e1097d5/855f4bc7d0a747499e04b57c1f4993b2.html).
