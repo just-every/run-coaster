@@ -1477,8 +1477,8 @@ test('MOVE-004 Ramp, Brex and Navan card exports come in as read-only history wi
   assert.deepEqual(preview.summary.errors, ['Row 3: receipt RT-1002.png was not added'])
   await h.post('import/commit', { ...ramp, receipts: receipts.slice(0, 1), fingerprint: preview.fingerprint }, h.owner, 409)
   preview = await h.post('import/preview', { ...ramp, receipts })
-  assert.deepEqual([preview.summary.errors, preview.summary.charges, preview.summary.totalMinor, preview.summary.receipts, preview.summary.skipped], [[], 3, 2010 + 15000 + 6495, 2, ['RT-1004']])
-  assert.ok(preview.summary.warnings.some(w => /Card Last 4/.test(w)) && preview.summary.warnings.some(w => /RT-1004 is a refund or credit/.test(w)))
+  assert.deepEqual([preview.summary.errors, preview.summary.charges, preview.summary.totalMinor, preview.summary.receipts, preview.summary.credits], [[], 4, 2010 + 15000 + 6495 - 1200, 2, ['RT-1004']])
+  assert.ok(preview.summary.warnings.some(w => /Card Last 4/.test(w)))
   const done = await h.post('import/commit', { ...ramp, receipts, fingerprint: preview.fingerprint })
   assert.equal(done.job.state, 'completed')
   const rows = (await h.get('import')).history.filter(r => r.source === 'ramp')
@@ -1486,7 +1486,8 @@ test('MOVE-004 Ramp, Brex and Navan card exports come in as read-only history wi
     ['RT-1001', SAM, '2026-04-02', 'Uber', 2010, 'Airport to client', 'Rideshare', '6200 Travel', sha(uber)],
     ['RT-1002', SAM, '2026-04-03', 'Harbour View Bistro', 15000, 'Client lunch', 'Restaurants', '6300 Meals', sha(bistro)],
     ['RT-1003', ALEX, '2026-04-07', 'Staples', 6495, 'Printer paper', 'Office Supplies', '6500 Office', null],
-  ])
+    ['RT-1004', ALEX, '2026-04-08', 'Staples', -1200, 'Returned toner', 'Office Supplies', '6500 Office', null],
+  ], 'the refund comes in as a negative-amount record')
   const status = await h.post('import/status', { source: 'ramp', id: done.job.id, mappingVersion: done.mappingVersion })
   assert.deepEqual(status.originals.map(o => o.sha256).sort(), [sha(Buffer.from(csv)), sha(uber), sha(bistro)].sort(), 'the export and each receipt are kept byte for byte')
   // Claiming an imported card charge again out of pocket is a possible duplicate; imported charges never become claims.

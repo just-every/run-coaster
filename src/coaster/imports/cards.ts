@@ -17,7 +17,7 @@ const REQUIRED = ['id', 'date', 'employee', 'merchant', 'amount', 'currency'] as
 const OPTIONAL = ['memo', 'category', 'gl', 'receipt'] as const;
 
 /** Plan input for import-kit: one record per charge, the export and each receipt file kept as originals; diagnostics
- * that block commit. Refunds and credits (negative amounts) are listed and not imported. */
+ * that block commit. Refunds and credits come in as negative amounts. */
 export function cardSource(source: CardSource, raw: unknown, filename: unknown, config: unknown, files: unknown, currency: string) {
   const profile = CARD_SOURCES[source];
   requireThat(typeof raw === 'string' && raw.length > 0 && raw.length <= 2_000_000, `Choose the ${profile.label} CSV (at most 2 MB)`);
@@ -37,7 +37,7 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
   requireThat(!missing.length, `The ${profile.label} CSV is missing required columns: ${missing.join(', ')}`);
   requireThat(rows.length <= 2000, 'Import at most 2,000 charges per file');
   const bytes = new TextEncoder().encode(raw), artifactHash = sha256(bytes), known = new Set<string>([...REQUIRED, ...OPTIONAL].map(k => profile[k]));
-  const diagnostics: Diagnostic[] = [], charges = new Map<string, Data>(), used = new Set<string>(), skipped: string[] = [];
+  const diagnostics: Diagnostic[] = [], charges = new Map<string, Data>(), used = new Set<string>(), credits: string[] = [];
   const ignored = headers.filter(h => !known.has(h));
   if (ignored.length) diagnostics.push({ severity: 'warning', code: 'IGNORED_COLUMNS', message: `Columns kept in the original file but not mapped: ${ignored.join(', ')}` });
   rows.forEach((r, index) => {
@@ -46,10 +46,12 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
     if (!id) return fail('MISSING_TRANSACTION', `${profile.id} is empty`);
     if (charges.has(id)) return fail('DUPLICATE_TRANSACTION', `${profile.id} ${id} appears twice`);
     const amountText = at(profile.amount);
-    if (amountText.startsWith('-')) { skipped.push(id); diagnostics.push({ severity: 'warning', code: 'CREDIT_SKIPPED', message: `Row ${index + 2}: ${id} is a refund or credit (${amountText}) and is not imported` }); return; }
-    const when = day(at(profile.date), date), amount = minor(amountText), employee = at(profile.employee).toLowerCase(), file = at(profile.receipt);
+    // A refund or credit comes in as negative-amount history, so a later feed can match it as well.
+    const credit = amountText.startsWith('-'), magnitude = minor(credit ? amountText.slice(1) : amountText), amount = magnitude === null ? null : credit ? -magnitude : magnitude;
+    if (credit) credits.push(id);
+    const when = day(at(profile.date), date), employee = at(profile.employee).toLowerCase(), file = at(profile.receipt);
     if (!when) fail('BAD_DATE', `${profile.date} "${at(profile.date)}" is not a ${date} date`);
-    if (amount === null || amount === 0) fail('BAD_AMOUNT', `${profile.amount} "${amountText}" must be a positive amount like 12.50`);
+    if (amount === null || amount === 0) fail('BAD_AMOUNT', `${profile.amount} "${amountText}" must be an amount like 12.50 (a refund or credit like -12.50)`);
     if (at(profile.currency).toUpperCase() !== currency) fail('OTHER_CURRENCY', `currency ${at(profile.currency)} is not this business's ${currency}`);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(employee)) fail('BAD_EMPLOYEE', `${profile.employee} "${employee}" is not an email address`);
     const receipt = file ? receipts.get(file) : undefined;
@@ -72,5 +74,5 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
     map: record => blocked ? { effects: [], rejection: 'Resolve the file errors before importing' } : { effects: [{ targetKind: 'expense', targetId: `${source}:expense:${record.sourceId}`, value: charges.get(record.sourceId)!.value }] },
   };
   const values = [...charges.values()].map(c => c.value);
-  return { source: bundle, mapping, summary: { charges: charges.size, totalMinor: values.reduce((n, v) => n + (v.amountMinor ?? 0), 0), receipts: values.filter(v => v.receipt).length, skipped, errors: diagnostics.filter(d => d.severity === 'error').map(d => d.message), warnings: diagnostics.filter(d => d.severity === 'warning').map(d => d.message) } };
+  return { source: bundle, mapping, summary: { charges: charges.size, totalMinor: values.reduce((n, v) => n + (v.amountMinor ?? 0), 0), receipts: values.filter(v => v.receipt).length, credits, errors: diagnostics.filter(d => d.severity === 'error').map(d => d.message), warnings: diagnostics.filter(d => d.severity === 'warning').map(d => d.message) } };
 }

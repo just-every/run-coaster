@@ -56,7 +56,7 @@ Limits: 2 MB and 2,000 expenses per file; larger histories import in several fil
 Card charges from a Ramp, Brex or Navan transaction export come in as
 read-only history with their memos, coding and receipts (MOVE-004). Like
 Expensify reports they never become claims: Coaster keeps them to show what
-was spent on cards before and to flag an out-of-pocket expense that repeats a
+was spent (and refunded) on cards before and to flag an out-of-pocket expense that repeats a
 card charge (same employee, date, merchant and amount) as a possible duplicate.
 
 On **Move in**, choose the tool, the CSV and the receipt files the CSV names,
@@ -79,10 +79,12 @@ if your export names a column differently. `tests/fixtures/ramp-transactions.csv
 is a synthetic file in the Ramp shape. Coaster makes no calls to Ramp, Brex or
 Navan.
 
-A row naming a receipt file you did not add, a repeated transaction id, a bad
-date or amount, an employee that is not an email address, or another currency
-blocks the import and is listed by row. Refunds and credits (negative amounts)
-and receipt files no row names are listed and left out.
+Refunds and credits (negative amounts) come in as history with their negative
+amount, so a later card feed can match them too. A row naming a receipt file
+you did not add, a repeated transaction id, a bad date or amount, an employee
+that is not an email address, or another currency blocks the import and is
+listed by row; other currencies wait for conversion (CLAIM-003). Receipt files
+no row names are listed and left out.
 
 Limits: 2 MB and 2,000 charges per CSV, 50 receipt files of up to 1.5 MB each
 per import, 8 MB per request.
