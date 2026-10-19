@@ -12,8 +12,8 @@ const categoryAmount = (item: ClaimItem, category: string) => item.allocations.f
 /** Category aggregates include drafts, submitted and paid spend, excluding rejected claims and the current claim's
  * database rows (counted from its current items instead). A trip is an approved spend request; a month is the expense
  * date's calendar month. Limits are inclusive integer cents. */
-export async function evaluateRules(db: D1Database, policy: Pick<Policy, 'rules' | 'version'>, claim: { id: string; employee_email: string }, items: ClaimItem[], business: Business, known: Category[]) {
-  const found: PolicyException[] = [], v = `policy v${policy.version}`, today = localDay(business.timezone), names = new Map(known.map(c => [c.id, c.name]));
+export async function evaluateRules(db: D1Database, policy: Pick<Policy, 'rules' | 'version'>, claim: { id: string; employee_email: string }, items: ClaimItem[], business: Business, known: Category[], replay?: { today: string; otherTotal: (kind: string, key: string, category: string) => number }) {
+  const found: PolicyException[] = [], v = `policy v${policy.version}`, today = replay?.today ?? localDay(business.timezone), names = new Map(known.map(c => [c.id, c.name]));
   const add = (item: ClaimItem, code: PolicyException['code'], message: string, hard: boolean) => found.push({ item: item.id, code, message: `${message} (${v})`, policy: policy.version, hard });
   for (const r of policy.rules) {
     if (r.kind === 'receipt-threshold') for (const item of items.filter(i => i.kind === 'receipt' && !i.receipt_id && i.amount_minor > r.limit_minor))
@@ -45,7 +45,7 @@ export async function evaluateRules(db: D1Database, policy: Pick<Policy, 'rules'
       for (const key of new Set(eligible.map(bucket).filter(Boolean))) {
         const here = eligible.filter(i => bucket(i) === key), mine = here.reduce((n, i) => n + categoryAmount(i, r.category), 0);
         const condition = kind === 'trip-limit' ? 'i.request_id=?' : kind === 'monthly-limit' ? 'substr(i.spent_on,1,7)=?' : 'i.spent_on=?';
-        const other = await db.prepare(`SELECT COALESCE(SUM(a.amount_minor),0) AS n FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_claims c ON c.id=i.claim_id WHERE c.employee_email=? AND c.id<>? AND c.status<>'rejected' AND ${condition} AND a.category_id=?`).bind(claim.employee_email, claim.id, key, r.category).first<{ n: number }>();
+        const other = replay ? { n: replay.otherTotal(kind, key, r.category) } : await db.prepare(`SELECT COALESCE(SUM(a.amount_minor),0) AS n FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_claims c ON c.id=i.claim_id WHERE c.employee_email=? AND c.id<>? AND c.status<>'rejected' AND ${condition} AND a.category_id=?`).bind(claim.employee_email, claim.id, key, r.category).first<{ n: number }>();
         const total = mine + (other?.n ?? 0), period = kind === 'daily-limit' ? 'daily' : kind === 'monthly-limit' ? 'monthly' : 'trip';
         if (total > r.limit_minor) for (const item of here) add(item, kind === 'daily-limit' ? 'over-daily-limit' : kind === 'monthly-limit' ? 'over-monthly-limit' : 'over-trip-limit', `${names.get(r.category) ?? 'This category'} ${kind === 'trip-limit' ? 'on its spend request' : 'on ' + key} totals ${money(total, business.currency)}, over the ${period} limit of ${money(r.limit_minor, business.currency)}`, r.hard);
       }

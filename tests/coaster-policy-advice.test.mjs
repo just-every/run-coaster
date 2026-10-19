@@ -96,3 +96,92 @@ test('AGENT-003 a finance-only category cap is replayed and versioned on adoptio
     assert.equal((await h.get('policy',t.morgan)).versions[0].rules[0].limit_minor,7500)
   } finally {await h.close()}
 })
+
+test('AGENT-003 every current finance rule kind surfaces recurring approvals and previews a removal without changing the owner floor or history', async () => {
+  const h = await harness()
+  try {
+    const t = await agency(h)
+    await h.post('settings/business', {name:'Juniper Design',currency:'AUD',timezone:'Australia/Sydney',receiptThreshold:'10000'})
+    const cat=t.c.office, yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10), old=new Date(Date.now()-10*86400000).toISOString().slice(0,10)
+    let trip=await h.post('requests',{title:'Field work',estimate:'200',purpose:'Client visit'},t.sam)
+    trip=await h.post(`requests/${trip.id}/decision`,{version:trip.version,decision:'approved'},t.priya)
+    const allRules=[
+      {kind:'per-expense-limit',category:cat,limit:'1'}, {kind:'attendee-limit',category:cat,limit:'1'},
+      {kind:'daily-limit',category:cat,limit:'1'}, {kind:'monthly-limit',category:cat,limit:'1'}, {kind:'trip-limit',category:cat,limit:'1'},
+      {kind:'receipt-threshold',limit:'1'}, {kind:'required-field',category:cat,field:'Engagement'},
+      {kind:'blocked-category',category:cat}, {kind:'blocked-merchant',merchant:'Recurring merchant'},
+      {kind:'weekend'}, {kind:'holiday'}, {kind:'approval-required',category:cat}, {kind:'deadline',days:2},
+    ]
+    for(const rule of allRules) {
+      await h.post('policy',{rules:[rule]},t.morgan)
+      let c=await h.post('claims',{title:`Recurring ${rule.kind}`},t.sam)
+      const date=rule.kind==='holiday'?'2026-01-19':rule.kind==='weekend'?'2026-01-18':rule.kind==='deadline'?old:yesterday
+      for(let i=0;i<3;i++) c=await h.post(`claims/${c.id}/items`,{version:c.version,kind:'receipt',date,merchant:rule.kind==='blocked-merchant'?'Recurring merchant':`${rule.kind} purchase ${i}`,amount:String(10+i),allocations:[{category:cat}],explanation:'Approved client work outside standard policy',...(rule.kind==='trip-limit'?{request:trip.id}:{})},t.sam)
+      c=await h.post(`claims/${c.id}/submit`,{version:c.version},t.sam)
+      c=await h.post(`claims/${c.id}/decision`,{version:c.version,revision:c.revision,decision:'approved',acknowledge:true,override:'Client engagement approved; override recorded'},t.priya)
+      const saved=await h.get(`claims/${c.id}`,t.sam), traffic=h.outbound.length
+      const replay=await h.post('policy/advice',{minutesPerException:6},t.morgan)
+      assert.equal(h.outbound.length,traffic)
+      const s=replay.ruleSuggestions.find(s=>s.kind===rule.kind)
+      assert.ok(s,`recurring ${rule.kind} has a supported proposal`)
+      assert.equal(s.approvedExceptions,3,rule.kind)
+      assert.ok(s.affected.some(a=>a.id===c.id && a.expenses.length===3),rule.kind)
+      assert.ok(s.before>s.after,rule.kind)
+      assert.ok(s.estimatedHoursSaved>0,rule.kind)
+      assert.equal(s.approval.estimatedReviewHoursDelta,-s.estimatedHoursSaved)
+      assert.equal(s.reimbursement.awaitingReimbursementMinor>=3300,true)
+      assert.deepEqual((await h.get(`claims/${c.id}`,t.sam)).revisions,saved.revisions)
+      assert.deepEqual((await h.get(`claims/${c.id}`,t.sam)).decisions,saved.decisions)
+    }
+    await h.post('policy',{rules:[{kind:'weekend',hard:true}]},t.morgan)
+    assert.deepEqual((await h.post('policy/advice',{minutesPerException:6},t.morgan)).ruleSuggestions,[],'hard rules never get automatic relaxation suggestions')
+  } finally { await h.close() }
+})
+
+test('AGENT-003 finance previews tightening, approval effort and reimbursement eligibility; only the owner adopts the exact preview and historical payment stays unchanged',async()=>{
+  const h=await harness()
+  try {
+    const t=await fixture(h),minutesPerException=4
+    let batch=await h.post('batches',{claims:t.claims.map(c=>c.id)},t.morgan)
+    batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:20500},t.morgan)
+    await h.post(`batches/${batch.id}/paid`,{version:batch.version,reference:'External payroll 910',paidOn:new Date().toISOString().slice(0,10)},t.morgan)
+    const original=await h.get(`claims/${t.claims[0].id}`,t.sam)
+    const proposedRules=[{kind:'per-expense-limit',category:t.c.meals,limit:'55',hard:true}]
+    const versions=(await h.get('policy',t.morgan)).versions.length
+    const {preview:p}=await h.post('policy/advice',{minutesPerException,proposedRules},t.morgan)
+    assert.equal((await h.get('policy',t.morgan)).versions.length,versions,'preview is nonwriting')
+    assert.equal(p.reimbursement.recordedReimbursedMinor,20500)
+    assert.deepEqual([p.reimbursement.eligibleBeforeMinor,p.reimbursement.eligibleAfterMinor],[20500,0])
+    assert.equal(p.affected.length,3)
+    assert.ok(p.affected.every(c=>!c.blockedBefore && c.blockedAfter && c.status==='reimbursed'))
+    assert.equal(p.approval.predictedDecisionTime,null)
+    const details=await Promise.all(t.claims.map(c=>h.get(`claims/${c.id}`,t.sam)))
+    const expectedObserved=details.reduce((sum,d)=>sum+Math.max(0,(Date.parse(d.decisions.find(d=>d.decision==='approved').at)-Date.parse(d.revisions[0].submitted_at))/3600000),0)
+    assert.equal(p.approval.observedHoursOnAffectedClaims,expectedObserved)
+    assert.ok(p.estimatedHoursSaved<0)
+    const body={minutesPerException,proposedRules,proposalToken:p.proposalToken}
+    await h.post('policy/advice/adopt',body,t.morgan,403)
+    await h.post('policy/advice/adopt',{...body,proposedRules:[]},h.owner,409)
+    await h.post('policy/advice',{minutesPerException,proposedRules:[{kind:'deadline',days:0}]},t.morgan,400)
+    assert.equal((await h.get('policy',t.morgan)).versions.length,versions)
+    await t.create('History changed after preview','40.00',false)
+    await h.post('policy/advice/adopt',body,h.owner,409)
+    await h.post('policy',{rules:[]},t.morgan)
+    await h.post('policy/advice/adopt',body,h.owner,409)
+    const activeVersionBefore=(await h.get('policy',t.morgan)).versions[0].version
+    const refreshed=(await h.post('policy/advice',{minutesPerException,proposedRules},t.morgan)).preview
+    const adopted=await h.post('policy/advice/adopt',{...body,proposalToken:refreshed.proposalToken})
+    assert.ok(adopted.policyVersion>activeVersionBefore)
+    const active=(await h.get('policy',t.morgan)).versions[0]
+    assert.deepEqual(active.rules,[{kind:'per-expense-limit',category:t.c.meals,limit_minor:5500,hard:true}])
+    assert.equal(active.configuration.categories.find(c=>c.id===t.c.meals).limit_minor,5000,'finance candidate cannot remove the owner floor')
+    const after=await h.get(`claims/${t.claims[0].id}`,t.sam)
+    assert.deepEqual(after.revisions,original.revisions)
+    assert.deepEqual(after.decisions,original.decisions)
+    assert.equal(after.claim.status,'reimbursed')
+    assert.equal((await h.get('history')).lines.filter(e=>e.action==='policy-advice-adopted').length,1)
+    const fresh=await h.post('claims',{title:'New strict rule'},t.sam)
+    const item=await h.post(`claims/${fresh.id}/items`,{version:fresh.version,kind:'receipt',date:new Date().toISOString().slice(0,10),merchant:'Strict dinner',amount:'60',allocations:[{category:t.c.meals}],explanation:'Outside rule'},t.sam)
+    await h.post(`claims/${item.id}/submit`,{version:item.version},t.sam,409)
+  }finally{await h.close()}
+})

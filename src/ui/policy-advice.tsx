@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { call, day, money, type D } from './api';
+import { PolicyChangePreview } from './policy-change-preview';
 import { Details, Empty, Field, Form, Section } from './parts';
 
 /** An internal deterministic assistant replays recorded category limits; its time saving is an explicit estimate. */
 export function PolicyAdvice({ state, onChanged, onNotice }: { state: D; onChanged: () => Promise<unknown>; onNotice: (message: string) => void }) {
   const [replay, setReplay] = useState<D>(), [error, setError] = useState(''), [adopting, setAdopting] = useState(false);
   const currency = state.business.currency;
+  useEffect(() => setReplay(undefined), [state]);
   const adopt = async (suggestion: D) => {
     setAdopting(true); setError('');
     try {
@@ -15,7 +17,7 @@ export function PolicyAdvice({ state, onChanged, onNotice }: { state: D; onChang
     finally { setAdopting(false); }
   };
   return <Section title="Policy replay assistant">
-    <p className="muted">Find category limits repeatedly exceeded and approved. This deterministic assistant uses recorded claims inside Coaster; it sends no data to a model. Review the affected expenses before the owner adopts a suggestion.</p>
+    <p className="muted">Find rules repeatedly overridden and preview policy changes. This deterministic assistant uses recorded claims inside Coaster; it sends no data to a model. Review the affected expenses before the owner adopts a suggestion.</p>
     <Form label="Replay policy history" onSubmit={async v => { setReplay(await call('policy/advice', { minutesPerException: Number(v.minutes) })); setError(''); }}>
       <Field label="Estimated minutes per exception" name="minutes" type="number" min="0.01" max="1440" step="0.01" hint="Your estimate of review effort for one exception; savings use this input, not measured working time." />
     </Form>
@@ -34,6 +36,7 @@ export function PolicyAdvice({ state, onChanged, onNotice }: { state: D; onChang
         {state.actor.roles.owner ? <button className="button" disabled={adopting} onClick={() => adopt(s)}>{adopting ? 'Adopting…' : `Adopt ${money(s.proposedLimitMinor, currency)} limit`}</button> : <p className="muted">The owner must review and adopt changes to category limits.</p>}
       </li>)}</ul>}
     </>}
+    <PolicyChangePreview state={state} replay={replay} onChanged={onChanged} onNotice={onNotice} />
     {error && <p className="form-error" role="alert">{error}</p>}
   </Section>;
 }

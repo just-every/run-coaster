@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { call, day, money, type D } from './api';
 import { Details, Empty, Field, Form, Section } from './parts';
 
-const KINDS = [
+export const KINDS = [
   { value: 'per-expense-limit', label: 'Per-expense limit for a category' },
   { value: 'attendee-limit', label: 'Per-attendee limit for a category' },
   { value: 'daily-limit', label: 'Daily limit for a category' },
@@ -17,12 +17,12 @@ const KINDS = [
   { value: 'approval-required', label: 'Approved spend request required' },
   { value: 'deadline', label: 'Submission deadline' },
 ];
-const LIMITS: Record<string, string> = {
+export const LIMITS: Record<string, string> = {
   'per-expense-limit': 'Per-expense limit', 'attendee-limit': 'Per-attendee limit',
   'daily-limit': 'Daily limit', 'trip-limit': 'Trip limit', 'monthly-limit': 'Monthly limit',
   'receipt-threshold': 'Receipt threshold',
 };
-const CATEGORY_KINDS = [...Object.keys(LIMITS).filter(kind => kind !== 'receipt-threshold'), 'blocked-category', 'approval-required', 'required-field'];
+export const CATEGORY_KINDS = [...Object.keys(LIMITS).filter(kind => kind !== 'receipt-threshold'), 'blocked-category', 'approval-required', 'required-field'];
 const LIMIT_HINTS: Record<string, string> = {
   'per-expense-limit': 'Adds a category limit per expense. Owner settings still apply; this rule cannot relax them.',
   'attendee-limit': 'Adds a category limit per attendee. Owner per-person limits still apply; this rule cannot relax them.',
@@ -32,7 +32,7 @@ const LIMIT_HINTS: Record<string, string> = {
   'receipt-threshold': 'Requires a receipt above this amount across all categories. Owner receipt settings still apply; this rule cannot relax them.',
 };
 
-function ruleInput(r: D): D {
+export function ruleInput(r: D): D {
   const base = { kind: r.kind, hard: r.hard };
   if (LIMITS[r.kind]) return { ...base, ...(r.kind === 'receipt-threshold' ? {} : { category: r.category }), limit: (r.limit_minor / 100).toFixed(2) };
   if (r.kind === 'required-field') return { ...base, category: r.category, field: r.field };
@@ -42,7 +42,7 @@ function ruleInput(r: D): D {
   return base;
 }
 
-function ruleWords(r: D, categories: D[], currency: string): string {
+export function ruleWords(r: D, categories: D[], currency: string): string {
   const category = categories.find(c => c.id === r.category)?.name ?? 'A retired category';
   const period: Record<string, string> = { 'daily-limit': 'a day', 'trip-limit': 'per trip (approved spend request)', 'monthly-limit': 'a calendar month' };
   let description: string;

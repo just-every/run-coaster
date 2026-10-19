@@ -29,7 +29,7 @@ export async function policyOn(db: D1Database, day: string): Promise<Policy | nu
   return found ? parse(found) : null;
 }
 
-function rule(r: Data, known: Category[]): Rule {
+export function parseRule(r: Data, known: Category[]): Rule {
   const hard = r.hard === true || r.hard === 'true' || r.hard === 'on';
   if (['daily-limit', 'trip-limit', 'monthly-limit', 'per-expense-limit', 'attendee-limit', 'blocked-category', 'approval-required', 'required-field'].includes(r.kind)) {
     const category = known.find(c => c.id === r.category && c.active === 1);
@@ -54,7 +54,7 @@ export async function publishPolicy(db: D1Database, actor: Actor, b: Data, known
   const today = localDay(timezone), from = b.effectiveFrom ? isoDate(b.effectiveFrom, 'Effective from') : today;
   requireThat(from >= today, 'A new version takes effect today or on a later day');
   requireThat(Array.isArray(b.rules) && b.rules.length <= 50, 'Publish at most 50 rules');
-  const rules = (b.rules as Data[]).map(r => rule(r, known));
+  const rules = (b.rules as Data[]).map(r => parseRule(r, known));
   requireThat(rules.filter(r => r.kind === 'deadline').length <= 1, 'Set one submission deadline');
   const latest = (await db.prepare('SELECT MAX(version) AS v FROM c_policies').first<{ v: number | null }>())?.v ?? 0, version = latest + 1;
   await commit(db, all(authority(actor, 'finance'), { sql: 'NOT EXISTS(SELECT 1 FROM c_policies WHERE version>=?)', params: [version] }), [

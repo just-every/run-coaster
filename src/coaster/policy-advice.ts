@@ -6,11 +6,12 @@ import { finalApproval } from './approval-chain';
 import { money, type ClaimItem, type PolicyException } from './exceptions';
 import type { Category } from './items';
 import type { Rule } from './policy';
+import { changePreview, recurringChanges, adoptChange } from './policy-change-preview';
 import { now, requireThat, text, type Actor, type Data } from './types';
 
 type ExpenseLimit = Extract<Rule, { limit_minor: number }> & { kind: 'per-expense-limit' };
-type HistoricalPolicy = { version: number; effective_from: string; rules: Rule[]; configuration: Configuration & { legacy_capture?: number } };
-type History = { id: string; number: number; employee_email: string; status: string; revision: number; snapshot: string; decision: string | null; approved_exceptions: string | null };
+export type HistoricalPolicy = { version: number; effective_from: string; rules: Rule[]; configuration: Configuration & { legacy_capture?: number } };
+export type History = { id: string; number: number; employee_email: string; status: string; revision: number; snapshot: string; submitted_at: string; decided_at: string | null; decision: string | null; approved_exceptions: string | null };
 const softLimits = (rules: Rule[], category: string) => rules.filter((r): r is ExpenseLimit => r.kind === 'per-expense-limit' && r.category === category && !r.hard);
 const categoryAmount = (item: ClaimItem, category: string) => item.allocations.filter(a => a.category_id === category).reduce((n, a) => n + a.amount_minor, 0);
 
@@ -68,12 +69,12 @@ function replayExpenses(history: History[], window: { from: string; to: string }
 
 /** Read one consistent native snapshot. Drafts stay private; every claim is replayed from its latest submitted
  * revision only. Imported history has no native acknowledgments and is never invented as approval evidence. */
-async function inputs(db: D1Database) {
+export async function adviceInputs(db: D1Database) {
   const [business, categories, versions, claims, events] = await db.batch([
-    db.prepare('SELECT timezone,currency FROM c_business WHERE id=1'),
+    db.prepare('SELECT * FROM c_business WHERE id=1'),
     db.prepare('SELECT id,name,active,limit_minor FROM c_categories ORDER BY id'),
     db.prepare('SELECT p.version,p.effective_from,p.rules,c.configuration FROM c_policies p JOIN c_policy_configurations c ON c.version=p.version ORDER BY p.version'),
-    db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,c.revision,r.snapshot,d.decision,d.exceptions AS approved_exceptions FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_decisions d ON d.claim_id=r.claim_id AND d.revision=r.revision AND ${finalApproval('d')} WHERE c.status IN ('submitted','approved','batched','reimbursed') AND NOT EXISTS(SELECT 1 FROM c_revisions newer WHERE newer.claim_id=c.id AND newer.revision>r.revision) ORDER BY c.number,c.id`),
+    db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,c.revision,r.snapshot,r.submitted_at,d.at AS decided_at,d.decision,d.exceptions AS approved_exceptions FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_decisions d ON d.claim_id=r.claim_id AND d.revision=r.revision AND ${finalApproval('d')} WHERE c.status IN ('submitted','approved','batched','reimbursed') AND NOT EXISTS(SELECT 1 FROM c_revisions newer WHERE newer.claim_id=c.id AND newer.revision>r.revision) ORDER BY c.number,c.id`),
     db.prepare('SELECT COALESCE(MAX(seq),0) AS seq FROM c_events'),
   ]);
   const businessRow = business.results[0] as { timezone: string; currency: string } | undefined;
@@ -86,7 +87,7 @@ async function inputs(db: D1Database) {
 }
 
 async function calculate(db: D1Database, minutesPerException: number) {
-  const input = await inputs(db), { current, window } = input, policies = new Map(input.policies.map(p => [p.version, p]));
+  const input = await adviceInputs(db), { current, window } = input, policies = new Map(input.policies.map(p => [p.version, p]));
   const suggestions = [];
   for (const category of input.categories) {
     if (!category.active || current.rules.some(r => r.kind === 'per-expense-limit' && r.category === category.id && r.hard)) continue;
@@ -134,7 +135,10 @@ async function calculate(db: D1Database, minutesPerException: number) {
 export async function advice(db: D1Database, actor: Actor, body: Data) {
   need(actor, 'finance');
   requireThat(actor.kind === 'person', 'Only a signed-in person reads policy advice', 403);
-  return (await calculate(db, minutesInput(body))).result;
+  const minutes = minutesInput(body), { input, result } = await calculate(db, minutes);
+  const ruleSuggestions = await recurringChanges(db, input, minutes);
+  const preview = body.proposedRules === undefined ? undefined : await changePreview(db, input, body.proposedRules, minutes);
+  return { ...result, ruleSuggestions, preview };
 }
 
 /** The token binds exact server-computed inputs; it grants no authority. Adoption appends a new version and leaves
@@ -142,6 +146,7 @@ export async function advice(db: D1Database, actor: Actor, body: Data) {
 export async function adoptAdvice(db: D1Database, actor: Actor, body: Data) {
   need(actor, 'owner');
   requireThat(actor.kind === 'person', 'Only a signed-in owner adopts policy advice', 403);
+  if (body.proposedRules !== undefined) return adoptChange(db, actor, await adviceInputs(db), body, minutesInput(body));
   const category = text(body.category, 'Category', 64), token = text(body.proposalToken, 'Proposal token', 64);
   const { input, result } = await calculate(db, minutesInput(body));
   const adopted = result.suggestions.find(s => s.category === category && s.proposalToken === token);
