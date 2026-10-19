@@ -3,6 +3,7 @@ import { event } from './events';
 import { claimState, loadClaim } from './claims';
 import { approveWithHold } from './holds';
 import { preApprovalOverride } from './requests';
+import { auditSample } from './audit-queue';
 import { email, now, optionalText, requireThat, uid, type Actor, type Data } from './types';
 
 /** The assigned manager approves, returns or rejects the exact submitted revision. */
@@ -30,6 +31,7 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data) 
   await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['submitted']), decided), [
     db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, recorded, actor.delegate?.email ?? actor.email, at, JSON.stringify(exceptions), onBehalfOf),
     db.prepare('UPDATE c_claims SET status=?,version=version+1,updated_at=? WHERE id=?').bind(b.decision, at, claim.id),
+    ...(b.decision === 'approved' ? [auditSample(db, claim.id, claim.revision)] : []),
     event(db, actor, `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, reason: recorded, preApprovalOverride: override, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf }),
   ]);
   return loadClaim(db, id);

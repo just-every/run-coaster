@@ -861,3 +861,43 @@ test('ACCT-005 a batch and a period export as CSV and XLSX through a saved colum
   const events = (await h.get(`batches/${batch.id}`, t.jordan)).events.filter(e => e.action === 'batch-exported').map(e => e.detail.format)
   assert.deepEqual(events, ['csv', 'csv', 'xlsx', 'xlsx', 'iif'])
 }))
+
+test('POLICY-003 finance works one queue of open exceptions across claims by risk or age, and a 10% audit sample takes a recorded finding', () => withAgency(async (h, t) => {
+  const expense = (merchant, amount, extra = {}) => ({ kind: 'receipt', date: '2026-06-10', merchant, amount, allocations: [{ category: t.c.office }], explanation: 'Explained to the approver', ...extra })
+  const filed = []
+  // Five claims, each with a different exception, submitted oldest first.
+  filed.push(await submit(h, t.sam, await claim(h, t.sam, 'No receipt', [expense('Corner shop', '20.00')])))
+  filed.push(await submit(h, t.alex, await claim(h, t.alex, 'Big dinner', [expense('Rockpool', '180.00', { allocations: [{ category: t.c.meals }], receiptFixture: 'bistro' })])))
+  filed.push(await submit(h, t.morgan, await claim(h, t.morgan, 'Same receipt one', [expense('Officeworks', '30.00', { receiptFixture: 'officeworks' })])))
+  filed.push(await submit(h, t.sam, await claim(h, t.sam, 'Same receipt two', [expense('Officeworks again', '31.00', { receiptFixture: 'officeworks' })])))
+  filed.push(await submit(h, t.alex, await claim(h, t.alex, 'Taxi', [expense('Taxi', '15.00', { date: '2026-06-11' })])))
+  await h.get('exceptions', t.sam, 403)
+  let queue = await h.get('exceptions', t.jordan)
+  assert.deepEqual(queue.open.map(x => [x.number, x.code, x.risk]), [['CL-0004', 'duplicate-receipt', 5], ['CL-0002', 'over-limit', 3], ['CL-0001', 'missing-receipt', 2], ['CL-0005', 'missing-receipt', 2]])
+  assert.deepEqual((await h.get('exceptions?sort=age', t.jordan)).open.map(x => x.number), ['CL-0001', 'CL-0002', 'CL-0004', 'CL-0005'])
+  const top = queue.open[0]
+  await h.post('exceptions/review', { claim: top.claim, revision: top.revision, item: top.item, code: top.code, note: '' }, t.jordan, 400)
+  await h.post('exceptions/review', { claim: top.claim, revision: top.revision, item: top.item, code: top.code, note: 'Two different purchases on one receipt; confirmed with sam' }, t.sam, 403)
+  queue = await h.post('exceptions/review', { claim: top.claim, revision: top.revision, item: top.item, code: top.code, note: 'Two different purchases on one receipt; confirmed with sam' }, t.jordan)
+  assert.ok(!queue.open.some(x => x.number === 'CL-0004'), 'a reviewed exception leaves the queue')
+  await h.post('exceptions/review', { claim: top.claim, revision: top.revision, item: top.item, code: top.code, note: 'Again' }, t.jordan, 409)
+  assert.equal((await h.get(`claims/${top.claim}`, t.sam)).events.at(-1).action, 'exception-reviewed')
+
+  // A 10% sample: exactly one of every ten approvals, the tenth.
+  await h.post('settings/audit-sample', { percent: '10' }, t.sam, 403)
+  await h.post('settings/audit-sample', { percent: '150' }, t.jordan, 400)
+  await h.post('settings/audit-sample', { percent: '10' }, t.jordan)
+  const approved = []
+  for (const c of filed) approved.push(await approve(h, t.priya, c, { acknowledge: true }))
+  for (let n = 6; n <= 10; n++) approved.push(await approve(h, t.priya, await submit(h, t.alex, await claim(h, t.alex, `Paper ${n}`, [{ kind: 'mileage', date: '2026-06-12', merchant: `Site visit ${n}`, distance: String(n), allocations: [{ category: t.c.car }] }]))))
+  queue = await h.get('exceptions', t.jordan)
+  assert.deepEqual(queue.samples.map(s => [s.claim_id, s.ordinal, s.percent]), [[approved[9].id, 10, 10]])
+  const sample = queue.samples[0]
+  await h.post('audit-samples/finding', { claim: sample.claim_id, revision: sample.revision, outcome: 'issue', finding: '' }, t.jordan, 400)
+  await h.post('audit-samples/finding', { claim: approved[0].id, revision: 1, outcome: 'clean' }, t.jordan, 404)
+  queue = await h.post('audit-samples/finding', { claim: sample.claim_id, revision: sample.revision, outcome: 'issue', finding: 'Mileage logged without a route; asked for the trip log' }, t.jordan)
+  assert.deepEqual([queue.samples[0].outcome, queue.samples[0].finding, queue.samples[0].finding_by], ['issue', 'Mileage logged without a route; asked for the trip log', 'jordan@harbourfinch.example'])
+  await h.post('audit-samples/finding', { claim: sample.claim_id, revision: sample.revision, outcome: 'clean' }, t.jordan, 409)
+  await assert.rejects(h.db.prepare("UPDATE c_audit_samples SET finding='rewritten' WHERE claim_id=?").bind(sample.claim_id).run(), /permanent/)
+  assert.ok((await h.get(`claims/${sample.claim_id}`, t.alex)).events.some(e => e.action === 'audit-finding-recorded'))
+}))

@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 24 done, 21 partial, 58 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
+**103 clauses: 25 done, 20 partial, 58 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -139,7 +139,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **POLICY-002 — Duplicate and fraud signals. Status: partial.** Submit the same receipt from two employees, a re-photographed copy, an edited total and two $480 charges against a $500 limit; see each signal with evidence, resolve one as legitimate and see the reason recorded. Run the clean fixture set and see signals on no more than 2% of its expenses, each with its evidence, and the rate recorded. Existing evidence: `src/coaster/exceptions.ts`; `tests/coaster.test.mjs` (COA-004, COA-005). Open scope: Same-receipt detection across all claims and same-employee possible duplicates ship; no near-duplicate images, edited-receipt detection, split-charge or pattern signals, and no clean-set false-positive measurement.
 
-- **POLICY-003 — Finance exception queue and audit sampling. Status: partial.** Generate exceptions across five claims and card charges; see them in one queue ordered by risk; configure a 10% audit sample and see a sampled claim with a recorded finding. Existing evidence: `src/ui/approvals.tsx`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-004). Open scope: Approvers review exceptions per claim; no finance-wide exception queue, risk ordering or audit sampling.
+- **POLICY-003 — Finance exception queue and audit sampling. Status: done.** Generate exceptions across five claims and card charges; see them in one queue ordered by risk; configure a 10% audit sample and see a sampled claim with a recorded finding. Existing evidence: `src/coaster/audit-queue.ts`; `migrations/core/0026_exception_queue.sql`; `src/ui/exception-queue.tsx`; `tests/coaster.test.mjs` (POLICY-003): five claims' exceptions in one queue; card charges join when FEED-004 ships (CONTRACT.md POLICY-003).
 
 - **APPROVE-001 — Multi-step conditional approval workflows. Status: partial.** Configure "over $1,000 adds the department head; any exception adds finance review"; submit claims of $200, $1,400 and $300-with-exception and see three different paths; the department head cannot approve their own claim at any step. Existing evidence: `src/coaster/settings.ts`; `src/coaster/decisions.ts`; `tests/coaster.test.mjs` (COA-006). Open scope: One owner-assigned approving manager per employee; no conditions, multiple or parallel steps or finance review step.
 

@@ -8,6 +8,7 @@ import { createClaim, removeItem, renameClaim, saveItem, submitClaim, uploadRece
 import { decide, reassign } from './decisions';
 import { retractClaim, unapproveClaim } from './reversals';
 import { releaseHold } from './holds';
+import { exceptionQueue, recordFinding, reviewException, saveAuditSample } from './audit-queue';
 import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
 import { actingAs, grantDelegate, revokeDelegate } from './delegates';
@@ -109,6 +110,10 @@ api.get('/api/coaster/agent/proposals/:id', asAgent(async (a, c) => { const p = 
 api.post('/api/coaster/agent/claims', asAgent(async (a, c) => proposeClaim(db(c), a, await body(c, 8_000_000))));
 api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c), a, await body(c))));
 
+api.get('/api/coaster/exceptions', as(async (a, c) => exceptionQueue(db(c), a, c.req.query('sort'))));
+api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db(c), a, await body(c))));
+api.post('/api/coaster/settings/audit-sample', as(async (a, c) => saveAuditSample(db(c), a, await body(c))));
+api.post('/api/coaster/audit-samples/finding', as(async (a, c) => recordFinding(db(c), a, await body(c))));
 api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));
 api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'))));
 

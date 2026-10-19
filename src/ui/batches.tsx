@@ -8,6 +8,7 @@ import { Work } from './shell';
 import { go } from './app';
 import { matches, type ViewProps } from './claims';
 import { BatchDownloads, Exports } from './exports';
+import { ExceptionQueue } from './exception-queue';
 
 const batchStatus = (b: D) => b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed';
 const sum = (rows: D[]) => rows.reduce((n, r) => n + r.total_minor, 0);
@@ -57,6 +58,7 @@ export function Batches({ state, reload, id, query }: ViewProps) {
           </tr>)}</tbody>
         </table></div> : <Empty title="No batches yet">Choose approved claims above to start one.</Empty>}
       </Section>
+      <ExceptionQueue state={state} />
       <Exports state={state} reload={reload} />
     </div>
   </Work>;

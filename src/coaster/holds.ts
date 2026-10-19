@@ -5,6 +5,7 @@ import { categories } from './items';
 import { findExceptions } from './exceptions';
 import { requireBusiness } from './settings';
 import { preApprovalOverride } from './requests';
+import { auditSample } from './audit-queue';
 import { now, optionalText, requireThat, uid, type Actor, type Data } from './types';
 
 /** Approve part of the exact submitted revision and hold the rest. The approved expenses continue on this claim as the
@@ -47,6 +48,7 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, submitted.submitted_by, at, total, JSON.stringify({ ...snapshot, total_minor: total, exceptions, items: kept, split })),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,'approved',?,?,?,?,?)").bind(uid(), claim.id, revision, override ?? '', by, at, JSON.stringify(exceptions), onBehalfOf),
     db.prepare("UPDATE c_claims SET status='approved',revision=?,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(revision, total, at, claim.id),
+    auditSample(db, claim.id, revision),
     event(db, actor, 'claim-split', { claim: claim.id }, { revision: claim.revision, held: hold.length, heldClaim: heldId, reason, onBehalfOf }),
     event(db, actor, 'claim-approved', { claim: claim.id }, { revision, reason: override ?? '', preApprovalOverride: override, exceptionsAcknowledged: exceptions.length, onBehalfOf }),
     event(db, actor, 'claim-held', { claim: heldId }, { from: claim.id, fromNumber: claimNumber(claim.number), fromRevision: claim.revision, items: hold, reason, onBehalfOf }),
@@ -78,6 +80,7 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,1,?,?,?,?)').bind(claim.id, original.submitted_by, at, total, JSON.stringify(snapshot)),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,1,'approved',?,?,?,?,?)").bind(uid(), claim.id, reason, by, at, JSON.stringify(exceptions), onBehalfOf),
     db.prepare("UPDATE c_claims SET status='approved',revision=1,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(total, at, claim.id),
+    auditSample(db, claim.id, 1),
     event(db, actor, 'hold-released', { claim: claim.id }, { revision: 1, reason, preApprovalOverride: override, totalMinor: total, exceptionsAcknowledged: exceptions.length, onBehalfOf }),
   ]);
   return loadClaim(db, id);
