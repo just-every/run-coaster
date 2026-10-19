@@ -11,7 +11,7 @@ import { amount, decimal, email, now, requireThat, text, uid, type Actor, type D
 
 /** Budgets with threshold alerts (REPORT-004). Departments (ADMIN-001), projects and tags (CODE-001) and card charges
  * (FEED-004) become budget scopes when those clauses ship. */
-export type Budget = { id: string; version: number; name: string; scope: 'entity' | 'category' | 'cost-centre'; scope_key: string; per_member: number; period: 'monthly' | 'quarterly' | 'yearly'; amount_minor: number; owner_email: string; thresholds: number[]; policy_rule: number; set_by: string; set_at: string };
+export type Budget = { id: string; version: number; name: string; scope: 'entity' | 'category' | 'cost-centre'; scope_key: string; per_member: number; period: 'monthly' | 'quarterly' | 'yearly'; amount_minor: number; owner_email: string; thresholds: number[]; policy_rule: number; alert_amounts: number; set_by: string; set_at: string };
 const SCOPES = ['entity', 'category', 'cost-centre'], PERIODS = ['monthly', 'quarterly', 'yearly'];
 
 /** The period holding a date (YYYY-MM, YYYY-Qn or YYYY) and its first and last day. */
@@ -51,7 +51,7 @@ function budgetInput(b: Data, members: Set<string>, categories: Set<string>) {
   const thresholds = (Array.isArray(b.thresholds) ? b.thresholds : String(b.thresholds ?? '80, 100').split(',')).map(x => Number(String(x).trim()));
   requireThat(thresholds.length >= 1 && thresholds.length <= 4 && thresholds.every((t, i) => Number.isInteger(t) && t >= 1 && t <= 200 && (i === 0 || t > thresholds[i - 1])), 'Alerts take one to four rising percentages, such as 80, 100');
   const flag = (v: unknown) => v === true || v === 'true' || v === 'on' || v === 'yes' || v === '1';
-  return { name: text(b.name, 'Budget name', 100), scope, scopeKey, period, amountMinor: amount(b.amount, 'Budget amount'), owner, thresholds, perMember: flag(b.perMember), policyRule: flag(b.policyRule) };
+  return { name: text(b.name, 'Budget name', 100), scope, scopeKey, period, amountMinor: amount(b.amount, 'Budget amount'), owner, thresholds, perMember: flag(b.perMember), policyRule: flag(b.policyRule), alertAmounts: flag(b.alertAmounts) };
 }
 
 async function context(db: D1Database) {
@@ -59,7 +59,9 @@ async function context(db: D1Database) {
   const categories = new Set((await db.prepare('SELECT id FROM c_categories').all<{ id: string }>()).results.map(r => r.id));
   return { members, categories };
 }
-const insert = (db: D1Database, id: string, version: number, v: ReturnType<typeof budgetInput>, by: string) => db.prepare('INSERT INTO c_budgets(id,version,name,scope,scope_key,per_member,period,amount_minor,owner_email,thresholds,policy_rule,set_by,set_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id, version, v.name, v.scope, v.scopeKey, v.perMember ? 1 : 0, v.period, v.amountMinor, v.owner, JSON.stringify(v.thresholds), v.policyRule ? 1 : 0, by, now());
+const insert = (db: D1Database, id: string, version: number, v: ReturnType<typeof budgetInput>, by: string) => db.prepare('INSERT INTO c_budgets(id,version,name,scope,scope_key,per_member,period,amount_minor,owner_email,thresholds,policy_rule,alert_amounts,set_by,set_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id, version, v.name, v.scope, v.scopeKey, v.perMember ? 1 : 0, v.period, v.amountMinor, v.owner, JSON.stringify(v.thresholds), v.policyRule ? 1 : 0, v.alertAmounts ? 1 : 0, by, now());
+/** Only the owner may let a budget's alerts carry amounts; by default they name the percentage and period only. */
+const amountsAllowed = (actor: Actor, v: ReturnType<typeof budgetInput>) => requireThat(!v.alertAmounts || actor.roles.owner, 'Only the owner can let budget alerts carry amounts', 403);
 const setter = (actor: Actor) => { requireThat(actor.roles.finance || actor.roles.owner, 'Finance or owner access required', 403); requireThat(actor.kind === 'person', 'Only a person sets budgets', 403); return authority(actor, actor.roles.owner ? 'owner' : 'finance'); };
 
 /** The owner or finance sets a budget; changing one saves its next version, and earlier versions stay. */
@@ -67,6 +69,7 @@ export async function saveBudget(db: D1Database, actor: Actor, b: Data) {
   const guard = setter(actor);
   await requireBusiness(db);
   const ctx = await context(db), v = budgetInput(b, ctx.members, ctx.categories);
+  amountsAllowed(actor, v);
   const id = typeof b.id === 'string' && b.id ? b.id : uid();
   const version = ((await db.prepare('SELECT MAX(version) AS n FROM c_budgets WHERE id=?').bind(id).first<{ n: number | null }>())?.n ?? 0) + 1;
   requireThat(!b.id || version > 1, 'Budget not found', 404);
@@ -74,7 +77,7 @@ export async function saveBudget(db: D1Database, actor: Actor, b: Data) {
   return budgetReport(db, actor);
 }
 
-/** Budgets from a CSV with columns name, scope, scopeKey, period, amount, owner, thresholds, perMember, policyRule; every row must be valid or none is saved. */
+/** Budgets from a CSV with columns name, scope, scopeKey, period, amount, owner, thresholds, perMember, policyRule, alertAmounts; every row must be valid or none is saved. */
 export async function importBudgets(db: D1Database, actor: Actor, b: Data) {
   const guard = setter(actor);
   await requireBusiness(db);
@@ -82,6 +85,7 @@ export async function importBudgets(db: D1Database, actor: Actor, b: Data) {
   const { rows } = parseCsv(b.csv), ctx = await context(db), by = actor.delegate?.email ?? actor.email;
   requireThat(rows.length >= 1 && rows.length <= 200, 'Import one to 200 budgets');
   const parsed = rows.map((r, i) => { try { return budgetInput(r, ctx.members, ctx.categories); } catch (e) { throw Object.assign(e as Error, { message: `Row ${i + 2}: ${(e as Error).message}` }); } });
+  parsed.forEach(v => amountsAllowed(actor, v));
   await commit(db, guard, [...parsed.map(v => insert(db, uid(), 1, v, by)), event(db, actor, 'budgets-imported', {}, { budgets: parsed.length })]);
   return budgetReport(db, actor);
 }
@@ -133,7 +137,7 @@ export async function runBudgets(env: Bindings, at: Date) {
       const to = [...new Set([b.owner_email, ...finance])];
       const claimed = await db.prepare('INSERT INTO c_budget_alerts(budget_id,period,member,threshold,recipients,sent_at) VALUES(?,?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING budget_id').bind(b.id, result.period_key, member, top, JSON.stringify(to), at.toISOString()).first();
       if (!claimed) continue;
-      const link = `${env.AUTH_ORIGIN}/app#/settings`, words = `${b.name}${member ? ` for ${member}` : ''} has reached ${top}% of its budget for ${result.period_key}. See it in Coaster under Settings, Budgets: ${link}`;
+      const link = `${env.AUTH_ORIGIN}/app#/settings`, amounts = b.alert_amounts ? ` (${settings.currency} ${decimal(row.actualMinor)} of ${settings.currency} ${decimal(b.amount_minor)})` : '', words = `${b.name}${member ? ` for ${member}` : ''} has reached ${top}% of its budget${amounts} for ${result.period_key}. See it in Coaster under Settings, Budgets: ${link}`;
       const sent = mail ? await mail.send({ deliveryId: `budget-${b.id}-${result.period_key}-${member}-${top}`, from: env.MAIL_FROM ?? '', to, subject: `Budget alert: ${b.name} at ${top}%`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
       await ruleEvent(db, 'budget', 'budget-alert', {}, { budget: b.id, name: b.name, period: result.period_key, member: member || null, threshold: top, to, mail: sent?.status ?? 'mail not set up' }).run();
     }

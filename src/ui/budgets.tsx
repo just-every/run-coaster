@@ -11,7 +11,7 @@ export function Budgets({ state, canSet }: { state: D; canSet: boolean }) {
   useEffect(() => { call('budgets').then(setList, () => setList([])); }, []);
   const line = (r: D) => `${money(r.actualMinor, currency)} of ${money(r.budgetMinor, currency)} (${r.percent}%) · approved ${money(r.approvedMinor, currency)}, pending ${money(r.pendingMinor, currency)} · ${money(r.remainingMinor, currency)} left`;
   return <Section title="Budgets">
-    <p className="muted">Spend counts from submission by expense date. Each alert goes once a period to the budget's owner and finance.</p>
+    <p className="muted">Spend counts from submission by expense date. Each alert goes once a period to the budget's owner and finance, naming the percentage and period; only the owner can add the amounts.</p>
     <p className="notice" role="status" aria-live="polite">{notice}</p>
     {list?.length ? <ul className="ruled-list">{list.map(b => <li key={b.id}><strong>{b.name}</strong> · {b.period} · {b.period_key} · v{b.version}{b.per_member ? ' · per person' : ''}<br />
       {b.members ? b.members.length ? b.members.map((m: D) => <span key={m.member} className="muted">{m.member}: {line(m)}<br /></span>) : <span className="muted">No spend yet</span> : <span className="muted">{line(b)}</span>}</li>)}</ul> : <Empty title="No budgets" />}
@@ -25,6 +25,7 @@ export function Budgets({ state, canSet }: { state: D; canSet: boolean }) {
       <Field label="Alert at (%)" name="thresholds" defaultValue="80, 100" />
       <Field label="Per person" name="perMember" type="checkbox" />
       <Field label="Mark expenses that would go over as an exception" name="policyRule" type="checkbox" />
+      {state.actor.roles.owner && <Field label="Include amounts in alert emails" name="alertAmounts" type="checkbox" />}
     </Form></div>}
   </Section>;
 }

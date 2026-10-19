@@ -953,6 +953,8 @@ test('REPORT-004 budgets count spend from submission by period, alert the owner 
     [[JORDAN, MORGAN], 'Budget alert: Meals per person at 100%', 'alex@harbourfinch.example'],
     [[PRIYA, JORDAN, MORGAN], 'Budget alert: Travel at 80%', null],
   ])
+  const alertText = h.messages.filter(m => m.subject.startsWith('Budget alert: ')).map(m => m.text + m.html).join(' ')
+  assert.ok(!/4,?100|5,?000|AUD/.test(alertText), 'by default an alert names the percentage and period, never amounts')
   assert.deepEqual(await tick('2026-06-30'), [], 'once per threshold and period')
   const june = await h.get('budgets?day=2026-06-30', t.jordan)
   const tb = june.find(b => b.name === 'Travel')
@@ -967,6 +969,13 @@ test('REPORT-004 budgets count spend from submission by period, alert the owner 
   assert.deepEqual((await h.get(`claims/${sent.id}`, t.priya)).revisions[0].snapshot.exceptions.map(e => [e.code, e.message]), [['over-budget', 'Over the Travel budget of 5000.00 for 2026-06']])
   assert.deepEqual(await tick('2026-06-30'), [[[PRIYA, JORDAN, MORGAN], 'Budget alert: Travel at 100%', null]])
 
+  // Only the owner may let a budget's alerts carry amounts.
+  const allSpend = { name: 'All spend', scope: 'entity', period: 'monthly', amount: '1000.00', owner: JORDAN, thresholds: '100', alertAmounts: true }
+  await h.post('budgets', allSpend, t.jordan, 403)
+  await h.post('budgets', allSpend)
+  assert.deepEqual(await tick('2026-06-30'), [[[JORDAN, MORGAN], 'Budget alert: All spend at 100%', null]])
+  assert.match(h.messages.findLast(m => m.subject === 'Budget alert: All spend at 100%').text, /has reached 100% of its budget \(AUD 5550\.00 of AUD 1000\.00\) for 2026-06/)
+
   // July starts at zero with no repeat alert; spend analytics shows budget against actual.
   assert.deepEqual(await tick('2026-07-01'), [])
   assert.equal((await h.get('budgets?day=2026-07-01', t.jordan)).find(b => b.name === 'Travel').actualMinor, 0)
@@ -979,7 +988,7 @@ test('REPORT-004 budgets count spend from submission by period, alert the owner 
   const header = 'name,scope,scopeKey,period,amount,owner,thresholds,perMember,policyRule'
   await h.post('budgets/import', { csv: `${header}\nOffice,category,${t.c.office},quarterly,900.00,${JORDAN},100,no,no\nBad,planet,,monthly,10.00,${JORDAN},100,no,no\n` }, t.jordan, 400)
   const imported = await h.post('budgets/import', { csv: `${header}\nOffice,category,${t.c.office},quarterly,900.00,${JORDAN},100,no,no\nEverything,entity,,yearly,250000.00,${JORDAN},"50,90",no,no\n` }, t.jordan)
-  assert.deepEqual(imported.map(b => b.name).sort(), ['Everything', 'Meals per person', 'Office', 'Travel'])
+  assert.deepEqual(imported.map(b => b.name).sort(), ['All spend', 'Everything', 'Meals per person', 'Office', 'Travel'])
 }))
 
 test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt compliance, unsubmitted spend and exception trends, each matching the records and exportable as CSV', () => withAgency(async (h, t) => {
