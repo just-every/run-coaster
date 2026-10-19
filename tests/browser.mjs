@@ -27,7 +27,10 @@ async function everything(context, origin) {
   for (const c of state.claims) claims.push(await api(context, origin, `claims/${c.id}`))
   const batches = []
   for (const b of state.batches) batches.push(await api(context, origin, `batches/${b.id}`))
-  return { claims, batches, imported: await api(context, origin, 'import'), members: state.members, categories: state.categories, business: state.business }
+  const imported = await api(context, origin, 'import')
+  // SQLite rowids are installation-local; compare the complete job records by their portable identity.
+  imported.jobs.sort((a, b) => a.id.localeCompare(b.id))
+  return { claims, batches, imported, members: state.members, categories: state.categories, business: state.business }
 }
 try {
   root = await fresh()
@@ -105,8 +108,9 @@ try {
   const receipt = before.claims[0].receipts[0]
   const download = await restoredOwner.context.request.get(`${server.origin}/api/coaster/receipts/${receipt.id}`)
   assert.equal(createHash('sha256').update(await download.body()).digest('hex'), receipt.sha256, 'restored receipt bytes are exact')
-  const jobs = after.imported.jobs
-  assert.equal((await api(restoredOwner.context, server.origin, 'import/undo', { id: jobs[0].id, mappingVersion: jobs[0].mappingVersion })).job.state, 'undone', 'the restored owner can still undo the move-in')
+  const job = after.imported.jobs.find(j => j.source === 'expensify' && j.state === 'completed')
+  assert.ok(job, 'the completed Expensify move-in survives alongside undone Concur jobs')
+  assert.equal((await api(restoredOwner.context, server.origin, 'import/undo', { source: job.source, id: job.id, mappingVersion: job.mappingVersion })).job.state, 'undone', 'the restored owner can still undo the move-in')
   await restoredOwner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
   assert.deepEqual(rows(await records(join(evidence, 'restored.rer'))), rows(await records(archive)), 'every portable row survives export → restore → export')
   await command(second, ['reset', '--yes'])
