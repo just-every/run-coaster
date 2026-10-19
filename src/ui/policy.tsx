@@ -73,7 +73,7 @@ function ConfigurationSummary({ configuration, currency }: { configuration: D; c
 /** Each publication preserves both the rule set and its owner-controlled configuration. */
 export function PolicyRules({ state, onNotice, onChanged }: { state: D; onNotice: (words: string) => void; onChanged: () => Promise<unknown> }) {
   const [versions, setVersions] = useState<D[]>(), [kind, setKind] = useState('daily-limit'), currency = state.business.currency;
-  useEffect(() => { call('policy').then(r => setVersions(r.versions), () => setVersions(undefined)); }, []);
+  useEffect(() => { call('policy').then(r => setVersions(r.versions), () => setVersions(undefined)); }, [state]);
   if (!versions) return null;
   const now = new Intl.DateTimeFormat('en-CA', { timeZone: state.business.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()), current = versions.find(v => v.effective_from <= now), rules: D[] = current?.rules ?? [];
   const publish = async (next: D[], effectiveFrom: string | undefined, notice: string) => { const r = await call('policy', { effectiveFrom, rules: next }); setVersions(r.versions); await onChanged(); onNotice(notice); };

@@ -273,7 +273,7 @@ Every agent here acts through the COA-010 authority model: it works for a named 
 
 - **AGENT-002 — Resolve unclear receipts with one question.** Where the reading, the merchant's email receipt and the card charge disagree (tip, tax, currency, business purpose), the agent asks the employee one specific question with the receipt crop and the conflicting values, applies the confirmed answer, and keeps the original reading and the source crop. It never invents a receipt, fills a value nobody confirmed, or changes a paid claim. Obligation carried from FOLLOWUP-001: an unanswered agent question is chased on the reminder schedule like an APPROVE-006 question. **Acceptance evidence:** Submit a receipt whose total differs from its card charge by a handwritten tip; see one question with the crop and both values; confirm and see the corrected expense with the original reading retained; ignore the question and see no value changed. Over the CAPTURE-003 labeled corpus matched to fixture card charges, every receipt where the reading and the charge disagree gets exactly one question and none gets a value the label contradicts. Leave the question unanswered for two business days and see FOLLOWUP-001 remind the employee.
 
-- **AGENT-003 — Preview a policy change before adopting it.** The agent finds the exceptions that recur (the same rule broken by many people for the same reason, routinely approved) and proposes the policy changes that would remove them; finance can also propose its own change (a new limit, threshold or auto-approval rule). For each candidate the agent replays it against the last 12 months of claims, card spend, exceptions and approval delays and shows which employees and expenses it would affect, the change in exceptions, reimbursements and approver workload, and the recurring exceptions it would remove. Finance inspects the affected expenses and adopts a new policy version (POLICY-001) or discards it; past decisions are never re-judged. **Acceptance evidence:** On fixture history where a $50 meal limit is routinely exceeded and approved, see the agent surface that recurring exception and propose raising the limit to $75; see affected claims, exception count before and after and approver hours saved; adopt it and see a new version effective from today with history unchanged.
+- **AGENT-003 — Preview a policy change before adopting it.** Coaster's internal deterministic policy-replay assistant finds recurring acknowledged and approved soft per-expense category-limit exceptions and proposes raising the limit; no model or external data transfer is used. A signed-in finance person or owner enters estimated minutes of review effort per exception and replays the rolling calendar year ending today (expense dates, inclusive, in the business time zone; a leap-day start clamps to 28 February). Each claim contributes only its latest submitted revision; drafts, rejected claims and imported history do not supply approval evidence. At least three approved expenses whose recorded category-limit exception was acknowledged support a suggestion, with exact category attribution from its frozen policy or the recorded owner-limit format. The proposed limit is the largest such approved category amount. Replay shows affected claims and expenses and category-limit exception counts before and after; other rules still apply. The estimated approver hours saved are avoided category-limit exceptions times the finance-entered minutes divided by 60, labelled as an estimate rather than observed working time. The owner adopts changes to owner-controlled limits (COA-001); adoption also raises any lower soft finance per-expense caps for that category while preserving higher caps and all other rules. Hard per-expense caps are never suggested for relaxation. Adoption rechecks the exact proposal, policy and history, refusing stale inputs, and appends a new policy version effective today with an audit line; older revisions, exceptions and decisions are untouched. Current agent keys gain no new grants. **Acceptance evidence:** `tests/coaster-policy-advice.test.mjs` (AGENT-003): on fixture history with a $50 meal cap and approved $60/$70/$75 lunches, finance sees the $75 proposal, three affected claims, counts and an explicit hours estimate; a larger pending dinner stays exceptional. Only the owner adopts, stale/tampered proposals refuse without writes, a new expense uses $75 while old revisions/decisions/exceptions are identical, and finance-only caps also version correctly without inventing an owner floor.
 
 - **AGENT-004 — Repair feed and accounting handoffs.** The agent compares feed cursors, statement totals, payment references and ledger postings, finds gaps (a missing day of transactions, a payment not cleared, a bill missing in QuickBooks), opens a reconnection or mapping task for the right person and reprocesses only confirmed gaps once fixed. It never treats a missing feed as zero spend, issues a second payment or posts a duplicate. **Acceptance evidence:** Drop a day from a sandbox feed and delete a synced bill in QuickBooks; see the agent identify both with evidence, open the reconnect and resync tasks, and after reconnection reprocess only the gap with no duplicates.
 
@@ -366,7 +366,7 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 | 41 | 10 | "hands Megan an accrual ready to post" | AGENT-008 | missing |
 | 42 | 10 | 42 reimbursements paid, all cleared in QuickBooks | ACCT-001, PAY-001 | missing |
 | 43 | 11 Policy | Coaster spots an exception everyone approves and proposes a fix | AGENT-005, AGENT-003 | missing |
-| 44 | 11 | Replay on 12 months; adopt; v8 effective, past decisions keep v7 | AGENT-003, POLICY-001 | missing |
+| 44 | 11 | Replay on 12 months; adopt; v8 effective, past decisions keep v7 | AGENT-003, POLICY-001 | done |
 | 45 | 12 Moving in | "Your Expensify history" moves in | COA-011, MOVE-001 | partial |
 | 46 | 12 | Preview reviewed before anything moves | COA-011 | done |
 | 47 | 12 | People from Gusto, approvers, categories → QuickBooks, tags, rules, 21,870 receipt images, 38 Amex cards | MOVE-001, ADMIN-002 | missing |
@@ -377,13 +377,13 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 
 ## Status
 
-Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5bcb` (17 October 2026).
+Judged from the current code and clause-named public-door tests below (19 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 25 | 17 | 48 | 90 |
-| All | 38 | 17 | 48 | 103 |
+| Target and push further | 26 | 17 | 47 | 90 |
+| All | 39 | 17 | 47 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -483,7 +483,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `COST-001` | Visible provider costs in USD | target | missing |  | No provider costs or caps. |
 | `AGENT-001` | The spend agent closes every expense | push-further | missing |  | Agents only prepare drafts and batch proposals (COA-010). |
 | `AGENT-002` | Resolve unclear receipts with one question | push-further | missing |  | No receipt reading to reconcile. |
-| `AGENT-003` | Preview a policy change before adopting it | push-further | missing |  | No policy simulation. |
+| `AGENT-003` | Preview a policy change before adopting it | push-further | done | `src/coaster/policy-advice.ts`; `src/ui/policy-advice.tsx`; `tests/coaster-policy-advice.test.mjs` (AGENT-003) |  |
 | `AGENT-004` | Repair feed and accounting handoffs | push-further | missing |  | No feeds or sync to repair. |
 | `AGENT-005` | Policy review agent with cited reasons | push-further | missing |  | No policy review agent. |
 | `AGENT-006` | Fraud and anomaly investigation | push-further | missing |  | No fraud investigation. |

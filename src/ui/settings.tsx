@@ -9,6 +9,7 @@ import { Budgets } from './budgets';
 import { Delegates } from './delegates';
 import { Allowances } from './allowances';
 import { Retention } from './retention';
+import { PolicyAdvice } from './policy-advice';
 import { PolicyRules } from './policy';
 import type { ViewProps } from './claims';
 
@@ -79,6 +80,7 @@ export function Settings({ state, reload }: ViewProps) {
       </Form>
     </Section>}
     {(owner || roles.finance) && b && <PolicyRules state={state} onNotice={setNotice} onChanged={reload} />}
+    {(owner || roles.finance) && b && <PolicyAdvice state={state} onNotice={setNotice} onChanged={reload} />}
     {owner && b && <Retention state={state} onNotice={setNotice} />}
     {owner && b && <Section title="Mileage rates">
       <p className="muted">Each trip is priced at the rate in force on its date. {b.currency === 'USD' ? 'Seeded with the IRS standard business mileage rates; add next year\'s rate when the IRS announces it.' : 'Add the rate per mile your business pays from the day it applies.'}</p>
