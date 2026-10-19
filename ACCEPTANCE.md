@@ -191,7 +191,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **REPORT-001 — Spend analytics. Status: partial.** Load six months of fixture spend; group by department and drill to a receipt; a manager sees only their reports' spend; set a department budget (REPORT-004) and see budget, actual and remaining for it in the grouped view; save a view and reopen it. Existing evidence: `src/coaster/views.ts`. Open scope: Employee claim totals and coded batch lines ship; no grouped analytics, drill-down, budgets or saved views.
 
-- **REPORT-002 — Operational and compliance reports. Status: missing.** Run each report on fixture data and check its totals against the underlying records; schedule the accrual report for the last business day and see it delivered. Open scope: No operational or scheduled reports.
+- **REPORT-002 — Operational and compliance reports. Status: partial.** Run each report on fixture data and check its totals against the underlying records; schedule the accrual report for the last business day and see it delivered. Existing evidence: `src/coaster/reports.ts`; `src/ui/reports.tsx`; `tests/coaster.test.mjs` (REPORT-002): each report's rows and totals are checked against the claims, decisions and revisions the API returns, and the CSV's totals row equals the report. Open scope: no scheduled email delivery yet.
 
 - **REPORT-003 — Searchable audit history and auditor access. Status: done.** Search history for one claim across capture, approval, payment and sync; sign in as an auditor and see writes refused; export a quarter's audit pack and verify receipt hashes against stored bytes. Existing evidence: `src/coaster/audit.ts`; `src/coaster/zip.ts`; `src/coaster/session.ts`; `src/ui/audit.tsx`; `tests/coaster.test.mjs` (REPORT-003).
 

@@ -10,6 +10,7 @@ import { retractClaim, unapproveClaim } from './reversals';
 import { releaseHold } from './holds';
 import { exceptionQueue, recordFinding, reviewException, saveAuditSample } from './audit-queue';
 import { saveApprovalRule } from './auto-approval';
+import { report } from './reports';
 import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
 import { actingAs, grantDelegate, revokeDelegate } from './delegates';
@@ -116,6 +117,7 @@ api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db
 api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalRule(db(c), a, await body(c))));
 api.post('/api/coaster/settings/audit-sample', as(async (a, c) => saveAuditSample(db(c), a, await body(c))));
 api.post('/api/coaster/audit-samples/finding', as(async (a, c) => recordFinding(db(c), a, await body(c))));
+api.get('/api/coaster/reports/:name', as(async (a, c) => report(db(c), a, param(c, 'name'), c.req.query())));
 api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));
 api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'))));
 

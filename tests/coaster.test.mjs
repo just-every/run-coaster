@@ -882,6 +882,66 @@ test('DATA-001 the claim-to-batch journey sends data only through the declared m
   }
 }, { identityProvider: 'https://auth.harbourfinch.example' }))
 
+test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt compliance, unsubmitted spend and exception trends, each matching the records and exportable as CSV', () => withAgency(async (h, t) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const run = (name, cookie = t.jordan, status) => h.get(`reports/${name}?from=${today}&to=${today}`, cookie, status)
+  const lunch = await claim(h, t.sam, 'Client lunch', [
+    { kind: 'receipt', date: '2026-06-01', merchant: 'Bistro', amount: '40.00', allocations: [{ category: t.c.meals }], receiptFixture: 'bistro' },
+    { kind: 'receipt', date: '2026-06-01', merchant: 'Taxi', amount: '20.00', allocations: [{ category: t.c.travel }], explanation: 'Driver had no printer' },
+  ])
+  const a = await approve(h, t.priya, await submit(h, t.sam, lunch), { acknowledge: true })
+  let batch = await h.post('batches', { claims: [a.id] }, t.morgan)
+  // The approver holds the mileage and approves the paper: the held claim ages from its hold (APPROVE-005).
+  const paper = await submit(h, t.sam, await claim(h, t.sam, 'Paper', [{ kind: 'receipt', date: '2026-06-02', merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' }, { kind: 'mileage', date: '2026-06-02', merchant: 'Studio to store', distance: '5', allocations: [{ category: t.c.car }] }]))
+  const d = await approve(h, t.priya, paper, { hold: [(await h.get(`claims/${paper.id}`, t.sam)).items[1].id], reason: 'Which store?' })
+  const held = await h.get(`claims/${(await h.get(`claims/${d.id}`, t.priya)).revisions.at(-1).snapshot.split.heldClaim}`, t.sam)
+  const b = await submit(h, t.alex, await claim(h, t.alex, 'Hotel', [{ kind: 'receipt', date: '2026-06-03', merchant: 'Hotel Ibis', amount: '150.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }]))
+  await h.post(`claims/${b.id}/decision`, { revision: b.revision, version: b.version, decision: 'returned', reason: 'Wrong dates' }, t.priya)
+  await claim(h, t.alex, 'Site visit', [{ kind: 'mileage', date: '2026-06-04', merchant: 'Studio to site', distance: '10', allocations: [{ category: t.c.car }] }])
+  await submit(h, t.morgan, await claim(h, t.morgan, 'Team dinner', [{ kind: 'receipt', date: '2026-06-05', merchant: 'Uber Eats', amount: '130.00', allocations: [{ category: t.c.meals }], receiptFixture: 'uber', explanation: 'Whole team' }]))
+
+  // Reports are for finance, auditors and the owner; the period must make sense.
+  await run('aging', t.sam, 403); await run('aging', t.priya, 403); await run('payroll', t.jordan, 404)
+  await h.get(`reports/aging?from=${today}&to=2020-01-01`, t.jordan, 400)
+
+  // Aging: every approved claim not yet paid, from its approval.
+  const aging = await run('aging')
+  const number = c => `CL-${String(c.number).padStart(4, '0')}`
+  assert.deepEqual(aging.rows.map(r => [r[0], r[3], r[4], r[5], r[6]]).sort(), [[number(a), 0, '0–7 days', 'batched', '60.00'], [number(d), 0, '0–7 days', 'approved', '64.95'], [number(held.claim), 0, '0–7 days', 'held', '4.40']].sort())
+  assert.deepEqual([aging.totals.claims, aging.totals.amountMinor, aging.totals.buckets['0–7 days'].claims], [3, 6000 + 6495 + 440, 3])
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 6000 }, t.jordan)
+  await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-1', paidOn: today }, t.jordan)
+  assert.deepEqual((await run('aging')).totals.amountMinor, 6495 + 440, 'a paid claim leaves the aging report')
+
+  // Cycle time: each decision timed from its revision's submission, per approver.
+  const decisions = (await Promise.all([a, d, b].map(c => h.get(`claims/${c.id}`, t.jordan)))).flatMap(x => x.decisions.map(dec => ({ ...dec, submitted: x.revisions.find(r => r.revision === dec.revision).submitted_at })))
+  const hours = decisions.map(x => (Date.parse(x.at) - Date.parse(x.submitted)) / 3_600_000).sort((x, y) => x - y), tenth = x => Math.round(x * 10) / 10
+  const middle = hours.length % 2 ? hours[hours.length >> 1] : (hours[hours.length / 2 - 1] + hours[hours.length / 2]) / 2
+  const count = kind => decisions.filter(x => x.decision === kind).length
+  const cycle = await run('cycle-time')
+  assert.deepEqual(cycle.rows, [['priya@harbourfinch.example', decisions.length, count('approved'), count('returned'), 0, tenth(hours.reduce((n, x) => n + x, 0) / hours.length), tenth(middle), tenth(hours.at(-1))]])
+  assert.equal(count('returned'), 1)
+
+  // Receipt compliance: receipt expenses on each claim's latest submitted revision.
+  const receipts = await run('receipts')
+  assert.deepEqual(receipts.rows, [['alex@harbourfinch.example', 1, 1, 0, 0, 100], ['morgan@harbourfinch.example', 1, 1, 0, 0, 100], ['sam@harbourfinch.example', 3, 2, 1, 1, 66.7]])
+  assert.deepEqual(receipts.totals, { expenses: 5, withReceipt: 4, missingExceptions: 1, ratePercent: 80 })
+
+  // Unsubmitted spend: draft and returned claims' expenses dated by the period's end.
+  const unsubmitted = await run('unsubmitted')
+  assert.deepEqual(unsubmitted.rows, [['alex@harbourfinch.example', 2, 2, '2026-06-03', '158.80'], ['sam@harbourfinch.example', 1, 1, '2026-06-02', '4.40']], 'a held claim is back with its employee')
+
+  // Exception trends: by month submitted and exception.
+  const trends = await run('exceptions')
+  assert.deepEqual(trends.rows, [[today.slice(0, 7), 'missing-receipt', 1, '20.00'], [today.slice(0, 7), 'over-limit', 1, '130.00']])
+
+  // Each exports as CSV with a totals row equal to the report.
+  const file = await h.mf.dispatchFetch(`${h.origin}/api/coaster/reports/receipts?from=${today}&to=${today}&format=csv`, { headers: { cookie: t.jordan } })
+  assert.equal(file.headers.get('content-type'), 'text/csv; charset=utf-8')
+  const rows = (await file.text()).trim().split('\r\n').map(r => r.split(',').map(x => x.replace(/^"|"$/g, '')))
+  assert.deepEqual([rows[0], rows.at(-1)], [receipts.columns, ['Total', '5', '4', '1', '1', '80']])
+}))
+
 test('ACCT-005 a batch and a period export as CSV and XLSX through a saved column template and as QuickBooks Desktop IIF, naming each receipt by hash and link', () => withAgency(async (h, t) => {
   const one = await claim(h, t.sam, 'Perth pitch', [{ kind: 'receipt', date: '2026-06-04', merchant: 'Qantas', amount: '412.00', allocations: [{ category: t.c.travel, amount: '400.00' }, { category: t.c.meals, amount: '12.00' }], receiptFixture: 'hotel' }])
   const two = await claim(h, t.alex, 'Studio paper', [{ kind: 'receipt', date: '2026-06-05', merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' }])

@@ -3,6 +3,7 @@ import { amountText, call, day, money, moment, rate, today, type D } from './api
 import { Badge, Empty, Field, Form, PageHead, Section } from './parts';
 import { Work } from './shell';
 import { AuditRecords } from './audit';
+import { Reports } from './reports';
 import { Delegates } from './delegates';
 import type { ViewProps } from './claims';
 
@@ -44,6 +45,7 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     </div>
     {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
+    {(owner || roles.finance || roles.auditor) && <Reports />}
     {(owner || roles.finance || roles.auditor) && <AuditRecords state={state} />}
     {owner && b && <Section title="Approval by rule">
       <p className="muted">{state.approvalRule?.enabled ? `Rule v${state.approvalRule.version}: a claim approves itself when every expense is under ${money(state.approvalRule.limit_minor, b.currency)}, has its receipt attached and raises no policy exception. Every other claim goes to its approver.` : 'Off: every claim goes to its approver.'} Rule approvals are recorded with the rule's version and audit-sampled like any approval.</p>

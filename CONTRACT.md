@@ -178,7 +178,7 @@ Coaster is the expense management product a US company of 15–150 employees buy
 
 - **REPORT-001 — Spend analytics.** Finance and managers (within their scope) see spend by employee, department, category, merchant, project, card and period with drill-down to the expense and receipt, budget versus actual for every budget set under REPORT-004, and saved views. **Acceptance evidence:** Load six months of fixture spend; group by department and drill to a receipt; a manager sees only their reports' spend; set a department budget (REPORT-004) and see budget, actual and remaining for it in the grouped view; save a view and reopen it.
 
-- **REPORT-002 — Operational and compliance reports.** Reimbursement aging, approval cycle time per approver, receipt compliance rate, unsubmitted card spend for month-end accruals, policy exception trends and feed coverage, each exportable and deliverable by scheduled email. **Acceptance evidence:** Run each report on fixture data and check its totals against the underlying records; schedule the accrual report for the last business day and see it delivered.
+- **REPORT-002 — Operational and compliance reports.** Reimbursement aging, approval cycle time per approver, receipt compliance rate, unsubmitted card spend for month-end accruals, policy exception trends and feed coverage, each exportable and deliverable by scheduled email. Exact rules today: the owner, finance and auditors run each report for a period of calendar dates in the business time zone, both ends inclusive (by default the first of this month to today), on screen or as a CSV ending in a totals row. Reimbursement aging lists every approved claim not yet reimbursed (approved or in a batch) aged in whole days from its approval to today, and every held claim (APPROVE-005) its employee has not resubmitted aged from its hold, in 0–7, 8–14, 15–30 and over-30-day buckets. Approval cycle time takes each decision made in the period, from its revision's submission to the decision, per person (or approval rule, APPROVE-004) who decided: decisions, approved, returned and rejected, and average, median and longest hours. Receipt compliance counts the receipt expenses on each claim's highest revision submitted in the period and the share carrying their receipt, with missing-receipt exceptions, per employee. Unsubmitted spend for accruals lists the expenses dated on or before the period's last day on draft or returned claims (held claims included), per employee. Exception trends count the exceptions on each claim's highest revision submitted in the period by the month it was submitted and exception, with the expenses' amounts. Hours and percentages show to one decimal, halves rounded up. Card charges and feeds do not exist yet, so FEED-004 adds unsubmitted card spend to the accrual report and FEED-003 adds the feed-coverage report before they ship. **Acceptance evidence:** Run each report on fixture data and check its totals against the underlying records; schedule the accrual report for the last business day and see it delivered.
 
 - **REPORT-003 — Searchable audit history and auditor access.** Every expense, claim, card charge, batch, payment and sync has a searchable history (who, what, when, from which channel or agent). An auditor role reads everything and changes nothing, and finance can export an audit pack for a period with receipts, decisions, exceptions and payment references. **Acceptance evidence:** Search history for one claim across capture, approval, payment and sync; sign in as an auditor and see writes refused; export a quarter's audit pack and verify receipt hashes against stored bytes.
 
@@ -382,8 +382,8 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 14 | 19 | 57 | 90 |
-| All | 27 | 19 | 57 | 103 |
+| Target and push further | 14 | 20 | 56 | 90 |
+| All | 27 | 20 | 56 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -455,7 +455,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `ACCT-006` | Posting integrity and close | target | missing |  | No sync, so no error queue, period locks or reversals. |
 | `ACCT-007` | QuickBooks Desktop connection | target | missing |  | No QuickBooks Desktop connector. |
 | `REPORT-001` | Spend analytics | target | partial | `src/coaster/views.ts` | Employee claim totals and coded batch lines ship; no grouped analytics, drill-down, budgets or saved views. |
-| `REPORT-002` | Operational and compliance reports | target | missing |  | No operational or scheduled reports. |
+| `REPORT-002` | Operational and compliance reports | target | partial | `src/coaster/reports.ts`; `src/ui/reports.tsx`; `tests/coaster.test.mjs` (REPORT-002) | Reimbursement aging (held claims included), approval cycle time, receipt compliance, unsubmitted spend and exception trends run on screen and export as CSV, checked against the records; no scheduled email delivery yet (mail content awaits ct's privacy ruling). |
 | `REPORT-003` | Searchable audit history and auditor access | target | done | `src/coaster/audit.ts`; `src/coaster/zip.ts`; `src/coaster/session.ts`; `src/ui/audit.tsx`; `tests/coaster.test.mjs` (REPORT-003) |  |
 | `REPORT-004` | Budgets with threshold alerts | target | missing |  | No budgets or threshold alerts. |
 | `REPORT-005` | Claim PDF with receipts | target | missing |  | Receipts download one at a time (COA-007); no claim PDF. |
