@@ -9,6 +9,7 @@ import { now, optionalText, requireThat, text, uid, type Actor, type Data } from
 /** A person makes a key for their own agent. The secret is shown once and stored only as a hash. */
 export async function createAgentKey(db: D1Database, actor: Actor, b: Data) {
   requireThat(actor.kind === 'person', 'Only a person makes agent keys', 403);
+  requireThat(actor.roles.owner || actor.roles.employee || actor.roles.manager || actor.roles.finance, 'Auditors read records and change nothing', 403);
   const member = await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1').bind(actor.email).first();
   requireThat(member, 'Ask the owner to add you as a member first', 409);
   const label = text(b.label, 'Agent name', 80), id = uid();

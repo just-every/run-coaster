@@ -2,14 +2,14 @@ import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server';
 import { Fault, requireThat, type Actor, type Roles } from './types';
 
 export type Sql = { sql: string; params: unknown[]; after?: Sql };
-type Role = 'employee' | 'manager' | 'finance' | 'owner';
+type Role = 'employee' | 'manager' | 'finance' | 'owner' | 'auditor';
 
-const memberColumn: Record<Exclude<Role, 'owner'>, string> = { employee: 'is_employee', manager: 'is_manager', finance: 'is_finance' };
+const memberColumn: Record<Exclude<Role, 'owner'>, string> = { employee: 'is_employee', manager: 'is_manager', finance: 'is_finance', auditor: 'is_auditor' };
 
 async function memberRoles(db: D1Database, address: string, owner: boolean): Promise<{ roles: Roles; name?: string }> {
-  const member = await db.prepare('SELECT name,is_employee,is_manager,is_finance FROM c_members WHERE email=? AND active=1').bind(address).first<{ name: string; is_employee: number; is_manager: number; is_finance: number }>();
-  if (owner) return { roles: { owner: true, employee: true, manager: true, finance: true }, name: member?.name };
-  return { roles: { owner: false, employee: member?.is_employee === 1, manager: member?.is_manager === 1, finance: member?.is_finance === 1 }, name: member?.name };
+  const member = await db.prepare('SELECT name,is_employee,is_manager,is_finance,is_auditor FROM c_members WHERE email=? AND active=1').bind(address).first<{ name: string; is_employee: number; is_manager: number; is_finance: number; is_auditor: number }>();
+  if (owner) return { roles: { owner: true, employee: true, manager: true, finance: true, auditor: false }, name: member?.name };
+  return { roles: { owner: false, employee: member?.is_employee === 1, manager: member?.is_manager === 1, finance: member?.is_finance === 1, auditor: member?.is_auditor === 1 }, name: member?.name };
 }
 
 /** The signed-in person, from the native session only. Writes also need a same-origin request. */
@@ -22,7 +22,7 @@ export async function person(request: Request, original: Bindings): Promise<Acto
   requireThat(session, 'Sign in required', 401);
   const address = session.operator.email.toLowerCase(), owner = session.operator.role === 'owner';
   const { roles, name } = await memberRoles(env.DB, address, owner);
-  requireThat(roles.owner || roles.employee || roles.manager || roles.finance, 'Ask the owner to add you to Coaster', 403);
+  requireThat(roles.owner || roles.employee || roles.manager || roles.finance || roles.auditor, 'Ask the owner to add you to Coaster', 403);
   return { kind: 'person', email: address, name: name ?? session.operator.displayName, roles, operatorId: session.operator.id, session: session.id };
 }
 
@@ -55,7 +55,7 @@ export function authority(actor: Actor, role?: Role): Sql {
 }
 
 export function need(actor: Actor, role: Role) {
-  requireThat(actor.roles[role], `${role === 'finance' ? 'Finance' : role === 'manager' ? 'Manager' : role === 'owner' ? 'Owner' : 'Employee'} access required`, 403);
+  requireThat(actor.roles[role], `${role[0].toUpperCase()}${role.slice(1)} access required`, 403);
 }
 
 /** Guard rows bracket a write batch: any false condition aborts every write in it. */

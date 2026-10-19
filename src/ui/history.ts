@@ -15,6 +15,7 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'batch-created': `Batch created by ${who}${d.preparedBy ? ` from ${d.preparedBy}’s proposal` : ''} · ${plural(d.claims, 'claim')} · ${money(d.totalMinor ?? 0)}`,
     'batch-approved': `Reviewed and approved by ${who} · ${money(d.totalMinor ?? 0)}`, 'batch-exported': `${d.file === 'accounting' ? 'Accounting' : 'Reimbursement'} file downloaded by ${who} · ${d.rows} rows`,
     'batch-reimbursed': `Marked paid by ${who} · reference ${d.reference} on ${day(d.paidOn)}`,
+    'audit-pack-exported': `Audit pack for ${day(d.from)} to ${day(d.to)} downloaded by ${who} · ${plural(d.claims, 'claim')}, ${plural(d.receipts, 'receipt')}`,
   };
   return (words[e.action] ?? `${e.action.replace(/-/g, ' ')} by ${who}`) + agent;
 }

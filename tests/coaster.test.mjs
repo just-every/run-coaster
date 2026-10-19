@@ -3,6 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
+import { crc32 } from 'node:zlib'
 import { readFile } from 'node:fs/promises'
 import { agency, harness, receipt } from './harness.mjs'
 
@@ -377,3 +378,92 @@ test('LOCALE-001 a new business starts on US defaults: USD, a US zone, IRS milea
     assert.equal((await h.get('state')).business.mileage_rates.at(-1).rate_thousandths, 750, 'the owner adds next year\'s rate')
   } finally { await h.close() }
 })
+
+/** The files of a stored ZIP by name, read through its central directory, each checked against its CRC-32. */
+function unzip(bytes) {
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.length), files = {}
+  let end = bytes.length - 22
+  while (v.getUint32(end, true) !== 0x06054b50) end--
+  let at = v.getUint32(end + 16, true)
+  for (let n = v.getUint16(end + 10, true); n > 0; n--) {
+    assert.equal(v.getUint32(at, true), 0x02014b50)
+    const size = v.getUint32(at + 20, true), nameLength = v.getUint16(at + 28, true), offset = v.getUint32(at + 42, true)
+    const start = offset + 30 + v.getUint16(offset + 26, true) + v.getUint16(offset + 28, true), data = bytes.subarray(start, start + size)
+    assert.equal(crc32(data), v.getUint32(at + 16, true))
+    files[bytes.subarray(at + 46, at + 46 + nameLength).toString()] = data
+    at += 46 + nameLength + v.getUint16(at + 30, true) + v.getUint16(at + 32, true)
+  }
+  return files
+}
+
+test('REPORT-003 history is searchable across a claim\'s capture, approval and payment; an auditor reads everything, changes nothing and exports a period\'s audit pack', () => withAgency(async (h, t) => {
+  const audrey = await h.person('audrey@harbourfinch.example', { auditor: true })
+  const key = await h.post('agent-keys', { label: 'Receipt inbox agent' }, t.sam)
+  const proposal = await h.send('/api/coaster/agent/claims', { title: 'Sydney client visit', items: [{ kind: 'receipt', date: '2026-05-09', merchant: 'Uber', amount: '38.60', allocations: [{ category: t.c.travel }], receipt: await receipt('uber') }] }, '', { authorization: `Bearer ${key.token}` })
+  let c = (await h.post(`proposals/${proposal.value.id}/accept`, {}, t.sam)).claim
+  const lunch = await h.post(`claims/${c.id}/receipts`, { version: c.version, ...(await receipt('bistro')) }, t.sam)
+  c = await h.post(`claims/${c.id}/items`, { version: lunch.claim.version, kind: 'receipt', date: '2026-05-09', merchant: 'Harbour View Bistro', amount: '150.00', receipt: lunch.receipt, allocations: [{ category: t.c.meals }], explanation: 'Client lunch for three' }, t.sam)
+  c = await approve(h, t.priya, await h.post(`claims/${c.id}/submit`, { version: c.version }, t.sam), { acknowledge: true })
+  let batch = await h.post('batches', { claims: [c.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 18860 }, t.jordan)
+  batch = await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'ACH-2026-0517', paidOn: '2026-05-17' }, t.jordan)
+  const number = `CL-${String(c.number).padStart(4, '0')}`
+
+  const found = (await h.get(`history?q=${number}`, audrey)).lines
+  for (const step of ['proposal-accepted', 'receipt-added', 'expense-added', 'claim-submitted', 'claim-approved', 'claim-batched', 'batch-approved', 'batch-reimbursed'])
+    assert.ok(found.some(l => l.action === step), `${step} is in the claim's history`)
+  assert.deepEqual(found.map(l => l.seq), found.map(l => l.seq).toSorted((a, b) => a - b), 'in history order')
+  assert.ok(found.every(l => l.claim?.id === c.id || (!l.claim && l.batch?.id === batch.id)), 'only this claim and its batch')
+  const paid = found.find(l => l.action === 'batch-reimbursed')
+  assert.deepEqual([paid.actor_email, paid.detail.reference, paid.channel, typeof paid.at], ['jordan@harbourfinch.example', 'ACH-2026-0517', 'app', 'string'])
+  const prepared = (await h.get('history?q=claim-proposed', audrey)).lines
+  assert.deepEqual([prepared[0].channel, prepared[0].agent, prepared[0].actor_email], ['agent', 'Receipt inbox agent', 'sam@harbourfinch.example'], 'an agent\'s line names the agent and the person it acted for')
+  assert.deepEqual((await h.get('history?q=ach-2026', t.morgan)).lines.map(l => l.action), ['batch-reimbursed'], 'finance searches by any words')
+  assert.equal((await h.get(`history?q=${number}&from=2020-01-01&to=2020-12-31`, audrey)).lines.length, 0)
+  for (const who of [t.sam, t.priya]) {
+    await h.get(`history?q=${number}`, who, 403)
+    await h.get('audit-pack?from=2026-01-01&to=2026-03-31', who, 403)
+  }
+
+  const draft = await claim(h, t.alex, 'Studio supplies', [{ kind: 'receipt', date: '2026-05-10', merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' }])
+  assert.equal((await h.send(`/api/coaster/claims/${draft.claim.id}`, undefined, audrey)).status, 403, 'a draft stays the employee\'s until submitted')
+  const pending = await submit(h, t.alex, draft)
+  assert.equal((await h.get(`claims/${c.id}`, audrey)).claim.status, 'reimbursed')
+  assert.equal((await h.send(`/api/coaster/receipts/${lunch.receipt}`, undefined, audrey)).status, 200)
+  assert.equal((await h.get(`batches/${batch.id}`, audrey)).batch.paid_reference, 'ACH-2026-0517')
+  assert.equal((await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, audrey)).status, 200)
+  assert.deepEqual((await h.get('state', audrey)).claims.map(x => x.id).sort(), [c.id, pending.id].sort())
+  const lines = async () => (await h.db.prepare('SELECT COUNT(*) AS n FROM c_events').first()).n, before = await lines()
+  for (const [path, body] of [
+    ['claims', { title: 'Audit lunch' }], [`claims/${pending.id}/decision`, { revision: pending.revision, version: pending.version, decision: 'approved' }],
+    [`claims/${pending.id}/reassign`, { version: pending.version, approver: 'jordan@harbourfinch.example' }], ['batches', { claims: [c.id] }],
+    [`batches/${batch.id}/paid`, { version: batch.version, reference: 'X', paidOn: '2026-05-18' }], ['settings/business', { name: 'Audited', currency: 'AUD', timezone: 'Australia/Sydney' }],
+    ['settings/categories', { name: 'Gifts', accountCode: '1', taxCode: 'GST' }], ['settings/members', { email: 'audrey@harbourfinch.example', name: 'Audrey', employee: true, finance: true }],
+    ['settings/mileage-rates', { effectiveFrom: '2026-01-01', rate: '2.00' }], ['delegations', { delegate: 'priya@harbourfinch.example', startsOn: '2026-05-01', endsOn: '2026-05-31' }],
+    ['agent-keys', { label: 'Audit agent' }], ['import/preview', { csv: 'a\n1' }],
+  ]) await h.post(path, body, audrey, 403)
+  assert.equal(await lines(), before, 'every refused write left history untouched')
+
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const [year, month] = today.split('-').map(Number), q = Math.floor((month - 1) / 3) * 3, day = (m, d) => new Date(Date.UTC(year, m, d)).toISOString().slice(0, 10)
+  const download = async (from, to) => { const r = await h.mf.dispatchFetch(`${h.origin}/api/coaster/audit-pack?from=${from}&to=${to}`, { headers: { cookie: audrey } }); assert.equal(r.status, 200); assert.equal(r.headers.get('content-type'), 'application/zip'); return unzip(Buffer.from(await r.arrayBuffer())) }
+  const files = await download(day(q, 1), day(q + 3, 0)), manifest = JSON.parse(files['manifest.json'].toString())
+  assert.deepEqual(manifest.claims.map(x => x.number), [number, `CL-${String(pending.number).padStart(4, '0')}`])
+  const packed = manifest.claims[0]
+  assert.equal(packed.totalMinor, 18860)
+  assert.deepEqual([packed.decisions[0].decision, packed.decisions[0].by, packed.decisions[0].exceptionsAcknowledged.map(e => e.code)], ['approved', 'priya@harbourfinch.example', ['over-limit']])
+  assert.deepEqual(packed.revisions[0].exceptions.map(e => [e.code, packed.revisions[0].items.find(i => i.id === e.item).explanation]), [['over-limit', 'Client lunch for three']])
+  assert.deepEqual([packed.payment.batch, packed.payment.reference, packed.payment.paidBy], [`RB-${String(batch.number).padStart(4, '0')}`, 'ACH-2026-0517', 'jordan@harbourfinch.example'])
+  const stored = (await h.db.prepare('SELECT id,sha256,bytes FROM c_receipts WHERE claim_id IN (?,?)').bind(c.id, pending.id).all()).results
+  assert.equal(stored.length, 3)
+  for (const row of stored) {
+    const entry = manifest.receipts.find(x => x.id === row.id)
+    assert.equal(sha(Buffer.from(row.bytes)), entry.sha256); assert.equal(sha(files[entry.file]), entry.sha256, `${entry.name} in the pack is the stored bytes`)
+  }
+  for (const item of packed.revisions[0].items) assert.equal(sha(files[item.receipt.file]), item.receipt.sha256)
+  assert.equal(sha(files[manifest.receipts.find(x => x.id === lunch.receipt).file]), sha(await readFile('tests/fixtures/receipts/bistro.png')))
+  const history = files['history.csv'].toString().trim().split('\r\n')
+  assert.equal(history.length, 1 + manifest.history.lines); assert.match(history.find(l => l.includes('"batch-reimbursed"')), /ACH-2026-0517/)
+  assert.deepEqual(JSON.parse((await download(day(q - 3, 1), day(q, 0)))['manifest.json'].toString()).claims, [], 'the quarter before holds none of them')
+  assert.ok((await h.get('history?q=audit-pack-exported', t.morgan)).lines.some(l => l.actor_email === 'audrey@harbourfinch.example' && l.detail.claims === 2), 'each download is a history line')
+}))

@@ -109,7 +109,7 @@ export async function markReimbursed(db: D1Database, actor: Actor, id: string, b
 }
 
 const cell = (v: unknown) => '"' + String(v ?? '').replace(/"/g, '""').replace(/^[=+@\-\t\r]/, "'$&") + '"';
-const csv = (rows: unknown[][]) => rows.map(r => r.map(cell).join(',')).join('\r\n') + '\r\n';
+export const csv = (rows: unknown[][]) => rows.map(r => r.map(cell).join(',')).join('\r\n') + '\r\n';
 
 /** Accounting lines (one per category split) and per-employee totals, both from the approved revisions. */
 export async function batchLines(db: D1Database, id: string) {
@@ -131,8 +131,9 @@ export async function batchLines(db: D1Database, id: string) {
   return { lines, people: [...people.values()] };
 }
 
+/** Finance and auditors download a reviewed batch's files; the download is a history line. */
 export async function batchFile(db: D1Database, actor: Actor, id: string, kind: string) {
-  need(actor, 'finance');
+  requireThat(actor.roles.finance || actor.roles.auditor, 'Finance or auditor access required', 403);
   const batch = await loadBatch(db, id);
   requireThat(batch.status !== 'draft', 'Review the batch before exporting it', 409);
   requireThat(kind === 'accounting' || kind === 'reimbursements', 'Unknown export', 404);
@@ -142,6 +143,6 @@ export async function batchFile(db: D1Database, actor: Actor, id: string, kind: 
   const body = kind === 'accounting'
     ? csv([['batch', 'claim', 'employee', 'date', 'merchant', 'description', 'type', 'category', 'account_code', 'tax_code', 'cost_center', 'amount', 'currency', 'receipt_sha256', 'policy_exceptions', 'explanation', 'approved_by', 'approved_at'], ...lines.map(l => [name, l.claim, l.employee, l.date, l.merchant, l.description, l.kind, l.category, l.account, l.tax, l.costCentre, decimal(l.amountMinor), batch.currency, l.receipt, l.exceptions, l.explanation, l.approver, l.approvedAt])])
     : csv([['batch', 'employee', 'name', 'claims', 'amount', 'currency'], ...people.map(p => [name, p.email, p.name, p.claims.join(' '), decimal(p.amountMinor), batch.currency])]);
-  await commit(db, authority(actor, 'finance'), [event(db, actor, 'batch-exported', { batch: id }, { file: kind, rows: kind === 'accounting' ? lines.length : people.length, totalMinor: batch.total_minor })]);
+  await commit(db, authority(actor, actor.roles.finance ? 'finance' : 'auditor'), [event(db, actor, 'batch-exported', { batch: id }, { file: kind, rows: kind === 'accounting' ? lines.length : people.length, totalMinor: batch.total_minor })]);
   return new Response(body, { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="${name}-${kind}.csv"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
 }

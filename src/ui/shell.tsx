@@ -6,7 +6,7 @@ import { Initials } from './parts';
 export type Destination = { view: string; label: string; icon: string; count?: number };
 
 const roleWords = (actor: D) => {
-  const roles = ['employee', 'manager', 'finance'].filter(r => actor.roles[r]).map(r => r[0].toUpperCase() + r.slice(1));
+  const roles = ['employee', 'manager', 'finance', 'auditor'].filter(r => actor.roles[r]).map(r => r[0].toUpperCase() + r.slice(1));
   return `${actor.roles.owner ? 'Owner · ' : ''}${roles.join(', ')}`;
 };
 

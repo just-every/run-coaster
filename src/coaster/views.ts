@@ -3,7 +3,6 @@ import { canSee, claimItems, loadClaim, visible, type Claim } from './claims';
 import { categories } from './items';
 import { findExceptions } from './exceptions';
 import { batchLines, loadBatch } from './batches';
-import { need } from './session';
 import { requireThat, type Actor, type Data } from './types';
 import { delegations } from './delegation';
 
@@ -11,7 +10,7 @@ import { delegations } from './delegation';
 export async function workspace(db: D1Database, actor: Actor) {
   const [claims, members, proposals, keys, batches] = await db.batch([
     db.prepare('SELECT id,number,employee_email,approver_email,on_behalf_of,title,status,revision,version,total_minor,currency,prepared_by,batch_id,created_at,updated_at FROM c_claims ORDER BY number DESC'),
-    db.prepare('SELECT email,name,is_employee,is_manager,is_finance,approver_email,active FROM c_members ORDER BY name'),
+    db.prepare('SELECT email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active FROM c_members ORDER BY name'),
     db.prepare('SELECT id,kind,agent_label,payload,status,created_at,decided_at,result_id FROM c_proposals WHERE for_email=? ORDER BY created_at DESC').bind(actor.email),
     db.prepare('SELECT id,label,created_at,revoked_at FROM c_agent_keys WHERE member_email=? ORDER BY created_at DESC').bind(actor.email),
     db.prepare('SELECT * FROM c_batches ORDER BY number DESC'),
@@ -28,7 +27,7 @@ export async function workspace(db: D1Database, actor: Actor) {
     members: actor.roles.owner ? members.results : (members.results as Data[]).filter(m => m.email === actor.email),
     proposals: (proposals.results as Data[]).map(p => ({ ...p, payload: JSON.parse(p.payload) })),
     agentKeys: keys.results,
-    batches: actor.roles.finance ? batches.results : [],
+    batches: actor.roles.finance || actor.roles.auditor ? batches.results : [],
     delegations: actor.roles.manager ? await delegations(db, actor) : [],
   };
 }
@@ -70,8 +69,11 @@ export async function receiptFile(db: D1Database, actor: Actor, id: string, inli
   } });
 }
 
+/** Finance and auditors read batches. */
+const needBatchReader = (actor: Actor) => requireThat(actor.roles.finance || actor.roles.auditor, 'Finance or auditor access required', 403);
+
 export async function batchDetail(db: D1Database, actor: Actor, id: string) {
-  need(actor, 'finance');
+  needBatchReader(actor);
   const batch = await loadBatch(db, id);
   const [claims, events] = await db.batch([
     db.prepare('SELECT bc.claim_id,bc.revision,bc.amount_minor,c.number,c.title,c.employee_email,c.status FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id WHERE bc.batch_id=? ORDER BY c.number').bind(id),

@@ -66,8 +66,8 @@ export async function saveCategory(db: D1Database, actor: Actor, b: Data) {
 export async function saveMember(db: D1Database, actor: Actor, b: Data) {
   need(actor, 'owner');
   const address = email(b.email);
-  const roles = { employee: flag(b.employee), manager: flag(b.manager), finance: flag(b.finance) };
-  requireThat(roles.employee || roles.manager || roles.finance, 'Choose at least one role');
+  const roles = { employee: flag(b.employee), manager: flag(b.manager), finance: flag(b.finance), auditor: flag(b.auditor) };
+  requireThat(roles.employee || roles.manager || roles.finance || roles.auditor, 'Choose at least one role');
   let approver: string | null = null;
   if (b.approver) {
     approver = email(b.approver, 'Approving manager');
@@ -81,7 +81,7 @@ export async function saveMember(db: D1Database, actor: Actor, b: Data) {
   const was = await db.prepare('SELECT active FROM c_members WHERE email=?').bind(address).first<{ active: number }>();
   const moves = was?.active === 1 && !active ? await queueMoves(db, actor, address, approver) : [];
   await commit(db, authority(actor, 'owner'), [
-    db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,approver_email=excluded.approver_email,active=excluded.active,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, approver, active, now()),
+    db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,is_auditor=excluded.is_auditor,approver_email=excluded.approver_email,active=excluded.active,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, roles.auditor, approver, active, now()),
     event(db, actor, 'member-saved', {}, { email: address, roles, approver, active: active === 1 }),
     ...moves,
   ]);

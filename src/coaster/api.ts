@@ -10,6 +10,7 @@ import { revokeDelegation, saveDelegation } from './delegation';
 import { approveBatch, batchFile, createBatch, markReimbursed, removeFromBatch } from './batches';
 import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
+import { auditPack, searchHistory } from './audit';
 import { importAction, importJobs, importedHistory } from './imports/jobs';
 import { categories } from './items';
 import { business } from './settings';
@@ -87,6 +88,9 @@ api.get('/api/coaster/agent/context', asAgent(async (a, c) => ({
 api.get('/api/coaster/agent/proposals/:id', asAgent(async (a, c) => { const p = await proposal(db(c), param(c, 'id')); requireThat(p.for_email === a.email, 'Proposal not found', 404); return p; }));
 api.post('/api/coaster/agent/claims', asAgent(async (a, c) => proposeClaim(db(c), a, await body(c, 8_000_000))));
 api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c), a, await body(c))));
+
+api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));
+api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'))));
 
 api.get('/api/coaster/import', as(async (a, c) => { need(a, 'owner'); return { jobs: await importJobs(db(c)), history: await importedHistory(db(c)) }; }));
 api.post('/api/coaster/import/:op', as(async (a, c) => importAction(db(c), a, param(c, 'op'), await body(c))));

@@ -18,11 +18,11 @@ export async function loadClaim(db: D1Database, id: unknown): Promise<Claim> {
   return claim;
 }
 
-/** Who may see a claim: its employee always; once submitted, its approver (and the approver a delegate acts for), finance and the owner. */
+/** Who may see a claim: its employee always; once submitted, its approver (and the approver a delegate acts for), finance, auditors and the owner. */
 export function canSee(actor: Actor, claim: Claim) {
   if (claim.employee_email === actor.email) return true;
   if (claim.status === 'draft') return false;
-  return (actor.roles.manager && (claim.approver_email === actor.email || claim.on_behalf_of === actor.email)) || actor.roles.finance || actor.roles.owner;
+  return (actor.roles.manager && (claim.approver_email === actor.email || claim.on_behalf_of === actor.email)) || actor.roles.finance || actor.roles.auditor || actor.roles.owner;
 }
 export function visible(actor: Actor, claim: Claim) {
   requireThat(canSee(actor, claim), 'This claim is outside your access', 403);
