@@ -36,6 +36,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_expiry_proposals', ['confirmed_by']],
   ['c_delegations', ['created_by', 'revoked_by']],
   ['c_delegates', ['created_by', 'revoked_by']],
+  ['c_policies', ['published_by']],
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [

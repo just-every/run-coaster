@@ -17,6 +17,7 @@ import { budgetReport, importBudgets, saveBudget } from './budgets';
 import { addExpense, saveAutoSubmit } from './auto-reports';
 import { confirmExpiry, placeHold, releaseHold as releaseLegalHold, retention, saveRetention } from './retention';
 import { eraseMember, erasures } from './erasure';
+import { policies, publishPolicy } from './policy';
 import { allowancesFor, saveAllowance, saveRecurring, stopAllowance, stopRecurring } from './allowances';
 import { reportSchedules, scheduleReport, stopReportSchedule } from './report-schedules';
 import { addComment, editComment } from './comments';
@@ -127,6 +128,8 @@ api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalR
 api.post('/api/coaster/settings/auto-submit', as(async (a, c) => saveAutoSubmit(db(c), a, await body(c))));
 api.post('/api/coaster/settings/retention', as(async (a, c) => saveRetention(db(c), a, await body(c))));
 api.get('/api/coaster/retention', as(async (a, c) => ({ ...await retention(db(c), a), erasures: await erasures(db(c)) })));
+api.get('/api/coaster/policy', as(async (a, c) => { requireThat(a.roles.finance || a.roles.owner || a.roles.auditor, 'Finance, auditor or owner access required', 403); return { versions: await policies(db(c)) }; }));
+api.post('/api/coaster/policy', as(async (a, c) => { const settings = await business(db(c)); requireThat(settings, 'The owner has not set up the business yet', 409); return { versions: await publishPolicy(db(c), a, await body(c), await categories(db(c)), settings.timezone) }; }));
 api.post('/api/coaster/settings/members/erase', as(async (a, c) => eraseMember(db(c), a, await body(c))));
 api.post('/api/coaster/retention/:id/confirm', as(async (a, c) => confirmExpiry(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/legal-holds', as(async (a, c) => placeHold(db(c), a, await body(c))));

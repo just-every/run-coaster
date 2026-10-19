@@ -181,7 +181,8 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const business = await requireBusiness(db), { approver, onBehalfOf } = await routeFor(db, member.approver_email, claim.employee_email, localDay(business.timezone));
   const repeated = repeatedInClaim(claim.employee_email, items);
   requireThat(!repeated.length, `${repeated.map(i => i.merchant).join(', ')} appears twice on this claim with the same ${repeated.some(i => i.receipt_sha256) ? 'receipt' : 'date, merchant and amount and no receipt'}; only one could be reimbursed. Attach each one's own receipt, or correct or remove one, before submitting`, 409);
-  const exceptions = await findExceptions(db, claim, items, business, known);
+  const exceptions = await findExceptions(db, claim, items, business, known), hard = exceptions.filter(e => e.hard);
+  requireThat(!hard.length, `This claim breaks a hard policy rule and cannot be submitted: ${hard.map(e => e.message).join('; ')}`, 409);
   const unexplained = exceptions.filter(e => !items.find(i => i.id === e.item)?.explanation);
   requireThat(!unexplained.length, `Explain each policy exception before submitting: ${unexplained.map(e => e.message).join('; ')}`, 409);
   const rule = await currentRule(db), byRule = approvesByRule(rule, items, exceptions);
