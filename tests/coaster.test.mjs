@@ -665,3 +665,40 @@ test('APPROVE-007 an employee or their delegate retracts a claim before any deci
   const batched = (await h.get(`claims/${c.id}`, t.priya)).claim
   for (const who of [t.priya, t.jordan, h.owner]) await h.post(`claims/${c.id}/unapprove`, { version: batched.version, to: 'employee', reason: 'Too late' }, who, 409)
 }))
+
+test('APPROVE-006 an approver asks a named person about one expense without deciding; the answer closes the question and frozen comments stay in history', () => withAgency(async (h, t) => {
+  const SAM = 'sam@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
+  const audrey = await h.person('audrey@harbourfinch.example', { auditor: true })
+  const d = await claim(h, t.sam, 'Client dinner', [{ kind: 'receipt', date: '2026-05-21', merchant: 'Rockpool', amount: '96.00', allocations: [{ category: t.c.meals }], receiptFixture: 'bistro' }, { kind: 'receipt', date: '2026-05-21', merchant: 'Uber', amount: '18.40', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' }])
+  const c = await submit(h, t.sam, d), dinner = d.items[0].id
+  await h.post(`claims/${c.id}/comments`, { body: 'Which client was this for?', asks: SAM }, t.alex, 403)
+  await h.post(`claims/${c.id}/comments`, { body: 'Which client?', item: dinner, asks: 'alex@harbourfinch.example' }, t.priya, 400)
+  const asked = await h.post(`claims/${c.id}/comments`, { body: 'Which client was thsi for?', item: dinner, asks: SAM }, t.priya)
+  assert.equal(asked.notified, 'accepted')
+  const mail = h.messages.findLast(m => m.to.includes(SAM))
+  assert.match(mail.subject, /question about CL-/); assert.match(mail.text, /Which client was thsi for\?/); assert.match(mail.text, new RegExp(`#/claims/${c.id}`))
+  let seen = await h.get(`claims/${c.id}`, t.priya)
+  assert.deepEqual([seen.claim.status, seen.claim.version], ['submitted', c.version], 'the claim stays pending, its version unchanged')
+  assert.equal((await h.get('state', t.priya)).claims.find(x => x.id === c.id).open_questions, 1, 'the open question shows on the approver\'s queue')
+  await h.post(`comments/${asked.comment}/edit`, { body: 'Which client was this for?' }, t.sam, 403)
+  await h.post(`comments/${asked.comment}/edit`, { body: 'Which client was this for?' }, t.priya)
+
+  // Finance and an auditor can comment too; only the named person's reply answers the question.
+  await h.post(`claims/${c.id}/comments`, { body: 'Coded to client entertainment once known', parent: asked.comment }, t.jordan)
+  assert.equal((await h.get('state', t.priya)).claims.find(x => x.id === c.id).open_questions, 1)
+  await h.post(`claims/${c.id}/comments`, { body: 'Sampled for the quarterly review' }, audrey)
+  await h.post(`claims/${c.id}/comments`, { body: 'Harbour Bank, the pitch team', parent: asked.comment }, t.sam)
+  seen = await h.get(`claims/${c.id}`, t.priya)
+  const question = seen.comments.find(x => x.id === asked.comment)
+  assert.deepEqual([question.open, question.item_id, question.body, question.edited_at !== null, question.replies], [false, dinner, 'Which client was this for?', true, 2])
+  assert.equal((await h.get('state', t.priya)).claims.find(x => x.id === c.id).open_questions, 0)
+  await h.post(`comments/${asked.comment}/edit`, { body: 'Who was at the dinner?' }, t.priya, 409)
+  await assert.rejects(h.db.prepare('UPDATE c_comments SET body=? WHERE id=?').bind('Rewritten', asked.comment).run(), /permanent/)
+  await assert.rejects(h.db.prepare('DELETE FROM c_comments WHERE id=?').bind(asked.comment).run(), /permanent/)
+
+  const approved = await approve(h, t.priya, seen.claim)
+  assert.equal(approved.status, 'approved')
+  const history = (await h.get(`claims/${c.id}`, t.sam)).events.filter(e => ['question-asked', 'comment-edited', 'comment-added', 'question-answered'].includes(e.action))
+  assert.deepEqual(history.map(e => [e.action, e.actor_email]), [['question-asked', PRIYA], ['comment-edited', PRIYA], ['comment-added', 'jordan@harbourfinch.example'], ['comment-added', 'audrey@harbourfinch.example'], ['question-answered', SAM]])
+  assert.equal(history[1].detail.previous, 'Which client was thsi for?', 'the earlier wording stays in history')
+}))

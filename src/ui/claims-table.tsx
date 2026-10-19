@@ -30,7 +30,7 @@ export function ClaimsTable({ claims, selected, view, label, foot, initialSort =
       </th>)}</tr></thead>
       <tbody>{rows.map(c => <tr key={c.id} className={c.id === selected ? `selected row-${statusTone[c.status] ?? 'quiet'}` : undefined}>
         <td data-cell="person"><span className="person"><Initials name={c.employee_name} /><span>{c.employee_name}</span></span></td>
-        <td data-cell="title"><a className="title-link" title={c.title} href={`#/${view}/${c.id}`} aria-current={c.id === selected ? 'true' : undefined}>{c.title}</a><span className="sub">{claimNumber(c.number)}{c.prepared_by ? ` · prepared by ${c.prepared_by}` : ''}</span></td>
+        <td data-cell="title"><a className="title-link" title={c.title} href={`#/${view}/${c.id}`} aria-current={c.id === selected ? 'true' : undefined}>{c.title}</a><span className="sub">{claimNumber(c.number)}{c.open_questions ? ` · ${c.open_questions === 1 ? '1 open question' : `${c.open_questions} open questions`}` : ''}{c.prepared_by ? ` · prepared by ${c.prepared_by}` : ''}</span></td>
         <td data-cell="amount" className="figure amount">{money(c.total_minor, c.currency)}</td>
         <td data-cell="approver" className="soft">{c.approver_name ?? <span aria-label="Set at submission" title="Set at submission">—</span>}</td>
         <td data-cell="status"><Badge status={c.status} /></td>

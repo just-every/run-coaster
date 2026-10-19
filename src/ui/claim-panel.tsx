@@ -4,6 +4,7 @@ import { Badge, Details, Empty, Field, Form, Warning } from './parts';
 import { Icon } from './icons';
 import { ItemForm } from './item-form';
 import { describe } from './history';
+import { Comments } from './comments';
 
 function Receipt({ item }: { item: D }) {
   if (item.kind === 'mileage') return <span className="receipt" title="Mileage"><Icon name="car" /><span className="visually-hidden">Mileage</span></span>;
@@ -125,6 +126,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         <Field label="Reason" name="reason" required={false} placeholder="For example, on leave" />
       </Form>
     </section>}
+    {claim.status !== 'draft' || mine ? <Comments claim={claim} items={items} comments={detail.comments} state={state} onDone={done} /> : null}
     <section className="panel-block history" aria-label="History">
       <h3>History</h3>
       <ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol>

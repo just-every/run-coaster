@@ -7,6 +7,7 @@ import { requireThat, type Actor, type Data } from './types';
 import { delegations } from './delegation';
 import { delegateGrants } from './delegates';
 import { loadRequest, requestsFor } from './requests';
+import { claimComments, openQuestions } from './comments';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -18,12 +19,12 @@ export async function workspace(db: D1Database, actor: Actor) {
     db.prepare('SELECT * FROM c_batches ORDER BY number DESC'),
   ]);
   const seen = (claims.results as Claim[]).filter(c => canSee(actor, c));
-  const names = Object.fromEntries((members.results as Data[]).map(m => [m.email, m.name]));
+  const names = Object.fromEntries((members.results as Data[]).map(m => [m.email, m.name])), questions = await openQuestions(db);
   return {
     actor: { email: actor.email, name: actor.name, roles: actor.roles, delegate: actor.delegate ?? null },
     business: await business(db),
     categories: await categories(db),
-    claims: seen.map(c => ({ ...c, employee_name: names[c.employee_email] ?? c.employee_email, approver_name: c.approver_email ? names[c.approver_email] ?? c.approver_email : null })),
+    claims: seen.map(c => ({ ...c, open_questions: questions[c.id] ?? 0, employee_name: names[c.employee_email] ?? c.employee_email, approver_name: c.approver_email ? names[c.approver_email] ?? c.approver_email : null })),
     names: Object.fromEntries((members.results as Data[]).filter(m => m.active).map(m => [m.email, m.name])),
     managers: (members.results as Data[]).filter(m => m.active && m.is_manager).map(m => m.email),
     members: actor.roles.owner ? members.results : (members.results as Data[]).filter(m => m.email === actor.email),
@@ -56,7 +57,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const linked = [...new Set(items.map(i => i.request_id).filter(Boolean))];
   const requests = await Promise.all(linked.map(async id => ({ ...(await loadRequest(db, id)), claim_minor: items.filter(i => i.request_id === id).reduce((n, i) => n + i.amount_minor, 0) })));
   return {
-    claim, requests, items: items.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256 })), exceptions, receipts: receipts.results,
+    claim, requests, comments: await claimComments(db, claim.id), items: items.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256 })), exceptions, receipts: receipts.results,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
     events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
   };
