@@ -3,10 +3,11 @@ import { event } from './events';
 import { claimNumber, loadClaim } from './claims';
 import { requireBusiness } from './settings';
 import { localDate } from './reports';
+import { RETURN_DAYS, overdueAdvances } from './advances';
 import { requireThat, now, text, type Actor, type Data } from './types';
 
-/** IRS accountable-plan windows (CLAIM-008): an expense is substantiated within 60 days of the spend; excess returns
- * within 120 days are CLAIM-004's, with cash advances. */
+/** IRS accountable-plan windows (CLAIM-008): an expense is substantiated within 60 days of the spend; an advance's excess
+ * is returned within 120 days (CLAIM-004's RETURN_DAYS). */
 export const SUBSTANTIATION_DAYS = 60;
 
 const days = (from: string, to: string) => Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86_400_000);
@@ -27,7 +28,8 @@ export async function accountablePlan(db: D1Database, actor: Actor) {
     return { claim: claimNumber(r.number), claimId: r.claim_id, item: r.item, employee: r.employee_email, status: r.status, merchant: r.merchant, spentOn: r.spent_on, amountMinor: r.amount_minor, filedOn, daysAfterSpend: late,
       lapsed: r.kind !== 'stipend' && late !== null && late > SUBSTANTIATION_DAYS, nonAccountable: r.marked_by ? { by: r.marked_by, at: r.marked_at, reason: r.reason } : null };
   });
-  return { substantiationDays: SUBSTANTIATION_DAYS, lapsed: rows.filter(r => r.lapsed), nonAccountable: rows.filter(r => r.nonAccountable) };
+  // Beside the late expenses: cash advances whose excess was not returned within 120 days (CLAIM-004).
+  return { substantiationDays: SUBSTANTIATION_DAYS, returnDays: RETURN_DAYS, lapsed: rows.filter(r => r.lapsed), nonAccountable: rows.filter(r => r.nonAccountable), excessOverdue: await overdueAdvances(db, timezone) };
 }
 
 /** Finance marks one expense non-accountable (reimbursed as taxable pay) or clears the mark, with a reason, until its claim

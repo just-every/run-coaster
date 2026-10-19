@@ -6,13 +6,13 @@ import { categories } from './items';
 import { ownerPolicyVersion } from './policy-configuration';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; reminder_days: number[]; quiet_from: number; quiet_until: number; service_level_days: number; escalation_days: number | null; auto_submit: 'daily' | 'weekly' | 'twice-monthly' | 'monthly' | null; retention_years: number; dual_release_over_minor: number | null; pay_weekday: number | null; mileage_rates: MileageRate[] };
+export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; reminder_days: number[]; quiet_from: number; quiet_until: number; service_level_days: number; escalation_days: number | null; auto_submit: 'daily' | 'weekly' | 'twice-monthly' | 'monthly' | null; retention_years: number; dual_release_over_minor: number | null; pay_weekday: number | null; advance_account: string; mileage_rates: MileageRate[] };
 
 /** The IRS documentary-evidence line: a new business needs receipts above $75 unless the owner sets another threshold. */
 export const DEFAULT_RECEIPT_THRESHOLD_MINOR = 7500;
 
 export async function business(db: D1Database): Promise<Business | null> {
-  const found = await db.prepare('SELECT name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,audit_sample_percent,reminder_days,quiet_from,quiet_until,service_level_days,escalation_days,auto_submit,retention_years,dual_release_over_minor,pay_weekday FROM c_business WHERE id=1').first<Omit<Business, 'mileage_rates' | 'reminder_days'> & { reminder_days: string }>();
+  const found = await db.prepare('SELECT name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,audit_sample_percent,reminder_days,quiet_from,quiet_until,service_level_days,escalation_days,auto_submit,retention_years,dual_release_over_minor,pay_weekday,advance_account FROM c_business WHERE id=1').first<Omit<Business, 'mileage_rates' | 'reminder_days'> & { reminder_days: string }>();
   return found && { ...found, reminder_days: JSON.parse(found.reminder_days) as number[], mileage_rates: await mileageRates(db) };
 }
 export async function requireBusiness(db: D1Database) {
@@ -58,11 +58,13 @@ export async function savePaymentControls(db: D1Database, actor: Actor, b: Data)
   const dual = optionalAmount(b.dualReleaseOver, 'Dual release above');
   const weekday = b.payWeekday === undefined || b.payWeekday === null || b.payWeekday === '' ? null : WEEKDAYS.indexOf(String(b.payWeekday));
   requireThat(weekday === null || weekday >= 0, 'Choose a weekday such as Friday, or turn the schedule off');
+  // The ledger account cash advances post to when a claim draws one down (CLAIM-004); kept when not sent.
+  const advanceAccount = b.advanceAccount === undefined ? (await requireBusiness(db)).advance_account : optionalText(b.advanceAccount, 'Cash advance account', 40);
   await commit(db, authority(actor, 'owner'), [
-    db.prepare('UPDATE c_business SET dual_release_over_minor=?,pay_weekday=?,updated_at=? WHERE id=1').bind(dual, weekday, now()),
-    event(db, actor, 'payment-controls-set', {}, { dualReleaseOverMinor: dual, payWeekday: weekday === null ? null : WEEKDAYS[weekday] }),
+    db.prepare('UPDATE c_business SET dual_release_over_minor=?,pay_weekday=?,advance_account=?,updated_at=? WHERE id=1').bind(dual, weekday, advanceAccount, now()),
+    event(db, actor, 'payment-controls-set', {}, { dualReleaseOverMinor: dual, payWeekday: weekday === null ? null : WEEKDAYS[weekday], advanceAccount }),
   ]);
-  return { dualReleaseOverMinor: dual, payWeekday: weekday === null ? null : WEEKDAYS[weekday] };
+  return { dualReleaseOverMinor: dual, payWeekday: weekday === null ? null : WEEKDAYS[weekday], advanceAccount };
 }
 
 const flag = (v: unknown) => v === true || v === 'true' || v === 'on' ? 1 : 0;

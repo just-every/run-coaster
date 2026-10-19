@@ -5,6 +5,7 @@ import { Icon } from './icons';
 import { ItemForm } from './item-form';
 import { describe } from './history';
 import { Comments } from './comments';
+import { ClaimAdvance } from './advances';
 
 function Receipt({ item }: { item: D }) {
   if (item.kind === 'mileage') return <span className="receipt" title="Mileage"><Icon name="car" /><span className="visually-hidden">Mileage</span></span>;
@@ -80,6 +81,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         {claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}
       </ul>
     </section>
+    <ClaimAdvance state={state} claim={claim} advance={detail.advance} editable={editable} done={done} />
     {detail.requests.length > 0 && <section className="panel-block" aria-label="Spend requests">
       <h3>Spend requests</h3>
       <ul className="facts">{detail.requests.map((r: D) => <li key={r.id}><Icon name="document" /><span>SR-{String(r.number).padStart(4, '0')} {r.title}: estimate {money(r.estimate_minor, currency)}, spent {money(r.actual_minor, currency)}{r.actual_minor !== r.claim_minor ? ` (${money(r.claim_minor, currency)} on this claim)` : ''}{r.actual_minor > r.estimate_minor ? ` · ${money(r.actual_minor - r.estimate_minor, currency)} over` : ''}</span></li>)}</ul>

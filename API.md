@@ -28,6 +28,12 @@ with `actingFor`.
 | `GET receipts/:id` | who may see its claim | The receipt bytes. |
 | `POST requests` `{title, estimate, purpose}` | employee | Ask before spending; routes to their approving manager (or that manager's delegate). |
 | `POST requests/:id/decision` `{version, decision: approved\|rejected, reason}` | the routed approver | Decide the exact request; expenses link to an approved one with `request` and claims show estimate against actual. |
+| `GET advances` | anyone | Cash advances you may see (your own, routed to you, or all for finance, auditors and the owner) with what each claim draws, what it reimburses beyond the advance, what is owed back, the due date (120 calendar days after the paid date) and the overdue ones apart. |
+| `POST advances` `{purpose, amount}` | employee | Ask for a cash advance; routes to their approving manager (or that manager's delegate). |
+| `POST advances/:id/decision` `{version, decision: approved\|rejected, reason}` | the routed approver | Decide the exact advance; nobody decides their own. |
+| `POST advances/:id/paid` `{version, reference, paidOn}` | finance, not the advance's employee | Record an approved advance paid outside Coaster. |
+| `POST advances/:id/return` `{version, amount, returnedOn, reference}` | finance, not the advance's employee | Record excess returned, never more than is still owed. |
+| `POST claims/:id/advance` `{version, advance}` | the claim's employee | Link one of their paid advances to a draft or returned claim (empty `advance` unlinks); its batch pays the claim total less the advance and posts a negative "Cash advance applied" line. |
 | `POST batches` `{claims: [id]}` | finance | Draft batch of approved claims. |
 | `GET batches/:id` | finance, auditor | Claims, people, accounting lines, history. |
 | `POST batches/:id/remove` `{version, claim}` | finance | Take a claim out of a draft batch. |

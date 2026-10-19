@@ -4,6 +4,7 @@ import { event, ruleEvent } from './events';
 import { business } from './settings';
 import { claimNumber, claimItems, type Claim } from './claims';
 import { exactKey } from './exceptions';
+import { advanceNumber, advancesUnchanged, appliedTo } from './advances';
 import { isoDate, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Batch = { id: string; number: number; status: string; currency: string; total_minor: number; version: number; created_by: string; created_at: string; prepared_by: string | null; reviewed_by: string | null; reviewed_at: string | null; paid_reference: string | null; paid_on: string | null; paid_by: string | null; first_released_by: string | null; first_released_at: string | null; released_by: string | null; released_at: string | null };
@@ -47,24 +48,25 @@ export async function createBatch(db: D1Database, actor: Actor, b: Data, prepare
     claims.push(claim);
   }
   requireThat(new Set(claims.map(c => c.currency)).size === 1, 'A batch reimburses in one currency');
-  const keys = await reimbursementKeys(db, claims), id = uid();
-  await commit(db, all(authority(actor, 'finance'), unchanged(claims)), await openBatch(db, id, claims, keys, actor.email, (action, target, detail) => event(db, actor, action, target, detail), { preparedBy }));
+  const keys = await reimbursementKeys(db, claims), id = uid(), applied = await appliedTo(db, claims);
+  await commit(db, all(authority(actor, 'finance'), unchanged(claims), advancesUnchanged(applied)), await openBatch(db, id, claims, keys, applied, actor.email, (action, target, detail) => event(db, actor, action, target, detail), { preparedBy }));
   return loadBatch(db, id);
 }
 
 type Line = (action: string, target: { claim?: string; batch?: string }, detail: Data) => D1PreparedStatement;
 const unchanged = (claims: Claim[]): Sql => ({ sql: `(SELECT COUNT(*) FROM c_claims WHERE status='approved' AND (${claims.map(() => '(id=? AND version=?)').join(' OR ')}))=?`, params: [...claims.flatMap(c => [c.id, c.version]), claims.length] });
 
-/** The writes that open a draft batch of these claims, each history line written by `line`. */
-async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awaited<ReturnType<typeof reimbursementKeys>>, by: string, line: Line, detail: Data) {
-  const at = now(), total = claims.reduce((n, c) => n + c.total_minor, 0);
+/** The writes that open a draft batch of these claims, each history line written by `line`. A claim drawing down a cash
+ * advance (CLAIM-004) is paid its total less what the advance covers. */
+async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awaited<ReturnType<typeof reimbursementKeys>>, applied: Awaited<ReturnType<typeof appliedTo>>, by: string, line: Line, detail: Data) {
+  const at = now(), pays = (c: Claim) => c.total_minor - (applied.get(c.id)?.appliedMinor ?? 0), total = claims.reduce((n, c) => n + pays(c), 0);
   const next = await db.prepare('SELECT COALESCE(MAX(number),0)+1 AS n FROM c_batches').first<{ n: number }>(), number = next?.n ?? 1;
   return [
     db.prepare("INSERT INTO c_batches(id,number,status,currency,total_minor,created_by,created_at,prepared_by) VALUES(?,?,'draft',?,?,?,?,?)").bind(id, number, claims[0].currency, total, by, at, detail.preparedBy ?? null),
     ...claims.flatMap(c => [
-      db.prepare('INSERT INTO c_batch_claims(batch_id,claim_id,revision,amount_minor) VALUES(?,?,?,?)').bind(id, c.id, c.revision, c.total_minor),
+      db.prepare('INSERT INTO c_batch_claims(batch_id,claim_id,revision,amount_minor) VALUES(?,?,?,?)').bind(id, c.id, c.revision, pays(c)),
       db.prepare("UPDATE c_claims SET status='batched',batch_id=?,version=version+1,updated_at=? WHERE id=?").bind(id, at, c.id),
-      line('claim-batched', { claim: c.id, batch: id }, { claim: claimNumber(c.number), batch: batchNumber(number) }),
+      line('claim-batched', { claim: c.id, batch: id }, { claim: claimNumber(c.number), batch: batchNumber(number), ...(applied.has(c.id) ? { advance: advanceNumber(applied.get(c.id)!.number), advanceAppliedMinor: applied.get(c.id)!.appliedMinor, amountMinor: pays(c) } : {}) }),
     ]),
     ...keys.map(k => db.prepare('INSERT INTO c_reimbursement_keys(key,batch_id,claim_id,item_id) VALUES(?,?,?,?)').bind(k.key, id, k.claim.id, k.item)),
     line('batch-created', { batch: id }, { claims: claims.length, totalMinor: total, ...detail }),
@@ -93,7 +95,8 @@ export async function runPaySchedule(db: D1Database, at: Date) {
   for (const claim of results) if (await reimbursementKeys(db, [...claims, claim]).then(() => true, () => false)) claims.push(claim);
   const id = uid(), run = db.prepare('INSERT INTO c_pay_runs(day,ran_at,batch_id) VALUES(?,?,?)').bind(day, at.toISOString(), claims.length ? id : null);
   if (!claims.length) { await run.run(); return; }
-  await commit(db, all({ sql: '1', params: [] }, unchanged(claims)), [run, ...await openBatch(db, id, claims, await reimbursementKeys(db, claims), PAY_SCHEDULE, (action, target, detail) => ruleEvent(db, PAY_SCHEDULE, action, target, detail), { payDay: day })]);
+  const applied = await appliedTo(db, claims);
+  await commit(db, all({ sql: '1', params: [] }, unchanged(claims), advancesUnchanged(applied)), [run, ...await openBatch(db, id, claims, await reimbursementKeys(db, claims), applied, PAY_SCHEDULE, (action, target, detail) => ruleEvent(db, PAY_SCHEDULE, action, target, detail), { payDay: day })]);
 }
 
 export async function removeFromBatch(db: D1Database, actor: Actor, id: string, b: Data) {
@@ -179,15 +182,17 @@ export async function markReimbursed(db: D1Database, actor: Actor, id: string, b
   return loadBatch(db, id);
 }
 
-const cell = (v: unknown) => '"' + String(v ?? '').replace(/"/g, '""').replace(/^[=+@\-\t\r]/, "'$&") + '"';
+// A plain number (a negative amount such as an applied cash advance) cannot be a formula and is written as it is.
+const cell = (v: unknown) => '"' + (/^-?\d+(\.\d+)?$/.test(String(v ?? '')) ? String(v) : String(v ?? '').replace(/"/g, '""').replace(/^[=+@\-\t\r]/, "'$&")) + '"';
 export const csv = (rows: unknown[][]) => rows.map(r => r.map(cell).join(',')).join('\r\n') + '\r\n';
 
 /** Accounting lines (one per category split) and per-employee totals, both from the approved revisions. */
 export async function batchLines(db: D1Database, id: string) {
-  const { results } = await db.prepare(`SELECT bc.claim_id, bc.revision, bc.amount_minor, c.number, c.employee_email, m.name AS employee_name, r.snapshot, r.submitted_by, d.actor_email AS approver, d.on_behalf_of, d.at AS approved_at, d.reason AS approval_reason FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id LEFT JOIN c_members m ON m.email=c.employee_email JOIN c_revisions r ON r.claim_id=bc.claim_id AND r.revision=bc.revision LEFT JOIN c_decisions d ON d.claim_id=bc.claim_id AND d.revision=bc.revision AND ${finalApproval('d')} WHERE bc.batch_id=? ORDER BY c.number`).bind(id).all<Data>();
+  const { results } = await db.prepare(`SELECT bc.claim_id, bc.revision, bc.amount_minor, c.number, c.employee_email, m.name AS employee_name, r.snapshot, r.submitted_by, d.actor_email AS approver, d.on_behalf_of, d.at AS approved_at, d.reason AS approval_reason, a.number AS advance_number, a.paid_on AS advance_paid_on, c.total_minor AS claim_total_minor FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id LEFT JOIN c_advances a ON a.claim_id=bc.claim_id LEFT JOIN c_members m ON m.email=c.employee_email JOIN c_revisions r ON r.claim_id=bc.claim_id AND r.revision=bc.revision LEFT JOIN c_decisions d ON d.claim_id=bc.claim_id AND d.revision=bc.revision AND ${finalApproval('d')} WHERE bc.batch_id=? ORDER BY c.number`).bind(id).all<Data>();
   const lines: Data[] = [], people = new Map<string, Data>();
   // Accountable-plan treatment (CLAIM-008): expenses finance marked non-accountable and taxable stipends are taxable pay;
   // a contractor's reimbursements are flagged for 1099 review. Coaster only labels them; taxability stays with the accountant.
+  const advanceAccount = (await db.prepare('SELECT advance_account FROM c_business WHERE id=1').first<{ advance_account: string }>())?.advance_account ?? '';
   const [marked, taxableAllowances, contractors] = await db.batch([
     db.prepare('SELECT n.item_id AS id FROM c_nonaccountable n JOIN c_batch_claims bc ON bc.claim_id=n.claim_id WHERE bc.batch_id=?').bind(id),
     db.prepare("SELECT id FROM c_allowances WHERE tax='taxable'"),
@@ -210,6 +215,10 @@ export async function batchLines(db: D1Database, id: string) {
       // A receipt's sales tax posts on its own line to the sales tax account and code copied onto the expense.
       if (item.sales_tax_minor) line('Sales tax', item.sales_tax_account, item.sales_tax_code, '', item.sales_tax_minor);
     }
+    // A cash advance the claim draws down (CLAIM-004) posts as one negative line to the owner's advance account, so the
+    // lines add up to what the batch pays.
+    const advanceApplied = row.advance_number ? row.claim_total_minor - row.amount_minor : 0;
+    if (advanceApplied) lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: row.advance_paid_on, merchant: '', description: `Cash advance ${advanceNumber(row.advance_number)} applied`, kind: 'advance', billable: false, customer: '', project: '', category: 'Cash advance applied', account: advanceAccount, tax: '', costCentre: '', amountMinor: -advanceApplied, receipt: '', receiptId: '', employeeName: row.employee_name ?? row.employee_email, exceptions: '', explanation: '', approver: row.approver, approvedAt: row.approved_at, memo, taxable: false, form1099 });
     const person = people.get(row.employee_email) ?? { email: row.employee_email, name: row.employee_name ?? row.employee_email, claims: [] as string[], amountMinor: 0, taxableMinor: 0, form1099 };
     person.claims.push(claimNumber(row.number)); person.amountMinor += row.amount_minor; person.taxableMinor += taxableMinor;
     people.set(row.employee_email, person);

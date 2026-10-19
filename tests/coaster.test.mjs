@@ -235,7 +235,7 @@ test('COA-009 finance batches approved claims, reviews reconciled totals, export
 test('PAY-004 the owner sets dual release over $5,000 and a Friday schedule; a $7,200 batch waits for a second releaser, own-claim and stale-sign-in releases are refused, and batch, payment and ledger totals agree', () => withAgency(async (h, t) => {
   await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'USD', timezone: 'America/Chicago' })
   await h.post('settings/payment-controls', { dualReleaseOver: '5000.00', payWeekday: 'Friday' }, t.jordan, 403)
-  assert.deepEqual(await h.post('settings/payment-controls', { dualReleaseOver: '5000.00', payWeekday: 'Friday' }), { dualReleaseOverMinor: 500000, payWeekday: 'Friday' })
+  assert.deepEqual(await h.post('settings/payment-controls', { dualReleaseOver: '5000.00', payWeekday: 'Friday' }), { dualReleaseOverMinor: 500000, payWeekday: 'Friday', advanceAccount: '' })
   await h.post('settings/payment-controls', { payWeekday: 'Caturday' }, h.owner, 400)
   // The owner gives release access to finance only.
   await h.post('settings/members', { email: 'sam@harbourfinch.example', name: 'sam', employee: true, release: true, approver: 'priya@harbourfinch.example' }, h.owner, 400)
@@ -1444,6 +1444,68 @@ test('CLAIM-008 an expense filed 75 days after the spend is flagged to finance, 
   assert.deepEqual(lines.map(l => [l.merchant, l.taxable, l.form_1099_review]).sort(), [['Officeworks', 'false', 'false'], ['Phone stipend', 'true', 'false'], ['Qantas', 'true', 'false'], ['Uber', 'false', 'true']])
   const history = (await h.get('history')).lines
   assert.deepEqual(history.filter(l => l.action === 'expense-non-accountable').map(l => [l.actor_email, l.detail.item, l.detail.reason]), [['morgan@harbourfinch.example', lateItem.id, 'Filed after the 60-day window']])
+}))
+
+test('CLAIM-004 a paid $1,000 advance against $830 of expenses leaves $170 owed back, against $1,200 reimburses $200, and an unreturned excess past 120 days reaches the overdue list and the accountable plan', () => withAgency(async (h, t) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const ago = n => new Date(Date.parse(today + 'T00:00:00Z') - n * 86_400_000).toISOString().slice(0, 10)
+  await h.post('settings/payment-controls', { advanceAccount: '1250' })
+  // Each advance routes to the approving manager, who cannot be the employee; finance records it paid outside Coaster.
+  const advance = async (cookie, paidOn) => {
+    let a = await h.post('advances', { purpose: 'Chicago trade show', amount: '1000.00' }, cookie)
+    await h.post(`advances/${a.id}/paid`, { version: a.version, reference: 'early', paidOn }, t.morgan, 409)
+    a = await h.post(`advances/${a.id}/decision`, { version: a.version, decision: 'approved' }, t.priya)
+    await h.post(`advances/${a.id}/paid`, { version: a.version, reference: 'self', paidOn }, cookie, 403)
+    return h.post(`advances/${a.id}/paid`, { version: a.version, reference: `ACH-${a.advance}`, paidOn }, t.morgan)
+  }
+  const own = await h.post('advances', { purpose: 'Own trip', amount: '50.00' }, t.priya, 409)
+  assert.match(own.error, /approving manager/)
+  const sams = await advance(t.sam, ago(130)), alexs = await advance(t.alex, today)
+  assert.deepEqual([sams.status, sams.amount_minor, sams.returnDueOn, sams.owedMinor], ['paid', 100000, ago(10), 100000])
+
+  const link = async (cookie, d, a) => (await h.post(`claims/${d.claim.id}/advance`, { version: d.claim.version, advance: a.id }, cookie), h.get(`claims/${d.claim.id}`, cookie))
+  let samClaim = await claim(h, t.sam, 'Chicago trade show', [
+    { kind: 'receipt', date: ago(4), merchant: 'Hilton Chicago', amount: '500.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' },
+    { kind: 'receipt', date: ago(3), merchant: 'FedEx Office', amount: '330.00', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' }])
+  let alexClaim = await claim(h, t.alex, 'Chicago trade show', [
+    { kind: 'receipt', date: ago(4), merchant: 'Hertz', amount: '1100.00', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' },
+    { kind: 'receipt', date: ago(3), merchant: 'Bistro', amount: '100.00', allocations: [{ category: t.c.meals }], receiptFixture: 'bistro' }])
+  await h.post(`claims/${alexClaim.claim.id}/advance`, { version: alexClaim.claim.version, advance: sams.id }, t.alex, 403)
+  samClaim = await link(t.sam, samClaim, sams); alexClaim = await link(t.alex, alexClaim, alexs)
+  await h.post(`claims/${alexClaim.claim.id}/advance`, { version: alexClaim.claim.version, advance: alexs.id }, t.sam, 403)
+  assert.equal(samClaim.advance.advance, sams.advance)
+  const a = await approve(h, t.priya, await submit(h, t.sam, samClaim)), b = await approve(h, t.priya, await submit(h, t.alex, alexClaim))
+
+  // $830 against $1,000: nothing more to pay and $170 owed back; $1,200 against $1,000: $200 reimbursed and nothing owed.
+  const settled = async () => Object.fromEntries((await h.get('advances', t.morgan)).advances.map(x => [x.id, [x.applied_minor, x.reimburseMinor, x.owedMinor]]))
+  assert.deepEqual(await settled(), { [sams.id]: [83000, 0, 17000], [alexs.id]: [100000, 20000, 0] })
+  assert.deepEqual((await h.get(`claims/${a.id}`, t.priya)).advance.owedMinor, 17000)
+  let batch = await h.post('batches', { claims: [a.id, b.id] }, t.morgan)
+  assert.equal(batch.total_minor, 20000)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 20000 }, t.jordan)
+  await h.paid(batch.id, batch.version, { reference: 'ACH-0901', paidOn: today }, t.jordan)
+  const table = async file => { const [head, ...rows] = (await h.send(`/api/coaster/batches/${batch.id}/${file}`, undefined, t.jordan)).text.trim().split('\r\n').map(r => r.slice(1, -1).split('","')); return rows.map(r => Object.fromEntries(head.map((k, i) => [k, r[i]]))) }
+  const people = await table('reimbursements.csv'), lines = await table('accounting.csv')
+  assert.deepEqual(people.map(p => [p.employee, p.amount]).sort(), [['alex@harbourfinch.example', '200.00'], ['sam@harbourfinch.example', '0.00']])
+  assert.deepEqual(lines.filter(l => l.type === 'advance').map(l => [l.employee, l.category, l.account_code, l.amount, l.description]).sort(), [
+    ['alex@harbourfinch.example', 'Cash advance applied', '1250', '-1000.00', `Cash advance ${alexs.advance} applied`], ['sam@harbourfinch.example', 'Cash advance applied', '1250', '-830.00', `Cash advance ${sams.advance} applied`]])
+  assert.equal(Math.round(lines.reduce((n, l) => n + Number(l.amount) * 100, 0)), 20000)
+
+  // Sam's $170 was due back 120 days after the advance was paid: it is on the overdue list and the accountable plan.
+  const overdue = await h.get('advances', t.morgan)
+  assert.deepEqual(overdue.overdue.map(x => [x.advance, x.employee_email, x.owedMinor, x.returnDueOn, x.daysOverdue]), [[sams.advance, 'sam@harbourfinch.example', 17000, ago(10), 10]])
+  const plan = await h.get('accountable-plan', t.morgan)
+  assert.deepEqual(plan.excessOverdue.map(x => [x.advance, x.owedMinor]), [[sams.advance, 17000]])
+  assert.deepEqual((await h.get('advances', t.sam)).advances.map(x => [x.advance, x.owedMinor, x.overdue]), [[sams.advance, 17000, true]])
+  // Finance records the returned excess, never more than is owed; once returned it leaves both lists.
+  let s = (await h.get('advances', t.morgan)).advances.find(x => x.id === sams.id)
+  await h.post(`advances/${sams.id}/return`, { version: s.version, amount: '170.01', returnedOn: today, reference: 'DEP-1' }, t.morgan, 409)
+  await h.post(`advances/${sams.id}/return`, { version: s.version, amount: '170.00', returnedOn: today, reference: 'DEP-1' }, t.sam, 403)
+  s = await h.post(`advances/${sams.id}/return`, { version: s.version, amount: '170.00', returnedOn: today, reference: 'DEP-1' }, t.morgan)
+  assert.deepEqual([s.owedMinor, s.overdue, s.returns.map(r => [r.amount_minor, r.reference])], [0, false, [[17000, 'DEP-1']]])
+  assert.deepEqual([(await h.get('advances', t.morgan)).overdue, (await h.get('accountable-plan', t.morgan)).excessOverdue], [[], []])
+  const history = (await h.get('history')).lines.filter(l => l.action.startsWith('advance-') && (l.detail.advance === sams.id))
+  assert.deepEqual(history.map(l => [l.action, l.actor_email]), [['advance-requested', 'sam@harbourfinch.example'], ['advance-approved', 'priya@harbourfinch.example'], ['advance-paid', 'morgan@harbourfinch.example'], ['advance-linked', 'sam@harbourfinch.example'], ['advance-returned', 'morgan@harbourfinch.example']])
 }))
 
 test('CLAIM-009 finance pays a monthly stipend to every employee and caps a yearly allowance; employees claim against the cap, set recurring expenses and see what is left; a deactivated member\'s stipend stops', () => withAgency(async (h, t) => {

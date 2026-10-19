@@ -77,9 +77,10 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     {owner && b && <Section title="Payment controls">
       <p className="muted">Releasing a reviewed batch needs you, or a finance member you give release access under People, signed in within the last 10 minutes (a recent sign-in, not a second factor), and never someone with a claim in the batch. On the reimbursement day, at 9:00 ({b.timezone}), Coaster opens a draft batch of every approved claim for finance to review; it never releases one.</p>
-      <Form key={`${b.dual_release_over_minor ?? 'off'}-${b.pay_weekday ?? 'off'}`} label="Save payment controls" onSubmit={async v => { await call('settings/payment-controls', v); await saved('Payment controls saved.'); }}>
+      <Form key={`${b.dual_release_over_minor ?? 'off'}-${b.pay_weekday ?? 'off'}-${b.advance_account ?? ''}`} label="Save payment controls" onSubmit={async v => { await call('settings/payment-controls', v); await saved('Payment controls saved.'); }}>
         <Field label="Dual release above" name="dualReleaseOver" inputMode="decimal" required={false} defaultValue={b.dual_release_over_minor == null ? '' : amountText(b.dual_release_over_minor)} hint="A batch over this needs a second, different person to release it; leave empty to turn it off" />
         <Field label="Reimbursement day" name="payWeekday" required={false} defaultValue={b.pay_weekday == null ? '' : WEEKDAYS[b.pay_weekday]} options={WEEKDAYS.map(d => ({ value: d, label: `Every ${d}` }))} hint="Choose… turns it off" />
+        <Field label="Cash advance account" name="advanceAccount" required={false} defaultValue={b.advance_account ?? ''} hint="The ledger account an advance a claim draws down posts to, as a negative line" />
       </Form>
     </Section>}
     {owner && b && <Section title="Scheduled submission">

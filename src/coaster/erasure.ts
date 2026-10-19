@@ -1,3 +1,4 @@
+import { advancesFor } from './advances';
 import { redactionStatements, invalidateTransfersStatements } from '@runeditrun/rer/modules/portability/journal';
 import { retireD1ImportCustody, type D1Sql } from '../modules/import-kit/src/d1/index';
 import { authority, need } from './session';
@@ -22,6 +23,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_requests', ['employee_email', 'approver_email', 'on_behalf_of', 'submitted_by', 'decided_by', 'decided_on_behalf_of']],
   ['c_comments', ['on_behalf_of', 'asks_email']],
   ['c_export_templates', ['created_by']],
+  ['c_advances', ['employee_email', 'approver_email', 'on_behalf_of', 'submitted_by', 'decided_by', 'decided_on_behalf_of', 'paid_by']], ['c_advance_returns', ['recorded_by']],
   ['c_exception_reviews', ['reviewed_by']], ['c_nonaccountable', ['marked_by']],
   ['c_audit_samples', ['finding_by']],
   ['c_approval_rules', ['set_by']],
@@ -47,7 +49,7 @@ const JSON_COLUMNS: [string, string[]][] = [
 /** Imported history names the person at these paths: history values, Expensify payloads and each card or Emburse export's raw row. */
 const IMPORTED_PATHS = [['employee'], ['manager'], ['approver'], ['accountEmail'], ['managerEmail'], ...[...new Set(Object.values(HISTORY_SOURCES).flatMap(p => [p.employee, p.approver ?? []].flat()))].map(c => [c])];
 /** Kept as US business records: every claim, expense, split, receipt and batch, and every history line. */
-const RETAINED = ['claim and spend request amounts, dates, merchants, categories, coding, descriptions and statuses', 'receipt bytes and SHA-256 hashes', 'decisions, revisions, reimbursement batches and history lines, under the opaque label', 'imported history amounts, dates and merchants', 'what other people wrote in their own comments'];
+const RETAINED = ['claim, spend request and cash advance amounts, dates, merchants, categories, coding, descriptions and statuses', 'receipt bytes and SHA-256 hashes', 'decisions, revisions, reimbursement batches and history lines, under the opaque label', 'imported history amounts, dates and merchants', 'what other people wrote in their own comments'];
 
 const sql = (text: string, ...params: unknown[]): D1Sql => ({ sql: text, params });
 /** Workers' D1 prepared statements carry their text and bindings; import-kit takes them as D1Sql. */
@@ -71,6 +73,9 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   const unpaid = claims.filter(c => !['reimbursed', 'rejected'].includes(c.status));
   requireThat(!unpaid.length, `${member.name} still has unpaid claims (${unpaid.map(c => claimNumber(c.number)).join(', ')}); pay, reject or remove them first`, 409);
   requireThat(!await db.prepare("SELECT 1 FROM c_requests WHERE employee_email=? AND status='submitted'").bind(address).first(), `${member.name} has a spend request waiting for a decision`, 409);
+  // A cash advance still waiting, unpaid or with excess owed is an open financial record (CLAIM-004).
+  const advance = (await advancesFor(db, { ...actor, roles: { ...actor.roles, owner: true } })).advances.find(a => a.employee_email === address && (['submitted', 'approved'].includes(a.status) || a.owedMinor > 0));
+  requireThat(!advance, `${member.name} has cash advance ${advance?.advance} still open; settle it first`, 409);
   requireThat(!await db.prepare("SELECT 1 FROM c_claims WHERE approver_email=? AND status='submitted'").bind(address).first(), `Claims are still waiting for ${member.name} to decide; reassign them first`, 409);
   requireThat(!await db.prepare("SELECT 1 FROM c_claim_chains cc JOIN c_claims c ON c.id=cc.claim_id AND c.revision=cc.revision JOIN json_each(cc.steps) s WHERE c.status='submitted' AND CAST(s.key AS INTEGER)>=cc.position AND json_extract(s.value,'$.memberId')=?").bind(member.member_id).first(), `Claims are still waiting for ${member.name} in an approval chain; complete or return them first`, 409);
   // The person themselves (a hold on them or the business), then each claim's expense dates.

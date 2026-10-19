@@ -10,6 +10,7 @@ import { matches, type ViewProps } from './claims';
 import { BatchDownloads, Exports } from './exports';
 import { ExceptionQueue } from './exception-queue';
 import { AccountablePlan } from './accountable-plan';
+import { CashAdvances } from './advances';
 
 const batchStatus = (b: D) => b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed';
 const tone = (b: D) => b.status === 'reimbursed' || batchStage(b) === 'released' ? 'done' : 'wait';
@@ -61,6 +62,7 @@ export function Batches({ state, reload, id, query }: ViewProps) {
         </table></div> : <Empty title="No batches yet">Choose approved claims above to start one.</Empty>}
       </Section>
       <ExceptionQueue state={state} />
+      {state.actor.roles.finance && <CashAdvances state={state} reload={reload} mode="finance" />}
       <AccountablePlan state={state} />
       <Exports state={state} reload={reload} />
     </div>

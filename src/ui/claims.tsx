@@ -6,6 +6,7 @@ import { ClaimPanel } from './claim-panel';
 import { ClaimsTable } from './claims-table';
 import { AgentStrip } from './proposals';
 import { SpendRequests } from './requests';
+import { CashAdvances } from './advances';
 import { QuickExpense } from './quick-expense';
 import { useDesktop, Work } from './shell';
 import { go, oldestWaiting, waitingFor } from './app';
@@ -65,5 +66,6 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
         </section>}
     {state.actor.roles.employee && !state.actor.delegate && <QuickExpense state={state} reload={reload} />}
     {state.actor.roles.employee && <SpendRequests state={state} reload={reload} />}
+    {state.actor.roles.employee && <CashAdvances state={state} reload={reload} mode="mine" />}
   </Work>;
 }

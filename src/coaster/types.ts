@@ -66,7 +66,7 @@ export function rate(value: unknown, label: string): number {
 export function optionalAmount(value: unknown, label: string): number | null {
   return value === undefined || value === null || value === '' ? null : amount(value, label);
 }
-export const decimal = (minor: number) => `${Math.trunc(minor / 100)}.${String(Math.abs(minor) % 100).padStart(2, '0')}`;
+export const decimal = (minor: number) => `${minor < 0 ? '-' : ''}${Math.trunc(Math.abs(minor) / 100)}.${String(Math.abs(minor) % 100).padStart(2, '0')}`;
 
 /** Distances in hundredths of a mile: "142" or "142.5" → 14200 / 14250. */
 export function distance(value: unknown): number {

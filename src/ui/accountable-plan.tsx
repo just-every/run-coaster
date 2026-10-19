@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { call, day, money, plural, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
+import { settlement } from './advances';
 
 /** Finance's accountable-plan list (CLAIM-008): expenses filed more than 60 days after the spend, and the expenses
  * finance treats as non-accountable, which the reimbursement files label as taxable pay. */
@@ -19,5 +20,7 @@ export function AccountablePlan({ state }: { state: D }) {
         <Field label="Reason" name="reason" placeholder="Filed after the 60-day window" />
       </Form>}
     </li>)}</ul> : <Empty title="No late expenses">Every expense was filed within {plan.substantiationDays} days of the spend.</Empty>}
+    <h3>Advance excess not returned within {plan.returnDays} days</h3>
+    {plan.excessOverdue.length ? <ul className="ruled-list">{plan.excessOverdue.map((a: D) => <li key={a.id} className="job"><span><strong>{a.advance}</strong> · {state.names[a.employee_email] ?? a.employee_email} · {a.purpose} · {money(a.amount_minor, a.currency)} paid {day(a.paid_on)} · {settlement(a)}</span></li>)}</ul> : <Empty title="No overdue advance excess">Every advance’s excess was returned or is not yet due.</Empty>}
   </Section>;
 }

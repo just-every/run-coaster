@@ -15,6 +15,7 @@ import { localDate } from './reports';
 import { businessDaysBetween } from './business-days';
 import { allowancesFor } from './allowances';
 import { policyOn } from './policy';
+import { advancesFor, claimAdvance } from './advances';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -49,6 +50,7 @@ export async function workspace(db: D1Database, actor: Actor) {
     requests: await requestsFor(db, actor),
     approvalRule: actor.roles.owner || actor.roles.finance || actor.roles.auditor ? await currentRule(db) : null,
     allowances: await allowancesFor(db, actor),
+    advances: settings ? (await advancesFor(db, actor)).advances : [],
   };
 }
 
@@ -74,7 +76,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const linked = [...new Set(items.map(i => i.request_id).filter(Boolean))];
   const requests = await Promise.all(linked.map(async id => ({ ...(await loadRequest(db, id)), claim_minor: items.filter(i => i.request_id === id).reduce((n, i) => n + i.amount_minor, 0) })));
   return {
-    claim, requests, comments: await claimComments(db, claim.id), items: items.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: receipts.results,
+    claim, requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: items.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: receipts.results,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
     events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
   };
