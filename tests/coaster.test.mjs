@@ -540,3 +540,35 @@ test('ADMIN-005 a delegate prepares and submits in someone else\'s name on their
   assert.equal(await forOwner('settings/categories', { name: 'Gifts', accountCode: '6600', taxCode: 'GST' }), 200, 'a Full delegate has the whole row of the person they act for')
   assert.deepEqual([await forOwner('delegates', { delegate: 'alex@harbourfinch.example', level: 'full' }), await forOwner('agent-keys', { label: 'Owner agent' })], [403, 403], 'but never their delegates or keys')
 }))
+
+test('CLAIM-007 a three-night folio is itemized into categorized parts, a dinner\'s attendees meet a per-person limit, and a blank required field blocks submission by name', () => withAgency(async (h, t) => {
+  const lodging = (await h.post('settings/categories', { name: 'Lodging', accountCode: '6210', taxCode: 'GST' })).id
+  const meals = await h.post('settings/categories', { id: t.c.meals, name: 'Meals', accountCode: '6300', taxCode: 'GST', perPersonLimit: '75.00', requiredFields: 'Business purpose, Client' })
+  assert.deepEqual([meals.per_person_limit_minor, meals.required_fields], [7500, ['Business purpose', 'Client']])
+  const purpose = { 'Business purpose': 'Lyra rebrand workshop', Client: 'Lyra' }
+  const d = await claim(h, t.sam, 'Lyra workshop week', [
+    { kind: 'receipt', date: '2026-05-14', merchant: 'Harbour Grand Hotel', amount: '1038.75', receiptFixture: 'hotel', fields: purpose, allocations: [
+      { category: lodging, description: 'Room, 3 nights', amount: '867.00' }, { category: lodging, description: 'Room tax', amount: '104.04' },
+      { category: t.c.meals, description: 'In-room dining', amount: '52.71' }, { category: t.c.travel, description: 'Incidentals: parking', amount: '15.00' }] },
+    { kind: 'receipt', date: '2026-05-15', merchant: 'Rockpool', amount: '320.00', receiptFixture: 'bistro', allocations: [{ category: t.c.meals }], fields: { 'Business purpose': 'Pitch dinner' }, attendees: [
+      { kind: 'employee', name: 'Sam Taylor', email: 'sam@harbourfinch.example' }, { kind: 'employee', name: 'Priya Nair', email: 'priya@harbourfinch.example' }, { kind: 'guest', name: 'Dana Cho' }, { kind: 'guest', name: 'Lee Park' }] },
+  ])
+  const [folio, dinner] = d.items
+  assert.deepEqual(folio.allocations.map(a => [a.description, a.category_name, a.amount_minor]), [['Room, 3 nights', 'Lodging', 86700], ['Room tax', 'Lodging', 10404], ['In-room dining', 'Meals', 5271], ['Incidentals: parking', 'Travel', 1500]])
+  assert.deepEqual(dinner.attendees.map(a => a.kind), ['employee', 'employee', 'guest', 'guest'])
+  assert.deepEqual(d.exceptions.map(e => [e.code, e.item]), [['over-per-person', dinner.id]])
+  assert.match(d.exceptions[0].message, /80\.00 a person for 4 people, over the Meals limit of AUD 75\.00 a person/)
+  await h.post(`claims/${d.claim.id}/items`, { version: d.claim.version, item: dinner.id, kind: 'receipt', date: '2026-05-15', merchant: 'Rockpool', amount: '320.00', allocations: [{ category: t.c.meals }], attendees: [{ kind: 'employee', name: 'Stranger', email: 'stranger@elsewhere.example' }] }, t.sam, 400)
+  const refused = await h.send(`/api/coaster/claims/${d.claim.id}/submit`, { version: d.claim.version }, t.sam)
+  assert.equal(refused.status, 409); assert.match(refused.value.error, /Client for Rockpool \(Meals\)/); assert.doesNotMatch(refused.value.error, /Harbour Grand Hotel/)
+  let c = await h.post(`claims/${d.claim.id}/items`, { version: d.claim.version, item: dinner.id, kind: 'receipt', date: '2026-05-15', merchant: 'Rockpool', amount: '320.00', receipt: dinner.receipt_id, allocations: [{ category: t.c.meals }], attendees: dinner.attendees, fields: { 'Business purpose': 'Pitch dinner', Client: 'Lyra' }, explanation: 'Pitch dinner for four with the client' }, t.sam)
+  c = await approve(h, t.priya, await submit(h, t.sam, await h.get(`claims/${c.id}`, t.sam)), { acknowledge: true })
+  const seen = await h.get(`claims/${c.id}`, t.priya)
+  assert.deepEqual(seen.revisions[0].snapshot.items[1].attendees.map(a => a.name), ['Sam Taylor', 'Priya Nair', 'Dana Cho', 'Lee Park'], 'the approver sees who was there')
+  assert.equal(seen.revisions[0].snapshot.items[1].fields.Client, 'Lyra')
+  let batch = await h.post('batches', { claims: [c.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 103875 + 32000 }, t.jordan)
+  const csv = (await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`, undefined, t.jordan)).text
+  assert.match(csv, /"Room tax","receipt","Lodging","6210","GST","","104.04"/); assert.match(csv, /"In-room dining","receipt","Meals","6300","GST","","52.71"/)
+  assert.equal(sum(csv, 'amount'), 103875 + 32000)
+}))

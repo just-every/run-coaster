@@ -121,8 +121,9 @@ export async function batchLines(db: D1Database, id: string) {
     const memo = [row.submitted_by !== row.employee_email && `submitted by ${row.submitted_by} on behalf of ${row.employee_email}`, row.on_behalf_of && `approved by ${row.approver} on behalf of ${row.on_behalf_of}`].filter(Boolean).join('; ');
     for (const item of snapshot.items) {
       const flags = snapshot.exceptions.filter((e: Data) => e.item === item.id).map((e: Data) => e.code).join(' ');
-      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number) => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: item.description, kind: item.kind, category, account, tax, costCentre, amountMinor, receipt: item.receipt?.sha256 ?? '', exceptions: flags, explanation: flags ? item.explanation : '', approver: row.approver, approvedAt: row.approved_at, memo });
-      for (const part of item.allocations) line(part.category_name, part.account_code, part.tax_code, part.cost_centre, part.amount_minor);
+      // An itemized part's own description (room, tax, in-room dining) stands for the expense's on its accounting line.
+      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number, part = '') => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: part || item.description, kind: item.kind, category, account, tax, costCentre, amountMinor, receipt: item.receipt?.sha256 ?? '', exceptions: flags, explanation: flags ? item.explanation : '', approver: row.approver, approvedAt: row.approved_at, memo });
+      for (const part of item.allocations) line(part.category_name, part.account_code, part.tax_code, part.cost_centre, part.amount_minor, part.description);
       // A receipt's sales tax posts on its own line to the sales tax account and code copied onto the expense.
       if (item.sales_tax_minor) line('Sales tax', item.sales_tax_account, item.sales_tax_code, '', item.sales_tax_minor);
     }

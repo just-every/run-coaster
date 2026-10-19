@@ -2,8 +2,17 @@ import type { Business } from './settings';
 import type { Category } from './items';
 import type { Data } from './types';
 
-export type PolicyException = { item: string; code: 'missing-receipt' | 'over-limit' | 'duplicate-receipt' | 'possible-duplicate'; message: string };
-export type ClaimItem = Data & { id: string; kind: string; spent_on: string; merchant: string; amount_minor: number; receipt_id: string | null; receipt_sha256?: string | null; allocations: Data[] };
+export type PolicyException = { item: string; code: 'missing-receipt' | 'over-limit' | 'over-per-person' | 'duplicate-receipt' | 'possible-duplicate'; message: string };
+export type ClaimItem = Data & { id: string; kind: string; spent_on: string; merchant: string; amount_minor: number; receipt_id: string | null; receipt_sha256?: string | null; allocations: Data[]; attendees: Data[]; fields: Record<string, string> };
+
+/** Each required custom field (CLAIM-007) a current expense leaves blank, named with the expense and category. */
+export function missingFields(items: ClaimItem[], known: Category[]) {
+  const byId = new Map(known.map(c => [c.id, c]));
+  return items.flatMap(item => [...new Set(item.allocations.map(a => a.category_id))].flatMap(id => {
+    const category = byId.get(id);
+    return (category?.required_fields ?? []).filter(name => !item.fields[name]).map(name => `${name} for ${item.merchant} (${category!.name})`);
+  }));
+}
 
 const normal = (merchant: string) => merchant.trim().toLowerCase().replace(/\s+/g, ' ');
 const money = (minor: number, currency: string) => { const text = (minor / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return currency === 'USD' ? `$${text}` : `${currency} ${text}`; };
@@ -28,6 +37,10 @@ export async function findExceptions(db: D1Database, claim: { id: string; employ
       const category = byId.get(id);
       if (category?.limit_minor != null && amount > category.limit_minor)
         found.push({ item: item.id, code: 'over-limit', message: `Over the ${category.name} limit of ${money(category.limit_minor, business.currency)}` });
+      // A per-person limit divides the category's share of the expense among everyone listed at it (at least the employee).
+      const people = Math.max(1, item.attendees?.length ?? 0), each = Math.ceil(amount / people);
+      if (category?.per_person_limit_minor != null && each > category.per_person_limit_minor)
+        found.push({ item: item.id, code: 'over-per-person', message: `${money(each, business.currency)} a person for ${people} ${people === 1 ? 'person' : 'people'}, over the ${category.name} limit of ${money(category.per_person_limit_minor, business.currency)} a person` });
     }
     if (item.receipt_sha256) {
       const same = items.find(other => other.id !== item.id && other.receipt_sha256 === item.receipt_sha256);

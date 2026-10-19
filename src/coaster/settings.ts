@@ -2,6 +2,7 @@ import { authority, commit, need } from './session';
 import { event } from './events';
 import { mileageRates, seedIrsRates, type MileageRate } from './mileage';
 import { queueMoves } from './delegation';
+import { categories } from './items';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Business = { name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; mileage_rates: MileageRate[] };
@@ -54,12 +55,21 @@ export async function saveCategory(db: D1Database, actor: Actor, b: Data) {
   requireThat(!clash, 'Another category already has that name', 409);
   // Lodging always needs a receipt at any amount (IRS); the owner can ask the same of any other category.
   const receiptAlways = LODGING.test(name) ? 1 : flag(b.receiptAlways);
-  const values = [id, name, text(b.accountCode, 'Account code', 40), text(b.taxCode, 'Tax code', 40), optionalAmount(b.limit, 'Limit per expense'), b.active === false || b.active === 'false' ? 0 : 1, receiptAlways];
+  const required = requiredFields(b.requiredFields);
+  const values = [id, name, text(b.accountCode, 'Account code', 40), text(b.taxCode, 'Tax code', 40), optionalAmount(b.limit, 'Limit per expense'), b.active === false || b.active === 'false' ? 0 : 1, receiptAlways, optionalAmount(b.perPersonLimit, 'Limit per person'), JSON.stringify(required)];
   await commit(db, authority(actor, 'owner'), [
-    db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,account_code=excluded.account_code,tax_code=excluded.tax_code,limit_minor=excluded.limit_minor,active=excluded.active,receipt_always=excluded.receipt_always').bind(...values),
-    event(db, actor, 'category-saved', {}, { id, name, accountCode: values[2], taxCode: values[3], limitMinor: values[4], active: values[5] === 1, receiptAlways: values[6] === 1 }),
+    db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always,per_person_limit_minor,required_fields) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,account_code=excluded.account_code,tax_code=excluded.tax_code,limit_minor=excluded.limit_minor,active=excluded.active,receipt_always=excluded.receipt_always,per_person_limit_minor=excluded.per_person_limit_minor,required_fields=excluded.required_fields').bind(...values),
+    event(db, actor, 'category-saved', {}, { id, name, accountCode: values[2], taxCode: values[3], limitMinor: values[4], active: values[5] === 1, receiptAlways: values[6] === 1, perPersonLimitMinor: values[7], requiredFields: required }),
   ]);
-  return db.prepare('SELECT * FROM c_categories WHERE id=?').bind(id).first();
+  return (await categories(db)).find(c => c.id === id);
+}
+
+/** Custom fields every expense in a category must fill, such as business purpose, client or flight class: a list or comma-separated names. */
+function requiredFields(value: unknown): string[] {
+  if (value === undefined || value === null || value === '') return [];
+  const names = (Array.isArray(value) ? value : String(value).split(',')).map(v => String(v).trim()).filter(Boolean);
+  requireThat(names.length <= 10 && names.every(n => n.length <= 60), 'Name at most 10 required fields of up to 60 characters each');
+  return [...new Set(names)];
 }
 
 

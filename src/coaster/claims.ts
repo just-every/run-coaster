@@ -1,7 +1,7 @@
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { event } from './events';
 import { categories, itemInput, type Allocation, type ItemInput } from './items';
-import { findExceptions, repeatedInClaim, type ClaimItem } from './exceptions';
+import { findExceptions, missingFields, repeatedInClaim, type ClaimItem } from './exceptions';
 import { requireBusiness } from './settings';
 import { localDay, routeFor } from './delegation';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
@@ -46,8 +46,8 @@ export function insertClaim(db: D1Database, id: string, employee: string, title:
 
 export function insertItem(db: D1Database, claimId: string, itemId: string, position: number, item: ItemInput, receiptId: string | null) {
   return [
-    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code),
-    ...item.allocations.map((a: Allocation, i) => db.prepare('INSERT INTO c_allocations(item_id,position,category_id,cost_centre,amount_minor) VALUES(?,?,?,?,?)').bind(itemId, i, a.category_id, a.cost_centre, a.amount_minor)),
+    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {})),
+    ...item.allocations.map((a: Allocation, i) => db.prepare('INSERT INTO c_allocations(item_id,position,category_id,cost_centre,amount_minor,description) VALUES(?,?,?,?,?,?)').bind(itemId, i, a.category_id, a.cost_centre, a.amount_minor, a.description ?? '')),
   ];
 }
 
@@ -80,6 +80,7 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
   const business = await requireBusiness(db), item = itemInput(b, business, await categories(db)), receiptId = await ownReceipt(db, claim, b.receipt);
+  for (const a of item.attendees ?? []) if (a.email) requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=?').bind(a.email).first(), `${a.name} is not a Coaster member; add them as a guest`);
   const statements: D1PreparedStatement[] = [];
   let itemId: string = uid(), position: number;
   if (b.item) {
@@ -144,7 +145,7 @@ export async function claimItems(db: D1Database, claimId: string): Promise<Claim
     db.prepare('SELECT i.*, r.sha256 AS receipt_sha256, r.name AS receipt_name, r.media_type AS receipt_media, r.size AS receipt_size FROM c_items i LEFT JOIN c_receipts r ON r.id=i.receipt_id WHERE i.claim_id=? ORDER BY i.position').bind(claimId),
     db.prepare('SELECT a.*, c.name AS category_name, c.account_code, c.tax_code FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_categories c ON c.id=a.category_id WHERE i.claim_id=? ORDER BY a.item_id, a.position').bind(claimId),
   ]);
-  return (items.results as ClaimItem[]).map(item => ({ ...item, allocations: (parts.results as Data[]).filter(p => p.item_id === item.id) }));
+  return (items.results as Data[]).map(item => ({ ...item, attendees: JSON.parse(item.attendees), fields: JSON.parse(item.fields), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id) }) as ClaimItem);
 }
 
 /** Submission freezes the exact claim as a new revision and routes it to the employee's manager. */
@@ -155,10 +156,12 @@ export async function submitClaim(db: D1Database, actor: Actor, id: string, b: D
   requireThat(items.length > 0, 'Add at least one expense before submitting');
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(claim.employee_email).first<{ approver_email: string | null }>();
   requireThat(member?.approver_email && member.approver_email !== claim.employee_email, 'Ask the owner to set your approving manager before submitting', 409);
+  const known = await categories(db), missing = missingFields(items, known);
+  requireThat(!missing.length, `Fill in the required ${missing.length === 1 ? 'field' : 'fields'} before submitting: ${missing.join('; ')}`, 409);
   const business = await requireBusiness(db), { approver, onBehalfOf } = await routeFor(db, member.approver_email, claim.employee_email, localDay(business.timezone));
   const repeated = repeatedInClaim(claim.employee_email, items);
   requireThat(!repeated.length, `${repeated.map(i => i.merchant).join(', ')} appears twice on this claim with the same ${repeated.some(i => i.receipt_sha256) ? 'receipt' : 'date, merchant and amount and no receipt'}; only one could be reimbursed. Attach each one's own receipt, or correct or remove one, before submitting`, 409);
-  const exceptions = await findExceptions(db, claim, items, business, await categories(db));
+  const exceptions = await findExceptions(db, claim, items, business, known);
   const unexplained = exceptions.filter(e => !items.find(i => i.id === e.item)?.explanation);
   requireThat(!unexplained.length, `Explain each policy exception before submitting: ${unexplained.map(e => e.message).join('; ')}`, 409);
   const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();

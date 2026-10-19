@@ -20,7 +20,7 @@ with `actingFor`.
 | `GET state` | anyone in Coaster | Their workspace: business, categories, the claims they may see, their proposals and agent keys; batches for finance and auditors. An auditor sees every submitted claim and changes nothing. |
 | `POST claims` `{title}` | employee | Start a draft claim. |
 | `GET claims/:id` | who may see it | Items, receipts, exceptions, every revision, decision and history line. |
-| `POST claims/:id/items` `{version, item?, kind, date, merchant, amount \| distance \| days, description, explanation, receipt?, allocations: [{category, costCentre, amount?}]}` | its employee | Add or replace an expense (draft or returned). |
+| `POST claims/:id/items` `{version, item?, kind, date, merchant, amount \| distance \| days, description, explanation, receipt?, allocations: [{category, costCentre, amount?, description?}], attendees?: [{kind: employee\|guest, name, email?}], fields?: {name: value}}` | its employee | Add or replace an expense (draft or returned); an itemized part names itself (room, tax), attendees count against a category's per-person limit, and every category's required fields must be filled before submission. |
 | `POST claims/:id/items/remove` `{version, item}` | its employee | Remove an expense. |
 | `POST claims/:id/receipts` `{version, name, base64, item?}` | its employee | Upload receipt bytes (JPEG, PNG, WebP, HEIC or PDF, at most 1.5 MB). |
 | `POST claims/:id/submit` `{version}` | its employee | Submit the next revision to the approving manager. |

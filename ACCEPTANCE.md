@@ -125,7 +125,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **CLAIM-006 — Billable expenses and client rebilling. Status: missing.** Mark two expenses billable to a customer; see them as billable in the QuickBooks sandbox with attachments and as billable items in a Gauge test installation. Open scope: No billable flag or client rebilling.
 
-- **CLAIM-007 — Itemization, attendees and required fields. Status: missing.** Itemize a three-night folio and see room and in-room dining in their categories; add four attendees to a $320 dinner against a $75 per-person limit and see the exception; leave a required field blank and see submission refused with the field named. Open scope: No itemization, attendees or custom required fields.
+- **CLAIM-007 — Itemization, attendees and required fields. Status: done.** Itemize a three-night folio and see room and in-room dining in their categories; add four attendees to a $320 dinner against a $75 per-person limit and see the exception; leave a required field blank and see submission refused with the field named. Existing evidence: `src/coaster/items.ts`; `src/coaster/exceptions.ts`; `src/coaster/claims.ts`; `src/ui/item-form.tsx`; `tests/coaster.test.mjs` (CLAIM-007).
 
 - **CLAIM-008 — Accountable-plan compliance and non-employee claims. Status: missing.** File an expense 75 days after the spend and see the lapse flagged; mark it non-accountable and see it in the payroll handoff as taxable; reimburse a contractor and see the 1099 review flag in the export. Open scope: No accountable-plan deadlines, payroll routing or 1099 flag.
 

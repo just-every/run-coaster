@@ -1,17 +1,20 @@
 import type { Business } from './settings';
 import { rateOn } from './mileage';
-import { amount, distance, isoDate, mileageMinor, optionalAmount, optionalText, requireThat, text, type Data } from './types';
+import { amount, distance, email, isoDate, mileageMinor, optionalAmount, optionalText, requireThat, text, type Data } from './types';
 
-export type Category = { id: string; name: string; account_code: string; tax_code: string; limit_minor: number | null; active: number; receipt_always: number };
-export type Allocation = { category_id: string; cost_centre: string; amount_minor: number };
+export type Category = { id: string; name: string; account_code: string; tax_code: string; limit_minor: number | null; active: number; receipt_always: number; per_person_limit_minor: number | null; required_fields: string[] };
+/** One categorized part of an expense; an itemized folio names each part (room, tax, in-room dining). */
+export type Allocation = { category_id: string; cost_centre: string; amount_minor: number; description?: string };
+/** Someone at a meal: a colleague (by their Coaster email) or a guest. */
+export type Attendee = { name: string; kind: 'employee' | 'guest'; email?: string };
 export type ItemInput = {
   kind: 'receipt' | 'mileage' | 'per_diem'; spent_on: string; merchant: string; description: string; amount_minor: number;
   distance_hundredths: number | null; days: number | null; rate_thousandths: number | null; explanation: string; allocations: Allocation[];
-  sales_tax_minor: number; sales_tax_account: string; sales_tax_code: string;
+  sales_tax_minor: number; sales_tax_account: string; sales_tax_code: string; attendees?: Attendee[]; fields?: Record<string, string>;
 };
 
 export async function categories(db: D1Database): Promise<Category[]> {
-  return (await db.prepare('SELECT * FROM c_categories ORDER BY name').all<Category>()).results;
+  return (await db.prepare('SELECT * FROM c_categories ORDER BY name').all<Category & { required_fields: string }>()).results.map(c => ({ ...c, required_fields: JSON.parse(c.required_fields) }));
 }
 
 /** One expense line, priced from policy (mileage at the rate in force on its trip date) and split across categories; a receipt's sales tax is its own line. */
@@ -49,10 +52,28 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
     requireThat(typeof a.category === 'string' && active.has(a.category), `Choose an active category for part ${i + 1}`);
     const part = raw.length === 1 && (a.amount === null || a.amount === undefined || a.amount === '') ? amount_minor - sales_tax_minor : amount(a.amount, `Amount for part ${i + 1}`);
     requireThat(part > 0, `Part ${i + 1} must be more than zero`);
-    return { category_id: a.category, cost_centre: optionalText(a.costCentre, 'Cost center', 80), amount_minor: part };
+    return { category_id: a.category, cost_centre: optionalText(a.costCentre, 'Cost center', 80), amount_minor: part, description: optionalText(a.description, `Item for part ${i + 1}`, 200) };
   });
   const sum = allocations.reduce((n, a) => n + a.amount_minor, 0);
   requireThat(sum === amount_minor - sales_tax_minor, sales_tax_minor ? 'The split must add up exactly to the expense amount less its sales tax' : 'The split must add up exactly to the expense amount');
   return { kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_thousandths, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations,
-    sales_tax_minor, sales_tax_account: sales_tax_minor ? business.sales_tax_account : '', sales_tax_code: sales_tax_minor ? business.sales_tax_code : '' };
+    sales_tax_minor, sales_tax_account: sales_tax_minor ? business.sales_tax_account : '', sales_tax_code: sales_tax_minor ? business.sales_tax_code : '', attendees: attendees(b.attendees), fields: customFields(b.fields) };
+}
+
+/** Attendees as entered: each a colleague with their email or a named guest. */
+function attendees(value: unknown): Attendee[] {
+  if (value === undefined || value === null || value === '') return [];
+  requireThat(Array.isArray(value) && value.length <= 50, 'List at most 50 attendees');
+  return value.map((a: Data, i): Attendee => {
+    requireThat(a && (a.kind === 'employee' || a.kind === 'guest'), `Say whether attendee ${i + 1} is a colleague or a guest`);
+    const name = text(a.name, `Name of attendee ${i + 1}`, 120);
+    return a.kind === 'employee' ? { name, kind: 'employee', email: email(a.email, `Email of attendee ${i + 1}`) } : { name, kind: 'guest' };
+  });
+}
+
+/** Custom field values by field name; blank values are left out, so a required field reads as missing. */
+function customFields(value: unknown): Record<string, string> {
+  if (value === undefined || value === null || value === '') return {};
+  requireThat(typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length <= 20, 'Fields must be at most 20 named values');
+  return Object.fromEntries(Object.entries(value as Data).map(([name, v]) => [text(name, 'Field name', 60), optionalText(v, name, 300)]).filter(([, v]) => v));
 }

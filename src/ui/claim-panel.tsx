@@ -16,7 +16,7 @@ function Receipt({ item }: { item: D }) {
 }
 
 function split(item: D, currency: string) {
-  return item.allocations.map((a: D) => <span key={a.position} className="split-line">{a.category_name}{a.cost_centre ? ` · ${a.cost_centre}` : ''}{item.allocations.length > 1 ? ` · ${money(a.amount_minor, currency)}` : ''}</span>);
+  return item.allocations.map((a: D) => <span key={a.position} className="split-line">{a.description ? `${a.description} · ` : ''}{a.category_name}{a.cost_centre ? ` · ${a.cost_centre}` : ''}{item.allocations.length > 1 ? ` · ${money(a.amount_minor, currency)}` : ''}</span>);
 }
 
 function merchantLine(item: D, currency: string) {
@@ -71,7 +71,9 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         const flags = exceptions.filter((x: D) => x.item === item.id);
         return <li className="line" key={item.id}>
           <Receipt item={item} />
-          <span className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}</span>
+          <span className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}
+            {item.attendees?.length > 0 && <span className="split-line">Attendees: {item.attendees.map((a: D) => a.kind === 'guest' ? `${a.name} (guest)` : a.name).join(', ')}</span>}
+            {Object.entries(item.fields ?? {}).map(([name, value]) => <span key={name} className="split-line">{name}: {String(value)}</span>)}</span>
           <span className="amount">{amount(item.amount_minor)}</span>
           {(flags.length > 0 || editable) && <span className="line-extra">
             {flags.map((f: D) => <Warning key={f.code}>{exceptionWords[f.code] ?? f.code}</Warning>)}

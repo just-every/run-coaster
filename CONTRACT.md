@@ -382,8 +382,8 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 5 | 22 | 63 | 90 |
-| All | 18 | 22 | 63 | 103 |
+| Target and push further | 6 | 22 | 62 | 90 |
+| All | 19 | 22 | 62 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -422,7 +422,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `CLAIM-004` | Cash advances | target | missing |  | No cash advances. |
 | `CLAIM-005` | Spend requests and trip pre-approval | target | missing |  | No spend requests or pre-approval. |
 | `CLAIM-006` | Billable expenses and client rebilling | target | missing |  | No billable flag or client rebilling. |
-| `CLAIM-007` | Itemization, attendees and required fields | target | missing |  | No itemization, attendees or custom required fields. |
+| `CLAIM-007` | Itemization, attendees and required fields | target | done | `src/coaster/items.ts`; `src/coaster/exceptions.ts`; `src/coaster/claims.ts`; `src/ui/item-form.tsx`; `tests/coaster.test.mjs` (CLAIM-007) |  |
 | `CLAIM-008` | Accountable-plan compliance and non-employee claims | target | missing |  | No accountable-plan deadlines, payroll routing or 1099 flag. |
 | `CLAIM-009` | Recurring expenses and stipends | target | missing |  | No recurring expenses or stipends. |
 | `CODE-001` | Accounting dimensions from the ledger | target | partial | `src/coaster/settings.ts`; `src/coaster/items.ts`; `tests/coaster.test.mjs` (COA-001, COA-003) | Categories carry account and tax codes and splits carry a cost center; no ledger-synced classes, locations, departments, projects or customers, no scheduled refresh, no dependent multi-level tags and no per-category required dimensions. |
