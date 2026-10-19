@@ -24,16 +24,16 @@ export function CashAdvances({ state, reload, mode }: { state: D; reload: () => 
       <span><strong>{a.advance}</strong> · {a.purpose} · {state.names[a.employee_email] ?? a.employee_email} · {money(a.amount_minor, a.currency)}{a.paid_on ? ` · paid ${day(a.paid_on)}` : ''}{settlement(a) ? ` · ${settlement(a)}` : ''}{a.reason ? ` · “${a.reason}”` : ''}</span>
       {mode === 'deciding'
         ? <span className="row-actions"><button className="button small" onClick={() => act(a, 'decision')({ decision: 'approved' })}>Approve</button>
-            <Form label="Reject" className="record-form-inline" onSubmit={v => act(a, 'decision')({ decision: 'rejected', reason: v.reason })}><Field label="Reason to reject" name="reason" /></Form></span>
+            <Form label="Reject" className="record-form-inline" onSubmit={v => act(a, 'decision')({ decision: 'rejected', reason: v.reason })}><Field label="Reason to reject the advance" name="reason" /></Form></span>
         : mode === 'finance' && a.status === 'approved'
-          ? <Form label="Record paid" className="record-form-inline" onSubmit={act(a, 'paid')}><Field label="Payment reference" name="reference" /><Field label="Paid on" name="paidOn" type="date" /></Form>
+          ? <Form label="Record paid" className="record-form-inline" onSubmit={act(a, 'paid')}><Field label="Advance payment reference" name="reference" /><Field label="Advance paid on" name="paidOn" type="date" /></Form>
           : mode === 'finance' && a.owedMinor > 0
-            ? <Form label="Record returned" className="record-form-inline" onSubmit={act(a, 'return')}><Field label="Returned" name="amount" inputMode="decimal" defaultValue={(a.owedMinor / 100).toFixed(2)} /><Field label="Returned on" name="returnedOn" type="date" /><Field label="Reference" name="reference" /></Form>
+            ? <Form label="Record returned" className="record-form-inline" onSubmit={act(a, 'return')}><Field label="Amount returned" name="amount" inputMode="decimal" defaultValue={(a.owedMinor / 100).toFixed(2)} /><Field label="Returned on" name="returnedOn" type="date" /><Field label="Return reference" name="reference" /></Form>
             : <Badge status={a.overdue ? 'overdue' : a.status} />}
     </li>)}</ul> : <Empty title={mode === 'deciding' ? 'No cash advances for you' : 'No cash advances'} />}
     {mode === 'mine' && <div className="sub-form"><Form label="Request an advance" onSubmit={async (v, form) => { await call('advances', v); form.reset(); await reload(); }}>
-      <Field label="What for" name="purpose" placeholder="Chicago trade show" />
-      <Field label="Amount" name="amount" inputMode="decimal" placeholder="1000.00" hint={state.business.currency} />
+      <Field label="Advance for" name="purpose" placeholder="Chicago trade show" />
+      <Field label="Advance amount" name="amount" inputMode="decimal" placeholder="1000.00" hint={state.business.currency} />
     </Form></div>}
   </Section>;
 }
