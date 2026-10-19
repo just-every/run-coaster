@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 16 done, 23 partial, 64 missing.** Statuses describe `main` at `2d12e42cea8d82cbc1cb880eca53577608ec246b`; new target clauses are build
+**103 clauses: 21 done, 22 partial, 60 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -153,7 +153,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **APPROVE-006 — Comments and questions without a decision. Status: missing.** As an approver ask "Which client was this for?" on one expense of a pending claim; see the claim stay pending with the question marked open, the employee notified, the employee answer from a Slack reply, and the approver approve with the answer visible; try to edit the question after the reply and be refused. Open scope: Only return and reject reasons exist (`src/coaster/decisions.ts`); no comments or questions without a decision.
 
-- **APPROVE-007 — Retract a submitted claim and unapprove before payment. Status: missing.** Submit a claim and retract it before any decision; add a receipt, resubmit, and see revision 2 with the retraction recorded on revision 1 and the approver's pending reminder stopped; another employee's attempt to retract it is refused; retract a claim after its first step has approved and be refused. Approve a card-charge claim and see its purchase posted to the QuickBooks sandbox; unapprove it with a reason and see the claim back with the approver, the purchase voided in QuickBooks, and both events in history; try to unapprove a claim in a reviewed batch and be refused. Open scope: Decisions are final and a claim changes only after a return (`src/coaster/decisions.ts`); no retraction before a decision and no unapproval before batching.
+- **APPROVE-007 — Retract a submitted claim and unapprove before payment. Status: done.** Submit a claim and retract it before any decision; add a receipt, resubmit, and see revision 2 with the retraction recorded on revision 1 and the approver's pending reminder stopped; another employee's attempt to retract it is refused; retract a claim after its first step has approved and be refused. Approve a card-charge claim and see its purchase posted to the QuickBooks sandbox; unapprove it with a reason and see the claim back with the approver, the purchase voided in QuickBooks, and both events in history; try to unapprove a claim in a reviewed batch and be refused. Existing evidence: `src/coaster/reversals.ts`; `src/ui/claim-panel.tsx`; `tests/coaster.test.mjs` (APPROVE-007). The QuickBooks void and the pending-reminder stop are obligations ACCT-001 and FOLLOWUP-001 carry before they ship (CONTRACT.md APPROVE-007).
 
 - **FOLLOWUP-001 — Reminders that chase people. Status: missing.** With a clock-controlled installation, leave a receipt missing, a draft unsubmitted, a held expense unanswered and a claim unapproved; advance the clock and see reminders on the scheduled business days, none on a holiday or in quiet hours; resolve each and see its reminders stop. Open scope: No reminders; nothing chases a person.
 

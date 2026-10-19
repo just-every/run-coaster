@@ -43,6 +43,10 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   const names: Record<string, string> = state.names;
   const lastReturn = [...detail.decisions].reverse().find((d: D) => d.decision === 'returned' && d.revision === claim.revision);
   const lastDecision = detail.decisions.at(-1), submitted = detail.revisions.at(-1);
+  // An unapproval sent to the employee keeps its revision; one sent to the approver reopens it as the next revision.
+  const unapproved = [...detail.events].reverse().find((e: D) => e.action === 'claim-unapproved' && (e.detail.revision === claim.revision || submitted?.snapshot.reopened?.fromRevision === e.detail.revision));
+  const approval = detail.decisions.find((d: D) => d.decision === 'approved' && d.revision === claim.revision);
+  const unapprovable = approval && (claim.status === 'approved' || (claim.status === 'batched' && state.actor.roles.finance)) && (state.actor.roles.finance || state.actor.roles.owner || (state.actor.roles.manager && [approval.actor_email, approval.on_behalf_of].includes(me)));
   const merchantOf = (item: string) => items.find((i: D) => i.id === item)?.merchant;
   const categories = [...new Set(items.flatMap((i: D) => i.allocations.map((a: D) => a.category_name)))];
   return <aside className="side detail" aria-label={`Claim ${claimNumber(claim.number)}`}>
@@ -50,6 +54,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     <p className="panel-amount"><strong>{money(claim.total_minor, currency)}</strong> for {names[claim.employee_email] ?? claim.employee_email}</p>
     <p className="panel-date">{claimNumber(claim.number)} · {submitted ? `submitted ${day(submitted.submitted_at)}` : `started ${day(claim.created_at)}`}</p>
     {claim.status === 'returned' && lastReturn && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>Returned for correction:</strong> “{lastReturn.reason}”{editable ? <> Fix the expenses below and submit again; the earlier revision stays in the history.</> : null}</p></div>}
+    {unapproved && ['returned', 'submitted'].includes(claim.status) && <div className="banner" role="status"><span className="banner-mark" aria-hidden="true">!</span><p><strong>Unapproved by {names[unapproved.actor_email] ?? unapproved.actor_email}:</strong> “{unapproved.detail.reason}”{claim.status === 'submitted' ? ' It is waiting for the approver again.' : editable ? ' Fix the expenses below and submit again.' : null}</p></div>}
     {exceptions.length > 0 && <div className="banner"><span className="banner-mark" aria-hidden="true">!</span><div>
       <p><strong>{plural(exceptions.length, 'policy exception')}</strong>{claim.status === 'draft' || claim.status === 'returned' ? ', sent to the approver with the explanations' : ' on this revision'}</p>
       <ul className="ruled-list banner-list">{exceptions.map((x: D, i: number) => <li key={i}>{merchantOf(x.item) ? `${merchantOf(x.item)}: ` : ''}{x.message}</li>)}</ul>
@@ -97,7 +102,22 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
             </Form>
           </div>)}
     </section>
+    {mine && claim.status === 'submitted' && <section className="panel-block" aria-label="Retract">
+      <h3>Retract</h3>
+      <p className="muted">Take the claim back before anyone decides it, for example to add a forgotten receipt. Submitting again makes the next revision.</p>
+      <Form label="Retract claim" onSubmit={async v => { await call(`claims/${claim.id}/retract`, { version: claim.version, reason: v.reason }); await done(); }}>
+        <Field label="Reason" name="reason" required={false} placeholder="For example, adding the hotel receipt" />
+      </Form>
+    </section>}
     {deciding && <Decision claim={claim} exceptions={exceptions} onDone={done} back={back} />}
+    {unapprovable && <section className="panel-block" aria-label="Unapprove">
+      <h3>Unapprove</h3>
+      <p className="muted">Until its batch is reviewed, an approved claim can go back for another look. The approval stays in the history.</p>
+      <Form label="Unapprove claim" onSubmit={async v => { await call(`claims/${claim.id}/unapprove`, { version: claim.version, reason: v.reason, to: v.to }); await done(); }}>
+        <Field label="Send back to" name="to" options={[{ value: 'approver', label: `The approver (${names[claim.approver_email] ?? claim.approver_email})` }, { value: 'employee', label: `The employee (${names[claim.employee_email] ?? claim.employee_email})` }]} />
+        <Field label="Reason" name="reason" placeholder="For example, the client will pay this directly" />
+      </Form>
+    </section>}
     {state.actor.roles.owner && claim.status === 'submitted' && <section className="panel-block" aria-label="Reassign">
       <h3>Reassign</h3>
       <Form label="Reassign claim" onSubmit={async v => { await call(`claims/${claim.id}/reassign`, { version: claim.version, approver: v.approver, reason: v.reason }); await done(); }}>

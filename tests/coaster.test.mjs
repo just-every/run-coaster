@@ -610,3 +610,58 @@ test('CLAIM-005 a conference is requested and approved before spending, linked e
   assert.deepEqual(mine.map(r => [r.title, r.status, r.actual_minor]), [['Laptop', 'rejected', 0], ['Sydney design conference', 'approved', 223000]])
   assert.equal((await h.get('state', t.alex)).requests.length, 0, 'another employee sees none of them')
 }))
+
+test('APPROVE-007 an employee or their delegate retracts a claim before any decision; the approver, finance or the owner unapproves it until its batch is reviewed', () => withAgency(async (h, t) => {
+  const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
+  const d = await claim(h, t.sam, 'Sydney workshop', [{ kind: 'receipt', date: '2026-05-20', merchant: 'Hotel Ibis', amount: '236.00', allocations: [{ category: t.c.travel }], explanation: 'Folio to follow' }])
+  let c = await submit(h, t.sam, d)
+  await h.post(`claims/${c.id}/retract`, { version: c.version }, t.alex, 403)
+  c = await h.post(`claims/${c.id}/retract`, { version: c.version, reason: 'Adding the hotel receipt' }, t.sam)
+  assert.deepEqual([c.status, c.revision, c.approver_email], ['draft', 1, null])
+  assert.ok(!(await h.get('state', t.priya)).claims.some(x => x.id === c.id), 'it leaves the approver\'s queue')
+  await h.get(`claims/${c.id}`, t.priya, 403)
+  const r = await h.post(`claims/${c.id}/receipts`, { version: c.version, item: d.items[0].id, ...(await receipt('hotel')) }, t.sam)
+  c = await h.post(`claims/${c.id}/submit`, { version: r.claim.version }, t.sam)
+  let seen = await h.get(`claims/${c.id}`, t.priya)
+  assert.deepEqual([c.revision, seen.revisions.map(x => x.revision)], [2, [1, 2]])
+  const retracted = seen.events.find(e => e.action === 'claim-retracted')
+  assert.deepEqual([retracted.actor_email, retracted.detail.revision, retracted.detail.reason], [SAM, 1, 'Adding the hotel receipt'], 'the retraction is recorded on revision 1')
+
+  // A delegate retracts in the employee's name; the line is theirs, on the employee's behalf.
+  await h.post('delegates', { delegate: ALEX, level: 'submit' }, t.sam)
+  const asDelegate = await h.send(`/api/coaster/claims/${c.id}/retract`, { version: c.version }, t.alex, { 'x-coaster-acting-for': SAM })
+  assert.equal(asDelegate.status, 200, JSON.stringify(asDelegate.value))
+  seen = await h.get(`claims/${c.id}`, t.sam)
+  assert.deepEqual(seen.events.filter(e => e.action === 'claim-retracted').map(e => [e.actor_email, e.detail.actingFor ?? null, e.detail.revision]), [[SAM, null, 1], [ALEX, SAM, 2]])
+  c = await h.post(`claims/${c.id}/submit`, { version: seen.claim.version }, t.sam)
+  assert.equal(c.revision, 3)
+
+  c = await approve(h, t.priya, c)
+  await h.post(`claims/${c.id}/retract`, { version: c.version }, t.sam, 409)
+  for (const who of [t.sam, t.alex]) await h.post(`claims/${c.id}/unapprove`, { version: c.version, to: 'employee', reason: 'Mine' }, who, 403)
+  await h.post(`claims/${c.id}/unapprove`, { version: c.version, to: 'approver', reason: '' }, t.priya, 400)
+  c = await h.post(`claims/${c.id}/unapprove`, { version: c.version, to: 'approver', reason: 'Check the room rate first' }, t.priya)
+  assert.deepEqual([c.status, c.revision, c.approver_email], ['submitted', 4, PRIYA])
+  seen = await h.get(`claims/${c.id}`, t.priya)
+  assert.deepEqual(seen.revisions.at(-1).snapshot.reopened, { fromRevision: 3, by: PRIYA, reason: 'Check the room rate first' })
+  assert.deepEqual(seen.revisions.at(-1).snapshot.items.map(i => i.receipt.id), seen.revisions.at(-2).snapshot.items.map(i => i.receipt.id))
+  c = await approve(h, t.priya, c)
+
+  // In a draft batch finance may still unapprove: the claim leaves the batch and goes back to the employee.
+  let batch = await h.post('batches', { claims: [c.id] }, t.morgan)
+  c = await h.post(`claims/${c.id}/unapprove`, { version: (await h.get(`claims/${c.id}`, t.morgan)).claim.version, to: 'employee', reason: 'The client pays this one directly' }, t.morgan)
+  assert.deepEqual([c.status, c.batch_id], ['returned', null])
+  const emptied = await h.get(`batches/${batch.id}`, t.morgan)
+  assert.deepEqual([emptied.batch.total_minor, emptied.claims.length], [0, 0])
+  seen = await h.get(`claims/${c.id}`, t.sam)
+  assert.deepEqual(seen.decisions.map(x => [x.revision, x.decision, x.actor_email]), [[3, 'approved', PRIYA], [4, 'approved', PRIYA]], 'approvals stay in history')
+  assert.deepEqual(seen.events.filter(e => e.action === 'claim-unapproved').map(e => [e.actor_email, e.detail.revision, e.detail.to, e.detail.reason, e.detail.approvedBy]),
+    [[PRIYA, 3, 'approver', 'Check the room rate first', PRIYA], ['morgan@harbourfinch.example', 4, 'employee', 'The client pays this one directly', PRIYA]])
+
+  // Once a batch is reviewed, unapproval is refused for everyone.
+  c = await approve(h, t.priya, await h.post(`claims/${c.id}/submit`, { version: c.version }, t.sam))
+  batch = await h.post('batches', { claims: [c.id] }, t.morgan)
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 23600 }, t.jordan)
+  const batched = (await h.get(`claims/${c.id}`, t.priya)).claim
+  for (const who of [t.priya, t.jordan, h.owner]) await h.post(`claims/${c.id}/unapprove`, { version: batched.version, to: 'employee', reason: 'Too late' }, who, 409)
+}))
