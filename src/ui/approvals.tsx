@@ -26,7 +26,7 @@ export function Approvals({ state, reload, id, query }: ViewProps) {
       { label: 'Waiting for you', value: waiting.length, note: money(waiting.reduce((n: number, c: D) => n + c.total_minor, 0), currency), wash: true },
     ]} />
     {shown.length
-      ? <ClaimsTable claims={shown} selected={open} view="approvals" label="Approvals" initialSort="status" foot={<span>Showing {shown.length} of {plural(routed.length, 'claim')} routed to you · waiting first</span>} />
+      ? <ClaimsTable claims={shown} selected={open} view="approvals" label="Approvals" initialSort="status" foot={<span>Showing {shown.length} of {plural(routed.length, 'claim')} routed to you · waiting first{state.business ? ` · ${routed.filter((c: D) => c.over_service_level).length} past the ${state.business.service_level_days}-business-day service level` : ''}</span>} />
       : <section className="panel"><Empty large title={query ? 'No claims match that search' : 'Nothing waiting for you'}>{query ? null : 'Claims your team submits appear here for a decision.'}</Empty></section>}
     <SpendRequests state={state} reload={reload} deciding />
     <Delegation state={state} reload={reload} />

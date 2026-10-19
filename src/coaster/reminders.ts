@@ -5,6 +5,7 @@ import { claimNumber } from './claims';
 import { localDate } from './reports';
 import { businessDaysBetween, isBusinessDay } from './business-days';
 import { operatorMail } from '../mail.server.mjs';
+import { escalate } from './escalations';
 import type { Bindings } from '../auth.server';
 import { now, requireThat, type Actor, type Data } from './types';
 
@@ -31,7 +32,8 @@ export async function openItems(db: D1Database, settings: Business): Promise<Ope
   ];
 }
 
-/** Finance sets after how many business days an open item is chased (up to five rising steps) and the quiet hours. */
+/** Finance sets after how many business days an open item is chased (up to five rising steps), the quiet hours, the
+ * approval service level and the escalation gap (FOLLOWUP-002; empty turns escalation off). */
 export async function saveReminderSettings(db: D1Database, actor: Actor, b: Data) {
   requireThat(actor.roles.finance || actor.roles.owner, 'Finance or owner access required', 403);
   requireThat(actor.kind === 'person', 'Only a person changes reminders', 403);
@@ -40,11 +42,14 @@ export async function saveReminderSettings(db: D1Database, actor: Actor, b: Data
   requireThat(days.length >= 1 && days.length <= 5 && days.every((d, i) => Number.isInteger(d) && d >= 1 && d <= 60 && (i === 0 || d > days[i - 1])), 'Reminders take one to five rising whole numbers of business days from 1 to 60, such as 2, 5, 10');
   const hour = (v: unknown, label: string) => { const n = Number(v); requireThat(String(v ?? '').trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 23, `${label} must be an hour from 0 to 23`); return n; };
   const quietFrom = hour(b.quietFrom, 'Quiet from'), quietUntil = hour(b.quietUntil, 'Quiet until');
+  const span = (v: unknown, label: string) => { const n = Number(v); requireThat(Number.isInteger(n) && n >= 1 && n <= 30, `${label} must be a whole number of business days from 1 to 30`); return n; };
+  const serviceLevel = b.serviceLevel === undefined ? 3 : span(b.serviceLevel, 'Approval service level');
+  const escalateAfter = b.escalateAfter === undefined ? 2 : String(b.escalateAfter).trim() === '' ? null : span(b.escalateAfter, 'Escalate after');
   await commit(db, authority(actor, actor.roles.owner ? 'owner' : 'finance'), [
-    db.prepare('UPDATE c_business SET reminder_days=?,quiet_from=?,quiet_until=?,updated_at=? WHERE id=1').bind(JSON.stringify(days), quietFrom, quietUntil, now()),
-    event(db, actor, 'reminders-set', {}, { days, quietFrom, quietUntil }),
+    db.prepare('UPDATE c_business SET reminder_days=?,quiet_from=?,quiet_until=?,service_level_days=?,escalation_days=?,updated_at=? WHERE id=1').bind(JSON.stringify(days), quietFrom, quietUntil, serviceLevel, escalateAfter, now()),
+    event(db, actor, 'reminders-set', {}, { days, quietFrom, quietUntil, serviceLevel, escalateAfter }),
   ]);
-  return { days, quietFrom, quietUntil };
+  return { days, quietFrom, quietUntil, serviceLevel, escalateAfter };
 }
 
 const localHour = (at: Date, timezone: string) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', hourCycle: 'h23' }).format(at));
@@ -64,13 +69,19 @@ export async function runReminders(env: Bindings, at: Date) {
   const mail = operatorMail(env);
   for (const item of items) {
     const record = seen.get(item.key)!, age = businessDaysBetween(localDate(record.first_seen_at, settings.timezone), today);
-    const step = settings.reminder_days.filter(d => d <= age).length;
-    if (!step || (record.sent ?? 0) >= step) continue;
-    const claimed = await db.prepare('INSERT INTO c_reminders(key,step,person,sent_at) VALUES(?,?,?,?) ON CONFLICT DO NOTHING RETURNING key').bind(item.key, step, item.person, at.toISOString()).first();
-    if (!claimed) continue;
-    const link = `${env.AUTH_ORIGIN}/app#/claims/${item.claim}`;
-    const words = `${item.action} “${item.title}”: it has waited ${age} business ${age === 1 ? 'day' : 'days'}. Open it in Coaster: ${link}`;
-    const sent = mail ? await mail.send({ deliveryId: `reminder-${item.key}-${step}`, from: env.MAIL_FROM ?? '', to: [item.person], subject: `Reminder: ${item.action}`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
-    await ruleEvent(db, 'reminder', 'reminder-sent', { claim: item.claim }, { item: item.key, step, to: item.person, businessDays: age, mail: sent?.status ?? 'mail not set up' }).run();
+    await remind(env, mail, item, age, settings.reminder_days.filter(d => d <= age).length, record.sent ?? 0, at);
+    await escalate(env, settings, mail, item, age, at);
   }
+}
+
+/** Sends the item's reminder for this step once; a step already sent (or none due) sends nothing. */
+async function remind(env: Bindings, mail: ReturnType<typeof operatorMail>, item: Open, age: number, step: number, sentStep: number, at: Date) {
+  const db = env.DB;
+  if (!step || sentStep >= step) return;
+  const claimed = await db.prepare('INSERT INTO c_reminders(key,step,person,sent_at) VALUES(?,?,?,?) ON CONFLICT DO NOTHING RETURNING key').bind(item.key, step, item.person, at.toISOString()).first();
+  if (!claimed) return;
+  const link = `${env.AUTH_ORIGIN}/app#/claims/${item.claim}`;
+  const words = `${item.action} “${item.title}”: it has waited ${age} business ${age === 1 ? 'day' : 'days'}. Open it in Coaster: ${link}`;
+  const sent = mail ? await mail.send({ deliveryId: `reminder-${item.key}-${step}`, from: env.MAIL_FROM ?? '', to: [item.person], subject: `Reminder: ${item.action}`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
+  await ruleEvent(db, 'reminder', 'reminder-sent', { claim: item.claim }, { item: item.key, step, to: item.person, businessDays: age, mail: sent?.status ?? 'mail not set up' }).run();
 }

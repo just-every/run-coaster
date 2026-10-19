@@ -919,7 +919,7 @@ test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt 
   const middle = hours.length % 2 ? hours[hours.length >> 1] : (hours[hours.length / 2 - 1] + hours[hours.length / 2]) / 2
   const count = kind => decisions.filter(x => x.decision === kind).length
   const cycle = await run('cycle-time')
-  assert.deepEqual(cycle.rows, [['priya@harbourfinch.example', decisions.length, count('approved'), count('returned'), 0, tenth(hours.reduce((n, x) => n + x, 0) / hours.length), tenth(middle), tenth(hours.at(-1))]])
+  assert.deepEqual(cycle.rows, [['priya@harbourfinch.example', decisions.length, count('approved'), count('returned'), 0, tenth(hours.reduce((n, x) => n + x, 0) / hours.length), tenth(middle), tenth(hours.at(-1)), 0]], 'decided the day they were submitted: none over the service level')
   assert.equal(count('returned'), 1)
 
   // Receipt compliance: receipt expenses on each claim's latest submitted revision.
@@ -952,8 +952,8 @@ test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt 
     return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
   }
   const worker = await h.mf.getWorker()
-  // The same hourly run also chases open items (FOLLOWUP-001); only the report mail is counted here.
-  const tick = async (day, hour) => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, hour), cron: '17 * * * *' }); return h.messages.slice(before).filter(m => !m.subject.startsWith('Reminder: ')) }
+  // The same hourly run also chases and escalates open items (FOLLOWUP-001/002); only report mail is counted here.
+  const tick = async (day, hour) => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, hour), cron: '17 * * * *' }); return h.messages.slice(before).filter(m => / \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/.test(m.subject)) }
   assert.deepEqual(await tick('2026-10-29', 9), [], 'Thursday is not the last business day')
   assert.deepEqual(await tick('2026-10-30', 7), [], 'not before 08:00')
   const sent = await tick('2026-10-30', 8)
@@ -1094,6 +1094,45 @@ test('FOLLOWUP-001 reminders chase receipts, drafts, holds, questions and decisi
   await submit(h, t.sam, await h.get(`claims/${draft.claim.id}`, t.sam))
   assert.deepEqual((await tick('2026-12-01')).filter(([to]) => to === SAM), [])
   assert.deepEqual((await h.get(`claims/${draft.claim.id}`, t.sam)).events.filter(e => e.action === 'reminder-sent').map(e => [e.actor_email, e.detail.item.split(':')[0], e.detail.step, e.detail.businessDays]), [['reminder', 'receipt', 1, 2], ['reminder', 'unsubmitted', 1, 2], ['reminder', 'unsubmitted', 2, 5], ['reminder', 'unsubmitted', 3, 10]], 'each reminder is a history line on its claim')
+}))
+
+test('FOLLOWUP-002 an approval past its service level escalates to the approver\'s manager and then finance, a draft past its last reminder to the employee\'s manager and then finance, each recorded, until done', () => withAgency(async (h, t) => {
+  const JORDAN = 'jordan@harbourfinch.example', MORGAN = 'morgan@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
+  await h.post('settings/members', { email: PRIYA, name: 'priya', employee: true, manager: true, approver: JORDAN })
+  await h.post('settings/reminders', { days: '2, 5, 10', quietFrom: '20', quietUntil: '8', serviceLevel: '3', escalateAfter: '2' }, t.sam, 403)
+  await h.post('settings/reminders', { days: '2, 5, 10', quietFrom: '20', quietUntil: '8', serviceLevel: '0', escalateAfter: '2' }, t.jordan, 400)
+  await h.post('settings/reminders', { days: '2, 5, 10', quietFrom: '20', quietUntil: '8', serviceLevel: '3', escalateAfter: '2' }, t.jordan)
+  let pending = await submit(h, t.alex, await claim(h, t.alex, 'Hotel', [{ kind: 'receipt', date: '2026-10-29', merchant: 'Hotel Ibis', amount: '150.00', allocations: [{ category: t.c.travel }], receiptFixture: 'hotel' }]))
+  const draft = await claim(h, t.sam, 'Paper', [{ kind: 'receipt', date: '2026-10-30', merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' }])
+  const queue = (await h.get('state', t.priya)).claims.find(c => c.id === pending.id)
+  assert.deepEqual([queue.waiting_business_days, queue.over_service_level, (await h.get('state', t.priya)).business.service_level_days], [0, false, 3], 'the queue shows the wait against the service level')
+
+  const sydney = (day, hour) => {
+    const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:17:00Z`)
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]))
+    return new Date(guess - (Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`) - guess))
+  }
+  const worker = await h.mf.getWorker()
+  const tick = async day => { const before = h.messages.length; await worker.scheduled({ scheduledTime: sydney(day, 9), cron: '17 * * * *' }); return h.messages.slice(before).filter(m => m.subject.startsWith('Escalated: ')).map(m => [m.to, m.subject]) }
+  const decide = `Escalated: Decide CL-${String(pending.number).padStart(4, '0')}`, submitDraft = `Escalated: Submit CL-${String(draft.claim.number).padStart(4, '0')}`
+
+  // Seen Monday 2 November; three business days is the service level, the fourth escalates to Priya's manager, two more to finance.
+  assert.deepEqual(await tick('2026-11-02'), [])
+  assert.deepEqual(await tick('2026-11-05'), [], 'three business days is within the service level')
+  assert.deepEqual(await tick('2026-11-06'), [[[JORDAN], decide]])
+  assert.deepEqual(await tick('2026-11-09'), [])
+  assert.deepEqual(await tick('2026-11-10'), [[[JORDAN, MORGAN], decide]])
+  const history = (await h.get(`claims/${pending.id}`, t.jordan)).events.filter(e => e.action === 'escalated').map(e => [e.actor_email, e.detail.level, e.detail.to, e.detail.owedBy, e.detail.businessDays])
+  assert.deepEqual(history, [['escalation', 1, [JORDAN], PRIYA, 4], ['escalation', 2, [JORDAN, MORGAN], PRIYA, 6]])
+
+  // Priya approves: that escalation stops. Sam's draft runs out of reminders at 10 business days (17 Nov, past Veterans Day)
+  // and escalates two business days later to Sam's manager Priya, then two more to finance.
+  await approve(h, t.priya, pending)
+  assert.deepEqual(await tick('2026-11-17'), [])
+  assert.deepEqual(await tick('2026-11-19'), [[[PRIYA], submitDraft]])
+  assert.deepEqual(await tick('2026-11-23'), [[[JORDAN, MORGAN], submitDraft]])
+  await submit(h, t.sam, await h.get(`claims/${draft.claim.id}`, t.sam))
+  assert.deepEqual(await tick('2026-11-30'), [], 'nothing left to escalate')
 }))
 
 test('POLICY-003 finance works one queue of open exceptions across claims by risk or age, and a 10% audit sample takes a recorded finding', () => withAgency(async (h, t) => {

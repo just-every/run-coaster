@@ -10,11 +10,13 @@ import { loadRequest, requestsFor } from './requests';
 import { claimComments, openQuestions } from './comments';
 import { exportTemplates } from './exports';
 import { currentRule } from './auto-approval';
+import { localDate } from './reports';
+import { businessDaysBetween } from './business-days';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
   const [claims, members, proposals, keys, batches] = await db.batch([
-    db.prepare('SELECT id,number,employee_email,approver_email,on_behalf_of,title,status,revision,version,total_minor,currency,prepared_by,batch_id,created_at,updated_at FROM c_claims ORDER BY number DESC'),
+    db.prepare('SELECT id,number,employee_email,approver_email,on_behalf_of,title,status,revision,version,total_minor,currency,prepared_by,batch_id,created_at,updated_at,(SELECT submitted_at FROM c_revisions r WHERE r.claim_id=c_claims.id AND r.revision=c_claims.revision) AS submitted_at FROM c_claims ORDER BY number DESC'),
     db.prepare('SELECT email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active FROM c_members ORDER BY name'),
     db.prepare('SELECT id,kind,agent_label,payload,status,created_at,decided_at,result_id FROM c_proposals WHERE for_email=? ORDER BY created_at DESC').bind(actor.email),
     db.prepare('SELECT id,label,created_at,revoked_at FROM c_agent_keys WHERE member_email=? ORDER BY created_at DESC').bind(actor.email),
@@ -22,11 +24,14 @@ export async function workspace(db: D1Database, actor: Actor) {
   ]);
   const seen = (claims.results as Claim[]).filter(c => canSee(actor, c));
   const names = Object.fromEntries((members.results as Data[]).map(m => [m.email, m.name])), questions = await openQuestions(db);
+  // A waiting claim shows its business days since submission against the approval service level (FOLLOWUP-002).
+  const settings = await business(db), today = settings && localDate(new Date().toISOString(), settings.timezone);
+  const waiting = (c: Claim & { submitted_at?: string }) => settings && c.status === 'submitted' && c.submitted_at ? businessDaysBetween(localDate(c.submitted_at, settings.timezone), today!) : null;
   return {
     actor: { email: actor.email, name: actor.name, roles: actor.roles, delegate: actor.delegate ?? null },
     business: await business(db),
     categories: await categories(db),
-    claims: seen.map(c => ({ ...c, open_questions: questions[c.id] ?? 0, employee_name: names[c.employee_email] ?? c.employee_email, approver_name: c.approver_email ? names[c.approver_email] ?? c.approver_email : null })),
+    claims: seen.map(c => ({ ...c, open_questions: questions[c.id] ?? 0, waiting_business_days: waiting(c), over_service_level: settings ? (waiting(c) ?? 0) > settings.service_level_days : false, employee_name: names[c.employee_email] ?? c.employee_email, approver_name: c.approver_email ? names[c.approver_email] ?? c.approver_email : null })),
     names: Object.fromEntries((members.results as Data[]).filter(m => m.active).map(m => [m.email, m.name])),
     managers: (members.results as Data[]).filter(m => m.active && m.is_manager).map(m => m.email),
     members: actor.roles.owner ? members.results : (members.results as Data[]).filter(m => m.email === actor.email),

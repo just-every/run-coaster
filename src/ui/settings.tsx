@@ -46,11 +46,13 @@ export function Settings({ state, reload }: ViewProps) {
     </div>
     {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
     {(owner || roles.finance) && b && <Section title="Reminders">
-      <p className="muted">Coaster emails whoever owes something (a receipt, a submission, a held claim, an answer or a decision) on the business days you set after it first opens, on US business days outside quiet hours ({b.timezone}), and stops once it is done.</p>
+      <p className="muted">Coaster emails whoever owes something (a receipt, a submission, a held claim, an answer or a decision) on the business days you set after it first opens, on US business days outside quiet hours ({b.timezone}), escalates what stays undone, and stops once it is done.</p>
       <Form label="Save reminders" onSubmit={async v => { await call('settings/reminders', v); await saved('Reminders saved.'); }}>
         <Field label="Remind after these business days" name="days" defaultValue={b.reminder_days.join(', ')} hint="Up to five rising numbers, such as 2, 5, 10" />
         <Field label="Quiet from (hour)" name="quietFrom" inputMode="numeric" defaultValue={String(b.quiet_from)} hint="0 to 23" />
         <Field label="Quiet until (hour)" name="quietUntil" inputMode="numeric" defaultValue={String(b.quiet_until)} />
+        <Field label="Approval service level (business days)" name="serviceLevel" inputMode="numeric" defaultValue={String(b.service_level_days)} hint="A claim waiting longer escalates to the approver's manager, then finance" />
+        <Field label="Escalate after (business days)" name="escalateAfter" inputMode="numeric" required={false} defaultValue={b.escalation_days == null ? '' : String(b.escalation_days)} hint="After the last reminder, to the person's manager, then the same again to finance; empty turns escalation off" />
       </Form>
     </Section>}
     {(owner || roles.finance || roles.auditor) && <Reports owner={owner} schedules={owner || roles.finance} />}

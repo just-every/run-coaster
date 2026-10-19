@@ -3,6 +3,7 @@ import { nextDay, startOf } from './audit';
 import { csv } from './batches';
 import { claimNumber } from './claims';
 import { decimal, isoDate, requireThat, type Actor, type Data } from './types';
+import { businessDaysBetween } from './business-days';
 
 /** Operational and compliance reports (REPORT-002). Card spend and feed coverage join when FEED-003 and FEED-004 ship. */
 export const REPORTS = {
@@ -47,17 +48,20 @@ const builders: Record<Name, (db: D1Database, b: Business, p: Period) => Promise
     return { columns: ['Claim', 'Employee', 'Approved or held', 'Days waiting', 'Bucket', 'Status', 'Amount'], rows, totals: { claims: rows.length, amountMinor, buckets }, totalRow: ['Total', '', '', '', '', rows.length, decimal(amountMinor)] };
   },
   /** Each decision made in the period, timed from its revision's submission to the decision, per person or rule who decided. */
-  async 'cycle-time'(db, _b, p) {
+  async 'cycle-time'(db, b, p) {
     const { results } = await db.prepare('SELECT d.actor_email,d.decision,d.at,r.submitted_at FROM c_decisions d JOIN c_revisions r ON r.claim_id=d.claim_id AND r.revision=d.revision WHERE d.at>=? AND d.at<? ORDER BY d.actor_email').bind(p.start, p.end).all<Data>();
     const by = new Map<string, Data[]>();
     for (const d of results) by.set(d.actor_email, [...by.get(d.actor_email) ?? [], d]);
     const hoursOf = (d: Data) => (Date.parse(d.at) - Date.parse(d.submitted_at)) / 3_600_000;
+    // Over the approval service level (FOLLOWUP-002): more business days from submission to decision than it allows.
+    const late = (d: Data) => businessDaysBetween(localDate(d.submitted_at, b.timezone), localDate(d.at, b.timezone)) > b.service_level_days;
     const rows = [...by].map(([who, decisions]) => {
       const hours = decisions.map(hoursOf), count = (kind: string) => decisions.filter(d => d.decision === kind).length;
-      return [who, decisions.length, count('approved'), count('returned'), count('rejected'), tenth(hours.reduce((n, h) => n + h, 0) / hours.length), tenth(median(hours)), tenth(Math.max(...hours))];
+      return [who, decisions.length, count('approved'), count('returned'), count('rejected'), tenth(hours.reduce((n, h) => n + h, 0) / hours.length), tenth(median(hours)), tenth(Math.max(...hours)), decisions.filter(late).length];
     });
     const all = results.map(hoursOf), average = all.length ? tenth(all.reduce((n, h) => n + h, 0) / all.length) : null;
-    return { columns: ['Decided by', 'Decisions', 'Approved', 'Returned', 'Rejected', 'Average hours', 'Median hours', 'Longest hours'], rows, totals: { decisions: results.length, averageHours: average }, totalRow: ['Total', results.length, '', '', '', average ?? '', '', ''] };
+    const over = results.filter(late).length;
+    return { columns: ['Decided by', 'Decisions', 'Approved', 'Returned', 'Rejected', 'Average hours', 'Median hours', 'Longest hours', `Over ${b.service_level_days}-business-day service level`], rows, totals: { decisions: results.length, averageHours: average, overServiceLevel: over }, totalRow: ['Total', results.length, '', '', '', average ?? '', '', '', over] };
   },
   /** Receipt expenses on each claim's latest revision submitted in the period: the share that carry their receipt. */
   async receipts(db, _b, p) {
