@@ -12,13 +12,13 @@ function needAuditAccess(actor: Actor) {
 }
 
 /** The UTC instant a calendar day starts in the business's time zone. */
-function startOf(day: string, timezone: string) {
+export function startOf(day: string, timezone: string) {
   const guess = Date.parse(day + 'T00:00:00Z');
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: timezone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(guess)).map(p => [p.type, p.value]));
   const local = Date.parse(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}Z`);
   return new Date(guess - (local - guess)).toISOString();
 }
-const nextDay = (day: string) => new Date(Date.parse(day + 'T00:00:00Z') + 86_400_000).toISOString().slice(0, 10);
+export const nextDay = (day: string) => new Date(Date.parse(day + 'T00:00:00Z') + 86_400_000).toISOString().slice(0, 10);
 
 /** Which door a line came through: a person in the app, or an agent key acting for them. */
 const channel = (action: string, detail: Data) => detail.agent && !action.startsWith('proposal-') ? 'agent' : 'app';

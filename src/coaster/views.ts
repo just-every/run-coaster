@@ -8,6 +8,7 @@ import { delegations } from './delegation';
 import { delegateGrants } from './delegates';
 import { loadRequest, requestsFor } from './requests';
 import { claimComments, openQuestions } from './comments';
+import { exportTemplates } from './exports';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -31,6 +32,7 @@ export async function workspace(db: D1Database, actor: Actor) {
     proposals: (proposals.results as Data[]).map(p => ({ ...p, payload: JSON.parse(p.payload) })),
     agentKeys: actor.delegate ? [] : keys.results,
     batches: actor.roles.finance || actor.roles.auditor ? batches.results : [],
+    exportTemplates: actor.roles.finance || actor.roles.auditor ? await exportTemplates(db) : [],
     delegations: actor.roles.manager ? await delegations(db, actor) : [],
     delegates: await delegateGrants(db, actor),
     requests: await requestsFor(db, actor),

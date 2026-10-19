@@ -12,7 +12,8 @@ import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
 import { actingAs, grantDelegate, revokeDelegate } from './delegates';
 import { createRequest, decideRequest } from './requests';
-import { approveBatch, batchFile, createBatch, markReimbursed, removeFromBatch } from './batches';
+import { approveBatch, createBatch, markReimbursed, removeFromBatch } from './batches';
+import { batchFile, periodFile, saveExportTemplate } from './exports';
 import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
 import { auditPack, searchHistory } from './audit';
@@ -89,7 +90,10 @@ api.post('/api/coaster/batches', as(async (a, c) => createBatch(db(c), a, await 
 api.post('/api/coaster/batches/:id/remove', as(async (a, c) => removeFromBatch(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/batches/:id/approve', as(async (a, c) => approveBatch(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/batches/:id/paid', as(async (a, c) => markReimbursed(db(c), a, param(c, 'id'), await body(c))));
-api.get('/api/coaster/batches/:id/:file{(accounting|reimbursements)\\.csv}', as(async (a, c) => batchFile(db(c), a, param(c, 'id'), param(c, 'file').replace('.csv', ''))));
+const file = (c: C) => param(c, 'file').split('.') as [string, string];
+api.get('/api/coaster/batches/:id/:file{(accounting|reimbursements)\\.(csv|xlsx)|accounting\\.iif}', as(async (a, c) => batchFile(db(c), a, param(c, 'id'), ...file(c), c.req.query('template') || undefined, runtimeBindings(c.env).AUTH_ORIGIN)));
+api.get('/api/coaster/exports/:file{(accounting|reimbursements)\\.(csv|xlsx)|accounting\\.iif}', as(async (a, c) => periodFile(db(c), a, ...file(c), c.req.query(), runtimeBindings(c.env).AUTH_ORIGIN)));
+api.post('/api/coaster/export-templates', as(async (a, c) => saveExportTemplate(db(c), a, await body(c))));
 
 api.post('/api/coaster/agent-keys', as(async (a, c) => createAgentKey(db(c), a, await body(c))));
 api.post('/api/coaster/agent-keys/:id/revoke', as(async (a, c) => revokeAgentKey(db(c), a, param(c, 'id'))));

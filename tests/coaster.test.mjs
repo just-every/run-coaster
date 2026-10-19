@@ -782,3 +782,63 @@ test('DATA-001 with no optional provider connected, the claim-to-batch journey s
     assert.ok(!JSON.stringify(message).includes(receiptBytes))
   }
 }))
+
+test('ACCT-005 a batch and a period export as CSV and XLSX through a saved column template and as QuickBooks Desktop IIF, naming each receipt by hash and link', () => withAgency(async (h, t) => {
+  const one = await claim(h, t.sam, 'Perth pitch', [{ kind: 'receipt', date: '2026-06-04', merchant: 'Qantas', amount: '412.00', allocations: [{ category: t.c.travel, amount: '400.00' }, { category: t.c.meals, amount: '12.00' }], receiptFixture: 'hotel' }])
+  const two = await claim(h, t.alex, 'Studio paper', [{ kind: 'receipt', date: '2026-06-05', merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' }])
+  const a = await approve(h, t.priya, await submit(h, t.sam, one)), b = await approve(h, t.priya, await submit(h, t.alex, two))
+  let batch = await h.post('batches', { claims: [a.id, b.id] }, t.morgan)
+  const total = 41200 + 6495
+  batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: total }, t.jordan)
+  const file = async (path, cookie = t.jordan, status = 200) => { const r = await h.mf.dispatchFetch(`${h.origin}/api/coaster/${path}`, { headers: { cookie } }); assert.equal(r.status, status, path); return r }
+  const rowsOf = text => text.trim().split('\r\n').map(r => r.split('","').map(x => x.replace(/^"|"$/g, '')))
+
+  // A saved template picks, orders and names the columns; only finance saves one.
+  const columns = [{ field: 'date', header: 'Date' }, { field: 'account_code', header: 'Account' }, { field: 'amount', header: 'Amount' }, { field: 'receipt_sha256', header: 'Receipt SHA-256' }, { field: 'receipt_link', header: 'Receipt' }]
+  await h.post('export-templates', { name: 'Ledger import', kind: 'accounting', columns }, t.sam, 403)
+  await h.post('export-templates', { name: 'Ledger import', kind: 'accounting', columns: [{ field: 'password' }] }, t.morgan, 400)
+  const template = await h.post('export-templates', { name: 'Ledger import', kind: 'accounting', columns }, t.morgan)
+  const custom = rowsOf(await (await file(`batches/${batch.id}/accounting.csv?template=${template.id}`)).text())
+  assert.deepEqual(custom[0], ['Date', 'Account', 'Amount', 'Receipt SHA-256', 'Receipt'])
+  assert.equal(custom.length, 1 + 3)
+  assert.equal(Math.round(custom.slice(1).reduce((n, r) => n + Number(r[2]) * 100, 0)), total)
+  const hotel = await readFile('tests/fixtures/receipts/hotel.png')
+  const linked = custom.find(r => r[3] === sha(hotel))
+  assert.ok(linked[4].startsWith(`${h.origin}/api/coaster/receipts/`))
+  assert.equal(sha(Buffer.from(await (await file(linked[4].slice(h.origin.length + '/api/coaster/'.length))).arrayBuffer())), sha(hotel), 'the link opens the very receipt the hash names')
+  const standard = rowsOf(await (await file(`batches/${batch.id}/accounting.csv`)).text())
+  assert.ok(['receipt_sha256', 'receipt_link', 'amount'].every(c => standard[0].includes(c)), 'the default template keeps every field')
+
+  // XLSX: the same lines as numbers in a workbook.
+  const book = await file(`batches/${batch.id}/accounting.xlsx?template=${template.id}`)
+  assert.equal(book.headers.get('content-type'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  const sheet = unzip(Buffer.from(await book.arrayBuffer()))['xl/worksheets/sheet1.xml'].toString()
+  assert.match(sheet, /<t xml:space="preserve">Receipt SHA-256<\/t>/)
+  const amounts = [...sheet.matchAll(/<c r="C\d+"><v>([\d.]+)<\/v><\/c>/g)].map(m => Number(m[1]))
+  assert.equal(Math.round(amounts.reduce((n, v) => n + v * 100, 0)), total)
+  const people = unzip(Buffer.from(await (await file(`batches/${batch.id}/reimbursements.xlsx`)).arrayBuffer()))['xl/worksheets/sheet1.xml'].toString()
+  assert.match(people, /sam@harbourfinch\.example/)
+
+  // IIF, checked by a fixture validator: each bill balances, splits post to the category accounts, totals match.
+  const iif = (await (await file(`batches/${batch.id}/accounting.iif`)).text()).trim().split('\r\n').map(l => l.split('\t'))
+  assert.deepEqual(iif.slice(0, 3).map(l => l[0]), ['!TRNS', '!SPL', '!ENDTRNS'])
+  let open = null, splits = 0
+  const bills = []
+  for (const l of iif.slice(3)) {
+    if (l[0] === 'TRNS') { assert.equal(open, null); open = { amount: Math.round(Number(l[6]) * 100), lines: 0, account: l[4], name: l[5], doc: l[7] } }
+    else if (l[0] === 'SPL') { open.amount += Math.round(Number(l[6]) * 100); open.lines++; splits += Math.round(Number(l[6]) * 100); assert.ok(['6200', '6300', '6500'].includes(l[4]), l[4]) }
+    else { assert.equal(l[0], 'ENDTRNS'); assert.equal(open.amount, 0, 'each bill balances'); bills.push(open); open = null }
+  }
+  assert.equal(splits, total)
+  assert.deepEqual(bills.map(x => [x.account, x.name, x.doc, x.lines]), [['Accounts Payable', 'sam', 'CL-0001', 2], ['Accounts Payable', 'alex', 'CL-0002', 1]])
+  await file(`batches/${batch.id}/reimbursements.iif`, t.jordan, 404)
+
+  // A period: every batch reviewed in it; finance and auditors only.
+  const period = rowsOf(await (await file('exports/accounting.csv?from=2026-01-01&to=2099-12-31')).text())
+  assert.equal(Math.round(period.slice(1).reduce((n, r) => n + Number(r[period[0].indexOf('amount')]) * 100, 0)), total)
+  assert.equal(rowsOf(await (await file('exports/accounting.csv?from=2020-01-01&to=2020-12-31')).text()).length, 1, 'a period with no reviewed batch has only the header')
+  await file('exports/accounting.csv?from=2026-02-01&to=2026-01-01', t.jordan, 400)
+  await file('exports/accounting.csv?from=2026-01-01&to=2099-12-31', t.sam, 403)
+  const events = (await h.get(`batches/${batch.id}`, t.jordan)).events.filter(e => e.action === 'batch-exported').map(e => e.detail.format)
+  assert.deepEqual(events, ['csv', 'csv', 'xlsx', 'xlsx', 'iif'])
+}))

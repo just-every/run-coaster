@@ -2,7 +2,7 @@ import { all, authority, commit, need, type Sql } from './session';
 import { event } from './events';
 import { claimNumber, claimItems, type Claim } from './claims';
 import { exactKey } from './exceptions';
-import { decimal, isoDate, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
+import { isoDate, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Batch = { id: string; number: number; status: string; currency: string; total_minor: number; version: number; created_by: string; created_at: string; prepared_by: string | null; reviewed_by: string | null; reviewed_at: string | null; paid_reference: string | null; paid_on: string | null; paid_by: string | null };
 export const batchNumber = (n: number) => `RB-${String(n).padStart(4, '0')}`;
@@ -122,7 +122,7 @@ export async function batchLines(db: D1Database, id: string) {
     for (const item of snapshot.items) {
       const flags = snapshot.exceptions.filter((e: Data) => e.item === item.id).map((e: Data) => e.code).join(' ');
       // An itemized part's own description (room, tax, in-room dining) stands for the expense's on its accounting line.
-      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number, part = '') => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: part || item.description, kind: item.kind, category, account, tax, costCentre, amountMinor, receipt: item.receipt?.sha256 ?? '', exceptions: flags, explanation: flags ? item.explanation : '', approver: row.approver, approvedAt: row.approved_at, memo });
+      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number, part = '') => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: part || item.description, kind: item.kind, category, account, tax, costCentre, amountMinor, receipt: item.receipt?.sha256 ?? '', receiptId: item.receipt?.id ?? '', employeeName: row.employee_name ?? row.employee_email, exceptions: flags, explanation: flags ? item.explanation : '', approver: row.approver, approvedAt: row.approved_at, memo });
       for (const part of item.allocations) line(part.category_name, part.account_code, part.tax_code, part.cost_centre, part.amount_minor, part.description);
       // A receipt's sales tax posts on its own line to the sales tax account and code copied onto the expense.
       if (item.sales_tax_minor) line('Sales tax', item.sales_tax_account, item.sales_tax_code, '', item.sales_tax_minor);
@@ -132,20 +132,4 @@ export async function batchLines(db: D1Database, id: string) {
     people.set(row.employee_email, person);
   }
   return { lines, people: [...people.values()] };
-}
-
-/** Finance and auditors download a reviewed batch's files; the download is a history line. */
-export async function batchFile(db: D1Database, actor: Actor, id: string, kind: string) {
-  requireThat(actor.roles.finance || actor.roles.auditor, 'Finance or auditor access required', 403);
-  const batch = await loadBatch(db, id);
-  requireThat(batch.status !== 'draft', 'Review the batch before exporting it', 409);
-  requireThat(kind === 'accounting' || kind === 'reimbursements', 'Unknown export', 404);
-  const { lines, people } = await batchLines(db, id), name = batchNumber(batch.number);
-  const lineTotal = lines.reduce((n, l) => n + l.amountMinor, 0);
-  requireThat(lineTotal === batch.total_minor && people.reduce((n, p) => n + p.amountMinor, 0) === batch.total_minor, 'The batch does not reconcile; do not pay it and report this', 500);
-  const body = kind === 'accounting'
-    ? csv([['batch', 'claim', 'employee', 'date', 'merchant', 'description', 'type', 'category', 'account_code', 'tax_code', 'cost_center', 'amount', 'currency', 'receipt_sha256', 'policy_exceptions', 'explanation', 'approved_by', 'approved_at', 'memo'], ...lines.map(l => [name, l.claim, l.employee, l.date, l.merchant, l.description, l.kind, l.category, l.account, l.tax, l.costCentre, decimal(l.amountMinor), batch.currency, l.receipt, l.exceptions, l.explanation, l.approver, l.approvedAt, l.memo])])
-    : csv([['batch', 'employee', 'name', 'claims', 'amount', 'currency'], ...people.map(p => [name, p.email, p.name, p.claims.join(' '), decimal(p.amountMinor), batch.currency])]);
-  await commit(db, authority(actor, actor.roles.finance ? 'finance' : 'auditor'), [event(db, actor, 'batch-exported', { batch: id }, { file: kind, rows: kind === 'accounting' ? lines.length : people.length, totalMinor: batch.total_minor })]);
-  return new Response(body, { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="${name}-${kind}.csv"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
 }

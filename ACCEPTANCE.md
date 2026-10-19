@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 23 done, 22 partial, 58 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
+**103 clauses: 24 done, 21 partial, 58 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -183,7 +183,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **ACCT-004 — NetSuite and Sage Intacct. Status: missing.** Against vendor sandboxes with nobody pressing sync, final-approve claims in two entities and see records in each subsidiary with dimensions and attachments after the next run; mark one vendor bill paid in NetSuite and one in Sage Intacct and see both claims marked reimbursed with the ledger's reference and refused from a later batch. Open scope: No NetSuite or Sage Intacct connection.
 
-- **ACCT-005 — Exports alongside live sync. Status: partial.** Export a batch with the default and a custom template and as IIF; import the IIF into a fixture validator and see totals match the batch. Existing evidence: `src/coaster/batches.ts`; `tests/coaster.test.mjs` (COA-009). Open scope: Fixed accounting and reimbursement CSVs per batch; no XLSX, templates, IIF or period/report exports.
+- **ACCT-005 — Exports alongside live sync. Status: done.** Export a batch with the default and a custom template and as IIF; import the IIF into a fixture validator and see totals match the batch. Existing evidence: `src/coaster/exports.ts`; `src/coaster/xlsx.ts`; `migrations/core/0025_export_templates.sql`; `src/ui/exports.tsx`; `tests/coaster.test.mjs` (ACCT-005).
 
 - **ACCT-006 — Posting integrity and close. Status: missing.** Archive an account in the sandbox and see the failing records queued with the message; map a new account and retry only those; close March and correct a March expense in April, then see a reversal and new entry dated April. Open scope: No sync, so no error queue, period locks or reversals.
 

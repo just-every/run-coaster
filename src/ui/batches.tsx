@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiHref, batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, plural, shortDay, today, type D } from './api';
+import { batchNumber, batchWords, call, claimNumber, day, exceptionWords, money, moment, plural, shortDay, today, type D } from './api';
 import { Badge, Empty, Field, Form, Initials, PageHead, Section, Tiles, Warning } from './parts';
 import { Icon } from './icons';
 import { AgentStrip } from './proposals';
@@ -7,6 +7,7 @@ import { describe } from './history';
 import { Work } from './shell';
 import { go } from './app';
 import { matches, type ViewProps } from './claims';
+import { BatchDownloads, Exports } from './exports';
 
 const batchStatus = (b: D) => b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed';
 const sum = (rows: D[]) => rows.reduce((n, r) => n + r.total_minor, 0);
@@ -19,7 +20,7 @@ export function Batches({ state, reload, id, query }: ViewProps) {
   const total = ready.filter((c: D) => chosen.includes(c.id)).reduce((n: number, c: D) => n + c.total_minor, 0);
   const currency = state.business?.currency ?? 'USD';
   const drafts = state.batches.filter((b: D) => b.status === 'draft'), reviewed = state.batches.filter((b: D) => b.status === 'approved'), paid = state.batches.filter((b: D) => b.status === 'reimbursed');
-  const panel = id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} />
+  const panel = id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} templates={state.exportTemplates} />
     : <aside className="side side-empty"><Empty large title="Choose a batch">Review its totals, download the accounting and reimbursement files, and record the payment.</Empty></aside>;
   return <Work panel={panel} wide selected={!!id} className="batches-work">
     <PageHead title="Batches" line={`${plural(ready.length, 'approved claim')} ready to batch, ${plural(drafts.length, 'batch', 'batches')} to review, ${reviewed.length} ready to pay`} />
@@ -56,11 +57,12 @@ export function Batches({ state, reload, id, query }: ViewProps) {
           </tr>)}</tbody>
         </table></div> : <Empty title="No batches yet">Choose approved claims above to start one.</Empty>}
       </Section>
+      <Exports state={state} reload={reload} />
     </div>
   </Work>;
 }
 
-function BatchPanel({ id, reload, names }: { id: string; reload: () => Promise<D>; names: Record<string, string> }) {
+function BatchPanel({ id, reload, names, templates }: { id: string; reload: () => Promise<D>; names: Record<string, string>; templates: D[] }) {
   const [detail, setDetail] = useState<D>(), [error, setError] = useState('');
   const load = useCallback(async () => { try { setDetail(await call(`batches/${id}`)); } catch (e) { setError((e as Error).message); } }, [id]);
   useEffect(() => { load(); }, [load]);
@@ -92,7 +94,7 @@ function BatchPanel({ id, reload, names }: { id: string; reload: () => Promise<D
     {batch.status === 'draft' && <section className="panel-block" aria-label="Review"><Form label="Approve batch" className="record-form-inline" onSubmit={async v => { if (!v.confirm) throw new Error('Confirm the reconciled total first'); await call(`batches/${id}/approve`, { version: batch.version, expectedTotal: batch.total_minor }); await done(); }}>
       <Field label={`I checked the reimbursements, accounting lines and exceptions add up to ${money(batch.total_minor, c)}`} name="confirm" type="checkbox" />
     </Form></section>}
-    {batch.status !== 'draft' && <div className="downloads"><a className="button" href={apiHref(`batches/${id}/accounting.csv`)} download><Icon name="download" />Download accounting CSV</a><a className="button" href={apiHref(`batches/${id}/reimbursements.csv`)} download><Icon name="download" />Download reimbursements CSV</a></div>}
+    {batch.status !== 'draft' && <BatchDownloads id={id} templates={templates} />}
     {batch.status === 'approved' && <section className="panel-block" aria-label="Payment"><h3>Record payment</h3><Form label="Record payment" className="record-form-inline" onSubmit={async v => { await call(`batches/${id}/paid`, { version: batch.version, reference: v.reference, paidOn: v.paidOn }); await done(); }}>
       <Field label="Payment reference" name="reference" placeholder="Bank batch or ACH reference" />
       <Field label="Paid on" name="paidOn" type="date" defaultValue={today()} />

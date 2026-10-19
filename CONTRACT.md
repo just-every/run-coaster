@@ -168,7 +168,7 @@ Coaster is the expense management product a US company of 15–150 employees buy
 
 - **ACCT-004 — NetSuite and Sage Intacct.** For larger buyers, Coaster posts expense reports, vendor bills and card transactions to NetSuite and Sage Intacct with subsidiaries, departments, classes, locations and projects, idempotent by Coaster ID, with ACCT-001's posting triggers, daily dimension refresh, employee vendor handling and payment status coming back. **Acceptance evidence:** Against vendor sandboxes with nobody pressing sync, final-approve claims in two entities and see records in each subsidiary with dimensions and attachments after the next run; mark one vendor bill paid in NetSuite and one in Sage Intacct and see both claims marked reimbursed with the ledger's reference and refused from a later batch.
 
-- **ACCT-005 — Exports alongside live sync.** Every batch, period and report exports as CSV and XLSX with configurable column templates (including QuickBooks Desktop IIF), so companies on any ledger can import, and exports name the receipts by hash and link. **Acceptance evidence:** Export a batch with the default and a custom template and as IIF; import the IIF into a fixture validator and see totals match the batch.
+- **ACCT-005 — Exports alongside live sync.** Every batch, period and report exports as CSV and XLSX with configurable column templates (including QuickBooks Desktop IIF), so companies on any ledger can import, and exports name the receipts by hash and link. Exact rules today: the files are a batch's accounting lines (one per category split, plus a sales tax line) and its per-employee reimbursements, for one reviewed batch or for every batch reviewed in a period (from and to dates inclusive, in the business time zone); finance and auditors download them, and each download is a history line. CSV amounts are decimal currency units and XLSX amounts are numbers. The default template carries every field; finance or the owner saves named templates that choose the fields, their order and their headers for CSV and XLSX. IIF carries the accounting lines as one QuickBooks Desktop bill per claim to the employee as vendor, crediting "Accounts Payable" and debiting each line's account code (its category name when it has none), dated the day the batch was reviewed, and every bill balances to zero. Each line names its receipt by SHA-256 and by a link that opens it for a signed-in person who can see the claim. Reports have no exports until REPORT-002 ships them in the same formats and templates. **Acceptance evidence:** Export a batch with the default and a custom template and as IIF; import the IIF into a fixture validator and see totals match the batch.
 
 - **ACCT-006 — Posting integrity and close.** Sync errors (an archived account, a missing class) go to a queue with the record, the ledger's message and a one-step fix, and retry only what failed. A closed ledger period locks posted expenses in Coaster; a later correction posts a dated reversal and a new entry rather than editing the closed one. **Acceptance evidence:** Archive an account in the sandbox and see the failing records queued with the message; map a new account and retry only those; close March and correct a March expense in April, then see a reversal and new entry dated April.
 
@@ -382,8 +382,8 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 10 | 22 | 58 | 90 |
-| All | 23 | 22 | 58 | 103 |
+| Target and push further | 11 | 21 | 58 | 90 |
+| All | 24 | 21 | 58 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -451,7 +451,7 @@ Judged from the code and tests at commit `359b02d4ffbee3dde7fa5a687d2baedb0f0b5b
 | `ACCT-002` | Xero two-way sync | target | missing |  | No Xero connection, posting triggers, scheduled refresh or payment status sync. |
 | `ACCT-003` | Pantry sync | target | missing |  | No Pantry connection, posting triggers, scheduled refresh or payment status sync. |
 | `ACCT-004` | NetSuite and Sage Intacct | target | missing |  | No NetSuite or Sage Intacct connection. |
-| `ACCT-005` | Exports alongside live sync | target | partial | `src/coaster/batches.ts`; `tests/coaster.test.mjs` (COA-009) | Fixed accounting and reimbursement CSVs per batch; no XLSX, templates, IIF or period/report exports. |
+| `ACCT-005` | Exports alongside live sync | target | done | `src/coaster/exports.ts`; `src/coaster/xlsx.ts`; `migrations/core/0025_export_templates.sql`; `src/ui/exports.tsx`; `tests/coaster.test.mjs` (ACCT-005) |  |
 | `ACCT-006` | Posting integrity and close | target | missing |  | No sync, so no error queue, period locks or reversals. |
 | `ACCT-007` | QuickBooks Desktop connection | target | missing |  | No QuickBooks Desktop connector. |
 | `REPORT-001` | Spend analytics | target | partial | `src/coaster/views.ts` | Employee claim totals and coded batch lines ship; no grouped analytics, drill-down, budgets or saved views. |
