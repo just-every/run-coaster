@@ -45,6 +45,7 @@ export async function perDiemJourney(browser, root, origin, owner, width, eviden
     assert.deepEqual(detail.items[0].per_diem.days.map(d => d.mieMinor), [6900, 6600, 9200, 6900])
     await page.getByRole('button', { name: 'Submit for approval', exact: true }).click()
     await page.locator('.detail .badge', { hasText: 'Submitted' }).waitFor()
+    await manager.page.reload()
     await manager.page.goto(`${origin}/app#/approvals/${claim.id}`)
     await manager.page.getByRole('heading', { name: title }).waitFor()
     await manager.page.getByText('Daily rates and provided meals', { exact: true }).click()
@@ -68,7 +69,11 @@ export async function perDiemJourney(browser, root, origin, owner, width, eviden
     await shot(owner.page, 'settings')
     await owner.page.goto(`${origin}/app#/batches`)
     await owner.page.getByRole('heading', { name: 'Exports', exact: true }).waitFor()
+    await owner.page.getByRole('region', { name: 'Exports', exact: true }).scrollIntoViewIfNeeded()
     await shot(owner.page, 'exports')
+    const exportPath = join(evidence, `CLAIM-002-export-fields-${width}.jpg`)
+    await owner.page.getByRole('region', { name: 'Exports', exact: true }).screenshot({ path: exportPath, type: 'jpeg', quality: 85 })
+    shots.push({ screen: 'CLAIM-002 export fields', viewport: width, path: exportPath })
     return { clause: 'CLAIM-002', width, claim: claim.id, totalMinor: 29600 * fx, dailyMinor: [6900, 6600, 9200, 6900] }
   } finally { await employee.context.close(); await manager.context.close(); await finance.context.close() }
 }
