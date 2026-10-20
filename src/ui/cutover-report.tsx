@@ -5,10 +5,10 @@ const words: Record<string, string> = { 'open-history': 'Open in source · not c
 
 export function CutoverReport({ report }: { report?: D }) {
   return <Section title="Expensify cutover report" label="Expensify cutover report">
-    <p className="muted">This inventory reconciles retained import records. Feeds have not been reconciled and open reports have not been carried into payable claims.</p>
+    <p className="muted">This inventory reconciles retained import records. Feeds have not been reconciled. Open source reports can be carried through the API into employee drafts for normal approval; source approval never authorizes payment.</p>
     {report?.imports.length ? <ul className="ruled-list">{report.imports.map((job: D) => <li key={job.id}>
       <p><strong>{job.counts.source} source records</strong> · {job.counts.historyOnly} history only · {job.counts.openHistory} open history · {job.counts.leftBehind} left behind · {job.counts.erased} erased</p>
-      <p>{job.openReports} open reports not carried · Import {job.state}</p>
+      <p>{job.openReports} open source reports · {job.carriedReports} reports carried · Import {job.state}</p>
       <details className="disclosure"><summary>Every source record</summary><ul className="ruled-list">{job.records.map((r: D) => <li key={r.ordinal}>
         <strong>{r.kind === 'report' ? 'Report' : 'Expense'} {r.sourceId ?? r.ordinal + 1}: {r.label}</strong>
         <p>{words[r.disposition]}{r.amountMinor != null && r.currency ? ` · ${money(r.amountMinor, r.currency)}` : ''}</p>

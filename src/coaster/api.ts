@@ -34,6 +34,7 @@ import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
 import { auditPack, searchHistory } from './audit';
 import { claimPdf, batchPdf } from './claim-pdf';
+import { carryOpenReport } from './imports/carry';
 import { cutoverReport } from './imports/cutover';
 import { importAction, importJobs, importedHistory } from './imports/jobs';
 import { categories } from './items';
@@ -185,6 +186,7 @@ api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.
 
 api.get('/api/coaster/import/cutover', as(async (a, c) => cutoverReport(db(c), a)));
 api.get('/api/coaster/import', as(async (a, c) => { need(a, 'owner'); return { jobs: await importJobs(db(c)), history: await importedHistory(db(c)) }; }));
+api.post('/api/coaster/import/carry', as(async (a, c) => carryOpenReport(db(c), a, await body(c))));
 api.post('/api/coaster/import/:op', as(async (a, c) => importAction(db(c), a, param(c, 'op'), await body(c, 8_000_000))));
 
 // CLAIM-002 reference lookups and nonwriting trip preview use the same pricing as saved expenses.

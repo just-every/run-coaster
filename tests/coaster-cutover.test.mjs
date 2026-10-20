@@ -37,3 +37,48 @@ test('MOVE-005 cutover inventory accounts for every Expensify source record, ide
  assert.equal((await h.get('state')).claims.length,0,'open history never claims approval or reimbursement')
  }finally{await h.close()}
 })
+
+
+test('MOVE-005 three open reports carry into normal approval and reimbursement once, preserving reservations through undo and reimport',async()=>{
+ const h=await harness();try{
+ const t=await agency(h),b=await input(),preview=await h.post('import/preview',b)
+ const moved=await h.post('import/commit',{...b,fingerprint:preview.fingerprint})
+ const carry=(report,categories,cookie,status)=>h.post('import/carry',{report,categories},cookie,status)
+ const claims=[]
+ await carry('CUT-1',{'CUT-T1':t.c.office},t.alex,404)
+ await carry('CUT-4',{'CUT-T4':t.c.travel},t.alex,409)
+ await carry('CUT-1',{'CUT-T1':'missing'},t.sam,400)
+ assert.equal((await h.get('state')).claims.length,0,'failed mapping writes no draft or reservation')
+ const results=await Promise.all([carry('CUT-1',{'CUT-T1':t.c.office},t.sam).then(c=>({c})).catch(e=>({error:e})),carry('CUT-1',{'CUT-T1':t.c.office},t.sam).then(c=>({c})).catch(e=>({error:e}))])
+ assert.equal(results.filter(r=>r.c).length,1,'concurrent carry reserves a report once')
+ assert.match(results.find(r=>r.error).error.message,/409/,'losing concurrent carry is a conflict, never a server error')
+ claims.push([results.find(r=>r.c).c,t.sam])
+ claims.push([await carry('CUT-2',{'CUT-T2':t.c.meals},t.sam),t.sam])
+ claims.push([await carry('CUT-3',{'CUT-T3':t.c.travel},t.alex),t.alex])
+ assert.equal((await h.get('import/cutover')).imports[0].carriedReports,3)
+ assert.equal((await h.get('import/cutover')).openItemsCarried,true)
+ for(let [c,cookie] of claims){
+  assert.equal(c.status,'draft','source approval is never native payment authority')
+  await h.post('batches',{claims:[c.id]},t.morgan,409)
+  const d=await h.get(`claims/${c.id}`,cookie),i=d.items[0]
+  c=await h.post(`claims/${c.id}/items`,{version:c.version,item:i.id,kind:'receipt',date:i.spent_on,merchant:i.merchant,amount:(i.amount_minor/100).toFixed(2),category:i.allocations[0].category_id,explanation:'Carried from source; original report retained for review'},cookie)
+  c=await h.post(`claims/${c.id}/submit`,{version:c.version},cookie)
+  c=await h.post(`claims/${c.id}/decision`,{version:c.version,revision:c.revision,decision:'approved',acknowledge:true},t.priya)
+  const batch=await h.post('batches',{claims:[c.id]},t.morgan)
+  const reviewed=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:c.total_minor},t.morgan)
+  await h.paid(batch.id,reviewed.version,{reference:'outside-bank-test',paidOn:'2026-10-20'},t.morgan)
+  assert.equal((await h.get(`claims/${c.id}`,cookie)).claim.status,'reimbursed')
+  await h.post('batches',{claims:[c.id]},t.morgan,409)
+ }
+ await carry('CUT-1',{'CUT-T1':t.c.office},t.sam,409)
+ await h.post('import/undo',{id:moved.job.id,mappingVersion:moved.mappingVersion})
+ await carry('CUT-1',{'CUT-T1':t.c.office},t.sam,404)
+ const reimport=await h.post('import/commit',{...b,fingerprint:preview.fingerprint})
+ await carry('CUT-1',{'CUT-T1':t.c.office},t.sam,409)
+ const inventory=await h.get('import/cutover')
+ assert.equal(inventory.imports.find(j=>j.id===reimport.job.id).carriedReports,3)
+ assert.ok(inventory.imports.find(j=>j.id===reimport.job.id).records.filter(r=>r.carriedClaim).every(r=>r.reason.includes('never cancels')))
+ assert.equal((await h.get('state')).claims.length,3)
+ assert.equal((await h.get('history')).lines.filter(e=>e.action==='open-report-carried').length,3)
+ }finally{await h.close()}
+})

@@ -77,6 +77,7 @@ export async function commit(db: D1Database, condition: Sql, statements: D1Prepa
   } catch (error) {
     const message = String((error as Error)?.message ?? error);
     if (message.includes('c_guard') || message.includes('CHECK constraint failed: ok = 1')) throw new Fault(409, 'This changed while you were working, or your access changed; reload and try again');
+    if (message.includes('c_cutover_reports.source_key') || message.includes('c_cutover_items.source_key')) throw new Fault(409, 'This source report or expense has already been carried');
     if (message.includes('c_reimbursement_keys.key')) throw new Fault(409, 'An exact duplicate expense is already in a reimbursement batch');
     if (message.includes('c_batches.number')) throw new Fault(409, 'Another batch was created at the same time; reload and try again');
     if (message.includes('c_batch_claims.claim_id')) throw new Fault(409, 'That claim is already in a reimbursement batch');
