@@ -26,6 +26,15 @@ export async function validateCoasterArchive(read) {
     check(!r.claim_id || claimIds.has(r.claim_id), 'receipt_claim');
   }
   for (const r of revisions) { check(claimIds.has(r.claim_id), 'revision_claim'); JSON.parse(r.snapshot); }
+  const tasks = await read('c_workflow_tasks'), requests = await read('c_requests');
+  for(const t of tasks) {
+    check(t.kind==='claim' ? revisions.some(r=>r.claim_id===t.record_id&&r.revision===t.revision&&JSON.parse(r.snapshot).workflow) : requests.some(r=>r.id===t.record_id&&r.workflow), 'workflow_task_record');
+    check(t.kind==='request'||t.status!=='approved'||decisions.some(d=>d.claim_id===t.record_id&&d.revision===t.revision&&d.decision_step===t.slot&&d.decision==='approved'),'workflow_task_decision');
+  }
+  for(const c of claims) {
+    const own=tasks.filter(t=>t.kind==='claim'&&t.record_id===c.id&&t.revision===c.revision);
+    if(own.length&&['approved','batched','reimbursed'].includes(c.status)) check(own.every(t=>t.status==='approved')&&decisions.filter(d=>d.claim_id===c.id&&d.revision===c.revision&&d.decision==='approved'&&d.workflow_final===1).length===1,'workflow_completion');
+  }
   for (const d of decisions) check(revisions.some(r => r.claim_id === d.claim_id && r.revision === d.revision), 'decision_revision');
   for (const b of batches) check(b.total_minor === batchClaims.filter(x => x.batch_id === b.id).reduce((n, x) => n + x.amount_minor, 0), 'batch_total');
   for (const k of keys) check(batchClaims.some(x => x.batch_id === k.batch_id && x.claim_id === k.claim_id), 'reimbursement_key');

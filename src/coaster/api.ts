@@ -10,6 +10,7 @@ import { decide, reassign } from './decisions';
 import { retractClaim, unapproveClaim } from './reversals';
 import { releaseHold } from './holds';
 import { exceptionQueue, recordFinding, reviewException, saveAuditSample } from './audit-queue';
+import { saveWorkflow } from './workflow-configuration';
 import { saveApprovalRule } from './auto-approval';
 import { report } from './reports';
 import { saveReminderSettings } from './reminders';
@@ -25,7 +26,7 @@ import { reportSchedules, scheduleReport, stopReportSchedule } from './report-sc
 import { addComment, editComment } from './comments';
 import { revokeDelegation, saveDelegation } from './delegation';
 import { actingAs, grantDelegate, revokeDelegate } from './delegates';
-import { createRequest, decideRequest } from './requests';
+import { createRequest, decideRequest, reassignRequest } from './requests';
 import { advancesFor, decideAdvance, linkAdvance, payAdvance, recordReturn, requestAdvance } from './advances';
 import { approveBatch, createBatch, markReimbursed, releaseBatch, removeFromBatch } from './batches';
 import { batchFile, periodFile, saveExportTemplate } from './exports';
@@ -86,6 +87,7 @@ api.post('/api/coaster/comments/:id/edit', as(async (a, c) => editComment(db(c),
 api.post('/api/coaster/claims/:id/release', as(async (a, c) => releaseHold(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/reassign', as(async (a, c) => reassign(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/requests', as(async (a, c) => createRequest(db(c), a, await body(c))));
+api.post('/api/coaster/requests/:id/reassign', as(async (a,c) => reassignRequest(db(c),a,param(c,'id'),await body(c))));
 api.post('/api/coaster/requests/:id/decision', as(async (a, c) => decideRequest(db(c), a, param(c, 'id'), await body(c))));
 api.get('/api/coaster/advances', as(async (a, c) => advancesFor(db(c), a)));
 api.post('/api/coaster/advances', as(async (a, c) => requestAdvance(db(c), a, await body(c))));
@@ -143,6 +145,7 @@ api.get('/api/coaster/accountable-plan', as(async (a, c) => accountablePlan(db(c
 api.post('/api/coaster/claims/:id/items/:item/accountable-plan', as(async (a, c) => markNonAccountable(db(c), a, param(c, 'id'), param(c, 'item'), await body(c))));
 api.get('/api/coaster/exceptions', as(async (a, c) => exceptionQueue(db(c), a, c.req.query('sort'))));
 api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db(c), a, await body(c))));
+api.post('/api/coaster/settings/approval-workflow', as(async (a, c) => saveWorkflow(db(c), a, await body(c))));
 api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalRule(db(c), a, await body(c))));
 api.post('/api/coaster/settings/payment-controls', as(async (a, c) => savePaymentControls(db(c), a, await body(c))));
 api.post('/api/coaster/settings/auto-submit', as(async (a, c) => saveAutoSubmit(db(c), a, await body(c))));

@@ -1,3 +1,4 @@
+import { WorkflowEditor } from './workflow-editor';
 import { useState } from 'react';
 import { amountText, call, day, money, moment, rate, today, type D } from './api';
 import { Badge, Empty, Field, Form, PageHead, Section } from './parts';
@@ -70,6 +71,7 @@ export function Settings({ state, reload }: ViewProps) {
     {b && (owner || roles.finance || roles.auditor) && <Budgets state={state} canSet={owner || roles.finance} />}
     {(owner || roles.finance || roles.auditor) && <Reports owner={owner} schedules={owner || roles.finance} />}
     {(owner || roles.finance || roles.auditor) && <AuditRecords state={state} />}
+    {owner && b && <WorkflowEditor state={state} reload={reload} />}
     {owner && b && <Section title="Approval by rule">
       <p className="muted">{state.approvalRule?.enabled ? `Rule v${state.approvalRule.version}: a claim approves itself when every expense is under ${money(state.approvalRule.limit_minor, b.currency)}, has its receipt attached and raises no policy exception. Every other claim goes to its approver.` : 'Off: every claim goes to its approver.'} Rule approvals are recorded with the rule's version and audit-sampled like any approval.</p>
       <Form key={state.approvalRule?.version ?? 0} label="Save approval rule" onSubmit={async v => { await call('settings/approval-rule', v); await saved('Approval rule saved.'); }}>

@@ -10,7 +10,7 @@ import { call, day, money, plural, today, type D } from './api';
 
 /** Claims routed to this manager, in the main screen's layout: waiting first, then the ones already decided. */
 export function Approvals({ state, reload, id, query }: ViewProps) {
-  const routed = state.claims.filter((c: D) => c.approver_email === state.actor.email && c.employee_email !== state.actor.email);
+  const routed = state.claims.filter((c: D) => (c.assigned_emails?.length ? c.assigned_emails.includes(state.actor.email) : c.approver_email === state.actor.email) && c.employee_email !== state.actor.email);
   const waiting = routed.filter((c: D) => c.status === 'submitted'), decided = routed.filter((c: D) => c.status !== 'submitted');
   const approved = decided.filter((c: D) => ['approved', 'batched', 'reimbursed'].includes(c.status)), sent = decided.filter((c: D) => ['returned', 'rejected'].includes(c.status));
   const shown = routed.filter((c: D) => matches(c, query)), currency = state.business.currency;

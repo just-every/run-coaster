@@ -1,10 +1,11 @@
+import { workflowPlan, resolveStage, insertTasks, nextWorkflow, workflowAccess } from './workflow-routing';
 import { all, authority, commit, need } from './session';
 import { event } from './events';
 import { requireBusiness } from './settings';
 import { localDay, routeFor } from './delegation';
-import { amount, optionalText, now, requireThat, text, uid, type Actor, type Data } from './types';
+import { amount, email, optionalText, now, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type SpendRequest = { id: string; number: number; employee_email: string; approver_email: string; on_behalf_of: string | null; title: string; purpose: string; estimate_minor: number; currency: string; status: string; version: number; submitted_by: string; decided_by: string | null; decided_on_behalf_of: string | null; decided_at: string | null; reason: string; created_at: string; updated_at: string; actual_minor: number };
+export type SpendRequest = { id: string; number: number; employee_email: string; approver_email: string; on_behalf_of: string | null; title: string; purpose: string; estimate_minor: number; currency: string; status: string; version: number; submitted_by: string; decided_by: string | null; decided_on_behalf_of: string | null; decided_at: string | null; reason: string; created_at: string; updated_at: string; actual_minor: number; workflow?: string; workflow_readers?: string[]; assigned_emails?: string[]; workflow_tasks?: import('./workflow-routing').Task[] };
 export const requestNumber = (n: number) => `SR-${String(n).padStart(4, '0')}`;
 
 /** Each request with what has been spent against it so far: every linked expense on a claim that was not rejected. */
@@ -14,14 +15,15 @@ export async function loadRequest(db: D1Database, id: unknown): Promise<SpendReq
   requireThat(typeof id === 'string' && id.length <= 64, 'Spend request not found', 404);
   const found = await db.prepare(`${WITH_ACTUAL} WHERE r.id=?`).bind(id).first<SpendRequest>();
   requireThat(found, 'Spend request not found', 404);
-  return found;
+  return { ...found, ...await workflowAccess(db, 'request', found.id, 1) };
 }
 
 /** Who may see a request: its employee, its approver (and whom they act for), finance, auditors and the owner. */
-export const canSeeRequest = (actor: Actor, r: SpendRequest) => r.employee_email === actor.email || (actor.roles.manager && (r.approver_email === actor.email || r.on_behalf_of === actor.email)) || actor.roles.finance || actor.roles.auditor || actor.roles.owner;
+export const canSeeRequest = (actor: Actor, r: SpendRequest) => r.employee_email === actor.email || r.workflow_readers?.includes(actor.email) || (actor.roles.manager && (r.approver_email === actor.email || r.on_behalf_of === actor.email)) || actor.roles.finance || actor.roles.auditor || actor.roles.owner;
 
 export async function requestsFor(db: D1Database, actor: Actor) {
-  return (await db.prepare(`${WITH_ACTUAL} ORDER BY r.number DESC`).all<SpendRequest>()).results.filter(r => canSeeRequest(actor, r));
+  const rows = await db.prepare(`${WITH_ACTUAL} ORDER BY r.number DESC`).all<SpendRequest>();
+  return (await Promise.all(rows.results.map(async r => ({...r,...await workflowAccess(db,'request',r.id,1)})))).filter(r=>canSeeRequest(actor,r));
 }
 
 /** An employee asks before spending, with an estimate; it routes to their approving manager (or that manager's delegate) like a claim. */
@@ -33,9 +35,13 @@ export async function createRequest(db: D1Database, actor: Actor, b: Data) {
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(actor.email).first<{ approver_email: string | null }>();
   requireThat(member?.approver_email && member.approver_email !== actor.email, 'Ask the owner to set your approving manager before requesting spend', 409);
   const { approver, onBehalfOf } = await routeFor(db, member.approver_email, actor.email, localDay(business.timezone));
+  const workflow=await workflowPlan(db,actor.email,estimate,[],[],true);
+  const resolved=workflow?await resolveStage(db,workflow.plan.stages[0],actor.email,business.timezone):null;
+  const routed=resolved?.tasks[0];
   const id = uid(), at = now();
-  await commit(db, all(authority(actor, 'employee'), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }), [
+  await commit(db, all(authority(actor, 'employee'), ...(workflow?.guards??[]), ...(resolved?.guards??[]), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }), [
     db.prepare("INSERT INTO c_requests(id,number,employee_email,approver_email,on_behalf_of,title,purpose,estimate_minor,currency,status,submitted_by,created_at,updated_at) VALUES(?,(SELECT COALESCE(MAX(number),0)+1 FROM c_requests),?,?,?,?,?,?,?,'submitted',?,?,?)").bind(id, actor.email, approver, onBehalfOf, title, purpose, estimate, business.currency, actor.delegate?.email ?? actor.email, at, at),
+    ...(workflow ? [db.prepare('UPDATE c_requests SET workflow=?,approver_email=?,on_behalf_of=? WHERE id=?').bind(JSON.stringify(workflow.plan),routed!.email,routed!.on_behalf_of,id),...insertTasks(db,'request',id,1,0,0,resolved!.tasks)] : []),
     event(db, actor, 'request-submitted', {}, { request: id, title, estimateMinor: estimate, approver, onBehalfOf }),
   ]);
   return loadRequest(db, id);
@@ -43,6 +49,8 @@ export async function createRequest(db: D1Database, actor: Actor, b: Data) {
 
 /** The routed approver approves or rejects (with a reason) the exact request they saw; nobody decides their own. */
 export async function decideRequest(db: D1Database, actor: Actor, id: string, b: Data) {
+  const request = await loadRequest(db,id);
+  if(request.workflow) return decideWorkflowRequest(db,actor,request,b);
   need(actor, 'manager');
   requireThat(actor.kind === 'person', 'Only a person decides a spend request', 403);
   const r = await loadRequest(db, id);
@@ -77,4 +85,42 @@ export function preApprovalOverride(exceptions: Data[], b: Data): string | null 
   const reason = optionalText(b.override, 'Reason to approve without a spend request', 1000);
   requireThat(reason, 'An expense over the spend request threshold has no approved request linked: return the claim so one is linked, or give your reason to approve without one', 409);
   return reason;
+}
+
+async function decideWorkflowRequest(db:D1Database,actor:Actor,r:SpendRequest,b:Data) {
+ requireThat(actor.kind==='person','Only a person decides spend requests',403);
+ requireThat(r.employee_email!==actor.email&&r.employee_email!==actor.delegate?.email,'Nobody approves their own spend request',403);
+ requireThat(r.status==='submitted'&&r.version===b.version,'The request changed; reload before deciding',409);
+ requireThat(['approved','rejected'].includes(b.decision),'Choose approve or reject');
+ const approved=b.decision==='approved', reason=optionalText(b.reason,'Reason',1000);
+ requireThat(approved||reason,'Give a reason to reject');
+ const route=await nextWorkflow(db,'request',r.id,1,JSON.parse(r.workflow!),actor.email,r.employee_email,(await requireBusiness(db)).timezone,approved);
+ requireThat(actor.roles[route.task.role],'Reviewer role required',403);
+ const at=now(),onBehalfOf=actor.delegate?actor.email:route.task.on_behalf_of;
+ await commit(db,all(authority(actor,route.task.role),{sql:"EXISTS(SELECT 1 FROM c_requests WHERE id=? AND version=? AND status='submitted')",params:[r.id,r.version]},...route.guards),[
+  ...(approved?route.writes:[]),
+  db.prepare('UPDATE c_requests SET status=?,approver_email=?,on_behalf_of=?,decided_by=?,decided_on_behalf_of=?,decided_at=?,reason=?,version=version+1,updated_at=? WHERE id=?').bind(approved&&!route.final?'submitted':b.decision,route.next?.email??r.approver_email,route.next?.on_behalf_of??null,actor.delegate?.email??actor.email,onBehalfOf,at,reason,at,r.id),
+  event(db,actor,approved&&!route.final?'request-step-approved':`request-${b.decision}`,{}, {request:r.id,slot:route.task.slot,stage:route.task.stage,reason,onBehalfOf}),
+ ]);
+ return loadRequest(db,r.id);
+}
+
+/** Owner moves an active spend-request task without changing the frozen later stages. */
+export async function reassignRequest(db:D1Database,actor:Actor,id:string,b:Data) {
+ need(actor,'owner');
+ const r=await loadRequest(db,id),to=email(b.approver,'New approver');
+ requireThat(r.status==='submitted'&&r.version===b.version,'The request changed; reload before reassigning',409);
+ requireThat(to!==r.employee_email,'Nobody approves their own spend request');
+ const tasks=r.workflow_tasks as import('./workflow-routing').Task[]|undefined;
+ const task=tasks?.find(t=>t.status==='waiting'&&(b.slot===undefined?t.email===r.approver_email:t.slot===b.slot));
+ requireThat(!r.workflow||task,'Choose a waiting workflow task');
+ requireThat(!tasks?.some(t=>t.status==='waiting'&&t.slot!==task?.slot&&t.email===to),'That person already has a parallel review task');
+ const role=task?.role??'manager';
+ requireThat(await db.prepare(`SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_${role}=1`).bind(to).first(),'Choose an active reviewer with the matching role');
+ await commit(db,all(authority(actor,'owner'),{sql:"EXISTS(SELECT 1 FROM c_requests WHERE id=? AND version=? AND status='submitted')",params:[id,r.version]}),[
+ ...(task?[db.prepare("UPDATE c_workflow_tasks SET email=?,on_behalf_of=NULL WHERE kind='request' AND record_id=? AND revision=1 AND slot=?").bind(to,id,task.slot)]:[]),
+ db.prepare('UPDATE c_requests SET approver_email=?,on_behalf_of=NULL,version=version+1,updated_at=? WHERE id=?').bind(to,now(),id),
+ event(db,actor,'request-reassigned',{}, {request:id,from:task?.email??r.approver_email,to,reason:optionalText(b.reason,'Reason',500)}),
+ ]);
+ return loadRequest(db,id);
 }

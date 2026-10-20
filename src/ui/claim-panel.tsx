@@ -48,7 +48,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   if (!detail) return <aside className="side detail"><p className="muted">Opening claim…</p></aside>;
   const { claim, items, exceptions } = detail, me = state.actor.email, currency = claim.currency;
   const mine = claim.employee_email === me, editable = mine && ['draft', 'returned'].includes(claim.status);
-  const deciding = claim.status === 'submitted' && claim.approver_email === me && !mine;
+  const deciding = claim.status === 'submitted' && (claim.assigned_emails?.length ? claim.assigned_emails.includes(me) : claim.approver_email === me) && !mine;
   const names: Record<string, string> = state.names;
   const lastReturn = [...detail.decisions].reverse().find((d: D) => d.decision === 'returned' && d.revision === claim.revision);
   const lastDecision = detail.decisions.at(-1), submitted = detail.revisions.at(-1);
@@ -77,7 +77,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       <div className="metadata"><Badge status={claim.status} />{claim.revision > 0 && <span className="muted">Revision {claim.revision}</span>}</div>
       <ul className="facts">
         <li><Icon name="person" /><span>{names[claim.employee_email] ?? claim.employee_email}</span></li>
-        <li><Icon name="users" /><span className="approver">Approver: {claim.approver_email ? names[claim.approver_email] ?? claim.approver_email : 'set at submission'}{claim.on_behalf_of ? ` on behalf of ${names[claim.on_behalf_of] ?? claim.on_behalf_of}` : ''}</span></li>
+        <li><Icon name="users" /><span className="approver">Approver: {claim.approver_email ? names[claim.approver_email] ?? claim.approver_email : 'set at submission'}{claim.on_behalf_of ? ` on behalf of ${names[claim.on_behalf_of] ?? claim.on_behalf_of}` : ''}{claim.assigned_emails?.length > 1 ? ` · Also waiting for ${claim.assigned_emails.filter((e: string) => e !== claim.approver_email).map((e: string) => names[e] ?? e).join(', ')}` : ''}</span></li>
         {categories.length > 0 && <li><Icon name="tag" /><span>{categories.join(', ')}</span></li>}
         {lastDecision && <li><Icon name="send" /><span>{lastDecision.decision === 'approved' ? 'Approved' : lastDecision.decision === 'returned' ? 'Returned' : 'Rejected'} by {names[lastDecision.actor_email] ?? lastDecision.actor_email}{lastDecision.on_behalf_of ? ` on behalf of ${names[lastDecision.on_behalf_of] ?? lastDecision.on_behalf_of}` : ''} {day(lastDecision.at)}</span></li>}
         {claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}

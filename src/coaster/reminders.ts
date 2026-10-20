@@ -22,13 +22,15 @@ export async function openItems(db: D1Database, settings: Business): Promise<Ope
     db.prepare('SELECT q.id,q.asks_email,c.id AS claim,c.number,c.title FROM c_comments q JOIN c_claims c ON c.id=q.claim_id WHERE q.asks_email IS NOT NULL AND NOT EXISTS(SELECT 1 FROM c_comments r WHERE r.parent_id=q.id AND (r.author_email=q.asks_email OR r.on_behalf_of=q.asks_email))'),
     db.prepare("SELECT id,number,title,approver_email,revision FROM c_claims WHERE status='submitted' AND approver_email IS NOT NULL"),
   ]);
+  const tasks=await db.prepare("SELECT t.*,c.number,c.title FROM c_workflow_tasks t JOIN c_claims c ON t.kind='claim' AND c.id=t.record_id AND c.revision=t.revision WHERE c.status='submitted' AND t.status='waiting'").all<Data>();
   const rows = (r: D1Result) => r.results as Data[];
   return [
     ...rows(receipts).map(r => ({ key: `receipt:${r.id}`, person: r.employee_email, claim: r.claim, number: r.number, title: r.title, action: `Attach the receipt for ${r.merchant}` })),
     ...rows(unsubmitted).map(r => ({ key: `unsubmitted:${r.id}:${r.revision}`, person: r.employee_email, claim: r.id, number: r.number, title: r.title, action: `Submit ${claimNumber(r.number)}` })),
     ...rows(held).map(r => ({ key: `held:${r.id}`, person: r.employee_email, claim: r.id, number: r.number, title: r.title, action: `Answer the hold on ${claimNumber(r.number)}` })),
     ...rows(questions).map(r => ({ key: `question:${r.id}`, person: r.asks_email, claim: r.claim, number: r.number, title: r.title, action: `Answer the question on ${claimNumber(r.number)}` })),
-    ...rows(decisions).map(r => ({ key: `decision:${r.id}:${r.revision}:${r.approver_email}`, person: r.approver_email, claim: r.id, number: r.number, title: r.title, action: `Decide ${claimNumber(r.number)}` })),
+    ...tasks.results.map(t=>({key:`decision:${t.record_id}:${t.revision}:task${t.slot}:${t.email}`,person:t.email,claim:t.record_id,number:t.number,title:t.title,action:`Decide ${claimNumber(t.number)}`})),
+    ...rows(decisions).filter(r=>!tasks.results.some(t=>t.record_id===r.id)).map(r => ({ key: `decision:${r.id}:${r.revision}:${r.approver_email}`, person: r.approver_email, claim: r.id, number: r.number, title: r.title, action: `Decide ${claimNumber(r.number)}` })),
   ];
 }
 

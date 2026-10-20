@@ -8,6 +8,7 @@ import { requireBusiness } from './settings';
 import { preApprovalOverride } from './requests';
 import { auditSample } from './audit-queue';
 import { now, optionalText, requireThat, uid, type Actor, type Data } from './types';
+import { type Task, insertTasks, resolveStage } from './workflow-routing';
 import { chainState, claimChain, freezeChain } from './approval-chain';
 
 /** Moves expenses to another claim. They keep their ids, splits and attendees; each receipt is copied byte for byte onto
@@ -25,7 +26,7 @@ export function moveItems(db: D1Database, items: Data[], from: string, to: strin
 /** Approve part of the exact submitted revision and hold the rest. The approved expenses continue on this claim as the
  * next revision, approved at once; the held ones move to a new claim that stays with the employee, carrying the reason,
  * the approver and a link back. `guard` is the decision's own COA-006 condition (approver, revision, version). */
-export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim, b: Data, snapshot: Data, guard: Sql) {
+export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim, b: Data, snapshot: Data, guard: Sql, task?: Task) {
   const chain = await claimChain(db, claim.id, claim.revision);
   requireThat(!chain || chain.position === chain.steps.length - 1, 'Partial approval is available only at the final step of this approval chain; approve this step or return the claim', 409);
   const hold: string[] = b.hold;
@@ -51,6 +52,7 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
     ...moveItems(db, items.filter(i => hold.includes(i.id)), claim.id, heldId),
     db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?').bind(heldId, at, heldId),
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, submitted.submitted_by, at, total, JSON.stringify({ ...snapshot, total_minor: total, exceptions, items: kept, split })),
+    ...(task ? [db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step,workflow_final) VALUES(?,?,?,'approved',?,?,?,?,?,?,0)").bind(uid(),claim.id,claim.revision,override??reason,by,at,JSON.stringify(exceptions),onBehalfOf,task.slot),db.prepare("UPDATE c_workflow_tasks SET status='approved' WHERE kind='claim' AND record_id=? AND revision=? AND slot=?").bind(claim.id,claim.revision,task.slot)] : []),
     ...(chain ? [freezeChain(db, claim.id, revision, chain.chain_id, chain.steps, chain.position)] : []),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step) VALUES(?,?,?,'approved',?,?,?,?,?,?)").bind(uid(), claim.id, revision, override ?? '', by, at, JSON.stringify(exceptions), onBehalfOf, chain?.position ?? 0),
     db.prepare("UPDATE c_claims SET status='approved',revision=?,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(revision, total, at, claim.id),
@@ -59,7 +61,7 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
     event(db, actor, 'claim-approved', { claim: claim.id }, { revision, reason: override ?? '', preApprovalOverride: override, exceptionsAcknowledged: exceptions.length, onBehalfOf }),
     event(db, actor, 'claim-held', { claim: heldId }, { from: claim.id, fromNumber: claimNumber(claim.number), fromRevision: claim.revision, items: hold, reason, onBehalfOf }),
   );
-  await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['submitted']), guard, chainState(chain, claim.id, claim.revision)), writes);
+  await commit(db, all(authority(actor, task?.role ?? 'manager'), claimState(claim.id, claim.version, ['submitted']), guard, chainState(chain, claim.id, claim.revision)), writes);
   return loadClaim(db, claim.id);
 }
 
@@ -69,6 +71,7 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   requireThat(actor.kind === 'person' && actor.roles.manager, 'Only the approver who held these expenses releases them', 403);
   const claim = await loadClaim(db, id);
   requireThat(claim.held_from, 'This claim holds no expenses on hold', 409);
+  requireThat(!await db.prepare("SELECT 1 FROM c_workflow_tasks WHERE kind='claim' AND record_id=? LIMIT 1").bind(claim.held_from).first(), 'Expenses held from a workflow must be resubmitted through the full workflow',409);
   requireThat(!await db.prepare('SELECT 1 FROM c_claim_chains WHERE claim_id=? LIMIT 1').bind(claim.held_from).first(), 'Expenses held from an approval chain must be resubmitted through the full chain before approval', 409);
   requireThat(claim.approver_email === actor.email, 'Only the approver who held these expenses releases them', 403);
   requireThat(claim.employee_email !== actor.email && claim.employee_email !== actor.delegate?.email, 'Nobody approves their own claim', 403);

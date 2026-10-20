@@ -114,6 +114,7 @@ export async function confirmExpiry(db: D1Database, actor: Actor, id: string) {
       db.prepare(`UPDATE c_advances SET kept_applied_minor=(SELECT CASE WHEN c.status='reimbursed' THEN MIN(c_advances.amount_minor-c_advances.returned_minor,c.total_minor) ELSE 0 END FROM c_claims c WHERE c.id=c_advances.claim_id) WHERE claim_id ${inClaims}`).bind(list),
       db.prepare(`DELETE FROM c_escalations WHERE key IN (SELECT key FROM c_reminder_items WHERE claim_id ${inClaims})`).bind(list),
       db.prepare(`DELETE FROM c_reminders WHERE key IN (SELECT key FROM c_reminder_items WHERE claim_id ${inClaims})`).bind(list),
+      db.prepare(`DELETE FROM c_workflow_tasks WHERE kind='claim' AND record_id ${inClaims}`).bind(list),
       ...['c_reminder_items', 'c_exception_reviews', 'c_audit_samples', 'c_decisions', 'c_revisions', 'c_reimbursement_keys', 'c_batch_claims', 'c_allowance_runs', 'c_nonaccountable'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),
       db.prepare(`DELETE FROM c_comments WHERE claim_id ${inClaims} AND parent_id IS NOT NULL`).bind(list),
       ...['c_comments', 'c_items', 'c_receipts', 'c_events'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),

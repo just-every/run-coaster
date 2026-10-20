@@ -14,7 +14,7 @@ const readHash = (): Place => { const [view = 'claims', id] = (typeof location =
 export const go = (view: string, id?: string) => { location.hash = `/${view}${id ? '/' + id : ''}`; };
 
 /** Claims routed to this person for a decision, the count the rail's Approvals badge shows. */
-export const waitingFor = (state: D) => state.claims.filter((c: D) => c.status === 'submitted' && c.approver_email === state.actor.email && c.employee_email !== state.actor.email);
+export const waitingFor = (state: D) => state.claims.filter((c: D) => c.status === 'submitted' && (c.assigned_emails?.length ? c.assigned_emails.includes(state.actor.email) : c.approver_email === state.actor.email) && c.employee_email !== state.actor.email);
 /** The claim a screen opens on by itself at desktop widths: of the claims it lists, the one waiting longest for this
     person's decision. */
 export const oldestWaiting = (state: D, listed: D[]): D | undefined => waitingFor(state).filter((c: D) => listed.includes(c)).sort((a: D, b: D) => a.updated_at.localeCompare(b.updated_at) || a.number - b.number)[0];
@@ -23,7 +23,7 @@ function destinations(state: D): Destination[] {
   const roles = state.actor.roles;
   return [
     { view: 'claims', label: 'Claims', icon: 'claims', show: true },
-    { view: 'approvals', label: 'Approvals', icon: 'approvals', show: roles.manager, count: waitingFor(state).length },
+    { view: 'approvals', label: 'Approvals', icon: 'approvals', show: roles.manager || roles.finance, count: waitingFor(state).length },
     { view: 'batches', label: 'Batches', icon: 'batches', show: roles.finance },
     { view: 'move-in', label: 'Move in', icon: 'movein', show: roles.owner },
     { view: 'settings', label: 'Settings', icon: 'settings', show: true },

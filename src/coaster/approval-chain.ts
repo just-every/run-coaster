@@ -55,4 +55,4 @@ export const advanceChain = (db: D1Database, chain: ClaimChain) => db.prepare('U
 
 /** Reports, payment exports and sampling count a completed approval once.
  * Intermediate approvals remain ordinary decisions in the audit history. */
-export const finalApproval = (alias: string) => `${alias}.decision='approved' AND NOT EXISTS(SELECT 1 FROM c_claim_chains ch WHERE ch.claim_id=${alias}.claim_id AND ch.revision=${alias}.revision AND ${alias}.decision_step<json_array_length(ch.steps)-1)`;
+export const finalApproval = (alias: string) => `${alias}.decision='approved' AND ${alias}.workflow_final=1 AND NOT EXISTS(SELECT 1 FROM c_claim_chains ch WHERE ch.claim_id=${alias}.claim_id AND ch.revision=${alias}.revision AND ${alias}.decision_step<json_array_length(ch.steps)-1)`;

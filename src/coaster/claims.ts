@@ -8,10 +8,11 @@ import { linkableRequest } from './requests';
 import { approvesByRule, currentRule, ruleApproval, ruleStill } from './auto-approval';
 import { capToAllowance } from './allowances';
 import { policyConfiguration, policyStill } from './policy-configuration';
+import { workflowPlan, resolveStage, insertTasks, workflowAccess } from './workflow-routing';
 import { configuredChain, freezeChain } from './approval-chain';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null };
+export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null; assigned_emails?: string[]; workflow_readers?: string[] };
 
 export const claimNumber = (n: number) => `CL-${String(n).padStart(4, '0')}`;
 export const RECEIPT_LIMIT = 1_500_000;
@@ -20,14 +21,14 @@ export async function loadClaim(db: D1Database, id: unknown): Promise<Claim> {
   requireThat(typeof id === 'string' && id.length <= 64, 'Claim not found', 404);
   const claim = await db.prepare('SELECT * FROM c_claims WHERE id=?').bind(id).first<Claim>();
   requireThat(claim, 'Claim not found', 404);
-  return claim;
+  return { ...claim, ...await workflowAccess(db, 'claim', claim.id, claim.revision) };
 }
 
 /** Who may see a claim: its employee always; once submitted, its approver (and the approver a delegate acts for), finance, auditors and the owner. */
 export function canSee(actor: Actor, claim: Claim) {
   if (claim.employee_email === actor.email) return true;
   if (claim.status === 'draft') return false;
-  return (actor.roles.manager && (claim.approver_email === actor.email || claim.on_behalf_of === actor.email)) || actor.roles.finance || actor.roles.auditor || actor.roles.owner;
+  return (claim.workflow_readers?.includes(actor.email) ?? false) || (actor.roles.manager && (claim.approver_email === actor.email || claim.on_behalf_of === actor.email)) || actor.roles.finance || actor.roles.auditor || actor.roles.owner;
 }
 export function visible(actor: Actor, claim: Claim) {
   requireThat(canSee(actor, claim), 'This claim is outside your access', 403);
@@ -190,13 +191,17 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   requireThat(!hard.length, `This claim breaks a hard policy rule and cannot be submitted: ${hard.map(e => e.message).join('; ')}`, 409);
   const unexplained = exceptions.filter(e => !items.find(i => i.id === e.item)?.explanation);
   requireThat(!unexplained.length, `Explain each policy exception before submitting: ${unexplained.map(e => e.message).join('; ')}`, 409);
-  const rule = await currentRule(db), byRule = !configured.chain && approvesByRule(rule, items, exceptions);
+  const workflow = await workflowPlan(db, claim.employee_email, claim.total_minor, items, exceptions);
+  const resolved = workflow ? await resolveStage(db, workflow.plan.stages[0], claim.employee_email, business.timezone) : null;
+  const routed = resolved?.tasks[0];
+  const rule = await currentRule(db), byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
   const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();
-  const snapshot = { policyVersion: active.version, title: claim.title, approver, onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(auth, ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
+  const snapshot = { ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  await commit(db, all(auth, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),
-    ...(configured.chain ? [freezeChain(db, claim.id, revision, configured.chain.id, configured.chain.steps)] : []),
-    db.prepare('UPDATE c_claims SET status=?,revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?').bind(byRule ? 'approved' : 'submitted', revision, approver, onBehalfOf, total, at, claim.id),
+    ...(workflow && resolved ? insertTasks(db, 'claim', claim.id, revision, 0, 0, resolved.tasks) : []),
+    ...(!workflow && configured.chain ? [freezeChain(db, claim.id, revision, configured.chain.id, configured.chain.steps)] : []),
+    db.prepare('UPDATE c_claims SET status=?,revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?').bind(byRule ? 'approved' : 'submitted', revision, routed?.email ?? approver, routed?.on_behalf_of ?? onBehalfOf, total, at, claim.id),
     history(revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { revision, totalMinor: total, exceptions: exceptions.length, note, approver, onBehalfOf }),
     ...(byRule ? ruleApproval(db, claim.id, revision, rule!, claim.currency) : []),
   ]);

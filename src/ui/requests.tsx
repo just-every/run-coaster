@@ -8,7 +8,7 @@ const line = (r: D, names: Record<string, string>) => `${requestNumber(r.number)
 /** Spend requests (CLAIM-005): an employee asks before spending; their approver decides; expenses link to an approved one. */
 export function SpendRequests({ state, reload, deciding = false }: { state: D; reload: () => Promise<unknown>; deciding?: boolean }) {
   const me = state.actor.email, [error, setError] = useState('');
-  const shown = state.requests.filter((r: D) => deciding ? r.approver_email === me && r.employee_email !== me : r.employee_email === me);
+  const shown = state.requests.filter((r: D) => deciding ? (r.assigned_emails?.length ? r.assigned_emails.includes(me) : r.approver_email === me) && r.employee_email !== me : r.employee_email === me);
   const decide = async (r: D, decision: string, reason = '') => { try { setError(''); await call(`requests/${r.id}/decision`, { version: r.version, decision, reason }); await reload(); } catch (e) { setError((e as Error).message); } };
   return <Section title={deciding ? 'Spend requests to decide' : 'Spend requests'}>
     {!deciding && <p className="muted">Ask before a trip, conference or large purchase{state.business.preapproval_threshold_minor != null ? `; anything over ${money(state.business.preapproval_threshold_minor, state.business.currency)} needs an approved request` : ''}. Link its expenses to it and your approver sees the estimate against what was spent.</p>}

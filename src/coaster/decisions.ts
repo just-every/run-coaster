@@ -1,3 +1,5 @@
+import { tasksFor } from './workflow-routing';
+import { decideWorkflowClaim } from './workflow-decisions';
 import { all, authority, commit, need } from './session';
 import { event } from './events';
 import { claimState, loadClaim } from './claims';
@@ -11,6 +13,10 @@ import { email, now, optionalText, requireThat, uid, type Actor, type Data } fro
 
 /** The assigned manager approves, returns or rejects the exact submitted revision. */
 export async function decide(db: D1Database, actor: Actor, id: string, b: Data) {
+  const workflowClaim = await loadClaim(db, id);
+  const frozen = await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(id,workflowClaim.revision).first<{snapshot:string}>();
+  const frozenSnapshot = frozen && JSON.parse(frozen.snapshot);
+  if(frozenSnapshot?.workflow) return decideWorkflowClaim(db,actor,workflowClaim,b,frozenSnapshot.workflow,frozenSnapshot);
   need(actor, 'manager');
   requireThat(actor.kind === 'person', 'Only a person decides a claim', 403);
   const claim = await loadClaim(db, id);
@@ -52,12 +58,18 @@ export async function reassign(db: D1Database, actor: Actor, id: string, b: Data
   requireThat(b.version === claim.version, 'The claim changed since you opened it; reload and try again', 409);
   const to = email(b.approver, 'New approver');
   requireThat(to !== claim.employee_email, 'Nobody approves their own claim');
-  requireThat(to !== claim.approver_email, 'The claim is already waiting for that person');
-  requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_manager=1').bind(to).first(), 'The new approver must be an active member with the manager role');
+  const tasks=await tasksFor(db,'claim',id,claim.revision);
+  const task=tasks.find(t=>t.status==='waiting'&&(b.slot===undefined?t.email===claim.approver_email:t.slot===b.slot));
+  requireThat(!tasks.length||task,'Choose a waiting workflow task');
+  requireThat(!tasks.some(t=>t.status==='waiting'&&t.slot!==task?.slot&&t.email===to),'That person already has a parallel review task');
+  const role=task?.role??'manager';
+  requireThat(to !== (task?.email??claim.approver_email), 'The claim is already waiting for that person');
+  requireThat(await db.prepare(`SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_${role}=1`).bind(to).first(), 'The new approver must be an active member with the manager role');
   const reason = optionalText(b.reason, 'Reason', 500);
   await commit(db, all(authority(actor, 'owner'), claimState(claim.id, claim.version, ['submitted'])), [
+    ...(task ? [db.prepare("UPDATE c_workflow_tasks SET email=?,on_behalf_of=NULL WHERE kind='claim' AND record_id=? AND revision=? AND slot=?").bind(to,id,claim.revision,task.slot)] : []),
     db.prepare('UPDATE c_claims SET approver_email=?,on_behalf_of=NULL,version=version+1,updated_at=? WHERE id=?').bind(to, now(), claim.id),
-    event(db, actor, 'claim-reassigned', { claim: claim.id }, { from: claim.approver_email, to, reason }),
+    event(db, actor, 'claim-reassigned', { claim: claim.id }, { from: task?.email??claim.approver_email, to, reason, slot:task?.slot }),
   ]);
   return loadClaim(db, id);
 }

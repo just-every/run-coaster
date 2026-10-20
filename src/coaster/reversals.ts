@@ -3,6 +3,7 @@ import { event } from './events';
 import { claimState, loadClaim } from './claims';
 import { loadBatch } from './batches';
 import { now, optionalText, requireThat, type Actor, type Data } from './types';
+import { insertTasks, resolveStage } from './workflow-routing';
 import { chainRoute, chainState, claimChain, freezeChain } from './approval-chain';
 import { localDay } from './delegation';
 import { requireBusiness } from './settings';
@@ -34,7 +35,7 @@ export async function unapproveClaim(db: D1Database, actor: Actor, id: string, b
   const batch = claim.batch_id ? await loadBatch(db, claim.batch_id) : null;
   requireThat(claim.status !== 'reimbursed' && (!batch || batch.status === 'draft'), 'This claim is in a reviewed batch; it can no longer be unapproved', 409);
   requireThat(['approved', 'batched'].includes(claim.status), 'Only an approved claim can be unapproved', 409);
-  const approval = await db.prepare("SELECT actor_email,on_behalf_of FROM c_decisions WHERE claim_id=? AND revision=? AND decision='approved' ORDER BY decision_step DESC LIMIT 1").bind(claim.id, claim.revision).first<{ actor_email: string; on_behalf_of: string | null }>();
+  const approval = await db.prepare("SELECT actor_email,on_behalf_of FROM c_decisions WHERE claim_id=? AND revision=? AND decision='approved' AND workflow_final=1 ORDER BY decision_step DESC LIMIT 1").bind(claim.id, claim.revision).first<{ actor_email: string; on_behalf_of: string | null }>();
   requireThat(approval, 'Approval missing', 409);
   const own = actor.roles.manager && (approval.actor_email === actor.email || approval.on_behalf_of === actor.email);
   requireThat(actor.roles.finance || actor.roles.owner || own, 'Only the approver who approved, finance or the owner can unapprove a claim', 403);
@@ -60,12 +61,16 @@ export async function unapproveClaim(db: D1Database, actor: Actor, id: string, b
     // The approver decides again on a new revision: the same frozen expenses, marked as reopened from the approved one.
     const previous = await db.prepare('SELECT submitted_by,total_minor,snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(claim.id, claim.revision).first<{ submitted_by: string; total_minor: number; snapshot: string }>();
     requireThat(previous, 'Approved revision missing', 409);
-    const route = chain ? await chainRoute(db, chain.steps, 0, claim.employee_email, localDay((await requireBusiness(db)).timezone)) : null;
+    const workflow = JSON.parse(previous.snapshot).workflow;
+    const resolved = workflow ? await resolveStage(db,workflow.stages[0],claim.employee_email,(await requireBusiness(db)).timezone) : null;
+    if(resolved) state.push(...resolved.guards);
+    const route = resolved ? {approver:resolved.tasks[0].email,onBehalfOf:resolved.tasks[0].on_behalf_of,guard:resolved.guards[0]} : chain ? await chainRoute(db, chain.steps, 0, claim.employee_email, localDay((await requireBusiness(db)).timezone)) : null;
     state.push(route?.guard ?? { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [claim.approver_email] });
     const approver = route?.approver ?? claim.approver_email, onBehalfOf = route ? route.onBehalfOf : claim.on_behalf_of;
     const snapshot = { ...JSON.parse(previous.snapshot), approver, onBehalfOf, reopened: { fromRevision: claim.revision, by: actor.delegate?.email ?? actor.email, reason } };
     writes.push(
       db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, claim.revision + 1, previous.submitted_by, at, previous.total_minor, JSON.stringify(snapshot)),
+      ...(resolved ? insertTasks(db,'claim',claim.id,claim.revision+1,0,0,resolved.tasks) : []),
       ...(chain ? [freezeChain(db, claim.id, claim.revision + 1, chain.chain_id, chain.steps)] : []),
       db.prepare("UPDATE c_claims SET status='submitted',revision=?,approver_email=?,on_behalf_of=?,batch_id=NULL,version=version+1,updated_at=? WHERE id=?").bind(claim.revision + 1, approver, onBehalfOf, at, claim.id),
     );

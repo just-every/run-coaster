@@ -13,6 +13,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
+  ['c_workflow_tasks', ['email','on_behalf_of']], ['c_approval_workflows',['created_by']],
   ['c_claims', ['employee_email', 'approver_email', 'prepared_by', 'on_behalf_of', 'held_by']],
   ['c_receipts', ['owner_email', 'uploaded_by']],
   ['c_revisions', ['submitted_by']],
@@ -42,6 +43,7 @@ const ADDRESS: [string, string[]][] = [
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
+  ['c_approval_workflows',['rules']], ['c_requests',['workflow']],
   ['c_claim_chains', ['steps']], ['c_revisions', ['snapshot']], ['c_decisions', ['exceptions']], ['c_events', ['detail']], ['c_proposals', ['payload']],
   ['c_report_schedules', ['recipients']], ['c_report_deliveries', ['recipients']], ['c_escalations', ['recipients']], ['c_budget_alerts', ['recipients']],
   ['c_spend_views', ['query']], ['c_expiry_proposals', ['claims', 'receipt']], ['c_items', ['attendees', 'fields']],
@@ -74,6 +76,8 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   requireThat(!unpaid.length, `${member.name} still has unpaid claims (${unpaid.map(c => claimNumber(c.number)).join(', ')}); pay, reject or remove them first`, 409);
   requireThat(!await db.prepare("SELECT 1 FROM c_requests WHERE employee_email=? AND status='submitted'").bind(address).first(), `${member.name} has a spend request waiting for a decision`, 409);
   // A cash advance still waiting, unpaid or with excess owed is an open financial record (CLAIM-004).
+  requireThat(!await db.prepare("SELECT 1 FROM c_workflow_tasks t WHERE (t.email=? OR t.on_behalf_of=?) AND ((t.kind='claim' AND EXISTS(SELECT 1 FROM c_claims c WHERE c.id=t.record_id AND c.revision=t.revision AND c.status='submitted')) OR (t.kind='request' AND EXISTS(SELECT 1 FROM c_requests r WHERE r.id=t.record_id AND r.status='submitted'))) LIMIT 1").bind(address,address).first(), 'Workflow reviews are still open; complete or return them before erasure',409);
+  requireThat(!await db.prepare("SELECT 1 FROM c_revisions v JOIN c_claims c ON c.id=v.claim_id AND c.revision=v.revision WHERE c.status='submitted' AND instr(v.snapshot,?)>0 UNION ALL SELECT 1 FROM c_requests WHERE status='submitted' AND instr(workflow,?)>0 LIMIT 1").bind(JSON.stringify(address),JSON.stringify(address)).first(), 'A pending frozen workflow names this member; finish it before erasure',409);
   const advance = (await advancesFor(db, { ...actor, roles: { ...actor.roles, owner: true } })).advances.find(a => a.employee_email === address && (['submitted', 'approved'].includes(a.status) || a.owedMinor > 0));
   requireThat(!advance, `${member.name} has cash advance ${advance?.advance} still open; settle it first`, 409);
   requireThat(!await db.prepare("SELECT 1 FROM c_claims WHERE approver_email=? AND status='submitted'").bind(address).first(), `Claims are still waiting for ${member.name} to decide; reassign them first`, 409);

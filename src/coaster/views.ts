@@ -1,3 +1,4 @@
+import { currentWorkflow } from './workflow-configuration';
 import { policyConfiguration } from './policy-configuration';
 import { business } from './settings';
 import { canSee, claimItems, loadClaim, visible, type Claim } from './claims';
@@ -26,7 +27,9 @@ export async function workspace(db: D1Database, actor: Actor) {
     db.prepare('SELECT id,label,created_at,revoked_at FROM c_agent_keys WHERE member_email=? ORDER BY created_at DESC').bind(actor.email),
     db.prepare('SELECT * FROM c_batches ORDER BY number DESC'),
   ]);
-  const seen = (claims.results as Claim[]).filter(c => canSee(actor, c));
+  const workflowTasks=(await db.prepare("SELECT t.* FROM c_workflow_tasks t JOIN c_claims c ON t.kind='claim' AND c.id=t.record_id AND c.revision=t.revision").all<import('./workflow-routing').Task>()).results;
+  const hydrated=(claims.results as Claim[]).map(c=>{const tasks=workflowTasks.filter(t=>t.record_id===c.id); return {...c,workflow_tasks:tasks,assigned_emails:tasks.filter(t=>t.status==='waiting').map(t=>t.email),workflow_readers:[...new Set(tasks.flatMap(t=>[t.email,...(t.on_behalf_of?[t.on_behalf_of]:[])]))]};});
+  const seen = hydrated.filter(c => canSee(actor, c));
   const names = Object.fromEntries((members.results as Data[]).map(m => [m.email, m.name])), questions = await openQuestions(db);
   // A waiting claim shows its business days since submission against the approval service level (FOLLOWUP-002).
   const settings = await business(db), today = settings && localDate(new Date().toISOString(), settings.timezone);
@@ -48,6 +51,7 @@ export async function workspace(db: D1Database, actor: Actor) {
     delegations: actor.roles.manager ? await delegations(db, actor) : [],
     delegates: await delegateGrants(db, actor),
     requests: await requestsFor(db, actor),
+    approvalWorkflow: actor.roles.owner ? await currentWorkflow(db) : null,
     approvalRule: actor.roles.owner || actor.roles.finance || actor.roles.auditor ? await currentRule(db) : null,
     allowances: await allowancesFor(db, actor),
     advances: settings ? (await advancesFor(db, actor)).advances : [],
@@ -61,7 +65,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const items = await claimItems(db, claim.id);
   const [revisions, decisions, events, receipts] = await db.batch([
     db.prepare('SELECT revision,submitted_by,submitted_at,total_minor,snapshot FROM c_revisions WHERE claim_id=? ORDER BY revision').bind(claim.id),
-    db.prepare('SELECT revision,decision_step,decision,reason,actor_email,on_behalf_of,at,exceptions FROM c_decisions WHERE claim_id=? ORDER BY revision,decision_step').bind(claim.id),
+    db.prepare('SELECT revision,decision_step,workflow_final,decision,reason,actor_email,on_behalf_of,at,exceptions FROM c_decisions WHERE claim_id=? ORDER BY revision,decision_step').bind(claim.id),
     db.prepare('SELECT at,actor_email,action,detail FROM c_events WHERE claim_id=? ORDER BY seq').bind(claim.id),
     db.prepare('SELECT id,name,media_type,size,sha256,source,uploaded_by,uploaded_at FROM c_receipts WHERE claim_id=? ORDER BY uploaded_at, id').bind(claim.id),
   ]);

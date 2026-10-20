@@ -54,9 +54,11 @@ export async function routeFor(db: D1Database, approver: string, employee: strin
 /** A deactivated approver's waiting claims move to that approver's own manager, each with a history line. Claims their manager submitted stay for the owner to reassign. */
 export async function queueMoves(db: D1Database, actor: Actor, address: string, manager: string | null) {
   if (!manager || !await activeManager(db, manager)) return [];
-  const waiting = await db.prepare("SELECT id FROM c_claims WHERE approver_email=? AND status='submitted' AND employee_email<>?").bind(address, manager).all<{ id: string }>();
-  return waiting.results.flatMap(c => [
+  const tasks=await db.prepare("SELECT t.*,c.employee_email FROM c_workflow_tasks t JOIN c_claims c ON t.kind='claim' AND c.id=t.record_id AND c.revision=t.revision WHERE t.email=? AND t.status='waiting' AND t.role='manager' AND c.status='submitted' AND c.employee_email<>?").bind(address,manager).all<Data>();
+  const taskWrites=tasks.results.flatMap(t=>[db.prepare("UPDATE c_workflow_tasks SET email=?,on_behalf_of=NULL WHERE kind='claim' AND record_id=? AND revision=? AND slot=?").bind(manager,t.record_id,t.revision,t.slot),db.prepare('UPDATE c_claims SET version=version+1,updated_at=? WHERE id=?').bind(now(),t.record_id),event(db,actor,'workflow-review-reassigned',{claim:t.record_id},{from:address,to:manager,slot:t.slot,reason:'Approver deactivated'})]);
+  const waiting = await db.prepare("SELECT id FROM c_claims WHERE approver_email=? AND status='submitted' AND employee_email<>? AND NOT EXISTS(SELECT 1 FROM c_workflow_tasks t WHERE t.kind='claim' AND t.record_id=c_claims.id AND t.revision=c_claims.revision AND t.email=c_claims.approver_email AND t.role='finance')").bind(address, manager).all<{ id: string }>();
+  return [...taskWrites,...waiting.results.flatMap(c => [
     db.prepare("UPDATE c_claims SET approver_email=?,on_behalf_of=NULL,version=version+1,updated_at=? WHERE id=? AND status='submitted'").bind(manager, now(), c.id),
     event(db, actor, 'claim-reassigned', { claim: c.id }, { from: address, to: manager, reason: 'Approver deactivated' }),
-  ]);
+  ])];
 }
