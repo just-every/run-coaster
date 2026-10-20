@@ -383,8 +383,8 @@ Judged from the code and tests at commit `641ac21` (19 October 2026). Status row
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 34 | 15 | 41 | 90 |
-| All | 47 | 15 | 41 | 103 |
+| Target and push further | 35 | 14 | 41 | 90 |
+| All | 48 | 14 | 41 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |

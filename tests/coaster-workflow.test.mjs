@@ -44,6 +44,8 @@ test('APPROVE-001 owner configures three conditional paths; frozen reviews finis
   let baseline = await submit(h, await draft(h, t, { title: 'Airport transfer', amount: '200.00', fixture: 'uber' }), t.sam)
   let large = await submit(h, await draft(h, t, { title: 'Conference accommodation', amount: '1400.00', fixture: 'hotel' }), t.sam)
   let exception = await submit(h, await draft(h, t, { title: 'Client dinner', amount: '300.00', fixture: 'officeworks', category: t.c.meals, explanation: 'Dinner for the visiting client team' }), t.sam)
+  const boundary=await submit(h,await draft(h,t,{title:'Exact routing threshold',amount:'1000.00',fixture:'bistro'}),t.sam)
+  assert.deepEqual((await h.get(`claims/${boundary.id}`,t.sam)).revisions[0].snapshot.workflow.matched,[],'an amount equal to the threshold adds no amount review')
   const submitted = [baseline, large, exception]
   assert.ok(submitted.every(c => c.status === 'submitted' && c.approver_email === PRIYA))
   const frozen = await Promise.all(submitted.map(c => h.get(`claims/${c.id}`, t.sam)))
