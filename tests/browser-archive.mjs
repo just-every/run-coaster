@@ -17,11 +17,7 @@ export async function tampered(archive, table, change) {
   change(item.row, input)
   input[0].partCount = input.length - 2
   input.at(-1).partCount = input.length - 2
-  // The forged-marker probe must reach the public reader with an authentic
-  // checksum. Relax only the checksum builder's schema, never the output manifest.
-  const checksumManifest = structuredClone(input[0]);
-  if (Object.hasOwn(item.row, 'reason_redacted')) checksumManifest.tables.find(t => t.name === table).columns.push({ name: 'reason_redacted', type: 'INTEGER', notnull: 0, pk: 0 });
-  const content = new ContentVerifier(checksumManifest), whole = new ArchiveVerifier(input[0])
+  const content = new ContentVerifier(input[0]), whole = new ArchiveVerifier(input[0])
   for (let i = 1; i < input.length - 1; i++) { input[i] = await makePart(i - 1, input[i].items); whole.add(input[i]); for (const row of input[i].items) content.add(row) }
   input.at(-1).contentHash = content.digest(); input.at(-1).archiveHash = whole.digest()
   return input.map(r => JSON.stringify(r)).join('\n') + '\n'
@@ -64,7 +60,12 @@ export async function rejectCaptureLifecycleArchives(root, archive) {
     expanded_overflow: row => { row.reason = expanded.row.reason + 'x' },
     fake_tokens: row => { row.reason = 'Former member 00000000'.repeat(60) },
     untrimmed: row => { row.reason = ' needs trimming ' },
-    forged_marker: row => { row.reason = 'x'.repeat(1500); row.reason_redacted = 1 },
+    // A self-declared marker sealed into the manifest and every lifecycle row: Base refuses the foreign column before staging.
+    forged_marker: (row, input) => {
+      input[0].tables.find(t => t.name === 'c_capture_lifecycle').columns.push({ name: 'reason_redacted', notnull: 0, pk: 0, type: 'INTEGER' });
+      for (const item of rows(input)) if (item.table === 'c_capture_lifecycle') item.row.reason_redacted = 0;
+      row.reason = 'x'.repeat(1500); row.reason_redacted = 1;
+    },
     erasure_guard: (_row, input) => {
       const tables = input[0].tables, order = tables.findIndex(t => t.name === 'c_capture_erasing');
       tables[order].count = 1;
@@ -81,7 +82,7 @@ export async function rejectCaptureLifecycleArchives(root, archive) {
   for (const [name, change] of Object.entries(cases)) {
     await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change), { mode: 0o600 });
     const log = await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: name === 'forged_marker' ? 1 : 4 });
-    assert.match(log, name === 'forged_marker' ? /row_columns/ : /coaster_capture_(history|reason|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
+    assert.match(log, name === 'forged_marker' ? /column_inventory/ : /coaster_capture_(history|reason|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
     assert.ok(!log.includes('finance@dev.localhost') && !log.includes('Sam Taylor'), 'refusal never echoes identity or reason text');
   }
   await command(root, ['export', '--output', 'exports/lifecycle-after.rer']);
