@@ -1,7 +1,8 @@
 // A11Y-001: the claim/correction/approval journey uses keyboard input only.
 import assert from 'node:assert/strict'
-import { resolve, join } from 'node:path'
+import { join } from 'node:path'
 import { api, session } from './browser-journey.mjs'
+import { keyboardReceipt } from './fixtures/keyboard-receipt.mjs'
 
 async function tabTo(page, target) {
   await target.waitFor({ state: 'visible' })
@@ -32,6 +33,9 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
   const employee = await session(browser, root, origin, 'employee', width)
   const manager = await session(browser, root, origin, 'manager', width)
   const page = employee.page, title = `Denver client travel by keyboard ${width}`
+  const purchase = width === 1440
+    ? { merchant: 'Denver Airport Transit', amount: '24.60', minor: 2460, reference: 'TRAIN-1001' }
+    : { merchant: 'Union Station Taxi', amount: '38.60', minor: 3860, reference: 'TAXI-2001' }
   const photograph = async (screen, current) => {
     assert.equal(await current.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
     const path = join(evidence, `keyboard-${screen}-${width}.png`)
@@ -43,15 +47,15 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     await activate(page, button(page, 'Start claim'))
     await page.getByRole('heading', { name: title, exact: true }).waitFor()
     await activate(page, button(page, 'Add expense'))
-    await type(page, field(page, 'Merchant'), 'Denver Airport Transit')
-    await type(page, field(page, 'Amount'), '24.60')
+    await type(page, field(page, 'Merchant'), purchase.merchant)
+    await type(page, field(page, 'Amount'), purchase.amount)
     await type(page, field(page, 'Description'), 'Client workshop transport')
     await tabTo(page, field(page, 'Category'))
     await page.keyboard.press('t')
     await page.keyboard.press('Tab')
     await tabTo(page, field(page, 'Receipt photo or PDF'))
     const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.keyboard.press('Enter')])
-    await chooser.setFiles(resolve('tests/fixtures/receipts/bistro.png'))
+    await chooser.setFiles({ name: `${purchase.reference}.pdf`, mimeType: 'application/pdf', buffer: await keyboardReceipt({ ...purchase, date: await field(page, 'Date').inputValue() }) })
     await activate(page, page.locator('form.item-form').getByRole('button', { name: 'Add expense', exact: true }))
     await page.locator('form.item-form').waitFor({ state: 'detached' })
     await tabTo(page, button(page, 'Submit for approval'))
@@ -73,7 +77,7 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
 
     await page.reload()
     await page.locator('.detail .badge', { hasText: 'Returned' }).waitFor()
-    await activate(page, button(page, 'Change Denver Airport Transit'))
+    await activate(page, button(page, `Change ${purchase.merchant}`))
     await type(page, field(page, 'Description'), 'Harbour & Finch client workshop transport')
     await activate(page, button(page, 'Save expense'))
     await page.locator('form.item-form').waitFor({ state: 'detached' })
@@ -87,7 +91,8 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     await manager.page.locator('.detail .badge', { hasText: 'Approved' }).waitFor()
     const id = new URL(manager.page.url()).hash.split('/').at(-1)
     const detail = await api(employee.context, origin, `claims/${id}`)
-    assert.deepEqual([detail.claim.status, detail.claim.revision, detail.claim.total_minor], ['approved', 2, 2460])
+    assert.deepEqual([detail.claim.status, detail.claim.revision, detail.claim.total_minor], ['approved', 2, purchase.minor])
+    assert.equal(detail.revisions.length, 2)
     assert.equal(detail.items[0].description, 'Harbour & Finch client workshop transport')
     assert.deepEqual(detail.decisions.map(d => d.decision), ['returned', 'approved'])
     await photograph('approved', manager.page)
