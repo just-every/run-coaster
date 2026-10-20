@@ -84,7 +84,7 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
     const discarded = inbox.getByRole('region', { name: 'Discarded receipts', exact: true })
     await discarded.getByRole('link', { name: target.name, exact: true }).waitFor()
     assert.equal(await active.getByRole('link', { name: target.name, exact: true }).count(), 0)
-    await discarded.getByText(reason, { exact: true }).waitFor()
+    await discarded.getByRole('region', { name: `Disposition of ${target.name}`, exact: true }).getByText(reason, { exact: true }).waitFor()
     const kept = (await api(context, origin, 'receipt-inbox')).receipts.find(receipt => receipt.id === target.id)
     assert.deepEqual([kept.disposition, kept.lifecycleSequence, kept.lifecycle[0].reason], ['discarded', 1, reason])
     assert.deepEqual(kept.history, target.history)

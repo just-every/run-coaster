@@ -219,7 +219,11 @@ test('CAPTURE-004 authority is checked again after the request starts; revoked s
 })
 
 test('ERASURE-001 / CAPTURE-004 preserves discarded originals and reasons with employee and delegate names and any-case addresses replaced', async () => {
-  const h = await harness()
+  let pause = false, observed, resume
+  const h = await harness({ d1Barrier: async () => {
+    if (pause) { pause = false; observed(); await new Promise(resolve => { resume = resolve }) }
+    return new Response('open')
+  } })
   try {
     const t = await agency(h), png = await readFile('tests/fixtures/receipts/bistro.png')
     await h.post('settings/members', { email: SAM, name: 'Sam Taylor', employee: true })
@@ -268,5 +272,17 @@ test('ERASURE-001 / CAPTURE-004 preserves discarded originals and reasons with e
     const erasedForm = await h.post('settings/members/erase', { email: 'form@harbourfinch.example' })
     assert.equal(erasedForm.removed.discardReasons, 0)
     for (const r of (await h.get('receipt-inbox', bea)).receipts) assert.equal(r.lifecycle[0].reason, erasedA.label.repeat(1000))
-  } finally { await h.close() }
+    await h.post('settings/members', { email: 'race-subject@harbourfinch.example', name: 'Race Subject', employee: true, active: false })
+    const beforeRead = await upload(h, bea, 'before-read.png', png), duringRead = await upload(h, bea, 'during-read.png', png)
+    await h.post(discardPath(beforeRead.id), discardBody('Race Subject original copy'), bea)
+    const read = new Promise(resolve => { observed = resolve }); pause = true
+    const erasing = h.send('/api/coaster/settings/members/erase', { email: 'race-subject@harbourfinch.example' }, h.owner)
+    await read
+    await h.post(discardPath(duringRead.id), discardBody('Race Subject concurrent copy'), bea)
+    resume()
+    assert.equal((await erasing).status, 409, 'a real public write between D1 read and commit invalidates the erasure snapshot')
+    assert.equal(await h.db.prepare('SELECT name FROM c_members WHERE email=?').bind('race-subject@harbourfinch.example').first('name'), 'Race Subject')
+    const reloaded = await h.post('settings/members/erase', { email: 'race-subject@harbourfinch.example' })
+    assert.equal(reloaded.removed.discardReasons, 2)
+  } finally { resume?.(); await h.close() }
 })

@@ -14,7 +14,7 @@ import { heifEsbuildPlugin } from '../scripts/heif-worker.mjs'
 
 const freePort = async () => { const s = createServer(); await new Promise(r => s.listen(0, '127.0.0.1', r)); const { port } = s.address(); await new Promise(r => s.close(r)); return port }
 
-export async function harness({ identityProvider, fxRates } = {}) {
+export async function harness({ identityProvider, fxRates, d1Barrier } = {}) {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(join(tmpdir(), 'coaster-test-'))
   const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023', plugins: [heifEsbuildPlugin()] })
   // Every request the Worker sends anywhere is recorded with its body, so a test can prove where data leaves (DATA-001).
@@ -31,7 +31,7 @@ export async function harness({ identityProvider, fxRates } = {}) {
     messages.push(JSON.parse(body))
     return Response.json({ id: crypto.randomUUID() })
   }
-  const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], outboundService: edge, d1Databases: { DB: 'coaster' }, r2Buckets: { COASTER_RECEIPTS: 'coaster-receipts' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'synthetic-local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'resend', MAIL_API_KEY: 'test-mail-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>', ...(identityProvider ? { IDENTITY_PROVIDER: identityProvider } : {}) } }), resourcePersistencePath: dir })
+  const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], outboundService: edge, ...(d1Barrier ? { serviceBindings: { DB_GATE: d1Barrier } } : {}), d1Databases: { DB: 'coaster' }, r2Buckets: { COASTER_RECEIPTS: 'coaster-receipts' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'synthetic-local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'resend', MAIL_API_KEY: 'test-mail-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>', ...(identityProvider ? { IDENTITY_PROVIDER: identityProvider } : {}) } }), resourcePersistencePath: dir })
   try {
     const db = await mf.getD1Database('DB')
     for (const file of (await readdir('migrations/core')).filter(f => f.endsWith('.sql')).sort())
