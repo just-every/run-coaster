@@ -60,6 +60,7 @@ export async function perDiemJourney(browser, root, origin, owner, width, eviden
     await employee.page.locator('.detail .badge', { hasText: 'Reimbursed' }).waitFor()
     await shot(employee.page, 'reimbursed')
     // The changed settings hint and available export field are visible in their existing screens.
+    await owner.page.reload()
     await owner.page.setViewportSize({ width, height: 1000 })
     await owner.page.goto(`${origin}/app#/settings`)
     await owner.page.getByLabel('Company per diem per day', { exact: true }).waitFor()

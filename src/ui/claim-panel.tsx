@@ -11,7 +11,6 @@ import { ClaimAdvance } from './advances';
 function Receipt({ item }: { item: D }) {
   if (item.kind === 'mileage') return <span className="receipt" title="Mileage"><Icon name="car" /><span className="visually-hidden">Mileage</span></span>;
   if (item.kind === 'stipend') return <span className="receipt" title="Stipend"><Icon name="bank" /><span className="visually-hidden">Stipend</span></span>;
-  if (item.per_diem) return `${item.merchant} · ${plural(item.days, 'day')} · ${item.per_diem.method} allowance`;
   if (item.kind === 'per_diem') return <span className="receipt" title="Per diem"><Icon name="calendar" /><span className="visually-hidden">Per diem</span></span>;
   if (!item.receipt_id) return <span className="receipt missing" title="No receipt"><Icon name="receipt" /><span className="visually-hidden">No receipt</span></span>;
   const image = String(item.receipt_media).startsWith('image/') && item.receipt_media !== 'image/heic';
