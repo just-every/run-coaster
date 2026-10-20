@@ -40,10 +40,9 @@ export async function rejectInconsistentArchives(root, archive) {
     await command(root, ['export', '--output', `exports/empty-after-${code}.rer`])
     assert.deepEqual(rows(await records(join(root, `exports/empty-after-${code}.rer`))), empty, `refused ${code} archive wrote nothing`)
   }
-  await rejectCaptureLifecycleArchives(root, archive);
 }
 
-/** CAPTURE-004 / AUDIT-001: re-sealed lifecycle corruption is still refused. */
+/** CAPTURE-004 / AUDIT-001: re-sealed lifecycle corruption is still refused (the capture Verify shard, tests/capture.mjs). */
 export async function rejectCaptureLifecycleArchives(root, archive) {
   const source = rows(await records(archive)).filter(item => item.table === 'c_capture_lifecycle');
   const expanded = source.find(item => item.row.reason.length > 1000);

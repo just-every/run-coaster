@@ -67,9 +67,42 @@ jobs:
           name: coaster-browser-proof
           path: ${{ runner.temp }}/coaster-proof
 
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; action runtime Node 24
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; action runtime Node 24
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - name: Check edition source lock freshness
+        # Technical foundation exports use composition.lock.json or reference-export.json.
+        # Edition-owned seeds must commit both edition.json and sources.lock.json.
+        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
+        run: node scripts/edition-authoring/cli.mjs check
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deps
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Receipt inbox journeys, lifecycle archive refusals and restore
+        run: node tests/capture.mjs
+        env:
+          COASTER_EVIDENCE: ${{ runner.temp }}/capture-proof
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: coaster-capture-proof
+          path: ${{ runner.temp }}/capture-proof
+
   verify:
     if: always()
-    needs: [app, browser]
+    needs: [app, browser, capture]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -77,4 +110,5 @@ jobs:
         env:
           APP_RESULT: ${{ needs.app.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
-        run: test "$APP_RESULT" = success && test "$BROWSER_RESULT" = success
+          CAPTURE_RESULT: ${{ needs.capture.result }}
+        run: test "$APP_RESULT" = success && test "$BROWSER_RESULT" = success && test "$CAPTURE_RESULT" = success
