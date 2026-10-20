@@ -88,8 +88,9 @@
 .pin path { fill: var(--kelly); }
 .pin circle { fill: #fff; }
 
-/* Paper: printed receipts are crumpled white paper, torn at the foot. */
-.torn { -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 13 * var(--p)) no-repeat, conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(22 * var(--p)) calc(13 * var(--p)) repeat-x; mask: linear-gradient(#000 0 0) top / 100% calc(100% - 13 * var(--p)) no-repeat, conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(22 * var(--p)) calc(13 * var(--p)) repeat-x; }
+/* Paper: printed receipts are crumpled white paper, torn at the foot with white teeth hanging down, as on the mark.
+   The body overlaps the teeth's solid top by 1p so no seam shows where the two mask layers meet. */
+.torn { -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 12 * var(--p)) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(22 * var(--p)) calc(13 * var(--p)) repeat-x; mask: linear-gradient(#000 0 0) top / 100% calc(100% - 12 * var(--p)) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(22 * var(--p)) calc(13 * var(--p)) repeat-x; }
 .crumpled { position: relative; background: #fdfdfc; }
 .crumpled::before { content: ''; position: absolute; inset: 0; background: url('/site/crumple.svg') 0 0 / calc(260 * var(--p)) auto; mix-blend-mode: multiply; opacity: .42; pointer-events: none; }
 
