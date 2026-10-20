@@ -57,6 +57,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   const approval = [...detail.decisions].reverse().find((d: D) => d.decision === 'approved' && d.workflow_final === 1 && d.revision === claim.revision);
   const unapprovable = approval && (claim.status === 'approved' || (claim.status === 'batched' && state.actor.roles.finance)) && (state.actor.roles.finance || state.actor.roles.owner || (state.actor.roles.manager && [approval.actor_email, approval.on_behalf_of].includes(me)));
   const reassignmentRole = claim.workflow_tasks?.find((t: D) => t.status === 'waiting' && t.email === claim.approver_email)?.role ?? 'manager';
+  const heldWorkflow = claim.held_from && state.claims.some((c: D) => c.id === claim.held_from && c.workflow_tasks?.length);
   const merchantOf = (item: string) => items.find((i: D) => i.id === item)?.merchant;
   const categories = [...new Set(items.flatMap((i: D) => i.allocations.map((a: D) => a.category_name)))];
   return <aside className="side detail" aria-label={`Claim ${claimNumber(claim.number)}`}>
@@ -128,7 +129,8 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       </Form>
     </section>}
     {deciding && <Decision claim={claim} items={items} exceptions={exceptions} onDone={done} back={back} />}
-    {claim.held_from && claim.status === 'returned' && claim.revision === 0 && claim.approver_email === me && !mine && <section className="panel-block" aria-label="Release hold">
+    {heldWorkflow && claim.status === 'returned' && claim.revision === 0 && <section className="panel-block"><h3>Held for correction</h3><p className="muted">The employee must resubmit these expenses through the approval workflow.</p></section>}
+    {!heldWorkflow && claim.held_from && claim.status === 'returned' && claim.revision === 0 && claim.approver_email === me && !mine && <section className="panel-block" aria-label="Release hold">
       <h3>Release hold</h3>
       <p className="muted">Approve these held expenses as they stand, without waiting for the employee to resubmit.</p>
       <Form label="Release and approve" onSubmit={async v => { await call(`claims/${claim.id}/release`, { version: claim.version, reason: v.reason, acknowledge: v.acknowledge, override: v.override }); await done(); }}>

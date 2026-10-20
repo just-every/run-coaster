@@ -31,7 +31,7 @@ export function Approvals({ state, reload, id, query }: ViewProps) {
       : <section className="panel"><Empty large title={query ? 'No claims match that search' : 'Nothing waiting for you'}>{query ? null : 'Claims your team submits appear here for a decision.'}</Empty></section>}
     <SpendRequests state={state} reload={reload} deciding />
     <CashAdvances state={state} reload={reload} mode="deciding" />
-    <Delegation state={state} reload={reload} />
+    {state.actor.roles.manager && <Delegation state={state} reload={reload} />}
   </Work>;
 }
 
