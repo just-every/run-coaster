@@ -45,7 +45,7 @@ export function ReceiptInbox() {
     {receipts.length ? <ul className="receipt-inbox-list">{receipts.map(receipt => <li key={receipt.id}>
       <div className="section-head"><a href={apiHref(`receipt-inbox/${receipt.id}`)}>{receipt.name}</a><Badge status={receipt.state} words="Needs attention" tone="wait" /></div>
       <p className="muted">{receipt.attentionReason}</p>
-      <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence}>{event.sequence}. {event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
+      <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
     </li>)}</ul> : <Empty title="Your inbox is empty">Upload or photograph a receipt to keep its original here.</Empty>}
   </Section>;
 }

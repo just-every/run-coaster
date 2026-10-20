@@ -70,6 +70,8 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
     await inbox.locator('summary').first().click()
     await inbox.locator('summary').first().scrollIntoViewIfNeeded()
     await photograph('provenance')
+    await inbox.locator('.receipt-fingerprint').first().scrollIntoViewIfNeeded()
+    await photograph('history')
     const path = join(evidence, `capture-inbox-${width}.png`)
     await page.screenshot({ path, fullPage: true }); shots.push({ screen: 'CAPTURE-001 inbox with successful bulk and refused file', viewport: width, path })
     return { width, receipts: saved }
