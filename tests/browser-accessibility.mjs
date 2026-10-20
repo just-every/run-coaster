@@ -66,7 +66,9 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     // Browser navigation refreshes the other person's snapshot; application actions use only the keyboard.
     await manager.page.reload()
     await activate(manager.page, manager.page.getByRole('navigation', { name: 'Coaster' }).getByRole('link', { name: 'Approvals', exact: true }))
-    await activate(manager.page, manager.page.getByRole('link', { name: new RegExp(title) }))
+    await tabTo(manager.page, manager.page.getByRole('link', { name: new RegExp(title) }))
+    await photograph('claim-link', manager.page)
+    await manager.page.keyboard.press('Enter')
     await tabTo(manager.page, manager.page.getByRole('radio', { name: 'Approve', exact: true }))
     await manager.page.keyboard.press('ArrowDown')
     await type(manager.page, field(manager.page, 'Reason (required if returning or rejecting)'), 'Please name the client in the description')

@@ -110,3 +110,8 @@
   .data td[data-cell=updated] { grid-column: 2; align-self: center; text-align: right; color: var(--soft); font-size: 12.5px; }
   .data td[data-cell=pick] { grid-column: 1 / -1; }
 }
+
+/* A11Y-001: phone cards have no desktop table-cell focus ring. */
+@media (max-width: 1023px) {
+  .data .title-link:focus-visible { outline: 2px solid var(--app-kelly); outline-offset: 2px; }
+}
