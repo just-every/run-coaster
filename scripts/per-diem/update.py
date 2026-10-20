@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild official USD per-diem data; failures leave the previous generated dataset intact."""
+"""CLAIM-002: rebuild official USD per-diem data; failures leave the previous generated dataset intact."""
 import argparse
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -62,7 +62,7 @@ def main():
                     sources=[meals_source] + [s for _, sources in results for s in sources])
     write_json(directory / 'rates.json', rows)
     write_json(directory / 'sources.json', manifest)
-    print(f'Validated and wrote {len(rows)} effective intervals: {manifest["records"]}')
+    print(f'CLAIM-002 validated and wrote {len(rows)} effective intervals: {manifest["records"]}')
 
 
 if __name__ == '__main__':
