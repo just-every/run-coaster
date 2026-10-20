@@ -15,8 +15,8 @@ export async function inspectReceiptSignals(person,origin,claimId,width,evidence
  }
  assert.ok(text.includes('no metadata to check'),'POLICY-002 stripped metadata is not a flag')
  if(resolve){
-  await section.getByLabel('Review note for editing-software',{exact:true}).fill('Legitimate supplier preparation; finance checked the original.')
-  await section.getByRole('button',{name:'Record editing-software review',exact:true}).click()
+  await section.getByLabel('Software review note',{exact:true}).fill('Legitimate supplier preparation; finance checked the original.')
+  await section.getByRole('button',{name:'Record software review',exact:true}).click()
   await section.getByText(/Reviewed by.*Legitimate supplier preparation/).waitFor()
   const after=await api(context,origin,`claims/${claimId}`)
   assert.equal(after.claim.status,before.claim.status);assert.deepEqual(after.revisions.at(-1).snapshot.receiptSignals,frozen)

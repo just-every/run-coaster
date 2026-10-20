@@ -13,7 +13,7 @@ export function ReceiptSignals({ revision, events, mayReview, claimId, done }: {
       <p>{r.status === 'no metadata to check' ? 'no metadata to check' : r.status === 'unsupported' ? 'Metadata is not checked for this receipt type' : r.signals.length ? 'possible, needs review' : 'No metadata signal raised'}</p>
       {r.signals.length > 0 && <ul>{r.signals.map((signal: D) => {
         const review = events.find(e => e.action === 'receipt-signal-reviewed' && e.detail.revision === revision!.revision && e.detail.item === r.item && e.detail.code === signal.code);
-        return <li key={signal.code}>{signal.reason}{review ? <p>Reviewed by {review.actor_email}: {review.detail.note}</p> : mayReview ? <Form label={`Record ${signal.code} review`} onSubmit={async values => { await call(`claims/${claimId}/receipt-signals/review`, { revision: revision!.revision, item: r.item, code: signal.code, note: values.note }); await done(); }}><Field label={`Review note for ${signal.code}`} name="note" /></Form> : null}</li>;
+        return <li key={signal.code}>{signal.reason}{review ? <p>Reviewed by {review.actor_email}: {review.detail.note}</p> : mayReview ? <Form label={signal.code === 'editing-software' ? 'Record software review' : 'Record date review'} onSubmit={async values => { await call(`claims/${claimId}/receipt-signals/review`, { revision: revision!.revision, item: r.item, code: signal.code, note: values.note }); await done(); }}><Field label={signal.code === 'editing-software' ? 'Software review note' : 'Image date review note'} name="note" /></Form> : null}</li>;
       })}</ul>}
       <details className="disclosure"><summary>Metadata evidence</summary>
         {Object.entries(r.fields).map(([name,value]) => <p key={name}>{name}: {String(value)}</p>)}
