@@ -1,5 +1,6 @@
 // The human journey through Coaster's screens, one person per browser context.
 import assert from 'node:assert/strict'
+import { inspectPolicyReview } from './browser-policy-review.mjs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -122,11 +123,13 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     await shot(page, evidence, 'claims-list', width, shots)
 
     await manager.page.reload(); await manager.page.getByRole('heading', { name: title }).waitFor()
+    const advice = await inspectPolicyReview(manager, origin, new URL(manager.page.url()).hash.split('/').at(-1), width, evidence, shots)
     await manager.page.getByRole('checkbox', { name: /I reviewed the/ }).check()
     await noOverflow(manager.page, width)
     await shot(manager.page, evidence, 'approvals', width, shots)
     await manager.page.getByRole('button', { name: 'Approve', exact: true }).click()
     await manager.page.locator('.detail .badge', { hasText: 'Approved' }).waitFor()
+    assert.deepEqual(await inspectPolicyReview(manager, origin, new URL(manager.page.url()).hash.split('/').at(-1), width, evidence, shots, 'approved'), advice)
 
     await finance.page.reload(); await nav(finance.page, 'Batches')
     await finance.page.getByRole('checkbox', { name: new RegExp(title) }).check()

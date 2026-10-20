@@ -1,3 +1,4 @@
+import { policyReview } from './policy-review';
 import { policyConfiguration, policyStill } from './policy-configuration';
 import { all, authority, commit, type Sql } from './session';
 import { event } from './events';
@@ -51,7 +52,7 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
   writes.push(
     ...moveItems(db, items.filter(i => hold.includes(i.id)), claim.id, heldId),
     db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?').bind(heldId, at, heldId),
-    db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, submitted.submitted_by, at, total, JSON.stringify({ ...snapshot, total_minor: total, exceptions, items: kept, split })),
+    db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, submitted.submitted_by, at, total, JSON.stringify({ ...snapshot, ...(snapshot.policyReview ? { policyReview: { ...snapshot.policyReview, recommendations: snapshot.policyReview.recommendations.filter((r: Data) => !hold.includes(r.item)) } } : {}), total_minor: total, exceptions, items: kept, split })),
     ...(task ? [db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step,workflow_final) VALUES(?,?,?,'approved',?,?,?,?,?,?,0)").bind(uid(),claim.id,claim.revision,override??reason,by,at,JSON.stringify(exceptions),onBehalfOf,task.slot),db.prepare("UPDATE c_workflow_tasks SET status='approved' WHERE kind='claim' AND record_id=? AND revision=? AND slot=?").bind(claim.id,claim.revision,task.slot)] : []),
     ...(chain ? [freezeChain(db, claim.id, revision, chain.chain_id, chain.steps, chain.position)] : []),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step) VALUES(?,?,?,'approved',?,?,?,?,?,?)").bind(uid(), claim.id, revision, override ?? '', by, at, JSON.stringify(exceptions), onBehalfOf, chain?.position ?? 0),
@@ -90,7 +91,7 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   requireThat(original, 'Original claim missing', 409);
   const at = now(), total = items.reduce((n, i) => n + i.amount_minor, 0), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of, by = actor.delegate?.email ?? actor.email;
   const reason = override ?? optionalText(b.reason, 'Reason', 1000);
-  const snapshot = { policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  const snapshot = { policyReview: policyReview(items, exceptions, active), policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
   await commit(db, all(authority(actor, 'manager'), policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['returned'])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,1,?,?,?,?)').bind(claim.id, original.submitted_by, at, total, JSON.stringify(snapshot)),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,1,'approved',?,?,?,?,?)").bind(uid(), claim.id, reason, by, at, JSON.stringify(exceptions), onBehalfOf),

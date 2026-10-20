@@ -6,6 +6,7 @@ import { Icon } from './icons';
 import { ItemForm } from './item-form';
 import { describe } from './history';
 import { Comments } from './comments';
+import { PolicyReview } from './policy-review';
 import { ClaimAdvance } from './advances';
 
 function Receipt({ item }: { item: D }) {
@@ -87,6 +88,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         {claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}
       </ul>
     </section>
+    <PolicyReview revision={detail.revisions.at(-1)} />
     <ClaimAdvance state={state} claim={claim} advance={detail.advance} editable={editable} done={done} />
     {detail.requests.length > 0 && <section className="panel-block" aria-label="Spend requests">
       <h3>Spend requests</h3>

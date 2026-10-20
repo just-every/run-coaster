@@ -97,3 +97,7 @@ The existing owner-only import doors accept `source:"concur"`. Configuration is 
 ## Expensify cutover inventory (MOVE-005, partial)
 
 `GET import/cutover` is owner-only and returns `{imports,feedReconciled:false,openItemsCarried:false}`. Each retained Expensify import has one row per source report/expense, its source location and disposition (`history-only`, `open-history`, `left-behind`, `erased`), reconciled record counts, open report count and expense-only amount. Counts are per job; undo/reimport remain separate operations. Open source reports are read-only history, never native approvals or payable claims. No feed or payment is changed.
+
+## Policy review advice (AGENT-005, partial)
+
+Submitted claim revisions include `snapshot.policyReview`: deterministic per-expense recommendations (`review` or `no-policy-exception`) with actual evaluator reasons and policy version, exact receipt id/hash, amount, date, allocations and linked request. `checksUnavailable` explicitly names receipt-content, card-match and coding-confidence checks. The normal claim read scope applies. Advice is immutable, never an approval grant, and never changes configured workflows, owner approval rules or personal agent-key authority. Revisions created by partial approval retain only kept-expense advice; hold release records advice under its effective policy.

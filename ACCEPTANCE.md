@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 49 done, 13 partial, 41 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
+**103 clauses: 49 done, 14 partial, 40 missing.** Statuses describe the `main` commit that carries this file and match CONTRACT.md's Status table; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven
@@ -251,7 +251,7 @@ the incumbent-shaped files in `tests/fixtures/`.
 
 - **AGENT-004 — Repair feed and accounting handoffs. Status: missing.** Drop a day from a sandbox feed and delete a synced bill in QuickBooks; see the agent identify both with evidence, open the reconnect and resync tasks, and after reconnection reprocess only the gap with no duplicates. Open scope: No feeds or sync to repair.
 
-- **AGENT-005 — Policy review agent with cited reasons. Status: missing.** Grant a $100 compliant envelope; submit a claim with a compliant $60 lunch and an over-limit $180 dinner; see the lunch approved by the agent with cited reasons and the dinner routed with a recommendation; revoke the envelope and see the next compliant lunch routed to a person. Over the CODE-002 coding fixture set, every expense the agent approves within its envelope carries coding equal to its label or its merchant rule, and every expense whose coding came from a low-confidence suggestion is routed to the approver with that coding marked for review. Open scope: No policy review agent.
+- **AGENT-005 — Policy review agent with cited reasons. Status: partial.** Grant a $100 compliant envelope; submit a claim with a compliant $60 lunch and an over-limit $180 dinner; see the lunch approved by the agent with cited reasons and the dinner routed with a recommendation; revoke the envelope and see the next compliant lunch routed to a person. Over the CODE-002 coding fixture set, every expense the agent approves within its envelope carries coding equal to its label or its merchant rule, and every expense whose coding came from a low-confidence suggestion is routed to the approver with that coding marked for review. Existing evidence: `tests/coaster-policy-review.test.mjs` (AGENT-005) asserts mixed $60/$180 recommendations before approval, exact policy/exception and receipt citations, visible unavailable checks, unchanged routing and personal-agent authority, native read scopes, immutable return/resubmit evidence, and exact retained/released advice after partial approval. `tests/browser-policy-review.mjs` (AGENT-005), invoked by `tests/browser.mjs`, reads cited advice as the approver at 1440/390. Open scope: No owner approval envelope or revocation, agreement measurement, receipt reading, card-data review or CODE-002 coding fixture acceptance.
 
 - **AGENT-006 — Fraud and anomaly investigation. Status: missing.** Seed a pattern of split charges and an edited receipt across two employees; see one evidence pack with the related records; confirm no message was sent to the employees and no payment was held until finance acts. Open scope: No fraud investigation.
 
