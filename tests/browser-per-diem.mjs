@@ -15,6 +15,7 @@ export async function perDiemJourney(browser, root, origin, owner, width, eviden
   }
   try {
     const { page } = employee, title = `Chicago conference allowance ${width}`
+    const from = width === 1440 ? '2026-06-08' : '2026-06-15', to = width === 1440 ? '2026-06-11' : '2026-06-18', lunch = width === 1440 ? '2026-06-09' : '2026-06-16'
     const state = await api(employee.context, origin, 'state'), fx = state.business.currency === 'USD' ? 1 : 1.5
     await page.getByRole('navigation', { name: 'Coaster' }).getByRole('link', { name: 'Claims', exact: true }).click()
     await page.getByRole('button', { name: 'New claim' }).click()
@@ -23,11 +24,11 @@ export async function perDiemJourney(browser, root, origin, owner, width, eviden
     await page.getByRole('heading', { name: title }).waitFor()
     await page.getByRole('button', { name: 'Add expense', exact: true }).click()
     await page.getByLabel('Type', { exact: true }).selectOption('per_diem')
-    await page.getByLabel('Date', { exact: true }).fill('2026-06-08')
-    await page.getByLabel('Travel end date', { exact: true }).fill('2026-06-11')
+    await page.getByLabel('Date', { exact: true }).fill(from)
+    await page.getByLabel('Travel end date', { exact: true }).fill(to)
     await page.getByLabel('Find per diem location', { exact: true }).fill('Chicago')
     await page.getByLabel('Published location', { exact: true }).selectOption({ label: 'Chicago · Cook / Lake · IL · US' })
-    await page.getByLabel('Lunch 2026-06-09', { exact: true }).check()
+    await page.getByLabel(`Lunch ${lunch}`, { exact: true }).check()
     if (fx !== 1) await page.getByLabel('Exchange rate (optional)', { exact: true }).fill(String(fx))
     await page.getByRole('button', { name: 'Calculate per diem', exact: true }).click()
     await page.getByText('Per diem allowance: $296.00', { exact: true }).waitFor()
@@ -55,7 +56,7 @@ export async function perDiemJourney(browser, root, origin, owner, width, eviden
     const batch = await api(finance.context, origin, 'batches', { claims: [claim.id] })
     const reviewed = await api(finance.context, origin, `batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 29600 * fx })
     const released = await api(owner.context, origin, `batches/${batch.id}/release`, { version: reviewed.version })
-    await api(finance.context, origin, `batches/${batch.id}/paid`, { version: released.version, reference: `CONF-${width}`, paidOn: '2026-06-15' })
+    await api(finance.context, origin, `batches/${batch.id}/paid`, { version: released.version, reference: `CONF-${width}`, paidOn: '2026-06-22' })
     await employee.page.reload()
     await employee.page.locator('.detail .badge', { hasText: 'Reimbursed' }).waitFor()
     await shot(employee.page, 'reimbursed')
