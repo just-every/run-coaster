@@ -10,7 +10,7 @@ Choose **Add expense** and pick the **Type**:
 
 - **Purchase with receipt**: the date, merchant and amount, and a **Receipt photo or PDF** (JPEG, PNG, WebP, HEIC or PDF, up to 1.5 MB).
 - **Mileage**: the route and the distance in miles. Coaster prices it at the business's rate per mile.
-- **Per diem**: the location and the number of days, priced at the business's daily rate (only when the business pays one).
+- **Per diem**: choose GSA, State Department or IRS high-low, select the published city/county and travel dates, then choose meals, lodging or both. Mark provided meals and choose **Calculate per diem** to inspect daily rates before saving. First and last travel days receive 75% M&IE; provided meals deduct their full published amounts, keeping incidentals. Lodging covers nights before return. Rates are USD, so another business currency needs the enabled ECB conversion or an entered exchange rate. The optional **Company flat daily rate** uses the owner's rate times claimed days. Daily rates and sources stay on the expense, submitted revision, PDF and accounting export. Missing published dates are refused; an allowance does not certify tax treatment.
 
 Choose a **Category**, and a **Cost center** if you use them. One receipt can be split: choose **Split across categories** and give each part its category, cost center and amount. The parts must add up exactly to the expense.
 

@@ -1,6 +1,7 @@
 import type { Business } from './settings';
 import { createFx, manualFx, type FxConversion } from './fx';
 import { rateOn } from './mileage';
+import { pricePerDiem, type PerDiemTrip } from './per-diem';
 import { amount, distance, email, isoDate, mileageMinor, optionalAmount, optionalText, requireThat, text, type Data } from './types';
 
 export type Category = { id: string; name: string; account_code: string; tax_code: string; limit_minor: number | null; active: number; receipt_always: number; per_person_limit_minor: number | null; required_fields: string[] };
@@ -10,6 +11,7 @@ export type Allocation = { category_id: string; cost_centre: string; amount_mino
 export type Attendee = { name: string; kind: 'employee' | 'guest'; email?: string };
 export type ItemInput = Partial<FxConversion> & {
   original_sales_tax_minor?: number;
+  per_diem?: PerDiemTrip;
   kind: 'receipt' | 'mileage' | 'per_diem' | 'stipend'; spent_on: string; merchant: string; description: string; amount_minor: number;
   distance_hundredths: number | null; days: number | null; rate_thousandths: number | null; explanation: string; allocations: Allocation[];
   sales_tax_minor: number; sales_tax_account: string; sales_tax_code: string; attendees?: Attendee[]; fields?: Record<string, string>; request_id?: string | null;
@@ -27,6 +29,7 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
   requireThat(['receipt', 'mileage', 'per_diem'].includes(b.kind), 'Choose a receipt, mileage or per diem expense');
   const kind = b.kind as 'receipt' | 'mileage' | 'per_diem';
   const spent_on = isoDate(b.date, 'Expense date');
+  let per_diem: PerDiemTrip | undefined;
   let amount_minor: number, distance_hundredths: number | null = null, days: number | null = null, rate_thousandths: number | null = null, merchant: string, sales_tax_minor = 0;
   if (kind === 'receipt') {
     merchant = text(b.merchant, 'Merchant', 200);
@@ -41,6 +44,11 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
     requireThat(rate_thousandths, `No mileage rate is in force on ${spent_on}; ask the owner to add one`);
     amount_minor = mileageMinor(distance_hundredths, rate_thousandths);
     merchant = optionalText(b.merchant, 'Route', 200) || 'Mileage';
+  } else if (b.perDiem) {
+    const trip = per_diem = pricePerDiem(spent_on, b.perDiem);
+    amount_minor = trip.totalMinor;
+    days = trip.days.length;
+    merchant = trip.location;
   } else {
     requireThat(business.per_diem_minor > 0, 'Per diem is not enabled for this business');
     requireThat(Number.isSafeInteger(Number(b.days)) && Number(b.days) >= 1 && Number(b.days) <= 60, 'Per diem days must be a whole number from 1 to 60');
@@ -64,7 +72,7 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
   requireThat(b.billable === undefined || typeof b.billable === 'boolean', 'Billable must be true or false');
   const billable = b.billable === true, customer = optionalText(b.customer, 'Customer', 200), project = optionalText(b.project, 'Project', 200);
   requireThat(!billable || customer, 'A billable expense needs a customer');
-  return { kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_thousandths, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations, billable, customer, project,
+  return { ...(per_diem ? { per_diem } : {}), kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_thousandths, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations, billable, customer, project,
     sales_tax_minor, sales_tax_account: sales_tax_minor ? business.sales_tax_account : '', sales_tax_code: sales_tax_minor ? business.sales_tax_code : '', attendees: attendees(b.attendees), fields: customFields(b.fields) };
 }
 
@@ -89,8 +97,8 @@ function customFields(value: unknown): Record<string, string> {
 /** Validate in entered currency first, then price every part in business currency. */
 export async function pricedItem(b: Data, business: Business, known: Category[]): Promise<ItemInput> {
   const item = itemInput(b, business, known);
-  if (item.kind !== 'receipt') return item;
-  const currency = b.currency === undefined || b.currency === '' ? business.currency : text(b.currency, 'Currency', 3).toUpperCase();
+  if (item.kind !== 'receipt' && !item.per_diem) return item;
+  const currency = item.per_diem ? 'USD' : b.currency === undefined || b.currency === '' ? business.currency : text(b.currency, 'Currency', 3).toUpperCase();
   requireThat(/^[A-Z]{3}$/.test(currency), 'Currency must be a three-letter code');
   if (currency === business.currency) return item;
   const automatic = createFx(!!business.fx_enabled, business.currency);

@@ -38,6 +38,7 @@ import { importAction, importJobs, importedHistory } from './imports/jobs';
 import { categories } from './items';
 import { business } from './settings';
 import { event } from './events';
+import { perDiemLocations, pricePerDiem } from './per-diem';
 import { Fault, requireThat, type Actor, type Data } from './types';
 
 type C = Context<{ Bindings: Bindings }>;
@@ -181,3 +182,7 @@ api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.
 
 api.get('/api/coaster/import', as(async (a, c) => { need(a, 'owner'); return { jobs: await importJobs(db(c)), history: await importedHistory(db(c)) }; }));
 api.post('/api/coaster/import/:op', as(async (a, c) => importAction(db(c), a, param(c, 'op'), await body(c, 8_000_000))));
+
+// CLAIM-002 reference lookups and nonwriting trip preview use the same pricing as saved expenses.
+api.get('/api/coaster/per-diem/locations', as(async (a, c) => { need(a, 'employee'); return perDiemLocations(c.req.query('method')); }));
+api.post('/api/coaster/per-diem/quote', as(async (a, c) => { need(a, 'employee'); const b = await body(c); return pricePerDiem(b.date, b.perDiem); }));

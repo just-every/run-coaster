@@ -108,7 +108,13 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
     }
     if (item.description) layout.text(`Purpose: ${item.description}`);
     if (item.kind === 'mileage') layout.text(`${item.distance_hundredths / 100} miles at ${item.rate_thousandths / 1000} ${claim.currency} per mile`);
-    if (item.kind === 'per_diem') layout.text(`${item.days} days at ${item.rate_thousandths / 1000} ${claim.currency} per day`);
+    if (item.per_diem) {
+      layout.text(`${item.per_diem.method} | ${item.per_diem.location} | ${item.per_diem.startDate} to ${item.per_diem.endDate}`);
+      for (const d of item.per_diem.days) {
+        layout.text(`${d.date} | FY${d.fiscalYear} | M&IE ${money(d.mieRateMinor, 'USD')} x ${d.travelPercent}% less ${money(d.deductionMinor, 'USD')} (${d.providedMeals.join(', ') || 'no provided meals'}) = ${money(d.mieMinor, 'USD')} | Lodging ${money(d.lodgingMinor, 'USD')}`);
+        layout.text(`Source: ${d.source} | Effective ${d.effectiveFrom} to ${d.effectiveTo}`);
+      }
+    } else if (item.kind === 'per_diem') layout.text(`${item.days} days at ${item.rate_thousandths / 1000} ${claim.currency} per day (company rate)`);
     if (item.customer) layout.text(`Customer: ${item.customer} | ${item.billable ? 'Billable' : 'Not billable'}`);
     if (item.project) layout.text(`Project: ${item.project}`);
     for (const part of item.allocations) layout.text(`Coding: ${part.category_name} | Account ${part.account_code} | Tax ${part.tax_code}${part.cost_centre ? ` | Cost center ${part.cost_centre}` : ''}${part.description ? ` | ${part.description}` : ''} | ${money(part.amount_minor, claim.currency)}${part.original_minor != null && item.original_currency !== claim.currency ? ` | Original ${money(part.original_minor, item.original_currency)}` : ''}`);

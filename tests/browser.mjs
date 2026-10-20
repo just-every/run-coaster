@@ -5,12 +5,13 @@ import { queuedEntrypoint } from '@runeditrun/rer/queued-entry'
 const queued = await queuedEntrypoint(import.meta.url, 'test:coaster-browser'); if (queued !== null) process.exit(queued)
 import { chromium } from '@playwright/test'
 import assert from 'node:assert/strict'
-import { access, copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, report, start } from './browser-runtime.mjs'
 import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
+import { perDiemJourney } from './browser-per-diem.mjs'
 import { concurJourney } from './browser-concur.mjs'
 import { records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
@@ -19,7 +20,7 @@ await mkdir(evidence, { recursive: true })
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
 let root, second, server, browser
 const shots = [], journeys = []
-const launch = async () => { let installed = true; try { await access(chromium.executablePath()) } catch { installed = false } return chromium.launch({ headless: true, ...(installed ? {} : { channel: 'chrome' }) }) }
+const launch = () => chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
 /** Everything the owner can see, with each claim's full history, for before/after restore comparison. */
 async function everything(context, origin) {
   const state = await api(context, origin, 'state')
@@ -46,9 +47,10 @@ try {
   for (const width of [1440, 390]) journeys.push(await journey(browser, root, server.origin, width, evidence, shots))
   await ownerScreens(owner, server.origin, 1440, evidence, shots, true)
   await ownerScreens(owner, server.origin, 390, evidence, shots, false)
+  for (const width of [1440, 390]) journeys.push(await perDiemJourney(browser, root, server.origin, owner, width, evidence, shots))
   for (const width of [1440, 390]) await concurJourney(owner, server.origin, width, evidence, shots)
   const before = await everything(owner.context, server.origin)
-  assert.equal(before.batches.length, 2); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
+  assert.equal(before.batches.length, 4); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
   await owner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
 
   // A setup rerun keeps every owner and record; the built Worker keeps the session boundary.

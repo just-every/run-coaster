@@ -1,3 +1,4 @@
+import { PerDiemBreakdown } from './per-diem';
 import { useCallback, useEffect, useState } from 'react';
 import { amount, apiHref, call, claimNumber, day, exceptionWords, money, moment, plural, rate, type D } from './api';
 import { Badge, Details, Empty, Field, Form, Warning } from './parts';
@@ -10,6 +11,7 @@ import { ClaimAdvance } from './advances';
 function Receipt({ item }: { item: D }) {
   if (item.kind === 'mileage') return <span className="receipt" title="Mileage"><Icon name="car" /><span className="visually-hidden">Mileage</span></span>;
   if (item.kind === 'stipend') return <span className="receipt" title="Stipend"><Icon name="bank" /><span className="visually-hidden">Stipend</span></span>;
+  if (item.per_diem) return `${item.merchant} · ${plural(item.days, 'day')} · ${item.per_diem.method} allowance`;
   if (item.kind === 'per_diem') return <span className="receipt" title="Per diem"><Icon name="calendar" /><span className="visually-hidden">Per diem</span></span>;
   if (!item.receipt_id) return <span className="receipt missing" title="No receipt"><Icon name="receipt" /><span className="visually-hidden">No receipt</span></span>;
   const image = String(item.receipt_media).startsWith('image/') && item.receipt_media !== 'image/heic';
@@ -28,6 +30,7 @@ const conversion = (item: D, currency: string) => item.original_minor == null ||
 
 function merchantLine(item: D, currency: string) {
   if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${rate(item.rate_thousandths, currency)}`;
+  if (item.per_diem) return `${item.merchant} · ${plural(item.days, 'day')} · ${item.per_diem.method} allowance`;
   if (item.kind === 'per_diem') return `${item.merchant} · ${plural(item.days, 'day')} at ${rate(item.rate_thousandths, currency)}`;
   if (item.kind === 'stipend') return `${item.merchant} · ${item.description}`;
   const capped = item.claimed_minor ? ` · claimed ${money(item.claimed_minor, currency)}, capped by allowance` : '';
@@ -96,12 +99,13 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         const flags = exceptions.filter((x: D) => x.item === item.id);
         return <li className="line" key={item.id}>
           <Receipt item={item} />
-          <span className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}
+          <div className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}
             {conversion(item, currency) && <span className="split-line">{money(item.amount_minor, currency)} · {conversion(item, currency)}</span>}
+            {item.per_diem && <PerDiemBreakdown trip={item.per_diem} />}
             {(item.customer || item.project) && <span className="split-line">{billing(item)}</span>}
             {item.attendees?.length > 0 && <span className="split-line">Attendees: {item.attendees.map((a: D) => a.kind === 'guest' ? `${a.name} (guest)` : a.name).join(', ')}</span>}
             {(item.per_person ?? []).map((p: D) => <span key={p.category} className="split-line">{money(p.share_minor, currency)} a person · {p.over ? 'over' : p.amount_minor === p.limit_minor * p.people ? 'at' : 'under'} {money(p.limit_minor, currency)}</span>)}
-            {Object.entries(item.fields ?? {}).map(([name, value]) => <span key={name} className="split-line">{name}: {String(value)}</span>)}</span>
+            {Object.entries(item.fields ?? {}).map(([name, value]) => <span key={name} className="split-line">{name}: {String(value)}</span>)}</div>
           <span className="amount">{amount(item.amount_minor)}</span>
           {(flags.length > 0 || editable) && <span className="line-extra">
             {flags.map((f: D) => <Warning key={f.code}>{exceptionWords[f.code] ?? f.code}</Warning>)}
