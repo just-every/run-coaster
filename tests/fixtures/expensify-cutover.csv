@@ -1,0 +1,6 @@
+reportID,reportName,accountEmail,managerEmail,status,transactionID,created,merchant,amount,currency,reimbursable
+CUT-1,September supplies,sam@harbourfinch.example,priya@harbourfinch.example,Open,CUT-T1,2026-09-03,Harbour stationery,24.00,AUD,true
+CUT-2,September client lunch,sam@harbourfinch.example,priya@harbourfinch.example,Submitted,CUT-T2,2026-09-12,Union cafe,60.00,AUD,true
+CUT-3,September travel,alex@harbourfinch.example,priya@harbourfinch.example,Approved,CUT-T3,2026-09-18,Airport taxi,48.00,AUD,true
+CUT-4,September paid report,alex@harbourfinch.example,priya@harbourfinch.example,Reimbursed,CUT-T4,2026-09-21,Hotel,200.00,AUD,true
+CUT-4,September paid report,alex@harbourfinch.example,priya@harbourfinch.example,Reimbursed,CUT-T5,2026-09-22,Company card meal,35.00,AUD,false

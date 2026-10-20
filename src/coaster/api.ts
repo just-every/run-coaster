@@ -34,6 +34,7 @@ import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
 import { auditPack, searchHistory } from './audit';
 import { claimPdf, batchPdf } from './claim-pdf';
+import { cutoverReport } from './imports/cutover';
 import { importAction, importJobs, importedHistory } from './imports/jobs';
 import { categories } from './items';
 import { business } from './settings';
@@ -180,6 +181,7 @@ api.post('/api/coaster/recurring/:id/stop', as(async (a, c) => stopRecurring(db(
 api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));
 api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'))));
 
+api.get('/api/coaster/import/cutover', as(async (a, c) => cutoverReport(db(c), a)));
 api.get('/api/coaster/import', as(async (a, c) => { need(a, 'owner'); return { jobs: await importJobs(db(c)), history: await importedHistory(db(c)) }; }));
 api.post('/api/coaster/import/:op', as(async (a, c) => importAction(db(c), a, param(c, 'op'), await body(c, 8_000_000))));
 

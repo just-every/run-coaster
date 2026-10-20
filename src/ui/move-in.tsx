@@ -5,6 +5,7 @@ import { Work } from './shell';
 import type { ViewProps } from './claims';
 import { CardHistory } from './card-history';
 import { EmburseConfiguration } from './emburse-configuration';
+import { CutoverReport } from './cutover-report';
 import { ConcurImport } from './concur-import';
 
 const HISTORY = [['open', 'Open (not submitted)'], ['submitted', 'Submitted'], ['approved', 'Approved'], ['reimbursed', 'Reimbursed'], ['closed', 'Closed']];
@@ -15,8 +16,8 @@ const GUESS: Record<string, string> = { open: 'open', processing: 'submitted', a
 /** The Expensify move-in kit: preview writes nothing, import applies exactly what was previewed, undo reverses it. */
 export function MoveIn({ state, reload }: ViewProps) {
   const [file, setFile] = useState<{ name: string; csv: string }>(), [date, setDate] = useState('YYYY-MM-DD'), [statuses, setStatuses] = useState<Record<string, string>>({});
-  const [preview, setPreview] = useState<D>(), [jobs, setJobs] = useState<D>(), [error, setError] = useState(''), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
-  const refresh = async () => { setJobs(await call('import')); await reload(); };
+  const [preview, setPreview] = useState<D>(), [jobs, setJobs] = useState<D>(), [cutover, setCutover] = useState<D>(), [error, setError] = useState(''), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
+  const refresh = async () => { const [imports, report] = await Promise.all([call('import'), call('import/cutover')]); setJobs(imports); setCutover(report); await reload(); };
   useEffect(() => { refresh().catch(e => setError(e.message)); }, []);
   const input = () => ({ csv: file?.csv, filename: file?.name, mapping: { date, statuses } });
   async function run(work: () => Promise<void>) { setBusy(true); setError(''); setNotice(''); try { await work(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }
@@ -64,6 +65,7 @@ export function MoveIn({ state, reload }: ViewProps) {
           {jobs.history.filter((h: D) => h.kind === 'report').map((r: D) => <tr key={r.id}><td>{r.name}</td><td>{r.employee}</td><td>{HISTORY.find(([v]) => v === r.status)?.[1] ?? r.status}{r.reimbursed ? ` · ${day(r.reimbursed)}` : ''}</td><td className="figure">{money(r.totalMinor, r.currency)}</td></tr>)}
         </tbody></table> : <Empty title="No imported reports">Reports you import from Expensify appear here, read-only.</Empty>}
       </Section>
+      <CutoverReport report={cutover} />
       <CardHistory kind="card" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
       <EmburseConfiguration state={state} onImported={refresh} />
       <CardHistory kind="emburse" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
