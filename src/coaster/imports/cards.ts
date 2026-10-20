@@ -3,6 +3,7 @@ import { parseCsv } from './csv';
 import { day, DATE_FORMATS, minor } from './expensify';
 import { receiptBytes } from '../claims';
 import { Fault, requireThat, type Data } from '../types';
+import type { FxConversion, FxResolver } from '../fx';
 
 type Profile = { label: string; id: string; date: string; employee: string; merchant: string; amount: string; currency: string; memo: string; category: string; gl: string; receipt: string; report?: string; approver?: string };
 
@@ -28,7 +29,7 @@ const OPTIONAL = ['memo', 'category', 'gl', 'receipt', 'report', 'approver'] as 
 
 /** Plan input for import-kit: one record per charge, the export and each receipt file kept as originals; diagnostics
  * that block commit. Refunds and credits come in as negative amounts. */
-export function cardSource(source: CardSource, raw: unknown, filename: unknown, config: unknown, files: unknown, currency: string) {
+export async function cardSource(source: CardSource, raw: unknown, filename: unknown, config: unknown, files: unknown, currency: string, fx?: FxResolver) {
   const profile = HISTORY_SOURCES[source], card = source in CARD_SOURCES, noun = card ? 'card charge' : 'expense';
   requireThat(typeof raw === 'string' && raw.length > 0 && raw.length <= 2_000_000, `Choose the ${profile.label} CSV (at most 2 MB)`);
   const name = typeof filename === 'string' && filename.trim() ? filename.trim().slice(0, 200) : `${source}.csv`;
@@ -50,11 +51,11 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
   const diagnostics: Diagnostic[] = [], charges = new Map<string, Data>(), used = new Set<string>(), credits: string[] = [];
   const ignored = headers.filter(h => !known.has(h));
   if (ignored.length) diagnostics.push({ severity: 'warning', code: 'IGNORED_COLUMNS', message: `Columns kept in the original file but not mapped: ${ignored.join(', ')}` });
-  rows.forEach((r, index) => {
+  for (const [index, r] of rows.entries()) {
     const location = { artifact: name, row: index + 2 }, id = r[profile.id].trim(), at = (col: string | undefined) => (col ? r[col] ?? '' : '').trim();
     const fail = (code: string, message: string) => diagnostics.push({ severity: 'error', code, message: `Row ${index + 2}: ${message}`, kind: 'expense', sourceId: id, location });
-    if (!id) return fail('MISSING_TRANSACTION', `${profile.id} is empty`);
-    if (charges.has(id)) return fail('DUPLICATE_TRANSACTION', `${profile.id} ${id} appears twice`);
+    if (!id) { fail('MISSING_TRANSACTION', `${profile.id} is empty`); continue; }
+    if (charges.has(id)) { fail('DUPLICATE_TRANSACTION', `${profile.id} ${id} appears twice`); continue; }
     const amountText = at(profile.amount);
     // A refund or credit comes in as negative-amount history, so a later feed can match it as well.
     const credit = amountText.startsWith('-'), magnitude = minor(credit ? amountText.slice(1) : amountText), amount = magnitude === null ? null : credit ? -magnitude : magnitude;
@@ -62,7 +63,12 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
     const when = day(at(profile.date), date), employee = at(profile.employee).toLowerCase(), file = at(profile.receipt);
     if (!when) fail('BAD_DATE', `${profile.date} "${at(profile.date)}" is not a ${date} date`);
     if (amount === null || amount === 0) fail('BAD_AMOUNT', `${profile.amount} "${amountText}" must be an amount like 12.50 (a refund or credit like -12.50)`);
-    if (at(profile.currency).toUpperCase() !== currency) fail('OTHER_CURRENCY', `currency ${at(profile.currency)} is not this business's ${currency}`);
+    const originalCurrency = at(profile.currency).toUpperCase();
+    let conversion: FxConversion | undefined;
+    if (fx && when && amount !== null && amount !== 0) {
+      try { conversion = await fx(amount, originalCurrency, when); }
+      catch (error) { fail('FX_CONVERSION', (error as Error).message); }
+    } else if (originalCurrency !== currency) fail('OTHER_CURRENCY', `currency ${at(profile.currency)} is not this business's ${currency}`);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(employee)) fail('BAD_EMPLOYEE', `${profile.employee} "${employee}" is not an email address`);
     const approver = at(profile.approver).toLowerCase();
     if (approver && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(approver)) fail('BAD_APPROVER', `${profile.approver} "${approver}" is not an email address`);
@@ -70,11 +76,12 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
     if (file && !receipt) fail('MISSING_RECEIPT', `receipt ${file} was not added`);
     if (receipt) used.add(file);
     charges.set(id, { payload: r, location, value: {
-      source, label: `${profile.label} ${noun} ${id}`, transactionId: id, employee, date: when, merchant: at(profile.merchant), amountMinor: amount, currency,
+      source, label: `${profile.label} ${noun} ${id}`, transactionId: id, employee, date: when, merchant: at(profile.merchant), amountMinor: conversion?.amount_minor ?? amount, currency,
+      originalAmount: amountText, originalCurrency, ...conversion,
       memo: at(profile.memo), category: at(profile.category), glCode: at(profile.gl), ...(card ? { card: true } : { emburse: true, report: at(profile.report), approver }),
       receipt: receipt ? { name: receipt.name, sha256: receipt.sha, size: receipt.bytes.length, mediaType: receipt.media } : null,
     } });
-  });
+  }
   for (const file of receipts.keys()) if (!used.has(file)) diagnostics.push({ severity: 'warning', code: 'UNUSED_RECEIPT', message: `Receipt file ${file} is not named by any charge and is not imported` });
   const records: SourceRecord[] = [...charges].map(([id, c]) => ({ namespace: source, kind: 'expense', sourceId: id, payload: c.payload, payloadHash: sha256(canonicalJson(c.payload)), artifactHash, location: c.location }));
   const blocked = diagnostics.some(d => d.severity === 'error');
@@ -82,7 +89,7 @@ export function cardSource(source: CardSource, raw: unknown, filename: unknown, 
   const kept = [...receipts.values()].filter(r => used.has(r.name));
   const bundle: SourceBundle = { diagnostics, records, artifacts: [{ name, sha256: artifactHash, size: bytes.length, original: original(bytes) }, ...kept.map(r => ({ name: r.name, sha256: r.sha, size: r.bytes.length, original: original(r.bytes) }))] };
   const mapping: ImportMapping = {
-    version: sha256(canonicalJson({ kit: `${source}-transactions-v1`, date, currency })),
+    version: sha256(canonicalJson({ kit: `${source}-transactions-v2`, date, currency, values: [...charges].map(([id, c]) => ({ id, value: c.value })) })),
     map: record => blocked ? { effects: [], rejection: 'Resolve the file errors before importing' } : { effects: [{ targetKind: 'expense', targetId: `${source}:expense:${record.sourceId}`, value: charges.get(record.sourceId)!.value }] },
   };
   const values = [...charges.values()].map(c => c.value);

@@ -73,7 +73,6 @@
     "Card issuing or card feeds",
     "Moving money or payment files",
     "Payroll and travel booking",
-    "Multi-currency claims",
     "OCR or model receipt reading",
     "Accounting software sync",
     "Tax determination"
@@ -111,6 +110,17 @@
         "Link handshake: Auth reads Coaster's public document (origin, name, callback, sector ID) and public signing key; Coaster redeems the one-use link code with its origin, callback, interface and a signed assertion",
         "OpenID Connect: metadata and signing-key reads, the browser's authorization request, and code redemption with the PKCE verifier and a signed client assertion; Auth returns the signed-in person's email and name",
         "No claim, expense, receipt, comment or member data is sent to Auth"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "ecb-reference-rates",
+      "required": false,
+      "requiredWhen": "The owner enables ECB currency conversion and a foreign-currency expense or history import requests conversion",
+      "why": "CLAIM-003 downloads public ECB historical reference rates from one fixed HTTPS URL; optional and off by default. A person can instead supply an explicit rate entered by hand without any provider request. ECB reference rates are not card rates.",
+      "data": [
+        "GET https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml without a query, body, cookies, authorization or redirects",
+        "No expense amount, currency, date, receipt, identity, claim or imported source data is sent; ECB receives only ordinary connection metadata"
       ],
       "adapters": []
     }

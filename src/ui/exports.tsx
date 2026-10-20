@@ -4,7 +4,7 @@ import { Field, Form, Section } from './parts';
 import { Icon } from './icons';
 
 const FIELDS: Record<string, string> = {
-  accounting: 'batch, claim, employee, date, merchant, description, type, category, account_code, tax_code, cost_center, amount, currency, receipt_sha256, receipt_link, policy_exceptions, explanation, approved_by, approved_at, memo',
+  accounting: 'batch, claim, employee, date, merchant, description, type, category, account_code, tax_code, cost_center, amount, currency, original_amount, original_currency, exchange_rate, rate_date, rate_source, receipt_sha256, receipt_link, policy_exceptions, explanation, approved_by, approved_at, memo, billable, customer, project, taxable, form_1099_review',
   reimbursements: 'batch, employee, name, claims, amount, currency',
 };
 const query = (template: string) => template ? `?template=${encodeURIComponent(template)}` : '';

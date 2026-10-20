@@ -35,6 +35,8 @@ export function Settings({ state, reload }: ViewProps) {
       <Form label="Save business" onSubmit={async v => { await call('settings/business', v); await saved('Business saved.'); }}>
         <Field label="Business name" name="name" defaultValue={b?.name} />
         <Field label="Currency" name="currency" defaultValue={b?.currency ?? 'USD'} maxLength={3} hint="Fixed once claims exist" />
+        <Field label="ECB currency conversion" name="fxEnabled" type="checkbox" required={false} defaultValue={b?.fx_enabled === 1} />
+        <p className="muted field-wide">Use the ECB reference rate, not your card’s rate, for foreign-currency purchases and imports. Coaster reads a fixed public European Central Bank rate file with a GET request; no expense, receipt or employee data is sent. Each conversion keeps its rate, date and source. Employees can enter a rate by hand when conversion is off or a reference rate is unavailable; the approver sees its source.</p>
         <Field label="Time zone" name="timezone" defaultValue={b?.timezone ?? 'America/Chicago'} options={zones} />
         <Field label="Per diem per day" name="perDiem" inputMode="decimal" required={false} defaultValue={b?.per_diem_minor ? amountText(b.per_diem_minor) : ''} hint="Leave empty if you do not pay per diems" />
         <Field label="Receipts required above" name="receiptThreshold" inputMode="decimal" required={false} defaultValue={b ? b.receipt_threshold_minor ? amountText(b.receipt_threshold_minor) : '' : '75.00'} hint="$75 is the IRS documentary-evidence line; lodging always needs a receipt. Leave empty to require one for every purchase" />

@@ -24,6 +24,8 @@ function split(item: D, currency: string) {
 
 const billing = (item: D) => [item.customer && `Customer: ${item.customer}`, item.project && `Project: ${item.project}`, (item.customer || item.project) && (item.billable ? 'Billable' : 'Not billable')].filter(Boolean).join(' · ');
 
+const conversion = (item: D, currency: string) => item.original_minor == null || !item.original_currency || item.original_currency === currency ? '' : `${money(item.original_minor, item.original_currency)} original · 1 ${item.original_currency} = ${item.fx_rate} ${currency} · rate ${day(item.fx_date)} · ${item.fx_source === 'ECB reference rates' ? 'ECB reference rate, not your card’s rate' : item.fx_source}`;
+
 function merchantLine(item: D, currency: string) {
   if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${rate(item.rate_thousandths, currency)}`;
   if (item.kind === 'per_diem') return `${item.merchant} · ${plural(item.days, 'day')} at ${rate(item.rate_thousandths, currency)}`;
@@ -93,6 +95,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         return <li className="line" key={item.id}>
           <Receipt item={item} />
           <span className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}
+            {conversion(item, currency) && <span className="split-line">{money(item.amount_minor, currency)} · {conversion(item, currency)}</span>}
             {(item.customer || item.project) && <span className="split-line">{billing(item)}</span>}
             {item.attendees?.length > 0 && <span className="split-line">Attendees: {item.attendees.map((a: D) => a.kind === 'guest' ? `${a.name} (guest)` : a.name).join(', ')}</span>}
             {(item.per_person ?? []).map((p: D) => <span key={p.category} className="split-line">{money(p.share_minor, currency)} a person · {p.over ? 'over' : p.amount_minor === p.limit_minor * p.people ? 'at' : 'under'} {money(p.limit_minor, currency)}</span>)}
@@ -153,7 +156,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       <h3>History</h3>
       <ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol>
       {detail.revisions.length > 0 && <Details label="Earlier revisions and receipts">
-        {detail.revisions.map((r: D) => <div key={r.revision} className="revision"><h3>Revision {r.revision} · {money(r.total_minor, currency)} · submitted {moment(r.submitted_at)}</h3><ul className="ruled-list">{r.snapshot.items.map((i: D) => <li key={i.id}>{day(i.spent_on)} · {merchantLine(i, currency)} · {money(i.amount_minor, currency)}{billing(i) ? ` · ${billing(i)}` : ''}{i.receipt ? <> · <a href={apiHref(`receipts/${i.receipt.id}`)}>{i.receipt.name}</a></> : ' · no receipt'}</li>)}</ul>{r.snapshot.exceptions.length > 0 && <p className="muted">Exceptions: {r.snapshot.exceptions.map((x: D) => x.message).join('; ')}</p>}</div>)}
+        {detail.revisions.map((r: D) => <div key={r.revision} className="revision"><h3>Revision {r.revision} · {money(r.total_minor, currency)} · submitted {moment(r.submitted_at)}</h3><ul className="ruled-list">{r.snapshot.items.map((i: D) => <li key={i.id}>{day(i.spent_on)} · {merchantLine(i, currency)} · {money(i.amount_minor, currency)}{conversion(i, currency) ? ` · ${conversion(i, currency)}` : ''}{billing(i) ? ` · ${billing(i)}` : ''}{i.receipt ? <> · <a href={apiHref(`receipts/${i.receipt.id}`)}>{i.receipt.name}</a></> : ' · no receipt'}</li>)}</ul>{r.snapshot.exceptions.length > 0 && <p className="muted">Exceptions: {r.snapshot.exceptions.map((x: D) => x.message).join('; ')}</p>}</div>)}
         <h3>All receipts on this claim</h3>
         <ul className="ruled-list">{detail.receipts.map((r: D) => <li key={r.id}><a href={apiHref(`receipts/${r.id}`)}>{r.name}</a> · {Math.ceil(r.size / 1024)} KB · {r.source === 'agent' ? `prepared by ${r.uploaded_by}` : `uploaded by ${names[r.uploaded_by] ?? r.uploaded_by}`} · {moment(r.uploaded_at)}<span className="machine" title={r.sha256}>Fingerprint (SHA-256) {r.sha256.slice(0, 16)}…</span></li>)}</ul>
       </Details>}

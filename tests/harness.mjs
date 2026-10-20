@@ -14,7 +14,7 @@ import { heifEsbuildPlugin } from '../scripts/heif-worker.mjs'
 
 const freePort = async () => { const s = createServer(); await new Promise(r => s.listen(0, '127.0.0.1', r)); const { port } = s.address(); await new Promise(r => s.close(r)); return port }
 
-export async function harness({ identityProvider } = {}) {
+export async function harness({ identityProvider, fxRates } = {}) {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(join(tmpdir(), 'coaster-test-'))
   const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023', plugins: [heifEsbuildPlugin()] })
   // Every request the Worker sends anywhere is recorded with its body, so a test can prove where data leaves (DATA-001).
@@ -22,9 +22,10 @@ export async function harness({ identityProvider } = {}) {
   const auth = identityProvider ? await authEdge(identityProvider, origin) : null
   const edge = async request => {
     const body = ['GET', 'HEAD'].includes(request.method) ? '' : await request.text()
-    outbound.push({ url: request.url, method: request.method, body })
+    outbound.push({ url: request.url, method: request.method, body, headers: Object.fromEntries(request.headers) })
     // Coaster sends every provider request with redirect: 'manual' (oidc/network.mjs); workerd does not carry the mode across this boundary.
     if (auth && request.url.startsWith(auth.issuer + '/')) return auth.fetch(request.url, { method: request.method, headers: Object.fromEntries(request.headers), body, redirect: 'manual' })
+    if (fxRates !== undefined && request.url === 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml') return typeof fxRates === 'function' ? fxRates(request) : new Response(fxRates, { headers: { 'content-type': 'application/xml' } });
     assert.equal(request.url, 'https://api.resend.com/emails')
     assert.equal(request.method, 'POST')
     messages.push(JSON.parse(body))

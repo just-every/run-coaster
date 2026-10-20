@@ -12,11 +12,11 @@ type Row = Record<string, string | number>;
 
 /** Every field each file can carry, in the default template's order. */
 export const FIELDS: Record<Kind, string[]> = {
-  accounting: ['batch', 'claim', 'employee', 'date', 'merchant', 'description', 'type', 'category', 'account_code', 'tax_code', 'cost_center', 'amount', 'currency', 'receipt_sha256', 'receipt_link', 'policy_exceptions', 'explanation', 'approved_by', 'approved_at', 'memo', 'billable', 'customer', 'project', 'taxable', 'form_1099_review'],
+  accounting: ['batch', 'claim', 'employee', 'date', 'merchant', 'description', 'type', 'category', 'account_code', 'tax_code', 'cost_center', 'amount', 'currency', 'original_amount', 'original_currency', 'exchange_rate', 'rate_date', 'rate_source', 'receipt_sha256', 'receipt_link', 'policy_exceptions', 'explanation', 'approved_by', 'approved_at', 'memo', 'billable', 'customer', 'project', 'taxable', 'form_1099_review'],
   reimbursements: ['batch', 'employee', 'name', 'claims', 'amount', 'currency', 'taxable_amount', 'form_1099_review'],
 };
 /** Fields kept in minor units and written as money. */
-const MONEY = new Set(['amount', 'taxable_amount']);
+const MONEY = new Set(['amount', 'taxable_amount', 'original_amount']);
 const defaultColumns = (kind: Kind): Column[] => FIELDS[kind].map(field => ({ field, header: field }));
 const exportReader = (actor: Actor) => requireThat(actor.roles.finance || actor.roles.auditor, 'Finance or auditor access required', 403);
 
@@ -59,7 +59,7 @@ async function batchRows(db: D1Database, batch: Batch, kind: Kind, origin: strin
   const { lines, people } = await batchLines(db, batch.id), name = batchNumber(batch.number);
   requireThat(lines.reduce((n, l) => n + l.amountMinor, 0) === batch.total_minor && people.reduce((n, p) => n + p.amountMinor, 0) === batch.total_minor, 'The batch does not reconcile; do not pay it and report this', 500);
   return kind === 'accounting'
-    ? lines.map(l => ({ batch: name, claim: l.claim, employee: l.employee, date: l.date, merchant: l.merchant, description: l.description, type: l.kind, category: l.category, account_code: l.account, tax_code: l.tax, cost_center: l.costCentre, amount: l.amountMinor, currency: batch.currency, receipt_sha256: l.receipt, receipt_link: l.receiptId ? `${origin}/api/coaster/receipts/${l.receiptId}` : '', policy_exceptions: l.exceptions, explanation: l.explanation, approved_by: l.approver, approved_at: l.approvedAt, memo: l.memo, billable: l.billable ? 'true' : 'false', customer: l.customer, project: l.project, employee_name: l.employeeName, taxable: l.taxable ? 'true' : 'false', form_1099_review: l.form1099 ? 'true' : 'false' }))
+    ? lines.map(l => ({ batch: name, claim: l.claim, employee: l.employee, date: l.date, merchant: l.merchant, description: l.description, type: l.kind, category: l.category, account_code: l.account, tax_code: l.tax, cost_center: l.costCentre, amount: l.amountMinor, currency: batch.currency, original_amount: l.originalMinor ?? '', original_currency: l.originalCurrency ?? '', exchange_rate: l.exchangeRate ?? '', rate_date: l.rateDate ?? '', rate_source: l.rateSource ?? '', receipt_sha256: l.receipt, receipt_link: l.receiptId ? `${origin}/api/coaster/receipts/${l.receiptId}` : '', policy_exceptions: l.exceptions, explanation: l.explanation, approved_by: l.approver, approved_at: l.approvedAt, memo: l.memo, billable: l.billable ? 'true' : 'false', customer: l.customer, project: l.project, employee_name: l.employeeName, taxable: l.taxable ? 'true' : 'false', form_1099_review: l.form1099 ? 'true' : 'false' }))
     : people.map(p => ({ batch: name, employee: p.email, name: p.name, claims: p.claims.join(' '), amount: p.amountMinor, currency: batch.currency, taxable_amount: p.taxableMinor, form_1099_review: p.form1099 ? 'true' : 'false' }));
 }
 
@@ -73,7 +73,10 @@ function iif(rows: Row[], dates: Map<string, string>) {
   for (const [, lines] of claims) {
     const first = lines[0], date = dates.get(String(first.batch))!, vendor = clean(first.employee_name || first.employee), total = lines.reduce((n, l) => n + Number(l.amount), 0);
     out.push(['TRNS', '', 'BILL', date, 'Accounts Payable', vendor, decimal(-total), clean(first.claim), clean(`Coaster ${first.batch} ${first.claim}`)].join('\t'));
-    for (const l of lines) out.push(['SPL', '', 'BILL', date, clean(l.account_code || l.category), vendor, decimal(Number(l.amount)), clean(l.claim), clean(`${l.merchant} · ${l.description || l.category}${l.receipt_sha256 ? ` · receipt ${l.receipt_sha256}` : ''}`)].join('\t'));
+    for (const l of lines) {
+      const conversion = l.original_amount !== '' && l.original_currency ? ` · original ${decimal(Number(l.original_amount))} ${l.original_currency} · 1 ${l.original_currency} = ${l.exchange_rate} ${l.currency} · rate ${l.rate_date} · ${l.rate_source}` : '';
+      out.push(['SPL', '', 'BILL', date, clean(l.account_code || l.category), vendor, decimal(Number(l.amount)), clean(l.claim), clean(`${l.merchant} · ${l.description || l.category}${conversion}${l.receipt_sha256 ? ` · receipt ${l.receipt_sha256}` : ''}`)].join('\t'));
+    }
     out.push('ENDTRNS');
   }
   return out.join('\r\n') + '\r\n';
@@ -92,7 +95,7 @@ async function render(db: D1Database, batches: Batch[], kind: Kind, format: stri
   }
   const columns = await columnsFor(db, kind, template);
   // Amounts are decimal currency units in CSV and numbers in XLSX; every other field is text.
-  const cells = rows.map(r => columns.map(c => MONEY.has(c.field) ? (format === 'xlsx' ? Number(r[c.field]) / 100 : decimal(Number(r[c.field]))) : String(r[c.field] ?? '')));
+  const cells = rows.map(r => columns.map(c => MONEY.has(c.field) && r[c.field] !== '' ? (format === 'xlsx' ? Number(r[c.field]) / 100 : decimal(Number(r[c.field]))) : String(r[c.field] ?? '')));
   const table = [columns.map(c => c.header), ...cells];
   return format === 'xlsx'
     ? { rows: rows.length, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', body: xlsx(table, new Date()) as BodyInit }

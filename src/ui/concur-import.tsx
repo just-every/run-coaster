@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { call, fileBase64, money, type D } from './api';
+import { call, day, fileBase64, money, type D } from './api';
 import { Choice, Section } from './parts';
 
 /** Concur configuration and historical accounting exports are reviewed separately. */
@@ -33,6 +33,6 @@ export function ConcurImport({state,history,onImported}:{state:D;history:D[];onI
   {s&&<div className="preview"><h3>History preview · nothing imported yet</h3><p>{s.reports} reports · {s.expenses} expenses · {s.receipts} receipt associations · {money(s.totalMinor,state.business?.currency)}</p>{s.errors.map((m:string)=><p className="form-error" key={m}>{m}</p>)}{s.warnings.map((m:string)=><p className="muted" key={m}>{m}</p>)}<button className="button primary" disabled={busy||s.errors.length>0} onClick={()=>run(async()=>{await call('import/commit',{...input(),fingerprint:preview!.fingerprint});setPreview(undefined);setNotice('Concur history imported. Undo it from Imports.');await onImported();})}>Import Concur history</button></div>}
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="reconciled" role="status">{notice}</p>}
   {reports.map(r=><p key={r.id}>{r.name} · {r.expenses} expenses · {money(r.totalMinor,r.currency)}{r.receipts?.length?` · ${r.receipts.length} report receipts`:''}</p>)}
-  {expenses.length>0&&<ul className="ruled-list">{expenses.map(e=><li key={e.id}>{e.merchant} · {e.date} · {money(e.amountMinor,e.currency)} · {e.category} · report {e.report}{e.receipts?.length?` · ${e.receipts.map((r:D)=>r.name).join(', ')}`:''}</li>)}</ul>}
+  {expenses.length>0&&<ul className="ruled-list">{expenses.map(e=><li key={e.id}>{e.merchant} · {e.date} · {money(e.amountMinor,e.currency)} · {e.category} · report {e.report}{e.original_minor!=null&&e.original_currency!==e.currency&&<span className="split-line">{money(e.original_minor,e.original_currency)} original report amount · 1 {e.original_currency} = {e.fx_rate} {e.currency} · rate {day(e.fx_date)} · {e.fx_source === 'ECB reference rates' ? 'ECB reference rate, not your card’s rate' : e.fx_source}</span>}{e.originalAmount&&e.originalCurrency&&<span className="split-line">Transaction original: {e.originalCurrency} {e.originalAmount}</span>}{e.receipts?.length?` · ${e.receipts.map((r:D)=>r.name).join(', ')}`:''}</li>)}</ul>}
  </Section>;
 }

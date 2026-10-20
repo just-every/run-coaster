@@ -2,6 +2,7 @@ import { canonicalJson, sha256, type Diagnostic, type ImportMapping, type Source
 import { requireThat, type Data } from '../types';
 import { concurReceipts, delimited, originalArtifact } from './concur-receipts';
 import { refuseConcurFinancialData } from './concur-custody';
+import type { FxResolver } from '../fx';
 
 /** SAP Standard Accounting Extract v4: Report Data, Entry Data, Journal Entry Data and Allocation Data.
  * https://help.sap.com/docs/CONCUR_EXPENSE/bb83754b1c5541808d50c09901e11475/8bd1d4553ea24fb8abfe37e327c4fde4.html
@@ -27,8 +28,8 @@ function date(value: string, format: string) {
   const time = Date.parse(iso + 'T00:00:00Z'); return Number.isFinite(time) && new Date(time).toISOString().slice(0, 10) === iso ? iso : null;
 }
 
-/** Pure normalization; no identity creation, policy publication, network access or database writes. */
-export async function concurSource(raw: unknown, filename: unknown, config: unknown, receiptInput: unknown, currency: string) {
+/** Normalize source amounts before applying the optional transaction-date FX resolver; no database writes. */
+export async function concurSource(raw: unknown, filename: unknown, config: unknown, receiptInput: unknown, currency: string, fx?: FxResolver) {
   requireThat(typeof raw === 'string' && raw.length > 0 && new TextEncoder().encode(raw).length <= 2_000_000, 'Choose the Concur accounting extract (at most 2 MB)');
   const name = typeof filename === 'string' && filename.trim() ? filename.trim().slice(0, 200) : 'concur-accounting.txt', options = config as ConcurMapping;
   requireThat(options && ['sae-v4', 'headers'].includes(options.layout), 'Choose SAE v4 or a mapped export with headers');
@@ -67,17 +68,20 @@ export async function concurSource(raw: unknown, filename: unknown, config: unkn
     const when = date(at('date'), format), amount = concurMinor(at('amount')), journalAmount = concurMinor(at('journalAmount'));
     if (!when) fail('BAD_DATE', `The transaction date is not a real ${format} date`);
     if (amount === null || amount === 0 || journalAmount === null) fail('BAD_AMOUNT', 'Approved and journal amounts must be exact cents; the entry amount cannot be zero');
-    if (at('currency').toUpperCase() !== currency || (at('originalCurrency') && at('originalCurrency').toUpperCase() !== currency)) fail('OTHER_CURRENCY', `Foreign-currency Concur history needs conversion before import into ${currency}`);
+    const reportCurrency = at('currency').toUpperCase(), originalCurrency = at('originalCurrency').toUpperCase();
+    if (!/^[A-Z]{3}$/.test(reportCurrency) || (originalCurrency && !/^[A-Z]{3}$/.test(originalCurrency))) fail('BAD_CURRENCY', 'Report and transaction currencies must be three-letter currency codes');
+    if (at('originalAmount') && concurMinor(at('originalAmount')) === null) fail('BAD_ORIGINAL_AMOUNT', 'The original transaction amount must be exact cents');
+    if (!fx && reportCurrency !== currency) fail('OTHER_CURRENCY', `Foreign-currency Concur history needs conversion before import into ${currency}`);
     if (!at('merchant')) fail('MISSING_MERCHANT', 'The vendor name is empty');
     if (at('entryType') && !['REG', 'CHD'].includes(at('entryType'))) fail('ENTRY_TYPE', 'Only regular and itemized child entries are imported; parent amounts must not be counted twice');
     const side = at('journalSide'); if (side && (!['DR', 'CR'].includes(side) || (journalAmount !== null && journalAmount !== 0 && (side === 'CR') !== (journalAmount < 0)))) fail('JOURNAL_SIGN', 'The journal debit/credit flag disagrees with its signed amount');
     const approver = at('approver').toLowerCase(); if (approver && !address(approver)) fail('BAD_APPROVER', 'The approver must be an email address');
     const sourceStatus = at('status') || 'approved', mappedStatus = at('status') ? options.statuses?.[sourceStatus] : 'approved';
     if (!['open', 'submitted', 'approved', 'reimbursed', 'closed'].includes(mappedStatus ?? '')) fail('UNMAPPED_STATUS', `Map report status ${sourceStatus}`);
-    const head = { report, reportKey: at('reportKey'), name: at('reportName') || report, employee, currency, policy: at('policy'), submitted: at('submitted'), approved: at('approved'), approver, sourceStatus, status: mappedStatus ?? null };
+    const head = { report, reportKey: at('reportKey'), name: at('reportName') || report, employee, currency, reportCurrency, policy: at('policy'), submitted: at('submitted'), approved: at('approved'), approver, sourceStatus, status: mappedStatus ?? null };
     const knownReport = reports.get(report); if (knownReport && canonicalJson(knownReport.head) !== canonicalJson(head)) fail('INCONSISTENT_REPORT', `Report ${report} has inconsistent report fields`);
     if (!knownReport) reports.set(report, { head, location });
-    const value = { source: 'concur', concur: true, label: `SAP Concur expense ${id}`, transactionId: id, report, employee, date: when, merchant: at('merchant'), amountMinor: amount, currency, memo: at('memo'), category: expenseType, categoryId: categoryId ?? null, glCode: at('account'), approver, policy: at('policy'), originalAmount: at('originalAmount'), originalCurrency: at('originalCurrency'), postedAmount: at('postedAmount'), entryType: at('entryType') };
+    const value = { source: 'concur', concur: true, label: `SAP Concur expense ${id}`, transactionId: id, report, employee, date: when, merchant: at('merchant'), amountMinor: amount, currency, reportAmountMinor: amount, reportCurrency, memo: at('memo'), category: expenseType, categoryId: categoryId ?? null, glCode: at('account'), approver, policy: at('policy'), originalAmount: at('originalAmount'), originalCurrency: at('originalCurrency'), postedAmount: at('postedAmount'), entryType: at('entryType') };
     const known = entries.get(id);
     // Account codes differ between allocated journals; expense identity and totals must not.
     const comparable = ({ glCode: _gl, ...v }: Data) => v;
@@ -94,13 +98,29 @@ export async function concurSource(raw: unknown, filename: unknown, config: unkn
   for (const attachment of receipts.attachments) if (!reports.has(attachment.report) || (attachment.entry && entries.get(attachment.entry)?.value.report !== attachment.report)) diagnostics.push({ severity: 'error', code: 'UNMATCHED_RECEIPT', message: `Receipt ${attachment.name} references a report or entry absent from this extract` });
   for (const [id, entry] of entries) {
     if(entry.journals.reduce((n:number,j:Data)=>n+(j.amountMinor??0),0)!==entry.value.amountMinor) diagnostics.push({severity:'error',code:'ALLOCATION_TOTAL',message:`Entry ${id}: its signed journal allocations do not add up to its approved amount`});
+    if (fx && entry.value.date && entry.value.amountMinor !== null) {
+      try {
+        const conversion = await fx(entry.value.amountMinor, entry.value.reportCurrency, entry.value.date);
+        const allocations: Data[] = [];
+        let allocated = 0;
+        for (const [index, journal] of entry.journals.entries()) {
+          const converted = await fx(journal.amountMinor, entry.value.reportCurrency, entry.value.date);
+          // Source order is fixed by the reviewed file. Its final journal carries the cent remainder.
+          const amountMinor = index === entry.journals.length - 1 ? conversion.amount_minor - allocated : converted.amount_minor;
+          allocations.push({ ...journal, ...converted, amount_minor: amountMinor, amountMinor, sourceAmountMinor: journal.amountMinor, sourceCurrency: entry.value.reportCurrency, roundingAdjustmentMinor: amountMinor - converted.amount_minor });
+          allocated += amountMinor;
+        }
+        entry.value = { ...entry.value, ...conversion, amountMinor: conversion.amount_minor };
+        entry.journals = allocations;
+      } catch (error) { diagnostics.push({ severity: 'error', code: 'FX_CONVERSION', message: `Entry ${id}: ${(error as Error).message}`, kind: 'expense', sourceId: id, location: entry.location }); }
+    }
     const attachments = receipts.attachments.filter(r => r.report === entry.value.report && r.entry === id), payload = { employee: entry.value.employee, approver: entry.value.approver, rows: entry.rows };
     values.set(`expense:${id}`, { ...entry.value, glCode: [...new Set(entry.journals.map((j: Data) => j.accountCode))].join('; '), allocations: entry.journals, receipt: attachments[0] ?? null, receipts: attachments });
     records.push({ namespace: 'concur', kind: 'expense', sourceId: id, payload, payloadHash: sha256(canonicalJson(payload)), artifactHash, location: entry.location });
   }
   for (const [id, report] of reports) {
     const expenses = [...entries.values()].filter(e => e.value.report === id), payload = report.head;
-    values.set(`report:${id}`, { source: 'concur', concur: true, reportId: id, ...payload, totalMinor: expenses.reduce((n, e) => n + (e.value.amountMinor ?? 0), 0), expenses: expenses.length, receipts: receipts.attachments.filter(r => r.report === id && !r.entry) });
+    values.set(`report:${id}`, { source: 'concur', concur: true, reportId: id, ...payload, totalMinor: expenses.reduce((n, e) => n + (e.value.amountMinor ?? 0), 0), reportTotalMinor: expenses.reduce((n, e) => n + (e.value.reportAmountMinor ?? 0), 0), expenses: expenses.length, receipts: receipts.attachments.filter(r => r.report === id && !r.entry) });
     records.push({ namespace: 'concur', kind: 'report', sourceId: id, payload, payloadHash: sha256(canonicalJson(payload)), artifactHash, location: report.location });
   }
   // ZIP/index originals can identify the employee by upstream id without containing their address.
@@ -111,6 +131,6 @@ export async function concurSource(raw: unknown, filename: unknown, config: unkn
   }
   const blocked = diagnostics.some(d => d.severity === 'error');
   const source: SourceBundle = { diagnostics, records, artifacts: [originalArtifact(name, bytes), ...receipts.artifacts] };
-  const mapping: ImportMapping = { version: sha256(canonicalJson({ kit: 'concur-sae-v4-1', options, currency })), map: r => blocked ? { effects: [], rejection: 'Resolve the Concur import errors before importing' } : r.kind==='receipt-custody'?{effects:[]}:{ effects: [{ targetKind: r.kind, targetId: `concur:${r.kind}:${r.sourceId}`, value: values.get(`${r.kind}:${r.sourceId}`)! }] } };
-  return { source, mapping, summary: { reports: reports.size, expenses: entries.size, charges: entries.size, journals: journals.size, totalMinor: [...entries.values()].reduce((n, e) => n + (e.value.amountMinor ?? 0), 0), receipts: receipts.attachments.length, expenseTypes: [...types], employeeIds: [...employeeIds], credits: [...entries].filter(([, e]) => e.value.amountMinor < 0).map(([id]) => id), errors: diagnostics.filter(d => d.severity === 'error').map(d => d.message), warnings: diagnostics.filter(d => d.severity === 'warning').map(d => d.message) } };
+  const mapping: ImportMapping = { version: sha256(canonicalJson({ kit: 'concur-sae-v4-2', options, currency, values: [...values] })), map: r => blocked ? { effects: [], rejection: 'Resolve the Concur import errors before importing' } : r.kind==='receipt-custody'?{effects:[]}:{ effects: [{ targetKind: r.kind, targetId: `concur:${r.kind}:${r.sourceId}`, value: values.get(`${r.kind}:${r.sourceId}`)! }] } };
+  return { source, mapping, summary: { reports: reports.size, expenses: entries.size, charges: entries.size, journals: journals.size, totalMinor: [...entries.values()].reduce((n, e) => n + (e.value.amountMinor ?? 0), 0), receipts: receipts.attachments.length, expenseTypes: [...types], employeeIds: [...employeeIds], credits: [...entries].filter(([, e]) => e.value.reportAmountMinor < 0).map(([id]) => id), errors: diagnostics.filter(d => d.severity === 'error').map(d => d.message), warnings: diagnostics.filter(d => d.severity === 'warning').map(d => d.message) } };
 }

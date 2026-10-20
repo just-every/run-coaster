@@ -1,6 +1,6 @@
 import { all, authority, commit, need, sha256Hex } from './session';
 import { event } from './events';
-import { categories, itemInput } from './items';
+import { categories, pricedItem } from './items';
 import { insertClaim, insertItem, loadClaim, receiptBytes } from './claims';
 import { createBatch } from './batches';
 import { requireBusiness } from './settings';
@@ -39,7 +39,7 @@ export async function proposeClaim(db: D1Database, actor: Actor, b: Data) {
   requireThat(Array.isArray(b.items) && b.items.length > 0 && b.items.length <= 50, 'Propose between 1 and 50 expenses');
   const id = uid(), statements: D1PreparedStatement[] = [], items: Data[] = [];
   for (const raw of b.items) {
-    const item = itemInput(raw, business, known);
+    const item = await pricedItem(raw, business, known);
     let receipt: string | null = null;
     if (raw.receipt) {
       const { bytes, media, name } = receiptBytes(raw.receipt);
@@ -100,7 +100,7 @@ export async function acceptProposal(db: D1Database, actor: Actor, id: string) {
   need(actor, 'employee');
   const business = await requireBusiness(db), known = await categories(db), claimId = uid();
   const statements: D1PreparedStatement[] = [insertClaim(db, claimId, actor.email, p.payload.title, business.currency, p.agent_label)];
-  p.payload.items.forEach((raw: Data, i: number) => statements.push(...insertItem(db, claimId, uid(), i, itemInput(raw, business, known), raw.receiptId ?? null)));
+  for (const [i, raw] of (p.payload.items as Data[]).entries()) statements.push(...insertItem(db, claimId, uid(), i, await pricedItem(raw, business, known), raw.receiptId ?? null));
   statements.push(
     db.prepare('UPDATE c_receipts SET claim_id=? WHERE proposal_id=?').bind(claimId, id),
     db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?) WHERE id=?').bind(claimId, claimId),

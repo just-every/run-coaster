@@ -82,8 +82,8 @@ Navan.
 Refunds and credits (negative amounts) come in as history with their negative
 amount, so a later card feed can match them too. A row naming a receipt file
 you did not add, a repeated transaction id, a bad date or amount, an employee
-that is not an email address, or another currency blocks the import and is
-listed by row; other currencies wait for conversion (CLAIM-003). Receipt files
+that is not an email address, blocks the import and is
+listed by row. Foreign currencies convert under CLAIM-003 after the owner enables ECB conversion; original amount/currency and rate/source/date remain with each history row. Receipt files
 no row names are listed and left out.
 
 Limits: 2 MB and 2,000 charges per CSV, 50 receipt files of up to 1.5 MB each
@@ -245,8 +245,7 @@ amount is counted once, all signed allocations are preserved and must sum to
 that amount, and report totals sum the distinct entries. Journal IDs must be
 unique; contradictory repeated entry/report fields, parent itemization rows,
 bad dates, non-cent amounts and missing mappings block import. Credits and
-refunds retain their negative values. Foreign currency needs CLAIM-003's
-conversion path before import; it is refused rather than silently relabeled.
+refunds retain their negative values. Foreign currency converts under CLAIM-003 after the owner enables ECB conversion. Concur’s approved report-currency amount and signed allocations are converted; transaction currency/amount, original report amounts and raw journal values remain separately. Preview freezes the resolved rates; a rate change requires another preview.
 Every report and entry remains read-only history, never a reimbursable claim;
 later matching claims show the imported expense as a possible duplicate.
 
@@ -279,3 +278,7 @@ Source references: SAP's [extract structure](https://help.sap.com/docs/CONCUR_EX
 [journal fields](https://help.sap.com/docs/concur-expense/concur-expense-professional-edition-administration-guides/journal-entry-data-a64f2d9ffa1c409b855d03d412785456),
 [report fields](https://help.sap.com/docs/CONCUR_EXPENSE/bb83754b1c5541808d50c09901e11475/8bd1d4553ea24fb8abfe37e327c4fde4.html)
 and [Image Delivery index](https://help.sap.com/docs/SAP_CONCUR/ceeea7fe419f4997bd53f60c0e1097d5/855f4bc7d0a747499e04b57c1f4993b2.html).
+
+## Foreign-currency history (CLAIM-003)
+
+Enable ECB currency conversion in Settings before importing foreign amounts. Coaster downloads only the fixed public ECB history file; no source expense fields leave the installation. It selects the transaction date or latest publication before it and cross-rates via EUR, rounds half up to cents (credits away from zero), and keeps originals plus rate/date/source. The final Concur allocation takes the remainder so totals reconcile. An unavailable or unsupported rate blocks commit; a changed rate invalidates the preview. ECB reference rates are not card rates. Native expenses also allow an explicit rate entered by hand, without a network request.

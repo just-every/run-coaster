@@ -101,13 +101,18 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
   for (const [index, item] of items.entries()) {
     layout.heading(`Expense ${index + 1}: ${item.merchant} | ${money(item.amount_minor, claim.currency)}`);
     layout.text(`${item.spent_on} | ${item.kind} | ${item.id}`);
+    if (item.original_minor != null && item.original_currency !== claim.currency) {
+      layout.text(`Original amount: ${money(item.original_minor, item.original_currency)}`);
+      layout.text(`Exchange rate: 1 ${item.original_currency} = ${item.fx_rate} ${claim.currency} | Rate date: ${item.fx_date} | Source: ${item.fx_source}`);
+      if (item.fx_source === 'ECB reference rates') layout.text('ECB reference rate, not your card’s rate.');
+    }
     if (item.description) layout.text(`Purpose: ${item.description}`);
     if (item.kind === 'mileage') layout.text(`${item.distance_hundredths / 100} miles at ${item.rate_thousandths / 1000} ${claim.currency} per mile`);
     if (item.kind === 'per_diem') layout.text(`${item.days} days at ${item.rate_thousandths / 1000} ${claim.currency} per day`);
     if (item.customer) layout.text(`Customer: ${item.customer} | ${item.billable ? 'Billable' : 'Not billable'}`);
     if (item.project) layout.text(`Project: ${item.project}`);
-    for (const part of item.allocations) layout.text(`Coding: ${part.category_name} | Account ${part.account_code} | Tax ${part.tax_code}${part.cost_centre ? ` | Cost center ${part.cost_centre}` : ''}${part.description ? ` | ${part.description}` : ''} | ${money(part.amount_minor, claim.currency)}`);
-    if (item.sales_tax_minor) layout.text(`Sales tax: ${money(item.sales_tax_minor, claim.currency)} | Account ${item.sales_tax_account} | Tax ${item.sales_tax_code}`);
+    for (const part of item.allocations) layout.text(`Coding: ${part.category_name} | Account ${part.account_code} | Tax ${part.tax_code}${part.cost_centre ? ` | Cost center ${part.cost_centre}` : ''}${part.description ? ` | ${part.description}` : ''} | ${money(part.amount_minor, claim.currency)}${part.original_minor != null && item.original_currency !== claim.currency ? ` | Original ${money(part.original_minor, item.original_currency)}` : ''}`);
+    if (item.sales_tax_minor) layout.text(`Sales tax: ${money(item.sales_tax_minor, claim.currency)} | Account ${item.sales_tax_account} | Tax ${item.sales_tax_code}${item.original_sales_tax_minor != null && item.original_currency !== claim.currency ? ` | Original ${money(item.original_sales_tax_minor, item.original_currency)}` : ''}`);
     for (const exception of detail.exceptions.filter((x: Data) => x.item === item.id)) layout.text(`Exception: ${exception.message}`);
     if (item.explanation) layout.text(`Explanation: ${item.explanation}`);
     if (item.attendees.length) layout.text(`Attendees: ${item.attendees.map((a: Data) => `${a.name}${a.email ? ` <${a.email}>` : ''} (${a.kind})`).join(', ')}`);
