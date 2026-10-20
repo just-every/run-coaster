@@ -11,7 +11,7 @@ import { join, resolve } from 'node:path'
 import { command, fresh, freePort, report, start } from './browser-runtime.mjs'
 import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
 import { perDiemJourney } from './browser-per-diem.mjs'
-import { cutoverJourney } from './browser-cutover.mjs'
+import { cutoverJourney, cutoverCarryJourney } from './browser-cutover.mjs'
 import { concurJourney } from './browser-concur.mjs'
 import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
@@ -31,7 +31,8 @@ async function everything(context, origin) {
   const imported = await api(context, origin, 'import')
   // SQLite rowids are installation-local; compare the complete job records by their portable identity.
   imported.jobs.sort((a, b) => a.id.localeCompare(b.id))
-  return { claims, batches, imported, members: state.members, categories: state.categories, business: state.business }
+  const cutover = await api(context, origin, 'import/cutover'); cutover.imports.sort((a,b)=>a.id.localeCompare(b.id));
+  return { claims, batches, imported, cutover, members: state.members, categories: state.categories, business: state.business }
 }
 try {
   root = await fresh()
@@ -49,9 +50,9 @@ try {
   await ownerScreens(owner, server.origin, 390, evidence, shots, false)
   for (const width of [1440, 390]) journeys.push(await perDiemJourney(browser, root, server.origin, owner, width, evidence, shots))
   for (const width of [1440, 390]) await concurJourney(owner, server.origin, width, evidence, shots)
-  for (const width of [1440, 390]) await cutoverJourney(owner, server.origin, width, evidence, shots)
+  for (const width of [1440, 390]) { await cutoverJourney(owner, server.origin, width, evidence, shots); await cutoverCarryJourney(browser, root, owner, server.origin, width, evidence, shots) }
   const before = await everything(owner.context, server.origin)
-  assert.equal(before.batches.length, 4); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
+  assert.equal(before.batches.length, 6); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
   await owner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
 
   // A setup rerun keeps every owner and record; the built Worker keeps the session boundary.
