@@ -14,9 +14,11 @@ export async function tampered(archive, table, change) {
   const input = await records(archive)
   const item = rows(input).find(r => r.table === table)
   assert.ok(item, `archive holds ${table}`)
-  change(item.row)
+  change(item.row, input)
+  input[0].partCount = input.length - 2
+  input.at(-1).partCount = input.length - 2
   const content = new ContentVerifier(input[0]), whole = new ArchiveVerifier(input[0])
-  for (let i = 1; i < input.length - 1; i++) { input[i] = await makePart(input[i].index, input[i].items); whole.add(input[i]); for (const row of input[i].items) content.add(row) }
+  for (let i = 1; i < input.length - 1; i++) { input[i] = await makePart(i - 1, input[i].items); whole.add(input[i]); for (const row of input[i].items) content.add(row) }
   input.at(-1).contentHash = content.digest(); input.at(-1).archiveHash = whole.digest()
   return input.map(r => JSON.stringify(r)).join('\n') + '\n'
 }
@@ -59,6 +61,13 @@ export async function rejectCaptureLifecycleArchives(root, archive) {
     fake_tokens: row => { row.reason = 'Former member 00000000'.repeat(60) },
     untrimmed: row => { row.reason = ' needs trimming ' },
     forged_marker: row => { row.reason = 'x'.repeat(1500); row.reason_redacted = 1 },
+    erasure_guard: (_row, input) => {
+      const tables = input[0].tables, order = tables.findIndex(t => t.name === 'c_capture_erasing');
+      tables[order].count = 1;
+      let at = input.findIndex((part, index) => index > 0 && part.kind === 'part' && part.items.some(item => item.kind === 'row' && tables.findIndex(t => t.name === item.table) > order));
+      if (at < 0) at = input.length - 1;
+      input.splice(at, 0, { index: at - 1, items: [{ index: 0, kind: 'row', table: 'c_capture_erasing', row: { email: 'unfinished-erasure@example.test' } }] });
+    },
     bad_time: row => { row.at = 'not-a-time' },
     early_time: row => { row.at = '1970-01-01T00:00:00.000Z' },
     channel: row => { row.channel = 'agent' },
@@ -68,7 +77,7 @@ export async function rejectCaptureLifecycleArchives(root, archive) {
   for (const [name, change] of Object.entries(cases)) {
     await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change), { mode: 0o600 });
     const log = await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: 4 });
-    assert.match(log, /coaster_capture_(history|reason|lifecycle_provenance)/, `CAPTURE-004 refuses ${name}`);
+    assert.match(log, /coaster_capture_(history|reason|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
     assert.ok(!log.includes('finance@dev.localhost') && !log.includes('Sam Taylor'), 'refusal never echoes identity or reason text');
   }
   await command(root, ['export', '--output', 'exports/lifecycle-after.rer']);
