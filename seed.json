@@ -6,7 +6,7 @@
   "category": "expenses",
   "spine": {
     "id": "claim-to-reimbursement",
-    "record": "Claim revision \u2192 Decision \u2192 Reimbursement batch \u2192 Accounting CSV"
+    "record": "Claim revision → Decision → Reimbursement batch → Accounting CSV"
   },
   "description": "Employee expense claims with receipt evidence, manager approval, duplicate-safe reimbursement batches, an accounting CSV and an Expensify move-in kit, on the owner's own Cloudflare account.",
   "capabilities": [
@@ -81,9 +81,10 @@
     {
       "id": "cloudflare",
       "required": true,
-      "why": "Worker hosting",
+      "why": "Worker hosting, D1 business records and R2 receipt originals in the owner’s Cloudflare account",
       "data": [
-        "HTTP requests"
+        "HTTP requests",
+        "Business records and receipt provenance in D1; original receipt-inbox bytes in R2"
       ],
       "adapters": []
     },

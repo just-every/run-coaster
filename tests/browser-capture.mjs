@@ -14,6 +14,12 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
     await page.goto(origin + '/app#/claims')
     const inbox = page.getByRole('region', { name: 'Receipt inbox', exact: true })
     await inbox.getByLabel('Upload receipts', { exact: true }).waitFor()
+    await inbox.scrollIntoViewIfNeeded()
+    const photograph = async state => {
+      const path = join(evidence, `capture-${state}-${width}.png`)
+      await page.screenshot({ path, fullPage: false }); shots.push({ screen: `CAPTURE-001 ${state}`, viewport: width, path })
+    }
+    await photograph('intake')
     const before = (await api(context, origin, 'receipt-inbox')).receipts
     if (width === 1440) {
       // Browser drag/drop emits the same native File objects as a desktop drop.
@@ -52,13 +58,18 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
       assert.deepEqual(await response.body(), file.bytes)
       await inbox.getByRole('link', { name: file.name, exact: true }).waitFor()
     }
+    await inbox.scrollIntoViewIfNeeded()
+    await photograph('saved')
     // A refusal leaves all successful uploads intact and shows what the employee can do next.
     await inbox.getByLabel('Upload receipts', { exact: true }).setInputFiles({ name: 'too-large.png', mimeType: 'image/png', buffer: Buffer.alloc(12_000_000) })
     await inbox.getByRole('alert').filter({ hasText: /too-large.png/ }).waitFor({ timeout: 30000 })
     assert.equal((await api(context, origin, 'receipt-inbox')).receipts.length, before.length + saved.length)
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
-    await inbox.locator('summary').first().click()
     await inbox.scrollIntoViewIfNeeded()
+    await photograph('refused')
+    await inbox.locator('summary').first().click()
+    await inbox.locator('summary').first().scrollIntoViewIfNeeded()
+    await photograph('provenance')
     const path = join(evidence, `capture-inbox-${width}.png`)
     await page.screenshot({ path, fullPage: true }); shots.push({ screen: 'CAPTURE-001 inbox with successful bulk and refused file', viewport: width, path })
     return { width, receipts: saved }
