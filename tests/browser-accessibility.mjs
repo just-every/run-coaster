@@ -59,7 +59,8 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     await page.keyboard.press('Enter')
     await page.locator('.detail .badge', { hasText: 'Submitted' }).waitFor()
 
-    await manager.page.keyboard.press('ControlOrMeta+R')
+    // Browser navigation refreshes the other person's snapshot; application actions use only the keyboard.
+    await manager.page.reload()
     await activate(manager.page, manager.page.getByRole('navigation', { name: 'Coaster' }).getByRole('link', { name: 'Approvals', exact: true }))
     await activate(manager.page, manager.page.getByRole('link', { name: new RegExp(title) }))
     await tabTo(manager.page, manager.page.getByRole('radio', { name: 'Approve', exact: true }))
@@ -70,7 +71,7 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     await manager.page.keyboard.press('Enter')
     await manager.page.locator('.detail .badge', { hasText: 'Returned' }).waitFor()
 
-    await page.keyboard.press('ControlOrMeta+R')
+    await page.reload()
     await page.locator('.detail .badge', { hasText: 'Returned' }).waitFor()
     await activate(page, button(page, 'Change Denver Airport Transit'))
     await type(page, field(page, 'Description'), 'Harbour & Finch client workshop transport')
@@ -78,7 +79,7 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     await page.locator('form.item-form').waitFor({ state: 'detached' })
     await activate(page, button(page, 'Resubmit for approval'))
     await page.locator('.detail .badge', { hasText: 'Submitted' }).waitFor()
-    await manager.page.keyboard.press('ControlOrMeta+R')
+    await manager.page.reload()
     await manager.page.locator('.detail .badge', { hasText: 'Submitted' }).waitFor()
     await tabTo(manager.page, button(manager.page, 'Approve'))
     await photograph('approval', manager.page)
@@ -91,5 +92,9 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     assert.deepEqual(detail.decisions.map(d => d.decision), ['returned', 'approved'])
     await photograph('approved', manager.page)
     console.log(`A11Y-001 keyboard-only claim, correction and approval passed at ${width}`)
+  } catch (error) {
+    await photograph('employee-failure', page)
+    await photograph('manager-failure', manager.page)
+    throw error
   } finally { await employee.context.close(); await manager.context.close() }
 }
