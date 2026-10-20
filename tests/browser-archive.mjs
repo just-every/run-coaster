@@ -56,7 +56,7 @@ export async function rejectCaptureLifecycleArchives(root, archive) {
     early_time: row => { row.at = '1970-01-01T00:00:00.000Z' },
     channel: row => { row.channel = 'agent' },
     attribution: row => { row.on_behalf_of = 'somebody-else@example.test' },
-    duplicate: row => { row.receipt_id = source[1].row.receipt_id },
+    duplicate: row => { Object.assign(row, source[1].row) },
   };
   for (const [name, change] of Object.entries(cases)) {
     await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change), { mode: 0o600 });

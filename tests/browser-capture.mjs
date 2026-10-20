@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { readFile } from 'node:fs/promises'
-import { api, session } from './browser-journey.mjs'
+import { api, session, PEOPLE } from './browser-journey.mjs'
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
 
@@ -91,6 +91,20 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
     assert.equal(hash(await (await context.request.get(origin + kept.downloadUrl)).body()), target.sha256)
     await discarded.scrollIntoViewIfNeeded()
     await photograph('discarded')
+    if (width === 1440) {
+      // Retain a real delegated disposition in the CLI restore fixture too.
+      const grant = await api(context, origin, 'delegates', { delegate: PEOPLE.manager, level: 'full' })
+      const delegate = await session(browser, root, origin, 'manager', width)
+      try {
+        const response = await delegate.context.request.post(`${origin}/api/coaster/receipt-inbox/${saved[1].id}/discard`, {
+          headers: { origin, 'x-coaster-acting-for': PEOPLE.employee }, data: { expectedSequence: 0, reason },
+        })
+        assert.equal(response.status(), 200)
+        const delegated = (await response.json()).receipt
+        assert.deepEqual([delegated.lifecycle[0].actorEmail, delegated.lifecycle[0].onBehalfOf], [PEOPLE.manager, PEOPLE.employee])
+      } finally { await delegate.context.close() }
+      await api(context, origin, `delegates/${grant.id}/revoke`, {})
+    }
     return { width, receipts: saved }
   } finally { await context.close() }
 }
