@@ -57,7 +57,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   const approval = [...detail.decisions].reverse().find((d: D) => d.decision === 'approved' && d.workflow_final === 1 && d.revision === claim.revision);
   const unapprovable = approval && (claim.status === 'approved' || (claim.status === 'batched' && state.actor.roles.finance)) && (state.actor.roles.finance || state.actor.roles.owner || (state.actor.roles.manager && [approval.actor_email, approval.on_behalf_of].includes(me)));
   const reassignmentRole = claim.workflow_tasks?.find((t: D) => t.status === 'waiting' && t.email === claim.approver_email)?.role ?? 'manager';
-  const heldWorkflow = claim.held_from && state.claims.some((c: D) => c.id === claim.held_from && c.workflow_tasks?.length);
+  const heldWorkflow = claim.held_from && state.claims.some((c: D) => c.id === claim.held_from && c.workflow_history);
   const merchantOf = (item: string) => items.find((i: D) => i.id === item)?.merchant;
   const categories = [...new Set(items.flatMap((i: D) => i.allocations.map((a: D) => a.category_name)))];
   return <aside className="side detail" aria-label={`Claim ${claimNumber(claim.number)}`}>
@@ -143,7 +143,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       <h3>Unapprove</h3>
       <p className="muted">Until its batch is reviewed, an approved claim can go back for another look. The approval stays in the history.</p>
       <Form label="Unapprove claim" onSubmit={async v => { await call(`claims/${claim.id}/unapprove`, { version: claim.version, reason: v.reason, to: v.to }); await done(); }}>
-        <Field label="Send back to" name="to" options={[{ value: 'approver', label: `The approver (${names[claim.approver_email] ?? claim.approver_email})` }, { value: 'employee', label: `The employee (${names[claim.employee_email] ?? claim.employee_email})` }]} />
+        <Field label="Send back to" name="to" options={[{ value: 'approver', label: submitted?.snapshot.workflow ? 'Restart the approval workflow' : `The approver (${names[claim.approver_email] ?? claim.approver_email})` }, { value: 'employee', label: `The employee (${names[claim.employee_email] ?? claim.employee_email})` }]} />
         <Field label="Reason" name="reason" placeholder="For example, the client will pay this directly" />
       </Form>
     </section>}
