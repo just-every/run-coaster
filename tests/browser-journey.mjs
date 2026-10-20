@@ -1,5 +1,7 @@
 // The human journey through Coaster's screens, one person per browser context.
 import assert from 'node:assert/strict'
+import { addTextMetadata } from './fixtures/receipt-metadata.mjs'
+import { inspectReceiptSignals } from './browser-receipt-signals.mjs'
 import { inspectPolicyReview } from './browser-policy-review.mjs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -43,10 +45,11 @@ export async function setUp(owner, origin) {
 }
 
 /** A fixture receipt made unique per run (a trailing note after the PNG end), so each width's receipts are distinct evidence. */
-async function variant(name, tag) {
+async function variant(name, tag, software) {
   const dir = join(tmpdir(), 'coaster-receipts'); await mkdir(dir, { recursive: true })
   const path = join(dir, `${name}-${tag}.png`)
-  await writeFile(path, Buffer.concat([await readFile(`tests/fixtures/receipts/${name}.png`), Buffer.from(`\n${tag}\n`)]))
+  const original = await readFile(`tests/fixtures/receipts/${name}.png`)
+  await writeFile(path, Buffer.concat([software ? addTextMetadata(original, 'Software', software) : original, Buffer.from(`\n${tag}\n`)]))
   return path
 }
 const PLAN = { 1440: { bistro: '64.50', rockpool: '180.00', km: '142' }, 390: { bistro: '58.20', rockpool: '176.00', km: '96' } }
@@ -90,7 +93,7 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     await page.getByRole('button', { name: 'Start claim' }).click()
     await page.getByRole('heading', { name: title }).waitFor()
     await addExpense(page, { merchant: 'Harbour View Bistro', amount: plan.bistro, category: 'Meals', receipt: await variant('bistro', width) })
-    await addExpense(page, { merchant: 'Rockpool Dining', amount: plan.rockpool, category: 'Meals', receipt: await variant('hotel', width), explanation: 'Client dinner for four, agreed with Priya' })
+    await addExpense(page, { merchant: 'Rockpool Dining', amount: plan.rockpool, category: 'Meals', receipt: await variant('hotel', width, 'Adobe Photoshop 2026'), explanation: 'Client dinner for four, agreed with Priya' })
     await addExpense(page, { kind: 'Mileage at the rate for its date', merchant: 'Studio to client', distance: plan.km, category: 'Car' })
     await page.getByText('Over the Meals limit of AUD 120.00').waitFor()
     await page.getByRole('button', { name: 'Submit for approval' }).click()
@@ -124,6 +127,8 @@ export async function journey(browser, root, origin, width, evidence, shots) {
 
     await manager.page.reload(); await manager.page.getByRole('heading', { name: title }).waitFor()
     const advice = await inspectPolicyReview(manager, origin, new URL(manager.page.url()).hash.split('/').at(-1), width, evidence, shots)
+    const claimId = new URL(manager.page.url()).hash.split('/').at(-1)
+    await inspectReceiptSignals(manager, origin, claimId, width, evidence, shots)
     await manager.page.getByRole('checkbox', { name: /I reviewed the/ }).check()
     await noOverflow(manager.page, width)
     await shot(manager.page, evidence, 'approvals', width, shots)
@@ -153,6 +158,8 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     await finance.page.getByText(`reference CBA-${width}`).first().waitFor()
     await noOverflow(finance.page, width)
     await shot(finance.page, evidence, 'batches', width, shots)
+    await finance.page.goto(origin + `/app#/claims/${claimId}`); await finance.page.reload()
+    await inspectReceiptSignals(finance, origin, claimId, width, evidence, shots, 'reviewed-after-payment', true)
     return { width, claim: title, totalMinor: total }
   } catch (error) {
     for (const [as, { page }] of Object.entries(people)) await page.screenshot({ path: join(evidence, `failure-${as}-${width}.png`), fullPage: true }).catch(() => {})

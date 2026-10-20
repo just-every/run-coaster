@@ -6,6 +6,7 @@ import { Icon } from './icons';
 import { ItemForm } from './item-form';
 import { describe } from './history';
 import { Comments } from './comments';
+import { ReceiptSignals } from './receipt-signals';
 import { PolicyReview } from './policy-review';
 import { ClaimAdvance } from './advances';
 
@@ -89,6 +90,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       </ul>
     </section>
     <PolicyReview revision={detail.revisions.at(-1)} />
+    <ReceiptSignals revision={detail.revisions.at(-1)} events={detail.events} mayReview={state.actor.roles.finance} claimId={claim.id} done={done} />
     <ClaimAdvance state={state} claim={claim} advance={detail.advance} editable={editable} done={done} />
     {detail.requests.length > 0 && <section className="panel-block" aria-label="Spend requests">
       <h3>Spend requests</h3>

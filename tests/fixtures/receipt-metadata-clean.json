@@ -1,0 +1,2827 @@
+[
+  {
+    "id": "HF-2026-0001",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-01",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-01"
+  },
+  {
+    "id": "HF-2026-0002",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-01",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-01"
+  },
+  {
+    "id": "HF-2026-0003",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-01",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-01"
+  },
+  {
+    "id": "HF-2026-0004",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-01",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0005",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-01",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-01"
+  },
+  {
+    "id": "HF-2026-0006",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-01",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share",
+    "imageDate": "2026-06-01"
+  },
+  {
+    "id": "HF-2026-0007",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-01",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 80.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-01"
+  },
+  {
+    "id": "HF-2026-0008",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-01",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 5 attendees split AUD 112.50 equally; one attendee share",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0009",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-01",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share",
+    "imageDate": "2026-06-01"
+  },
+  {
+    "id": "HF-2026-0010",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-01",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 60.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-01"
+  },
+  {
+    "id": "HF-2026-0011",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-01",
+    "amount": 13.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-01"
+  },
+  {
+    "id": "HF-2026-0012",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-01",
+    "amount": 40.95,
+    "scenario": "Office supplies"
+  },
+  {
+    "id": "HF-2026-0013",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-01",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-01"
+  },
+  {
+    "id": "HF-2026-0014",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-01",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-01"
+  },
+  {
+    "id": "HF-2026-0015",
+    "employee": "corpus-01@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-01",
+    "amount": 49.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-01"
+  },
+  {
+    "id": "HF-2026-0016",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-02",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0017",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-02",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-02"
+  },
+  {
+    "id": "HF-2026-0018",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-02",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-02"
+  },
+  {
+    "id": "HF-2026-0019",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-02",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-02"
+  },
+  {
+    "id": "HF-2026-0020",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-02",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0021",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-02",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share",
+    "imageDate": "2026-06-02"
+  },
+  {
+    "id": "HF-2026-0022",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-02",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 100.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-02"
+  },
+  {
+    "id": "HF-2026-0023",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-02",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 6 attendees split AUD 135.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-02"
+  },
+  {
+    "id": "HF-2026-0024",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-02",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0025",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-02",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 90.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-02"
+  },
+  {
+    "id": "HF-2026-0026",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-02",
+    "amount": 14.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-02"
+  },
+  {
+    "id": "HF-2026-0027",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-02",
+    "amount": 41.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-02"
+  },
+  {
+    "id": "HF-2026-0028",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-02",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0029",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-02",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-02"
+  },
+  {
+    "id": "HF-2026-0030",
+    "employee": "corpus-02@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-02",
+    "amount": 50.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-02"
+  },
+  {
+    "id": "HF-2026-0031",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-03",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-03"
+  },
+  {
+    "id": "HF-2026-0032",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-03",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0033",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-03",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-03"
+  },
+  {
+    "id": "HF-2026-0034",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-03",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-03"
+  },
+  {
+    "id": "HF-2026-0035",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-03",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-03"
+  },
+  {
+    "id": "HF-2026-0036",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-03",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0037",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-03",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 120.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-03"
+  },
+  {
+    "id": "HF-2026-0038",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-03",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 2 attendees split AUD 45.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-03"
+  },
+  {
+    "id": "HF-2026-0039",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-03",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share",
+    "imageDate": "2026-06-03"
+  },
+  {
+    "id": "HF-2026-0040",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-03",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 120.00 equally; one attendee share",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0041",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-03",
+    "amount": 12.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-03"
+  },
+  {
+    "id": "HF-2026-0042",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-03",
+    "amount": 39.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-03"
+  },
+  {
+    "id": "HF-2026-0043",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-03",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-03"
+  },
+  {
+    "id": "HF-2026-0044",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-03",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0045",
+    "employee": "corpus-03@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-03",
+    "amount": 48.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-03"
+  },
+  {
+    "id": "HF-2026-0046",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-04",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-04"
+  },
+  {
+    "id": "HF-2026-0047",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-04",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-04"
+  },
+  {
+    "id": "HF-2026-0048",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-04",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription"
+  },
+  {
+    "id": "HF-2026-0049",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-04",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-04"
+  },
+  {
+    "id": "HF-2026-0050",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-04",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-04"
+  },
+  {
+    "id": "HF-2026-0051",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-04",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share",
+    "imageDate": "2026-06-04"
+  },
+  {
+    "id": "HF-2026-0052",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-04",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 40.00 equally; one attendee share",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0053",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-04",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 3 attendees split AUD 67.50 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-04"
+  },
+  {
+    "id": "HF-2026-0054",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-04",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share",
+    "imageDate": "2026-06-04"
+  },
+  {
+    "id": "HF-2026-0055",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-04",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 150.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-04"
+  },
+  {
+    "id": "HF-2026-0056",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-04",
+    "amount": 13.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0057",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-04",
+    "amount": 40.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-04"
+  },
+  {
+    "id": "HF-2026-0058",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-04",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-04"
+  },
+  {
+    "id": "HF-2026-0059",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-04",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-04"
+  },
+  {
+    "id": "HF-2026-0060",
+    "employee": "corpus-04@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-04",
+    "amount": 49.5,
+    "scenario": "Professional reference book"
+  },
+  {
+    "id": "HF-2026-0061",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-05",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-05"
+  },
+  {
+    "id": "HF-2026-0062",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-05",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-05"
+  },
+  {
+    "id": "HF-2026-0063",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-05",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-05"
+  },
+  {
+    "id": "HF-2026-0064",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-05",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0065",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-05",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-05"
+  },
+  {
+    "id": "HF-2026-0066",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-05",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share",
+    "imageDate": "2026-06-05"
+  },
+  {
+    "id": "HF-2026-0067",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-05",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 60.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-05"
+  },
+  {
+    "id": "HF-2026-0068",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-05",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 4 attendees split AUD 90.00 equally; one attendee share",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0069",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-05",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share",
+    "imageDate": "2026-06-05"
+  },
+  {
+    "id": "HF-2026-0070",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-05",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 180.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-05"
+  },
+  {
+    "id": "HF-2026-0071",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-05",
+    "amount": 14.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-05"
+  },
+  {
+    "id": "HF-2026-0072",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-05",
+    "amount": 41.95,
+    "scenario": "Office supplies"
+  },
+  {
+    "id": "HF-2026-0073",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-05",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-05"
+  },
+  {
+    "id": "HF-2026-0074",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-05",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-05"
+  },
+  {
+    "id": "HF-2026-0075",
+    "employee": "corpus-05@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-05",
+    "amount": 50.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-05"
+  },
+  {
+    "id": "HF-2026-0076",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-06",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0077",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-06",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-06"
+  },
+  {
+    "id": "HF-2026-0078",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-06",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-06"
+  },
+  {
+    "id": "HF-2026-0079",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-06",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-06"
+  },
+  {
+    "id": "HF-2026-0080",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-06",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0081",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-06",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share",
+    "imageDate": "2026-06-06"
+  },
+  {
+    "id": "HF-2026-0082",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-06",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 80.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-06"
+  },
+  {
+    "id": "HF-2026-0083",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-06",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 5 attendees split AUD 112.50 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-06"
+  },
+  {
+    "id": "HF-2026-0084",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-06",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0085",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-06",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 60.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-06"
+  },
+  {
+    "id": "HF-2026-0086",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-06",
+    "amount": 12.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-06"
+  },
+  {
+    "id": "HF-2026-0087",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-06",
+    "amount": 39.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-06"
+  },
+  {
+    "id": "HF-2026-0088",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-06",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0089",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-06",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-06"
+  },
+  {
+    "id": "HF-2026-0090",
+    "employee": "corpus-06@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-06",
+    "amount": 48.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-06"
+  },
+  {
+    "id": "HF-2026-0091",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-07",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-07"
+  },
+  {
+    "id": "HF-2026-0092",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-07",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0093",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-07",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-07"
+  },
+  {
+    "id": "HF-2026-0094",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-07",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-07"
+  },
+  {
+    "id": "HF-2026-0095",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-07",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-07"
+  },
+  {
+    "id": "HF-2026-0096",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-07",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0097",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-07",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 100.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-07"
+  },
+  {
+    "id": "HF-2026-0098",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-07",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 6 attendees split AUD 135.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-07"
+  },
+  {
+    "id": "HF-2026-0099",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-07",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share",
+    "imageDate": "2026-06-07"
+  },
+  {
+    "id": "HF-2026-0100",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-07",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 90.00 equally; one attendee share",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0101",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-07",
+    "amount": 13.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-07"
+  },
+  {
+    "id": "HF-2026-0102",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-07",
+    "amount": 40.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-07"
+  },
+  {
+    "id": "HF-2026-0103",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-07",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-07"
+  },
+  {
+    "id": "HF-2026-0104",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-07",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0105",
+    "employee": "corpus-07@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-07",
+    "amount": 49.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-07"
+  },
+  {
+    "id": "HF-2026-0106",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-08",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-08"
+  },
+  {
+    "id": "HF-2026-0107",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-08",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-08"
+  },
+  {
+    "id": "HF-2026-0108",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-08",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription"
+  },
+  {
+    "id": "HF-2026-0109",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-08",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-08"
+  },
+  {
+    "id": "HF-2026-0110",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-08",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-08"
+  },
+  {
+    "id": "HF-2026-0111",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-08",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share",
+    "imageDate": "2026-06-08"
+  },
+  {
+    "id": "HF-2026-0112",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-08",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 120.00 equally; one attendee share",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0113",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-08",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 2 attendees split AUD 45.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-08"
+  },
+  {
+    "id": "HF-2026-0114",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-08",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share",
+    "imageDate": "2026-06-08"
+  },
+  {
+    "id": "HF-2026-0115",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-08",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 120.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-08"
+  },
+  {
+    "id": "HF-2026-0116",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-08",
+    "amount": 14.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0117",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-08",
+    "amount": 41.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-08"
+  },
+  {
+    "id": "HF-2026-0118",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-08",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-08"
+  },
+  {
+    "id": "HF-2026-0119",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-08",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-08"
+  },
+  {
+    "id": "HF-2026-0120",
+    "employee": "corpus-08@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-08",
+    "amount": 50.5,
+    "scenario": "Professional reference book"
+  },
+  {
+    "id": "HF-2026-0121",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-09",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-09"
+  },
+  {
+    "id": "HF-2026-0122",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-09",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-09"
+  },
+  {
+    "id": "HF-2026-0123",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-09",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-09"
+  },
+  {
+    "id": "HF-2026-0124",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-09",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0125",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-09",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-09"
+  },
+  {
+    "id": "HF-2026-0126",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-09",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share",
+    "imageDate": "2026-06-09"
+  },
+  {
+    "id": "HF-2026-0127",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-09",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 40.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-09"
+  },
+  {
+    "id": "HF-2026-0128",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-09",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 3 attendees split AUD 67.50 equally; one attendee share",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0129",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-09",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share",
+    "imageDate": "2026-06-09"
+  },
+  {
+    "id": "HF-2026-0130",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-09",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 150.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-09"
+  },
+  {
+    "id": "HF-2026-0131",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-09",
+    "amount": 12.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-09"
+  },
+  {
+    "id": "HF-2026-0132",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-09",
+    "amount": 39.95,
+    "scenario": "Office supplies"
+  },
+  {
+    "id": "HF-2026-0133",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-09",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-09"
+  },
+  {
+    "id": "HF-2026-0134",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-09",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-09"
+  },
+  {
+    "id": "HF-2026-0135",
+    "employee": "corpus-09@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-09",
+    "amount": 48.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-09"
+  },
+  {
+    "id": "HF-2026-0136",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-10",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0137",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-10",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-10"
+  },
+  {
+    "id": "HF-2026-0138",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-10",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-10"
+  },
+  {
+    "id": "HF-2026-0139",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-10",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-10"
+  },
+  {
+    "id": "HF-2026-0140",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-10",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0141",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-10",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share",
+    "imageDate": "2026-06-10"
+  },
+  {
+    "id": "HF-2026-0142",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-10",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 60.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-10"
+  },
+  {
+    "id": "HF-2026-0143",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-10",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 4 attendees split AUD 90.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-10"
+  },
+  {
+    "id": "HF-2026-0144",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-10",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0145",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-10",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 180.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-10"
+  },
+  {
+    "id": "HF-2026-0146",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-10",
+    "amount": 13.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-10"
+  },
+  {
+    "id": "HF-2026-0147",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-10",
+    "amount": 40.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-10"
+  },
+  {
+    "id": "HF-2026-0148",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-10",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0149",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-10",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-10"
+  },
+  {
+    "id": "HF-2026-0150",
+    "employee": "corpus-10@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-10",
+    "amount": 49.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-10"
+  },
+  {
+    "id": "HF-2026-0151",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-11",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-11"
+  },
+  {
+    "id": "HF-2026-0152",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-11",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0153",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-11",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-11"
+  },
+  {
+    "id": "HF-2026-0154",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-11",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-11"
+  },
+  {
+    "id": "HF-2026-0155",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-11",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-11"
+  },
+  {
+    "id": "HF-2026-0156",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-11",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0157",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-11",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 80.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-11"
+  },
+  {
+    "id": "HF-2026-0158",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-11",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 5 attendees split AUD 112.50 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-11"
+  },
+  {
+    "id": "HF-2026-0159",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-11",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share",
+    "imageDate": "2026-06-11"
+  },
+  {
+    "id": "HF-2026-0160",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-11",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 60.00 equally; one attendee share",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0161",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-11",
+    "amount": 14.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-11"
+  },
+  {
+    "id": "HF-2026-0162",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-11",
+    "amount": 41.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-11"
+  },
+  {
+    "id": "HF-2026-0163",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-11",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-11"
+  },
+  {
+    "id": "HF-2026-0164",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-11",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0165",
+    "employee": "corpus-11@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-11",
+    "amount": 50.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-11"
+  },
+  {
+    "id": "HF-2026-0166",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-12",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-12"
+  },
+  {
+    "id": "HF-2026-0167",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-12",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-12"
+  },
+  {
+    "id": "HF-2026-0168",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-12",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription"
+  },
+  {
+    "id": "HF-2026-0169",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-12",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-12"
+  },
+  {
+    "id": "HF-2026-0170",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-12",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-12"
+  },
+  {
+    "id": "HF-2026-0171",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-12",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share",
+    "imageDate": "2026-06-12"
+  },
+  {
+    "id": "HF-2026-0172",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-12",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 100.00 equally; one attendee share",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0173",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-12",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 6 attendees split AUD 135.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-12"
+  },
+  {
+    "id": "HF-2026-0174",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-12",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share",
+    "imageDate": "2026-06-12"
+  },
+  {
+    "id": "HF-2026-0175",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-12",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 90.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-12"
+  },
+  {
+    "id": "HF-2026-0176",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-12",
+    "amount": 12.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0177",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-12",
+    "amount": 39.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-12"
+  },
+  {
+    "id": "HF-2026-0178",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-12",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-12"
+  },
+  {
+    "id": "HF-2026-0179",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-12",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-12"
+  },
+  {
+    "id": "HF-2026-0180",
+    "employee": "corpus-12@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-12",
+    "amount": 48.5,
+    "scenario": "Professional reference book"
+  },
+  {
+    "id": "HF-2026-0181",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-13",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-13"
+  },
+  {
+    "id": "HF-2026-0182",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-13",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-13"
+  },
+  {
+    "id": "HF-2026-0183",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-13",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-13"
+  },
+  {
+    "id": "HF-2026-0184",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-13",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0185",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-13",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-13"
+  },
+  {
+    "id": "HF-2026-0186",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-13",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share",
+    "imageDate": "2026-06-13"
+  },
+  {
+    "id": "HF-2026-0187",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-13",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 120.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-13"
+  },
+  {
+    "id": "HF-2026-0188",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-13",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 2 attendees split AUD 45.00 equally; one attendee share",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0189",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-13",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share",
+    "imageDate": "2026-06-13"
+  },
+  {
+    "id": "HF-2026-0190",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-13",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 120.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-13"
+  },
+  {
+    "id": "HF-2026-0191",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-13",
+    "amount": 13.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-13"
+  },
+  {
+    "id": "HF-2026-0192",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-13",
+    "amount": 40.95,
+    "scenario": "Office supplies"
+  },
+  {
+    "id": "HF-2026-0193",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-13",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-13"
+  },
+  {
+    "id": "HF-2026-0194",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-13",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-13"
+  },
+  {
+    "id": "HF-2026-0195",
+    "employee": "corpus-13@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-13",
+    "amount": 49.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-13"
+  },
+  {
+    "id": "HF-2026-0196",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-14",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0197",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-14",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-14"
+  },
+  {
+    "id": "HF-2026-0198",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-14",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-14"
+  },
+  {
+    "id": "HF-2026-0199",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-14",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-14"
+  },
+  {
+    "id": "HF-2026-0200",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-14",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0201",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-14",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share",
+    "imageDate": "2026-06-14"
+  },
+  {
+    "id": "HF-2026-0202",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-14",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 40.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-14"
+  },
+  {
+    "id": "HF-2026-0203",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-14",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 3 attendees split AUD 67.50 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-14"
+  },
+  {
+    "id": "HF-2026-0204",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-14",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0205",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-14",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 150.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-14"
+  },
+  {
+    "id": "HF-2026-0206",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-14",
+    "amount": 14.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-14"
+  },
+  {
+    "id": "HF-2026-0207",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-14",
+    "amount": 41.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-14"
+  },
+  {
+    "id": "HF-2026-0208",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-14",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0209",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-14",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-14"
+  },
+  {
+    "id": "HF-2026-0210",
+    "employee": "corpus-14@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-14",
+    "amount": 50.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-14"
+  },
+  {
+    "id": "HF-2026-0211",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-15",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-15"
+  },
+  {
+    "id": "HF-2026-0212",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-15",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0213",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-15",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-15"
+  },
+  {
+    "id": "HF-2026-0214",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-15",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-15"
+  },
+  {
+    "id": "HF-2026-0215",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-15",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-15"
+  },
+  {
+    "id": "HF-2026-0216",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-15",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0217",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-15",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 60.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-15"
+  },
+  {
+    "id": "HF-2026-0218",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-15",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 4 attendees split AUD 90.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-15"
+  },
+  {
+    "id": "HF-2026-0219",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-15",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share",
+    "imageDate": "2026-06-15"
+  },
+  {
+    "id": "HF-2026-0220",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-15",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 180.00 equally; one attendee share",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0221",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-15",
+    "amount": 12.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-15"
+  },
+  {
+    "id": "HF-2026-0222",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-15",
+    "amount": 39.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-15"
+  },
+  {
+    "id": "HF-2026-0223",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-15",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-15"
+  },
+  {
+    "id": "HF-2026-0224",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-15",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0225",
+    "employee": "corpus-15@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-15",
+    "amount": 48.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-15"
+  },
+  {
+    "id": "HF-2026-0226",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-16",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-16"
+  },
+  {
+    "id": "HF-2026-0227",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-16",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-16"
+  },
+  {
+    "id": "HF-2026-0228",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-16",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription"
+  },
+  {
+    "id": "HF-2026-0229",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-16",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-16"
+  },
+  {
+    "id": "HF-2026-0230",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-16",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-16"
+  },
+  {
+    "id": "HF-2026-0231",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-16",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share",
+    "imageDate": "2026-06-16"
+  },
+  {
+    "id": "HF-2026-0232",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-16",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 80.00 equally; one attendee share",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0233",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-16",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 5 attendees split AUD 112.50 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-16"
+  },
+  {
+    "id": "HF-2026-0234",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-16",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share",
+    "imageDate": "2026-06-16"
+  },
+  {
+    "id": "HF-2026-0235",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-16",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 60.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-16"
+  },
+  {
+    "id": "HF-2026-0236",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-16",
+    "amount": 13.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0237",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-16",
+    "amount": 40.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-16"
+  },
+  {
+    "id": "HF-2026-0238",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-16",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-16"
+  },
+  {
+    "id": "HF-2026-0239",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-16",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-16"
+  },
+  {
+    "id": "HF-2026-0240",
+    "employee": "corpus-16@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-16",
+    "amount": 49.5,
+    "scenario": "Professional reference book"
+  },
+  {
+    "id": "HF-2026-0241",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-17",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-17"
+  },
+  {
+    "id": "HF-2026-0242",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-17",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-17"
+  },
+  {
+    "id": "HF-2026-0243",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-17",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-17"
+  },
+  {
+    "id": "HF-2026-0244",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-17",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0245",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-17",
+    "amount": 30,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-17"
+  },
+  {
+    "id": "HF-2026-0246",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-17",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share",
+    "imageDate": "2026-06-17"
+  },
+  {
+    "id": "HF-2026-0247",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-17",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 100.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-17"
+  },
+  {
+    "id": "HF-2026-0248",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-17",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 6 attendees split AUD 135.00 equally; one attendee share",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0249",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-17",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share",
+    "imageDate": "2026-06-17"
+  },
+  {
+    "id": "HF-2026-0250",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-17",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 90.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-17"
+  },
+  {
+    "id": "HF-2026-0251",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-17",
+    "amount": 14.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-17"
+  },
+  {
+    "id": "HF-2026-0252",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-17",
+    "amount": 41.95,
+    "scenario": "Office supplies"
+  },
+  {
+    "id": "HF-2026-0253",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-17",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-17"
+  },
+  {
+    "id": "HF-2026-0254",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-17",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-17"
+  },
+  {
+    "id": "HF-2026-0255",
+    "employee": "corpus-17@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-17",
+    "amount": 50.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-17"
+  },
+  {
+    "id": "HF-2026-0256",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-18",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0257",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-18",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-18"
+  },
+  {
+    "id": "HF-2026-0258",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-18",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-18"
+  },
+  {
+    "id": "HF-2026-0259",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-18",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-18"
+  },
+  {
+    "id": "HF-2026-0260",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-18",
+    "amount": 45,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0261",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-18",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share",
+    "imageDate": "2026-06-18"
+  },
+  {
+    "id": "HF-2026-0262",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-18",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 120.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-18"
+  },
+  {
+    "id": "HF-2026-0263",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-18",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 2 attendees split AUD 45.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-18"
+  },
+  {
+    "id": "HF-2026-0264",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-18",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0265",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-18",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 120.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-18"
+  },
+  {
+    "id": "HF-2026-0266",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-18",
+    "amount": 12.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-18"
+  },
+  {
+    "id": "HF-2026-0267",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-18",
+    "amount": 39.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-18"
+  },
+  {
+    "id": "HF-2026-0268",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-18",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W"
+  },
+  {
+    "id": "HF-2026-0269",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-18",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-18"
+  },
+  {
+    "id": "HF-2026-0270",
+    "employee": "corpus-18@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-18",
+    "amount": 48.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-18"
+  },
+  {
+    "id": "HF-2026-0271",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-19",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-19"
+  },
+  {
+    "id": "HF-2026-0272",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-19",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0273",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-19",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "imageDate": "2026-03-19"
+  },
+  {
+    "id": "HF-2026-0274",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-19",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-19"
+  },
+  {
+    "id": "HF-2026-0275",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-19",
+    "amount": 60,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-19"
+  },
+  {
+    "id": "HF-2026-0276",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-19",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share"
+  },
+  {
+    "id": "HF-2026-0277",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-19",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 40.00 equally; one attendee share",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-06-19"
+  },
+  {
+    "id": "HF-2026-0278",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-19",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 3 attendees split AUD 67.50 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-19"
+  },
+  {
+    "id": "HF-2026-0279",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-19",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share",
+    "imageDate": "2026-06-19"
+  },
+  {
+    "id": "HF-2026-0280",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-19",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 150.00 equally; one attendee share",
+    "software": "Canon EOS R50"
+  },
+  {
+    "id": "HF-2026-0281",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-19",
+    "amount": 13.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-07-19"
+  },
+  {
+    "id": "HF-2026-0282",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-19",
+    "amount": 40.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-19"
+  },
+  {
+    "id": "HF-2026-0283",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-19",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-19"
+  },
+  {
+    "id": "HF-2026-0284",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-19",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500"
+  },
+  {
+    "id": "HF-2026-0285",
+    "employee": "corpus-19@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-19",
+    "amount": 49.5,
+    "scenario": "Professional reference book",
+    "imageDate": "2026-07-19"
+  },
+  {
+    "id": "HF-2026-0286",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-01-20",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Nikon Z 6II",
+    "imageDate": "2026-01-20"
+  },
+  {
+    "id": "HF-2026-0287",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-02-20",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "EPSON ET-2850",
+    "imageDate": "2026-02-20"
+  },
+  {
+    "id": "HF-2026-0288",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-03-20",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription"
+  },
+  {
+    "id": "HF-2026-0289",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-04-20",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-04-20"
+  },
+  {
+    "id": "HF-2026-0290",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Harbour Cloud Services",
+    "date": "2026-05-20",
+    "amount": 20,
+    "scenario": "Recurring monthly business subscription",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-05-20"
+  },
+  {
+    "id": "HF-2026-0291",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Quayside Kitchen",
+    "date": "2026-06-20",
+    "amount": 18.0,
+    "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share",
+    "imageDate": "2026-06-20"
+  },
+  {
+    "id": "HF-2026-0292",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Harbour Lunch Room",
+    "date": "2026-06-20",
+    "amount": 20.0,
+    "scenario": "Shared team meal: 3 attendees split AUD 60.00 equally; one attendee share",
+    "software": "EPSON ET-2850"
+  },
+  {
+    "id": "HF-2026-0293",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Market Street Cafe",
+    "date": "2026-06-20",
+    "amount": 22.5,
+    "scenario": "Shared team meal: 4 attendees split AUD 90.00 equally; one attendee share",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-06-20"
+  },
+  {
+    "id": "HF-2026-0294",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Dockside Noodles",
+    "date": "2026-06-20",
+    "amount": 25.0,
+    "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share",
+    "imageDate": "2026-06-20"
+  },
+  {
+    "id": "HF-2026-0295",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Central Bistro",
+    "date": "2026-06-20",
+    "amount": 30.0,
+    "scenario": "Shared team meal: 6 attendees split AUD 180.00 equally; one attendee share",
+    "software": "Canon EOS R50",
+    "imageDate": "2026-06-20"
+  },
+  {
+    "id": "HF-2026-0296",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "City Rail",
+    "date": "2026-07-20",
+    "amount": 14.8,
+    "scenario": "Business travel fare",
+    "software": "Nikon Z 6II"
+  },
+  {
+    "id": "HF-2026-0297",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Office Supply House",
+    "date": "2026-07-20",
+    "amount": 41.95,
+    "scenario": "Office supplies",
+    "imageDate": "2026-07-20"
+  },
+  {
+    "id": "HF-2026-0298",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Harbour Parking",
+    "date": "2026-07-20",
+    "amount": 30,
+    "scenario": "Business visit parking; legitimate round amount",
+    "software": "Brother ADS-1700W",
+    "imageDate": "2026-07-20"
+  },
+  {
+    "id": "HF-2026-0299",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Conference Centre",
+    "date": "2026-07-20",
+    "amount": 150,
+    "scenario": "Professional workshop; legitimate round amount",
+    "software": "HP ScanJet Pro 2500",
+    "imageDate": "2026-07-20"
+  },
+  {
+    "id": "HF-2026-0300",
+    "employee": "corpus-20@harbourfinch.example",
+    "merchant": "Business Books",
+    "date": "2026-07-20",
+    "amount": 50.5,
+    "scenario": "Professional reference book"
+  }
+]
