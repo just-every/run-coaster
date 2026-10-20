@@ -12,6 +12,8 @@ import { command, fresh, freePort, report, start } from './browser-runtime.mjs'
 import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
 import { perDiemJourney } from './browser-per-diem.mjs'
 import { cutoverJourney, cutoverCarryJourney } from './browser-cutover.mjs'
+import { captureJourney, assertRestoredInbox } from './browser-capture.mjs'
+import { captureFiles } from './fixtures/capture-files.mjs'
 import { concurJourney } from './browser-concur.mjs'
 import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
@@ -51,6 +53,11 @@ try {
   for (const width of [1440, 390]) journeys.push(await perDiemJourney(browser, root, server.origin, owner, width, evidence, shots))
   for (const width of [1440, 390]) await concurJourney(owner, server.origin, width, evidence, shots)
   for (const width of [1440, 390]) { await cutoverJourney(owner, server.origin, width, evidence, shots); await cutoverCarryJourney(browser, root, owner, server.origin, width, evidence, shots) }
+  const captureInputs = await captureFiles()
+  for (const width of [1440, 390]) await captureJourney(browser, root, server.origin, width, evidence, shots, captureInputs.files)
+  const captureEmployee = await session(browser, root, server.origin, 'employee', 390)
+  const capturedInbox = (await api(captureEmployee.context, server.origin, 'receipt-inbox')).receipts
+  await captureEmployee.context.close()
   const before = await everything(owner.context, server.origin)
   assert.equal(before.batches.length, 6); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
   await owner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
@@ -110,6 +117,9 @@ try {
   const after = await everything(restoredOwner.context, server.origin)
   assert.deepEqual(after, before, 'claims, revisions, decisions, receipts, batches with their releases (PAY-004), history (AUDIT-001) and imported reports survive restore')
   await assertRestoredReceiptBytes(restoredOwner.context, server.origin, before.claims)
+  const restoredEmployee = await session(browser, second, server.origin, 'employee', 390)
+  await assertRestoredInbox(restoredEmployee.context, server.origin, capturedInbox)
+  await restoredEmployee.context.close()
   const job = after.imported.jobs.find(j => j.source === 'expensify' && j.state === 'completed')
   assert.ok(job, 'the completed Expensify move-in survives alongside undone Concur jobs')
   assert.equal((await api(restoredOwner.context, server.origin, 'import/undo', { source: job.source, id: job.id, mappingVersion: job.mappingVersion })).job.state, 'undone', 'the restored owner can still undo the move-in')

@@ -51,3 +51,15 @@
   .plain .mobile-label { display: inline; }
   .checklist li { flex-wrap: wrap; }
 }
+
+/* Receipt intake uses the existing Claims sections and disclosure vocabulary. */
+.receipt-drop { border: 1px dashed var(--line, #c9cec8); padding: 16px; display: grid; gap: 12px; }
+.receipt-drop-over { background: var(--wash, #f0f4e8); }
+.receipt-inbox input[type=file] { max-width: 100%; }
+.receipt-inbox-list { list-style: none; padding: 0; margin: 0; }
+.receipt-inbox-list > li { border-top: 1px solid var(--line, #dce0da); padding: 16px 0; }
+.receipt-inbox-list .section-head { flex-wrap: wrap; }
+.receipt-inbox-list a, .receipt-inbox dd, .receipt-inbox li { overflow-wrap: anywhere; }
+.receipt-inbox dd { margin: 0 0 8px; }
+.receipt-inbox dt { font-weight: 600; }
+.receipt-fingerprint { font-family: monospace; }

@@ -1,4 +1,4 @@
-Your whole installation can be exported to one file and restored into a new, empty installation: claims, every revision and decision, receipt bytes, batches, history and imported Expensify history.
+Your whole installation can be exported to one file and restored into a new, empty installation: claims, every revision and decision, receipt bytes (including the R2 receipt inbox and its provenance), batches, history and imported Expensify history.
 
 ## Back up
 

@@ -10,7 +10,7 @@ export const records = async path => (await readFile(path, 'utf8')).trim().split
 export const rows = archive => archive.filter(r => r.kind === 'part').flatMap(r => r.items)
 
 /** Rewrite one row and re-seal the archive's hashes, so only Coaster's own staged validation can catch it. */
-async function tampered(archive, table, change) {
+export async function tampered(archive, table, change) {
   const input = await records(archive)
   const item = rows(input).find(r => r.table === table)
   assert.ok(item, `archive holds ${table}`)
@@ -27,6 +27,7 @@ export async function rejectInconsistentArchives(root, archive) {
   const cases = {
     claim_total: ['c_claims', row => { row.total_minor += 1 }],
     receipt_bytes: ['c_receipts', row => { const bytes = Buffer.from(row.bytes.blob, 'base64'); bytes[bytes.length - 1] ^= 1; row.bytes.blob = bytes.toString('base64') }],
+    capture_bytes: ['c_capture_receipts', row => { row.size += 1 }],
     decision_revision: ['c_decisions', row => { row.revision += 7 }],
   }
   for (const [code, [table, change]] of Object.entries(cases)) {

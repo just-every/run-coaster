@@ -40,6 +40,7 @@ import { importAction, importJobs, importedHistory } from './imports/jobs';
 import { categories } from './items';
 import { business } from './settings';
 import { event } from './events';
+import { listInbox, receiveReceipt, inboxReceiptFile } from './receipts/inbox';
 import { reviewReceiptSignal } from './receipt-signal-review';
 import { perDiemLocations, pricePerDiem } from './per-diem';
 import { Fault, requireThat, type Actor, type Data } from './types';
@@ -72,6 +73,10 @@ const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) =
   return result instanceof Response ? result : c.json(result);
 };
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
+
+api.get('/api/coaster/receipt-inbox', as(async (a, c) => listInbox(db(c), a)));
+api.post('/api/coaster/receipt-inbox', as(async (a, c) => receiveReceipt(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, c.req.raw)));
+api.get('/api/coaster/receipt-inbox/:id', as(async (a, c) => inboxReceiptFile(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, param(c, 'id'), c.req.query('inline') === '1')));
 
 api.get('/api/coaster/state', as(async (a, c) => workspace(db(c), a)));
 api.get('/api/coaster/claims/:id', as(async (a, c) => claimDetail(db(c), a, param(c, 'id'))));

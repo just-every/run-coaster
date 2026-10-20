@@ -16,6 +16,8 @@ const ADDRESS: [string, string[]][] = [
   ['c_workflow_tasks', ['email','on_behalf_of']], ['c_approval_workflows',['created_by']],
   ['c_claims', ['employee_email', 'approver_email', 'prepared_by', 'on_behalf_of', 'held_by']],
   ['c_receipts', ['owner_email', 'uploaded_by']],
+  ['c_capture_receipts', ['owner_email', 'uploaded_by']],
+  ['c_capture_receipt_events', ['actor_email', 'on_behalf_of']],
   ['c_revisions', ['submitted_by']],
   ['c_decisions', ['actor_email', 'on_behalf_of']],
   ['c_batches', ['created_by', 'prepared_by', 'reviewed_by', 'first_released_by', 'released_by', 'paid_by']],
@@ -88,7 +90,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
 
   const memberKeys = (await db.prepare("SELECT json_extract(value,'$.sourceKey') AS key FROM c_history WHERE kind='crosswalk' AND json_extract(value,'$.targetId')=?").bind(member.member_id).all<{key:string}>()).results.map(r=>r.key);
   const { subject, label } = opaque(), at = now(), id = uid(), quoted = JSON.stringify(address), quotedLabel = JSON.stringify(subject);
-  const receipts = (await db.prepare('SELECT DISTINCT r.sha256 FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id JOIN c_claims c ON c.id=i.claim_id WHERE c.employee_email=? ORDER BY r.sha256').bind(address).all<{ sha256: string }>()).results.map(r => r.sha256);
+  const receipts = (await db.prepare('SELECT r.sha256 FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id JOIN c_claims c ON c.id=i.claim_id WHERE c.employee_email=? UNION SELECT sha256 FROM c_capture_receipts WHERE owner_email=? ORDER BY sha256').bind(address, address).all<{ sha256: string }>()).results.map(r => r.sha256);
   const count = async (query: string, ...params: unknown[]) => (await db.prepare(`SELECT COUNT(*) AS n FROM ${query}`).bind(...params).first<{ n: number }>())!.n;
   const operator = await db.prepare('SELECT id FROM oa_operators WHERE lower(email)=?').bind(address).first<{ id: string }>();
   const removed = {
@@ -104,7 +106,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   const guard = authority(actor, 'owner');
   const check = sql(`INSERT INTO c_guard SELECT CASE WHEN (${guard.sql}) AND (${state.sql}) THEN 1 ELSE 0 END`, ...guard.params, ...state.params!);
   const native: D1Sql[] = [
-    check, sql('INSERT INTO c_erasing(email) VALUES(?)', address),
+    check, sql('INSERT INTO c_erasing(email) VALUES(?)', address), sql('INSERT INTO c_capture_erasing(email) VALUES(?)', address),
     // Removed outright: their own comments (replies by others stay, as top-level comments), agent keys, delegations and reminders.
     sql('UPDATE c_comments SET parent_id=NULL WHERE parent_id IN (SELECT id FROM c_comments WHERE author_email=?)', address),
     sql('DELETE FROM c_comments WHERE author_email=?', address),
@@ -136,7 +138,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     ] : []),
     sql("INSERT INTO rer_erasure_operations(id,entity,subject,label,phase,step,planned,deleted,retained,requested_at,committed_at,completed_at) VALUES(?,'member',NULL,?,'complete',0,?,?,?,?,?,?)", id, label, JSON.stringify(removed), JSON.stringify(removed), JSON.stringify(retained), at, at, at),
     asSql(event(db, actor, 'member-erased', {}, { member: subject, erasure: id })),
-    sql('DELETE FROM c_erasing'), sql(`INSERT INTO c_guard SELECT CASE WHEN (${guard.sql}) THEN 1 ELSE 0 END`, ...guard.params), sql('DELETE FROM c_guard'),
+    sql('DELETE FROM c_capture_erasing'), sql('DELETE FROM c_erasing'), sql(`INSERT INTO c_guard SELECT CASE WHEN (${guard.sql}) THEN 1 ELSE 0 END`, ...guard.params), sql('DELETE FROM c_guard'),
   ];
   const checkpoint = [...await redactionStatements(db), ...await invalidateTransfersStatements(db)].map(asSql);
   try {

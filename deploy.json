@@ -37,5 +37,10 @@
   "platforms": [
     "workers",
     "container"
+  ],
+  "r2": [
+    {
+      "binding": "COASTER_RECEIPTS"
+    }
   ]
 }

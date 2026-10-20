@@ -7,6 +7,7 @@ import { ClaimsTable } from './claims-table';
 import { AgentStrip } from './proposals';
 import { SpendRequests } from './requests';
 import { CashAdvances } from './advances';
+import { ReceiptInbox } from './receipt-inbox';
 import { QuickExpense } from './quick-expense';
 import { useDesktop, Work } from './shell';
 import { go, oldestWaiting, waitingFor } from './app';
@@ -64,6 +65,7 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
       : <section className="panel"><Empty large title={query ? 'No claims match that search' : scope === 'mine' ? 'No claims yet' : 'No claims to show'}>{!query && scope === 'mine' && state.actor.roles.employee ? 'Start a claim, add each expense with its receipt, then submit it to your manager.' : null}</Empty>
           {wide && !query && <div className="table-foot"><span>Nothing here yet</span><Choice label="Show" hideLabel className="field" value={scope} onChange={(e: any) => setScope(e.target.value)}><option value="all">All claims</option><option value="mine">My claims</option></Choice></div>}
         </section>}
+    {state.actor.roles.employee && <ReceiptInbox key={state.actor.email} />}
     {state.actor.roles.employee && !state.actor.delegate && <QuickExpense state={state} reload={reload} />}
     {state.actor.roles.employee && <SpendRequests state={state} reload={reload} />}
     {state.actor.roles.employee && <CashAdvances state={state} reload={reload} mode="mine" />}

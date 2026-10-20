@@ -18,5 +18,11 @@
       "database_id": "local-foundation-only",
       "migrations_dir": "migrations/core"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "COASTER_RECEIPTS",
+      "bucket_name": "coaster-receipts"
+    }
   ]
 }

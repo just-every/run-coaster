@@ -1,5 +1,11 @@
 A claim is a set of expenses an employee paid for and wants back, with a receipt for each purchase.
 
+## Keep receipts before entering expenses
+
+Open **Receipt inbox** on Claims. Drop dozens of files, choose **Upload receipts**, or use **Photograph a receipt** on a phone. JPEG, PNG, WebP, HEIC and multi-page PDF originals up to 10 MB each stay in your inbox with their hash, size, uploader and source. A refused file leaves successful uploads intact; choose a smaller file to retry.
+
+Reading is unavailable, so each saved original says **Needs attention** and asks you to enter its expense details manually. The inbox does not yet attach receipts to claims or card charges; expense attachments below still use their existing 1.5 MB limit.
+
 ## Start a claim
 
 Open **Claims**, choose **New claim**, give it a title such as "Denver client trip" and choose **Start claim**.
