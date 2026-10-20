@@ -64,7 +64,7 @@ export async function perDiemJourney(browser, root, origin, owner, width, eviden
     await owner.page.goto(`${origin}/app#/settings`)
     await owner.page.getByLabel('Company per diem per day', { exact: true }).waitFor()
     await shot(owner.page, 'settings')
-    await owner.page.goto(`${origin}/app#/exports`)
+    await owner.page.goto(`${origin}/app#/batches`)
     await owner.page.getByRole('heading', { name: 'Exports', exact: true }).waitFor()
     await shot(owner.page, 'exports')
     return { clause: 'CLAIM-002', width, claim: claim.id, totalMinor: 29600 * fx, dailyMinor: [6900, 6600, 9200, 6900] }
