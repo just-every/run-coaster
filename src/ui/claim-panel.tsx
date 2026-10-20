@@ -56,6 +56,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   const unapproved = [...detail.events].reverse().find((e: D) => e.action === 'claim-unapproved' && (e.detail.revision === claim.revision || submitted?.snapshot.reopened?.fromRevision === e.detail.revision));
   const approval = [...detail.decisions].reverse().find((d: D) => d.decision === 'approved' && d.workflow_final === 1 && d.revision === claim.revision);
   const unapprovable = approval && (claim.status === 'approved' || (claim.status === 'batched' && state.actor.roles.finance)) && (state.actor.roles.finance || state.actor.roles.owner || (state.actor.roles.manager && [approval.actor_email, approval.on_behalf_of].includes(me)));
+  const reassignmentRole = claim.workflow_tasks?.find((t: D) => t.status === 'waiting' && t.email === claim.approver_email)?.role ?? 'manager';
   const merchantOf = (item: string) => items.find((i: D) => i.id === item)?.merchant;
   const categories = [...new Set(items.flatMap((i: D) => i.allocations.map((a: D) => a.category_name)))];
   return <aside className="side detail" aria-label={`Claim ${claimNumber(claim.number)}`}>
@@ -147,7 +148,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     {state.actor.roles.owner && claim.status === 'submitted' && <section className="panel-block" aria-label="Reassign">
       <h3>Reassign</h3>
       <Form label="Reassign claim" onSubmit={async v => { await call(`claims/${claim.id}/reassign`, { version: claim.version, approver: v.approver, reason: v.reason }); await done(); }}>
-        <Field label="New approver" name="approver" options={state.members.filter((m: D) => m.is_manager && m.active && m.email !== claim.employee_email && m.email !== claim.approver_email).map((m: D) => ({ value: m.email, label: m.name }))} />
+        <Field label="New approver" name="approver" options={state.members.filter((m: D) => m[reassignmentRole === 'finance' ? 'is_finance' : 'is_manager'] && m.active && m.email !== claim.employee_email && !claim.assigned_emails?.includes(m.email) && m.email !== claim.approver_email).map((m: D) => ({ value: m.email, label: m.name }))} />
         <Field label="Reason" name="reason" required={false} placeholder="For example, on leave" />
       </Form>
     </section>}
