@@ -20,7 +20,7 @@ The dry run checks the deployment and builds Coaster locally. It makes no reques
 rer deploy
 ```
 
-`rer deploy` creates Coaster's database on your account, applies its migrations, publishes it and checks that it answers. Run it again to publish a newer version; your data stays.
+`rer deploy` creates Coaster's database and receipt-inbox R2 bucket on your account, applies its migrations, publishes it and checks that it answers. Run it again to publish a newer version; your data stays.
 
 ## After deploying
 
