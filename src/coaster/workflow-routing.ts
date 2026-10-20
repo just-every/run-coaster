@@ -42,7 +42,7 @@ export async function resolveStage(db:D1Database,reviewers:Reviewer[],employee:s
   const original=reviewer.email??m?.approver_email;
   requireThat(original&&original!==employee,'The workflow needs an active reviewer other than the employee; ask the owner to correct it',409);
   const role=reviewer.kind==='finance'?'finance':'manager';
-  const route=role==='manager'?await routeFor(db,original,employee,localDay(timezone)):{approver:original,onBehalfOf:null};
+  const route=await routeFor(db,original,employee,localDay(timezone),role);
   requireThat(!tasks.some(t=>t.email===route.approver),'Parallel reviewers resolve to the same person; ask the owner to correct the workflow',409);
   const guard={sql:`EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_${role}=1)`,params:[route.approver]};
   requireThat(await db.prepare(`SELECT 1 WHERE ${guard.sql}`).bind(...guard.params).first(),'A workflow reviewer is inactive or no longer has the required role; ask the owner to reassign',409);

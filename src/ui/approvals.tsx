@@ -1,12 +1,13 @@
+import { Delegation } from './approval-delegation';
 import { ClaimPanel } from './claim-panel';
 import { matches, type ViewProps } from './claims';
 import { ClaimsTable } from './claims-table';
-import { Empty, Field, Form, PageHead, Section, Tiles } from './parts';
+import { Empty, PageHead, Tiles } from './parts';
 import { useDesktop, Work } from './shell';
 import { oldestWaiting } from './app';
 import { SpendRequests } from './requests';
 import { CashAdvances } from './advances';
-import { call, day, money, plural, today, type D } from './api';
+import { money, plural, type D } from './api';
 
 /** Claims routed to this manager, in the main screen's layout: waiting first, then the ones already decided. */
 export function Approvals({ state, reload, id, query }: ViewProps) {
@@ -31,23 +32,7 @@ export function Approvals({ state, reload, id, query }: ViewProps) {
       : <section className="panel"><Empty large title={query ? 'No claims match that search' : 'Nothing waiting for you'}>{query ? null : 'Claims your team submits appear here for a decision.'}</Empty></section>}
     <SpendRequests state={state} reload={reload} deciding />
     <CashAdvances state={state} reload={reload} mode="deciding" />
-    {state.actor.roles.manager && <Delegation state={state} reload={reload} />}
+    {(state.actor.roles.manager || state.actor.roles.finance) && <Delegation state={state} reload={reload} />}
   </Work>;
 }
 
-/** Out of office: hand approvals to another manager for a date range; claims submitted in it go to them on your behalf. */
-function Delegation({ state, reload }: { state: D; reload: () => Promise<D> }) {
-  const me = state.actor.email, name = (email: string) => state.names[email] ?? email;
-  const managers: string[] = state.managers.filter((email: string) => email !== me);
-  return <Section title="Delegation">
-    {state.delegations.length ? <ul className="ruled-list">{state.delegations.map((d: D) => <li key={d.id} className="job">
-      <span>{d.approver_email === me ? `${name(d.delegate_email)} approves for you` : `You approve for ${name(d.approver_email)}`} · {day(d.starts_on)} to {day(d.ends_on)}</span>
-      {(d.approver_email === me || state.actor.roles.owner) && <button className="button small" onClick={async () => { await call(`delegations/${d.id}/revoke`, {}); await reload(); }}>End</button>}
-    </li>)}</ul> : <p className="muted">Nobody approves on your behalf.</p>}
-    <div className="sub-form"><Form label="Delegate approvals" onSubmit={async (v, form) => { await call('delegations', v); form.reset(); await reload(); }}>
-      <Field label="Delegate" name="delegate" options={managers.map(email => ({ value: email, label: name(email) }))} />
-      <Field label="From" name="startsOn" type="date" defaultValue={today()} />
-      <Field label="Until" name="endsOn" type="date" defaultValue={today()} />
-    </Form></div>
-  </Section>;
-}
