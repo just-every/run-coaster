@@ -6,14 +6,13 @@ const queued = await queuedEntrypoint(import.meta.url, 'test:coaster-browser'); 
 import { chromium } from '@playwright/test'
 import assert from 'node:assert/strict'
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, report, start } from './browser-runtime.mjs'
 import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
 import { perDiemJourney } from './browser-per-diem.mjs'
 import { concurJourney } from './browser-concur.mjs'
-import { records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
+import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/coaster-browser-proof')
 await mkdir(evidence, { recursive: true })
@@ -107,9 +106,7 @@ try {
   const restoredOwner = await session(browser, second, server.origin, 'owner', 1440)
   const after = await everything(restoredOwner.context, server.origin)
   assert.deepEqual(after, before, 'claims, revisions, decisions, receipts, batches with their releases (PAY-004), history (AUDIT-001) and imported reports survive restore')
-  const receipt = before.claims[0].receipts[0]
-  const download = await restoredOwner.context.request.get(`${server.origin}/api/coaster/receipts/${receipt.id}`)
-  assert.equal(createHash('sha256').update(await download.body()).digest('hex'), receipt.sha256, 'restored receipt bytes are exact')
+  await assertRestoredReceiptBytes(restoredOwner.context, server.origin, before.claims)
   const job = after.imported.jobs.find(j => j.source === 'expensify' && j.state === 'completed')
   assert.ok(job, 'the completed Expensify move-in survives alongside undone Concur jobs')
   assert.equal((await api(restoredOwner.context, server.origin, 'import/undo', { source: job.source, id: job.id, mappingVersion: job.mappingVersion })).job.state, 'undone', 'the restored owner can still undo the move-in')

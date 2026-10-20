@@ -1,5 +1,6 @@
 // Archive checks for COA-012: tampered archives are refused before any write.
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { makePart, ContentVerifier, ArchiveVerifier } from '@runeditrun/rer/modules/portability/format'
@@ -34,5 +35,16 @@ export async function rejectInconsistentArchives(root, archive) {
     assert.match(log, new RegExp('coaster_' + code), `restore refused ${code}`)
     await command(root, ['export', '--output', `exports/empty-after-${code}.rer`])
     assert.deepEqual(rows(await records(join(root, `exports/empty-after-${code}.rer`))), empty, `refused ${code} archive wrote nothing`)
+  }
+}
+
+/** COA-012 / CLAIM-002: receipt-less per diems can be newest; verify every actual restored receipt. */
+export async function assertRestoredReceiptBytes(context, origin, claims) {
+  const receipts = claims.flatMap(claim => claim.receipts)
+  assert.ok(receipts.length, 'the archive journey includes receipt evidence')
+  for (const receipt of receipts) {
+    const download = await context.request.get(`${origin}/api/coaster/receipts/${receipt.id}`)
+    assert.equal(download.status(), 200, 'a restored receipt remains downloadable')
+    assert.equal(createHash('sha256').update(await download.body()).digest('hex'), receipt.sha256, 'restored receipt bytes are exact')
   }
 }
