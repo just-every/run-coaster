@@ -80,6 +80,14 @@ test('MOVE-005 three open reports carry into normal approval and reimbursement o
  assert.ok(inventory.imports.find(j=>j.id===reimport.job.id).records.filter(r=>r.carriedClaim).every(r=>r.reason.includes('never cancels')))
  assert.equal((await h.get('state')).claims.length,3)
  assert.equal((await h.get('history')).lines.filter(e=>e.action==='open-report-carried').length,3)
+ await h.post('settings/retention',{years:1})
+ await (await h.mf.getWorker()).scheduled({scheduledTime:Date.now()+370*86400000,cron:'17 * * * *'})
+ const proposal=(await h.get('retention')).proposal
+ assert.equal(proposal.claims.flatMap(u=>u.claims).length,3)
+ assert.equal((await h.post(`retention/${proposal.id}/confirm`,{})).expired.length,3)
+ for(const [claim] of claims)await h.get(`claims/${claim.id}`,h.owner,404)
+ await carry('CUT-1',{'CUT-T1':t.c.office},t.sam,409)
+ assert.equal((await h.get('import/cutover')).imports.find(j=>j.id===reimport.job.id).carriedReports,3,'financial retention never releases source reservations')
  }finally{await h.close()}
 })
 
