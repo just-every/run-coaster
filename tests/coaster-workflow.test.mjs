@@ -14,12 +14,12 @@ async function withAgency(run) {
   try { await run(h, await agency(h)) } finally { await h.close() }
 }
 
-async function draft(h, t, { title, amount, fixture, category = t.c.travel, project = '', explanation = '', cookie = t.sam }) {
+async function draft(h, t, { title, amount, fixture, category = t.c.travel, project = '', request, explanation = '', cookie = t.sam }) {
   let c = await h.post('claims', { title }, cookie)
   const uploaded = await h.post(`claims/${c.id}/receipts`, { version: c.version, ...(await receipt(fixture)) }, cookie)
   c = await h.post(`claims/${c.id}/items`, {
     version: uploaded.claim.version, kind: 'receipt', date: '2026-06-17', merchant: title,
-    amount, receipt: uploaded.receipt, allocations: [{ category }], project, explanation,
+    amount, receipt: uploaded.receipt, allocations: [{ category }], project, request, explanation,
   }, cookie)
   return c
 }
@@ -80,6 +80,8 @@ test('APPROVE-001 owner configures three conditional paths; frozen reviews finis
     assert.equal(detail.events.filter(e => e.action === 'claim-approved').length, 1)
   }
   assert.equal((await h.get('exceptions', t.jordan)).samples.length, approved.length)
+  const aging=await h.get('reports/aging',t.morgan)
+  assert.deepEqual([aging.totals.claims,aging.totals.amountMinor],[approved.length,190000],'aging counts completed workflows once, excluding the pending threshold-boundary claim')
   let batch = await h.post('batches', { claims: approved.map(c => c.id) }, t.morgan)
   const total = approved.reduce((n, c) => n + c.total_minor, 0)
   const detail = await h.get(`batches/${batch.id}`, t.morgan)
@@ -106,6 +108,7 @@ test('APPROVE-001 category and project route through parallel manager and financ
   let c = await submit(h, await draft(h, t, { title: 'Production travel', amount: '200.00', fixture: 'officeworks', project: 'Launch' }), t.sam)
   assert.deepEqual((await h.get(`claims/${c.id}`, t.sam)).revisions[0].snapshot.workflow.matched, ['Joint travel review', 'Launch project sign-off'])
   await h.post(`claims/${c.id}/decision`, decision(c), t.morgan, 403)
+  await h.post('settings/members',{email:SAM,name:'sam',employee:true,approver:HEAD})
   c = await approve(h, c, t.priya)
   assert.deepEqual(c.assigned_emails, [PRIYA, FINANCE])
   assert.ok((await h.get('state', t.morgan)).claims.some(row => row.id === c.id && row.assigned_emails.includes(FINANCE)))
@@ -157,6 +160,11 @@ test('APPROVE-001 spend requests retain their conditional route and an hourly st
   assert.deepEqual([small.status, small.assigned_emails], ['submitted', [FINANCE]], 'a spend-request condition adds finance even below the amount threshold')
   small = await requestDecision(h, small, t.morgan)
   assert.equal(small.status, 'approved')
+  let linked=await submit(h,await draft(h,t,{title:'Approved conference supplies',amount:'50.00',fixture:'bistro',request:small.id}),t.sam)
+  assert.deepEqual((await h.get(`claims/${linked.id}`,t.sam)).revisions[0].snapshot.workflow.matched,['Finance reviews planned spend'],'an expense linked to an approved request takes the spend-request condition')
+  linked=await approve(h,linked,t.priya)
+  assert.deepEqual(linked.assigned_emails,[FINANCE])
+  assert.equal((await approve(h,linked,t.morgan)).status,'approved')
   const original = trip
   trip = await requestDecision(h, trip, t.priya)
   assert.deepEqual([trip.status, trip.assigned_emails], ['submitted', [HEAD]])
