@@ -109,7 +109,19 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   // and address wherever they occur, including reasons written by others.
   const discardReasons = (await db.prepare('SELECT receipt_id,sequence,reason FROM c_capture_lifecycle').all<{ receipt_id: string; sequence: number; reason: string }>()).results;
   const addressPattern = new RegExp(address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-  const replaceReason = (reason: string) => reason.replace(addressPattern, () => subject).split(member.name).join(label);
+  const replaceReason = (reason: string) => {
+    let at = 0, result = '';
+    while (at < reason.length) {
+      addressPattern.lastIndex = at;
+      const addressMatch = addressPattern.exec(reason), nameAt = reason.indexOf(member.name, at);
+      if (!addressMatch && nameAt < 0) return result + reason.slice(at);
+      const isAddress = !!addressMatch && (nameAt < 0 || addressMatch.index <= nameAt);
+      const next = isAddress ? addressMatch!.index : nameAt;
+      result += reason.slice(at, next) + (isAddress ? subject : label);
+      at = next + (isAddress ? addressMatch![0].length : member.name.length);
+    }
+    return result;
+  };
   const check = sql(`INSERT INTO c_guard SELECT CASE WHEN (${guard.sql}) AND (${state.sql}) THEN 1 ELSE 0 END`, ...guard.params, ...state.params!);
   const native: D1Sql[] = [
     check, sql('INSERT INTO c_guard SELECT CASE WHEN (SELECT COUNT(*) FROM c_capture_lifecycle)=? THEN 1 ELSE 0 END', discardReasons.length), sql('INSERT INTO c_erasing(email) VALUES(?)', address), sql('INSERT INTO c_capture_erasing(email) VALUES(?)', address),
