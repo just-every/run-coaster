@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { acting, apiHref, call, type D } from './api';
-import { Badge, Details, Empty, Section } from './parts';
+import { Badge, Details, Empty, Field, Form, Section } from './parts';
 
 const formats = 'image/jpeg,image/png,image/webp,image/heic,application/pdf';
 const bytes = (size: number) => `${size.toLocaleString()} bytes`;
@@ -30,6 +30,15 @@ export function ReceiptInbox() {
       setProgress(`${saved} of ${files.length} receipts saved${refused.length ? `; ${refused.length} refused` : ''}.`);
     } finally { working.current = false; setBusy(false); }
   }
+  const cards = (rows: D[]) => <ul className="receipt-inbox-list">{rows.map(receipt => <li key={receipt.id}>
+      <div className="section-head"><a href={apiHref(`receipt-inbox/${receipt.id}`)}>{receipt.name}</a><Badge status={receipt.state} words="Needs attention" tone="wait" /></div>
+      <p className="muted">{receipt.attentionReason}</p>
+      <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
+      {receipt.disposition === 'discarded'
+        ? <section aria-label={`Disposition of ${receipt.name}`}><h4>Discarded</h4><ol>{receipt.lifecycle.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.kind} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}<p>{event.reason}</p></li>)}</ol></section>
+        : <Details label={`Discard ${receipt.name}`}><p>The original and your reason stay in your private history. This cannot be undone.</p><Form label="Discard receipt" onSubmit={async values => { await call(`receipt-inbox/${receipt.id}/discard`, { reason: values.reason, expectedSequence: receipt.lifecycleSequence }); await reload(); }}><Field label="Reason" name="reason" type="textarea" maxLength={1000} /></Form></Details>}
+    </li>)}</ul>;
+  const active = receipts.filter(receipt => receipt.disposition !== 'discarded'), discarded = receipts.filter(receipt => receipt.disposition === 'discarded');
   return <Section title="Receipt inbox" className="receipt-inbox" label="Receipt inbox">
     <p className="muted">Keep receipts here before you enter their expenses. JPEG, PNG, WebP, HEIC and multi-page PDF, up to 10 MB each. Reading is unavailable; enter expense details by hand.</p>
     <div className={`receipt-drop${over ? ' receipt-drop-over' : ''}`} role="group" aria-label="Drop receipt files" aria-busy={busy}
@@ -42,10 +51,7 @@ export function ReceiptInbox() {
     <p role="status" aria-live="polite">{progress}</p>
     {error && <p role="alert" className="form-error">{error} <button className="button small" onClick={() => reload().then(() => setError('')).catch(e => setError(e.message))}>Reload inbox</button></p>}
     {failures.length > 0 && <div role="alert"><ul>{failures.map((failure, i) => <li key={i}>{failure}</li>)}</ul><p>Saved receipts remain in your inbox. Choose a smaller file to retry a refused upload.</p></div>}
-    {receipts.length ? <ul className="receipt-inbox-list">{receipts.map(receipt => <li key={receipt.id}>
-      <div className="section-head"><a href={apiHref(`receipt-inbox/${receipt.id}`)}>{receipt.name}</a><Badge status={receipt.state} words="Needs attention" tone="wait" /></div>
-      <p className="muted">{receipt.attentionReason}</p>
-      <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
-    </li>)}</ul> : <Empty title="Your inbox is empty">Upload or photograph a receipt to keep its original here.</Empty>}
+    <section aria-label="Active receipts">{active.length ? cards(active) : <Empty title="Your inbox is empty">Upload or photograph a receipt to keep its original here.</Empty>}</section>
+    {discarded.length > 0 && <section aria-label="Discarded receipts"><h3>Discarded receipts</h3><p className="muted">Originals remain downloadable. Discarded receipts stay here as history and cannot return to the active inbox.</p>{cards(discarded)}</section>}
   </Section>;
 }

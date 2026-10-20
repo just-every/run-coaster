@@ -9,6 +9,7 @@ type InboxReceipt = StoredReceipt & {
   state: 'received' | 'reading' | 'read' | 'needs-attention'; reason: string;
 };
 type InboxEvent = { receipt_id: string; sequence: number; state: InboxReceipt['state']; reason: string; at: string; actor_email: string; on_behalf_of: string | null; channel: 'app' };
+type Lifecycle = Omit<InboxEvent, 'state'> & { kind: 'discarded' };
 const ATTENTION = 'Automatic receipt reading is not available. Enter the expense details manually using this original.';
 const SELECT = `SELECT r.*,e.state,e.reason FROM c_capture_receipts r JOIN c_capture_receipt_events e ON e.receipt_id=r.id
   AND e.sequence=(SELECT MAX(latest.sequence) FROM c_capture_receipt_events latest WHERE latest.receipt_id=r.id)`;
@@ -18,23 +19,26 @@ function ownInbox(actor: Actor) {
   requireThat(actor.kind === 'person', 'A native session is required to open a receipt inbox', 403);
 }
 
-const summary = (r: InboxReceipt, history: InboxEvent[]) => ({
+const summary = (r: InboxReceipt, history: InboxEvent[], lifecycle: Lifecycle[] = []) => ({
   id: r.id, name: r.name, mediaType: r.media_type, size: r.size, sha256: r.sha256,
   source: r.source, uploadedBy: r.uploaded_by, uploadedAt: r.uploaded_at,
   state: r.state, attentionReason: r.reason,
   history: history.map(e => ({ sequence: e.sequence, state: e.state, reason: e.reason, at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
+  disposition: lifecycle.length ? 'discarded' : 'active', lifecycleSequence: lifecycle.at(-1)?.sequence ?? 0,
+  lifecycle: lifecycle.map(e => ({ sequence: e.sequence, kind: e.kind, reason: e.reason, at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
   downloadUrl: `/api/coaster/receipt-inbox/${r.id}`,
 });
 
 /** Unattached originals follow employee privacy and existing ADMIN-005 grants. */
 export async function listInbox(db: D1Database, actor: Actor) {
   ownInbox(actor);
-  const [receipts, history] = await db.batch([
+  const [receipts, history, lifecycle] = await db.batch([
     db.prepare(`${SELECT} WHERE r.owner_email=? ORDER BY r.uploaded_at DESC,r.id DESC`).bind(actor.email),
     db.prepare('SELECT e.* FROM c_capture_receipt_events e JOIN c_capture_receipts r ON r.id=e.receipt_id WHERE r.owner_email=? ORDER BY e.receipt_id,e.sequence').bind(actor.email),
+    db.prepare('SELECT e.* FROM c_capture_lifecycle e JOIN c_capture_receipts r ON r.id=e.receipt_id WHERE r.owner_email=? ORDER BY e.receipt_id,e.sequence').bind(actor.email),
   ]);
   const events = history.results as InboxEvent[];
-  return { receipts: (receipts.results as InboxReceipt[]).map(r => summary(r, events.filter(e => e.receipt_id === r.id))) };
+  return { receipts: (receipts.results as InboxReceipt[]).map(r => summary(r, events.filter(e => e.receipt_id === r.id), (lifecycle.results as Lifecycle[]).filter(e => e.receipt_id === r.id))) };
 }
 
 export async function receiveReceipt(db: D1Database, originalBucket: R2Bucket | undefined, actor: Actor, request: Request) {

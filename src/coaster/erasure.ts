@@ -18,6 +18,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_receipts', ['owner_email', 'uploaded_by']],
   ['c_capture_receipts', ['owner_email', 'uploaded_by']],
   ['c_capture_receipt_events', ['actor_email', 'on_behalf_of']],
+  ['c_capture_lifecycle', ['actor_email', 'on_behalf_of']],
   ['c_revisions', ['submitted_by']],
   ['c_decisions', ['actor_email', 'on_behalf_of']],
   ['c_batches', ['created_by', 'prepared_by', 'reviewed_by', 'first_released_by', 'released_by', 'paid_by']],
@@ -104,9 +105,14 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   const retained = { subject, claims: claims.map(c => ({ claim: claimNumber(c.number), status: c.status, totalMinor: c.total_minor })), receiptSha256: receipts, kept: RETAINED };
   const state = sql("EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=0) AND NOT EXISTS(SELECT 1 FROM c_claims WHERE employee_email=? AND status NOT IN ('reimbursed','rejected')) AND NOT EXISTS(SELECT 1 FROM c_legal_holds WHERE released_at IS NULL AND (scope='business' OR (scope='person' AND member_email=?)))", address, address, address);
   const guard = authority(actor, 'owner');
+  // CAPTURE-004 reasons remain business evidence; replace the subject's name
+  // and address wherever they occur, including reasons written by others.
+  const discardReasons = (await db.prepare('SELECT receipt_id,sequence,reason FROM c_capture_lifecycle').all<{ receipt_id: string; sequence: number; reason: string }>()).results;
+  const addressPattern = new RegExp(address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const replaceReason = (reason: string) => reason.replace(addressPattern, () => subject).split(member.name).join(label);
   const check = sql(`INSERT INTO c_guard SELECT CASE WHEN (${guard.sql}) AND (${state.sql}) THEN 1 ELSE 0 END`, ...guard.params, ...state.params!);
   const native: D1Sql[] = [
-    check, sql('INSERT INTO c_erasing(email) VALUES(?)', address), sql('INSERT INTO c_capture_erasing(email) VALUES(?)', address),
+    check, sql('INSERT INTO c_guard SELECT CASE WHEN (SELECT COUNT(*) FROM c_capture_lifecycle)=? THEN 1 ELSE 0 END', discardReasons.length), sql('INSERT INTO c_erasing(email) VALUES(?)', address), sql('INSERT INTO c_capture_erasing(email) VALUES(?)', address),
     // Removed outright: their own comments (replies by others stay, as top-level comments), agent keys, delegations and reminders.
     sql('UPDATE c_comments SET parent_id=NULL WHERE parent_id IN (SELECT id FROM c_comments WHERE author_email=?)', address),
     sql('DELETE FROM c_comments WHERE author_email=?', address),
@@ -123,6 +129,10 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql("UPDATE c_reimbursement_keys SET key='expense:'||?||substr(key,length(?)+9) WHERE substr(key,1,length(?)+9)='expense:'||?||'|'", subject, address, address, address),
     sql("UPDATE c_receipts SET uploaded_by=substr(uploaded_by,1,length(uploaded_by)-length(?))||? WHERE source='agent' AND substr(uploaded_by,-(length(?)+5))=' for '||?", address, subject, address, address),
     // Kept, under the label: every column holding their address, and their address inside JSON.
+    ...discardReasons.filter(row => replaceReason(row.reason) !== row.reason).flatMap(row => [
+      sql('INSERT INTO c_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND sequence=? AND reason=?) THEN 1 ELSE 0 END', row.receipt_id, row.sequence, row.reason),
+      sql('UPDATE c_capture_lifecycle SET reason=? WHERE receipt_id=? AND sequence=?', replaceReason(row.reason), row.receipt_id, row.sequence),
+    ]),
     ...ADDRESS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=? WHERE ${c}=?`, subject, address))),
     ...JSON_COLUMNS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=replace(${c},?,?) WHERE instr(${c},?)>0`, quoted, quotedLabel, quoted))),
     sql("UPDATE c_members SET email=?,name=?,member_id=?,approver_email=NULL,updated_at=? WHERE email=?", subject, label, uid(), at, address),

@@ -15,6 +15,18 @@ export async function validateCaptureArchive(read, manifest) {
   check(objects.length === receipts.length, 'objects');
   const byKey = new Map(objects.map(object => [object.key, object]));
   const byId = new Map(receipts.map(receipt => [receipt.id, receipt]));
+  const lifecycle = await read('c_capture_lifecycle'), discarded = new Set();
+  for (const event of lifecycle) {
+    const receipt = byId.get(event.receipt_id);
+    check(receipt && !discarded.has(event.receipt_id), 'lifecycle_receipt');
+    check(event.sequence === 1 && event.kind === 'discarded'
+      && typeof event.reason === 'string' && event.reason === event.reason.trim()
+      && event.reason.length > 0 && event.reason.length <= 1000
+      && timestamp(event.at) && event.at >= receipt.uploaded_at, 'lifecycle');
+    check(event.channel === 'app' && typeof event.actor_email === 'string' && event.actor_email.length > 0
+      && event.on_behalf_of === (event.actor_email === receipt.owner_email ? null : receipt.owner_email), 'lifecycle_provenance');
+    discarded.add(event.receipt_id);
+  }
   check(byKey.size === objects.length && byId.size === receipts.length, 'objects');
   const history = new Map();
   for (const event of events) {

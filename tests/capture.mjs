@@ -7,7 +7,7 @@ import { command, fresh, freePort, start } from './browser-runtime.mjs'
 import { PEOPLE, api, session, setUp } from './browser-journey.mjs'
 import { captureJourney, assertRestoredInbox } from './browser-capture.mjs'
 import { captureFiles } from './fixtures/capture-files.mjs'
-import { records, rows, tampered } from './browser-archive.mjs'
+import { records, rows, tampered, rejectCaptureLifecycleArchives } from './browser-archive.mjs'
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/capture-proof')
 await mkdir(evidence, { recursive: true })
@@ -42,6 +42,7 @@ try {
   assert.match(await command(second, ['import', '--input', 'exports/inconsistent.rer', '--yes'], { expected: 4 }), /coaster_capture_bytes/)
   await command(second, ['export', '--output', 'exports/after-refusal.rer'])
   assert.deepEqual(rows(await records(join(second, 'exports/after-refusal.rer'))), empty, 'inconsistent R2/D1 receipt archive writes nothing')
+  await rejectCaptureLifecycleArchives(second, archive)
   await copyFile(archive, join(second, 'exports/capture.rer'))
   await command(second, ['import', '--input', 'exports/capture.rer', '--yes'])
   await command(second, ['export', '--output', 'exports/restored.rer'])
@@ -58,8 +59,15 @@ try {
   await erasing.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
   await command(second, ['export', '--output', 'exports/erased.rer'])
   const erasedRows = rows(await records(join(second, 'exports/erased.rer')))
-  for (const row of erasedRows.filter(row => ['c_capture_receipts', 'c_capture_receipt_events'].includes(row.table)))
+  for (const row of erasedRows.filter(row => ['c_capture_receipts', 'c_capture_receipt_events', 'c_capture_lifecycle'].includes(row.table)))
     assert.ok(!JSON.stringify(row).includes(PEOPLE.employee), 'erasure removes employee identity from inbox provenance/history')
+  const dispositions = erasedRows.filter(row => row.table === 'c_capture_lifecycle')
+  assert.equal(dispositions.length, 2)
+  for (const { row } of dispositions) {
+    assert.ok(row.reason.includes(erased.label) && row.reason.includes(erased.retained.subject))
+    assert.ok(!/Sam Taylor|employee@dev\.localhost/i.test(row.reason))
+    assert.ok(row.reason.includes('kept this duplicate for the records'))
+  }
   console.log('CAPTURE-001 focused browser intake at 1440/390, refusal, exact R2 archive round trip, inconsistent archive refusal and erasure passed')
 } finally {
   await browser?.close(); await server?.close()

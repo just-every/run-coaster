@@ -37,6 +37,33 @@ export async function rejectInconsistentArchives(root, archive) {
     await command(root, ['export', '--output', `exports/empty-after-${code}.rer`])
     assert.deepEqual(rows(await records(join(root, `exports/empty-after-${code}.rer`))), empty, `refused ${code} archive wrote nothing`)
   }
+  await rejectCaptureLifecycleArchives(root, archive);
+}
+
+/** CAPTURE-004 / AUDIT-001: re-sealed lifecycle corruption is still refused. */
+export async function rejectCaptureLifecycleArchives(root, archive) {
+  const source = rows(await records(archive)).filter(item => item.table === 'c_capture_lifecycle');
+  assert.ok(source.length >= 2, 'the public inbox journey discarded two originals');
+  await command(root, ['export', '--output', 'exports/lifecycle-before.rer']);
+  const before = rows(await records(join(root, 'exports/lifecycle-before.rer')));
+  const cases = {
+    unknown_receipt: row => { row.receipt_id = 'unknown-receipt' },
+    sequence: row => { row.sequence = 2 },
+    kind: row => { row.kind = 'restored' },
+    blank_reason: row => { row.reason = ' ' },
+    long_reason: row => { row.reason = 'x'.repeat(1001) },
+    bad_time: row => { row.at = 'not-a-time' },
+    early_time: row => { row.at = '1970-01-01T00:00:00.000Z' },
+    channel: row => { row.channel = 'agent' },
+    attribution: row => { row.on_behalf_of = 'somebody-else@example.test' },
+    duplicate: row => { row.receipt_id = source[1].row.receipt_id },
+  };
+  for (const [name, change] of Object.entries(cases)) {
+    await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change), { mode: 0o600 });
+    assert.match(await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: 4 }), /coaster_capture_lifecycle/, `CAPTURE-004 refuses ${name}`);
+  }
+  await command(root, ['export', '--output', 'exports/lifecycle-after.rer']);
+  assert.deepEqual(rows(await records(join(root, 'exports/lifecycle-after.rer'))), before, 'CAPTURE-004 refused archives leave the destination untouched');
 }
 
 /** COA-012 / CLAIM-002: receipt-less per diems can be newest; verify every actual restored receipt. */

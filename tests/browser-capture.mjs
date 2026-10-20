@@ -74,6 +74,23 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
     await photograph('history')
     const path = join(evidence, `capture-inbox-${width}.png`)
     await page.screenshot({ path, fullPage: true }); shots.push({ screen: 'CAPTURE-001 inbox with successful bulk and refused file', viewport: width, path })
+    // CAPTURE-004: a reasoned discard moves the original to private history.
+    const target = saved[0], reason = 'Sam Taylor (EMPLOYEE@DEV.LOCALHOST) kept this duplicate for the records.'
+    const active = inbox.getByRole('region', { name: 'Active receipts', exact: true })
+    const row = active.locator('.receipt-inbox-list > li').filter({ has: page.getByRole('link', { name: target.name, exact: true }) })
+    await row.locator('summary').filter({ hasText: `Discard ${target.name}` }).click()
+    await row.getByLabel('Reason', { exact: true }).fill(reason)
+    await row.getByRole('button', { name: 'Discard receipt', exact: true }).click()
+    const discarded = inbox.getByRole('region', { name: 'Discarded receipts', exact: true })
+    await discarded.getByRole('link', { name: target.name, exact: true }).waitFor()
+    assert.equal(await active.getByRole('link', { name: target.name, exact: true }).count(), 0)
+    await discarded.getByText(reason, { exact: true }).waitFor()
+    const kept = (await api(context, origin, 'receipt-inbox')).receipts.find(receipt => receipt.id === target.id)
+    assert.deepEqual([kept.disposition, kept.lifecycleSequence, kept.lifecycle[0].reason], ['discarded', 1, reason])
+    assert.deepEqual(kept.history, target.history)
+    assert.equal(hash(await (await context.request.get(origin + kept.downloadUrl)).body()), target.sha256)
+    await discarded.scrollIntoViewIfNeeded()
+    await photograph('discarded')
     return { width, receipts: saved }
   } finally { await context.close() }
 }
