@@ -1,5 +1,7 @@
-// A11Y-001: the claim/correction/approval journey uses keyboard input only.
+// A11Y-001: the claim/correction/approval journey uses keyboard input only, and axe finds nothing on any main screen.
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { api, session } from './browser-journey.mjs'
 import { keyboardReceipt } from './fixtures/keyboard-receipt.mjs'
@@ -104,4 +106,35 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     await photograph('manager-failure', manager.page)
     throw error
   } finally { await employee.context.close(); await manager.context.close() }
+}
+
+const axeSource = await readFile(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
+
+/** A11Y-001: axe-core's complete default rule set (WCAG 2.0-2.2 A/AA and best practices) reports no violation on
+    any main screen each person opens at this width: every destination in their rail, plus claim and batch detail. */
+export async function axeJourney(browser, root, origin, width, people = ['owner', 'employee', 'manager', 'finance']) {
+  const screens = new Set()
+  for (const as of people) {
+    const { context, page } = await session(browser, root, origin, as, width)
+    try {
+      await context.addInitScript({ content: axeSource })
+      await page.reload()
+      const state = await api(context, origin, 'state'), roles = state.actor.roles
+      const views = ['claims', ...(state.claims[0] ? [`claims/${state.claims[0].id}`] : []),
+        ...(roles.manager || roles.finance ? ['approvals'] : []),
+        ...(roles.finance ? ['batches', ...(state.batches[0] ? [`batches/${state.batches[0].id}`] : [])] : []),
+        ...(roles.owner ? ['move-in'] : []), 'settings']
+      for (const view of views) {
+        await page.goto(`${origin}/app#/${view}`)
+        await page.waitForLoadState('networkidle')
+        await page.waitForFunction(() => !/Opening[^.]*…/.test(document.body.innerText))
+        const violations = await page.evaluate(async () => (await window.axe.run(document)).violations
+          .map(v => `${v.id} (${v.impact}): ${v.nodes.map(n => n.target.join(' ')).join(', ')}`))
+        assert.deepEqual(violations, [], `A11Y-001 axe on ${view} as ${as} at ${width}`)
+        screens.add(view.replace(/\/.+$/, '/:id'))
+      }
+    } finally { await context.close() }
+  }
+  console.log(`A11Y-001 axe found no violation on ${[...screens].join(', ')} at ${width}`)
+  return screens
 }

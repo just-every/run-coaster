@@ -4,7 +4,7 @@ import { Badge, Empty, Field, Form, Initials, PageHead, Section, Tiles, Warning 
 import { Icon } from './icons';
 import { AgentStrip } from './proposals';
 import { describe } from './history';
-import { Work } from './shell';
+import { Side, Work } from './shell';
 import { go } from './app';
 import { matches, type ViewProps } from './claims';
 import { BatchDownloads, Exports } from './exports';
@@ -75,12 +75,12 @@ function BatchPanel({ id, reload, names, templates }: { id: string; reload: () =
   useEffect(() => { load(); }, [load]);
   const done = async () => { await Promise.all([load(), reload()]); };
   const close = <a className="panel-close" href="#/batches" aria-label="Back to batches"><Icon name="cross" /></a>;
-  if (!detail) return <aside className="side detail">{error ? <><div className="panel-head"><h2>Batch</h2>{close}</div><p role="alert">{error}</p></> : <p className="muted">Opening batch…</p>}</aside>;
+  if (!detail) return <Side className="side detail" label="Batch">{error ? <><div className="panel-head"><h2>Batch</h2>{close}</div><p role="alert">{error}</p></> : <p className="muted">Opening batch…</p>}</Side>;
   const { batch, claims, lines, people } = detail, c = batch.currency;
   const linesTotal = lines.reduce((n: number, l: D) => n + l.amountMinor, 0), peopleTotal = people.reduce((n: number, p: D) => n + p.amountMinor, 0);
   const reconciled = linesTotal === batch.total_minor && peopleTotal === batch.total_minor;
   const flagged = lines.filter((l: D) => l.exceptions);
-  return <aside className="side detail batch-detail" aria-label={`Batch ${batchNumber(batch.number)}`}>
+  return <Side className="side detail batch-detail" label={`Batch ${batchNumber(batch.number)}`}>
     <div className="panel-head"><h2>{batchNumber(batch.number)} · {money(batch.total_minor, c)}</h2>{close}</div>
     <p className="panel-amount">{plural(claims.length, 'claim')} · {plural(people.length, 'person', 'people')}{batch.prepared_by ? ` · prepared by ${batch.prepared_by}` : ''}</p>
     <p className="panel-date">Created {day(batch.created_at)}</p>
@@ -114,5 +114,5 @@ function BatchPanel({ id, reload, names, templates }: { id: string; reload: () =
     </Form></section>}
     {batch.status === 'reimbursed' && <p className="paid"><Icon name="check" /><span>Paid on {day(batch.paid_on)} · reference {batch.paid_reference}</span></p>}
     <section className="panel-block history" aria-label="History"><h3>History</h3><ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol></section>
-  </aside>;
+  </Side>;
 }

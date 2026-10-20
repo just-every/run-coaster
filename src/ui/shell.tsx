@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { batchNumber, clock, day, type D } from './api';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { batchNumber, clock, day, initials, type D } from './api';
 import { Icon } from './icons';
 import { Initials } from './parts';
 
@@ -18,7 +18,7 @@ function Brand() {
     On phones the same navigation becomes the bottom tab row. */
 export function Rail({ state, nav = [], current }: { state?: D; nav?: Destination[]; current?: string }) {
   const paid = state?.batches.find((b: D) => b.status === 'reimbursed');
-  return <aside className="rail">
+  return <aside className="rail" aria-label="Workspace">
     <Brand />
     {state && <nav className="nav" aria-label="Coaster">
       {nav.map(d => <a key={d.view} href={`#/${d.view}`} className={current === d.view ? 'active' : undefined} aria-current={current === d.view ? 'page' : undefined}>
@@ -44,7 +44,7 @@ export function Topbar({ state, query, onSearch, onNewClaim, onActing }: { state
     <label className="search"><Icon name="search" /><span className="visually-hidden">Search claims</span><input type="search" placeholder="Find a person, claim title or number" value={query} onChange={e => onSearch(e.target.value)} /></label>
     <p className="today" aria-label="Today"><span>{day(now.toISOString())}</span><span>{clock(now)}</span></p>
     {onNewClaim && <button className="button primary" onClick={onNewClaim}><Icon name="plus-circle" />New claim</button>}
-    <details className="account-menu" ref={menu}><summary aria-label={`Signed in as ${state.actor.email}`}><Initials name={name} me /></summary>
+    <details className="account-menu" ref={menu}><summary aria-label={`${initials(name)}, signed in as ${state.actor.email}`}><Initials name={name} me /></summary>
       <div className="account-card"><p>{name}</p><small>{state.actor.email}</small><small>{roleWords(state.actor)}</small>{state.business && <small>{state.business.name}</small>}
         {delegate && <small>Acting as {delegate.name}, {delegate.level === 'full' ? 'Full' : 'Submit only'} delegate</small>}
         {(delegate || workFor.length > 0) && <div className="act-for"><small>Work as a delegate for</small>
@@ -68,12 +68,24 @@ export function useDesktop() {
   return desktop;
 }
 
+/** True inside a selected panel that replaces the column on phones (shell.css), where it is the page's main content. */
+const Replacing = createContext(false);
+
+/** A work panel: complementary beside the column, or, where it replaces the column on phones, the page's main
+    landmark with its name as the screen-reader page title (A11Y-001). */
+export function Side({ className, label, children }: { className: string; label: string; children: ReactNode }) {
+  return useContext(Replacing)
+    ? <main className={className} aria-label={label}><h1 className="visually-hidden">{label}</h1>{children}</main>
+    : <aside className={className} aria-label={label}>{children}</aside>;
+}
+
 /** The work area: the main column and, when there is one, the panel at its right (the pick's exception panel). On
-    phones a selected panel replaces the column. */
+    phones a selected panel replaces the column and becomes the main landmark; the hidden column is then a plain block. */
 export function Work({ children, panel, wide = false, selected = false, className = '' }: { children: ReactNode; panel?: ReactNode; wide?: boolean; selected?: boolean; className?: string }) {
   const layout = panel ? wide ? ' with-wide-panel' : ' with-panel' : '';
+  const desktop = useDesktop(), replacing = !!panel && selected && !desktop, Column = replacing ? 'div' : 'main';
   return <div className={`content${layout}${selected ? ' has-selection' : ''}`}>
-    <main className={`work ${className}`.trim()}>{children}</main>
-    {panel}
+    <Column className={`work ${className}`.trim()}>{children}</Column>
+    <Replacing.Provider value={replacing}>{panel}</Replacing.Provider>
   </div>;
 }

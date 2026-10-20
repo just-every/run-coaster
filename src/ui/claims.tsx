@@ -9,7 +9,7 @@ import { SpendRequests } from './requests';
 import { CashAdvances } from './advances';
 import { ReceiptInbox } from './receipt-inbox';
 import { QuickExpense } from './quick-expense';
-import { useDesktop, Work } from './shell';
+import { Side, useDesktop, Work } from './shell';
 import { go, oldestWaiting, waitingFor } from './app';
 
 export type ViewProps = { state: D; reload: () => Promise<D>; id?: string; query: string };
@@ -19,13 +19,13 @@ const sum = (claims: D[]) => claims.reduce((n, c) => n + c.total_minor, 0);
 export const matches = (c: D, query: string) => `${claimNumber(c.number)} ${c.title} ${c.employee_name}`.toLowerCase().includes(query.trim().toLowerCase());
 
 function NewClaim({ reload, onClose }: { reload: () => Promise<D>; onClose: () => void }) {
-  return <aside className="side" aria-label="New claim">
+  return <Side className="side" label="New claim">
     <div className="panel-head"><h2>New claim</h2><button type="button" className="panel-close button-reset" onClick={onClose} aria-label="Close new claim"><Icon name="cross" /></button></div>
     <p className="panel-date">Name it for the trip or project, then add each expense with its receipt.</p>
     <Form label="Start claim" className="record-form-inline" onSubmit={async v => { const claim = await call('claims', { title: v.title }); await reload(); onClose(); go('claims', claim.id); }} secondary={<button type="button" className="button" onClick={onClose}>Cancel</button>}>
       <Field label="Claim title" name="title" placeholder="Denver client trip" autoFocus />
     </Form>
-  </aside>;
+  </Side>;
 }
 
 /** The main screen (owner pick J): the claims this person can see, counted in three tiles, what agents prepared for

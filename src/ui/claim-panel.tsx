@@ -9,6 +9,7 @@ import { Comments } from './comments';
 import { ReceiptSignals } from './receipt-signals';
 import { PolicyReview } from './policy-review';
 import { ClaimAdvance } from './advances';
+import { Side } from './shell';
 
 function Receipt({ item }: { item: D }) {
   if (item.kind === 'mileage') return <span className="receipt" title="Mileage"><Icon name="car" /><span className="visually-hidden">Mileage</span></span>;
@@ -48,8 +49,8 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   const done = async () => { await Promise.all([load(), reload()]); setEditing(null); };
   // The claim a screen opens on by itself has nothing to close back to.
   const close = closable && <a className="panel-close" href={`#/${back}`} aria-label={`Back to ${back === 'approvals' ? 'approvals' : 'claims'}`}><Icon name="cross" /></a>;
-  if (error && !detail) return <aside className="side detail"><div className="panel-head"><h2>Claim</h2>{close}</div><p role="alert">{error}</p></aside>;
-  if (!detail) return <aside className="side detail"><p className="muted">Opening claim…</p></aside>;
+  if (error && !detail) return <Side className="side detail" label="Claim"><div className="panel-head"><h2>Claim</h2>{close}</div><p role="alert">{error}</p></Side>;
+  if (!detail) return <Side className="side detail" label="Claim"><p className="muted">Opening claim…</p></Side>;
   const { claim, items, exceptions } = detail, me = state.actor.email, currency = claim.currency;
   const mine = claim.employee_email === me, editable = mine && ['draft', 'returned'].includes(claim.status);
   const deciding = claim.status === 'submitted' && (claim.assigned_emails?.length ? claim.assigned_emails.includes(me) : claim.approver_email === me) && !mine;
@@ -64,7 +65,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   const heldWorkflow = claim.held_from && state.claims.some((c: D) => c.id === claim.held_from && c.workflow_history);
   const merchantOf = (item: string) => items.find((i: D) => i.id === item)?.merchant;
   const categories = [...new Set(items.flatMap((i: D) => i.allocations.map((a: D) => a.category_name)))];
-  return <aside className="side detail" aria-label={`Claim ${claimNumber(claim.number)}`}>
+  return <Side className="side detail" label={`Claim ${claimNumber(claim.number)}`}>
     <div className="panel-head"><h2>{claim.title}</h2>{close}</div>
     <p className="panel-amount"><strong>{money(claim.total_minor, currency)}</strong> for {names[claim.employee_email] ?? claim.employee_email}</p>
     <p className="panel-date">{claimNumber(claim.number)} · {submitted ? `submitted ${day(submitted.submitted_at)}` : `started ${day(claim.created_at)}`}</p>
@@ -171,7 +172,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         <ul className="ruled-list">{detail.receipts.map((r: D) => <li key={r.id}><a href={apiHref(`receipts/${r.id}`)}>{r.name}</a> · {Math.ceil(r.size / 1024)} KB · {r.source === 'agent' ? `prepared by ${r.uploaded_by}` : `uploaded by ${names[r.uploaded_by] ?? r.uploaded_by}`} · {moment(r.uploaded_at)}<span className="machine" title={r.sha256}>Fingerprint (SHA-256) {r.sha256.slice(0, 16)}…</span></li>)}</ul>
       </Details>}
     </section>
-  </aside>;
+  </Side>;
 }
 
 const choices: Record<string, string> = { approved: 'Approve', returned: 'Return for correction', rejected: 'Reject' };

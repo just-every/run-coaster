@@ -55,6 +55,7 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
     "@vitejs/plugin-react": "6.1.1",
+    "axe-core": "4.14.0",
     "esbuild": "0.28.1",
     "marked": "18.0.14",
     "miniflare": "5.20260907.0-alpha",
