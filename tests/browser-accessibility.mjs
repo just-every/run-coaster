@@ -54,7 +54,7 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
     await page.keyboard.press('t')
     await page.keyboard.press('Tab')
     await tabTo(page, field(page, 'Receipt photo or PDF'))
-    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.keyboard.press('Enter')])
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.keyboard.press('Space')])
     await chooser.setFiles({ name: `${purchase.reference}.pdf`, mimeType: 'application/pdf', buffer: await keyboardReceipt({ ...purchase, date: await field(page, 'Date').inputValue() }) })
     await activate(page, page.locator('form.item-form').getByRole('button', { name: 'Add expense', exact: true }))
     await page.locator('form.item-form').waitFor({ state: 'detached' })
