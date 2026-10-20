@@ -11,7 +11,7 @@ export function CutoverReport({ report }: { report?: D }) {
       <p>{job.openReports} open source reports · {job.carriedReports} reports carried · Import {job.state}</p>
       <details className="disclosure"><summary>Every source record</summary><ul className="ruled-list">{job.records.map((r: D) => <li key={r.ordinal}>
         <strong>{r.kind === 'report' ? 'Report' : 'Expense'} {r.sourceId ?? r.ordinal + 1}: {r.label}</strong>
-        <p>{words[r.disposition]}{r.amountMinor != null && r.currency ? ` · ${money(r.amountMinor, r.currency)}` : ''}</p>
+        <p>{r.carriedClaim ? 'Carried into native claim' : words[r.disposition]}{r.amountMinor != null && r.currency ? ` · ${money(r.amountMinor, r.currency)}` : ''}</p>
         {r.reason && <p className="muted">{r.reason}</p>}
         {r.artifact && <p className="muted">{r.artifact} · row {r.row}{r.employee ? ` · ${r.employee}` : ''}</p>}
       </li>)}</ul></details>

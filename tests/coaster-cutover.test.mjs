@@ -48,7 +48,7 @@ test('MOVE-005 three open reports carry into normal approval and reimbursement o
  await carry('CUT-1',{'CUT-T1':t.c.office},t.alex,404)
  await carry('CUT-4',{'CUT-T4':t.c.travel},t.alex,409)
  await carry('CUT-1',{'CUT-T1':'missing'},t.sam,400)
- assert.equal((await h.get('state')).claims.length,0,'failed mapping writes no draft or reservation')
+ assert.equal((await h.get('state',t.sam)).claims.length,0,'failed mapping writes no draft or reservation')
  const results=await Promise.all([carry('CUT-1',{'CUT-T1':t.c.office},t.sam).then(c=>({c})).catch(e=>({error:e})),carry('CUT-1',{'CUT-T1':t.c.office},t.sam).then(c=>({c})).catch(e=>({error:e}))])
  assert.equal(results.filter(r=>r.c).length,1,'concurrent carry reserves a report once')
  assert.match(results.find(r=>r.error).error.message,/409/,'losing concurrent carry is a conflict, never a server error')
@@ -80,5 +80,26 @@ test('MOVE-005 three open reports carry into normal approval and reimbursement o
  assert.ok(inventory.imports.find(j=>j.id===reimport.job.id).records.filter(r=>r.carriedClaim).every(r=>r.reason.includes('never cancels')))
  assert.equal((await h.get('state')).claims.length,3)
  assert.equal((await h.get('history')).lines.filter(e=>e.action==='open-report-carried').length,3)
+ }finally{await h.close()}
+})
+
+
+test('MOVE-005 carry excludes non-reimbursable card spend and refuses mileage without partial writes',async()=>{
+ const h=await harness();try{
+ const t=await agency(h),b=await input()
+ const line=b.csv.trim().split('\n')[1].replace('CUT-T1','CUT-CARD').replace('Harbour stationery','Company card stationery').replace(',true',',false')
+ b.csv+=line+'\n'
+ let preview=await h.post('import/preview',b)
+ await h.post('import/commit',{...b,fingerprint:preview.fingerprint})
+ const c=await h.post('import/carry',{report:'CUT-1',categories:{'CUT-T1':t.c.office}},t.sam)
+ assert.equal(c.total_minor,2400,'non-reimbursable card row is not part of the draft')
+ const job=(await h.get('import/cutover')).imports[0]
+ assert.equal(job.records.find(r=>r.sourceId==='CUT-CARD').carriedClaim,undefined)
+ assert.equal(job.carriedReports,1)
+ b.csv=(await input()).csv.trim().split('\n').map((line,i)=>line+(i===0?',isDistance':i===1?',true':',false')).join('\n').replaceAll('CUT-','MILE-')
+ preview=await h.post('import/preview',b)
+ await h.post('import/commit',{...b,fingerprint:preview.fingerprint})
+ await h.post('import/carry',{report:'MILE-1',categories:{'MILE-T1':t.c.office}},t.sam,409)
+ assert.equal((await h.get('state',t.sam)).claims.length,1,'unsupported mileage carries no partial draft')
  }finally{await h.close()}
 })
