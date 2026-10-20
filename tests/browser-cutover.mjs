@@ -6,7 +6,7 @@ import { api } from './browser-journey.mjs'
 
 export async function cutoverJourney(owner, origin, width, evidence, shots) {
  const {page,context}=owner
- await page.setViewportSize({width,height:1000});await page.goto(origin+'/app#/move-in')
+ await page.setViewportSize({width,height:1000});await page.goto(origin+'/app#/move-in');await page.reload()
  const section=page.getByRole('region',{name:'Expensify cutover report',exact:true})
  const shot=async name=>{const path=join(evidence,`${name}-${width}.jpg`);await section.screenshot({path,type:'jpeg',quality:85});shots.push({screen:name,viewport:width,path})}
  const csv=(await readFile('tests/fixtures/expensify-cutover.csv','utf8')).replaceAll('CUT-',`CUT-${width}-`)
