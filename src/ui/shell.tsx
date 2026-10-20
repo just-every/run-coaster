@@ -72,20 +72,22 @@ export function useDesktop() {
 const Replacing = createContext(false);
 
 /** A work panel: complementary beside the column, or, where it replaces the column on phones, the page's main
-    landmark with its name as the screen-reader page title (A11Y-001). */
+    landmark with its name as the screen-reader page title (A11Y-001). Only the role changes across the breakpoint,
+    never the element, so a panel keeps what the person has entered when the width crosses 1024 px. */
 export function Side({ className, label, children }: { className: string; label: string; children: ReactNode }) {
-  return useContext(Replacing)
-    ? <main className={className} aria-label={label}><h1 className="visually-hidden">{label}</h1>{children}</main>
-    : <aside className={className} aria-label={label}>{children}</aside>;
+  const main = useContext(Replacing);
+  return <section className={className} role={main ? 'main' : 'complementary'} aria-label={label}>
+    {main && <h1 className="visually-hidden">{label}</h1>}{children}
+  </section>;
 }
 
 /** The work area: the main column and, when there is one, the panel at its right (the pick's exception panel). On
-    phones a selected panel replaces the column and becomes the main landmark; the hidden column is then a plain block. */
+    phones a selected panel replaces the hidden column and is the page's main landmark. */
 export function Work({ children, panel, wide = false, selected = false, className = '' }: { children: ReactNode; panel?: ReactNode; wide?: boolean; selected?: boolean; className?: string }) {
   const layout = panel ? wide ? ' with-wide-panel' : ' with-panel' : '';
-  const desktop = useDesktop(), replacing = !!panel && selected && !desktop, Column = replacing ? 'div' : 'main';
+  const desktop = useDesktop();
   return <div className={`content${layout}${selected ? ' has-selection' : ''}`}>
-    <Column className={`work ${className}`.trim()}>{children}</Column>
-    <Replacing.Provider value={replacing}>{panel}</Replacing.Provider>
+    <main className={`work ${className}`.trim()}>{children}</main>
+    <Replacing.Provider value={!!panel && selected && !desktop}>{panel}</Replacing.Provider>
   </div>;
 }
