@@ -10,6 +10,9 @@ import { captureFiles } from './fixtures/capture-files.mjs'
 import { records, rows, tampered, rejectCaptureLifecycleArchives } from './browser-archive.mjs'
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/capture-proof')
+// Verify runs the lifecycle refusals in parallel slices (CAPTURE_REFUSALS=0/3, 1/3, 2/3); a local run takes every case.
+const [part, of] = (process.env.CAPTURE_REFUSALS ?? '0/1').split('/').map(Number)
+assert.ok(Number.isInteger(part) && Number.isInteger(of) && part >= 0 && part < of, 'CAPTURE_REFUSALS is part/of')
 await mkdir(evidence, { recursive: true })
 const launch = () => chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
 let root, second, server, browser
@@ -43,7 +46,7 @@ try {
   assert.match(await command(second, ['import', '--input', 'exports/inconsistent.rer', '--yes'], { expected: 4 }), /coaster_capture_bytes/)
   await command(second, ['export', '--output', 'exports/after-refusal.rer'])
   assert.deepEqual(rows(await records(join(second, 'exports/after-refusal.rer'))), empty, 'inconsistent R2/D1 receipt archive writes nothing')
-  await rejectCaptureLifecycleArchives(second, archive)
+  await rejectCaptureLifecycleArchives(second, archive, { part, of })
   await copyFile(archive, join(second, 'exports/capture.rer'))
   await command(second, ['import', '--input', 'exports/capture.rer', '--yes'])
   await command(second, ['export', '--output', 'exports/restored.rer'])

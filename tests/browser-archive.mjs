@@ -42,8 +42,9 @@ export async function rejectInconsistentArchives(root, archive) {
   }
 }
 
-/** CAPTURE-004 / AUDIT-001: re-sealed lifecycle corruption is still refused (the capture Verify shard, tests/capture.mjs). */
-export async function rejectCaptureLifecycleArchives(root, archive) {
+/** CAPTURE-004 / AUDIT-001: re-sealed lifecycle corruption is still refused (the capture Verify shard, tests/capture.mjs).
+    Each refusal stages the whole archive first, so CI runs every `of`-th case from `part` in parallel slices. */
+export async function rejectCaptureLifecycleArchives(root, archive, { part = 0, of = 1 } = {}) {
   const source = rows(await records(archive)).filter(item => item.table === 'c_capture_lifecycle');
   const expanded = source.find(item => item.row.reason.length > 1000);
   assert.ok(expanded, 'the archive holds the worst-case expanded reason');
@@ -78,7 +79,7 @@ export async function rejectCaptureLifecycleArchives(root, archive) {
     attribution: row => { row.on_behalf_of = 'somebody-else@example.test' },
     duplicate: row => { Object.assign(row, source[1].row) },
   };
-  for (const [name, change] of Object.entries(cases)) {
+  for (const [name, change] of Object.entries(cases).filter((_, index) => index % of === part)) {
     await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change), { mode: 0o600 });
     const log = await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: name === 'forged_marker' ? 1 : 4 });
     assert.match(log, name === 'forged_marker' ? /column_inventory/ : /coaster_capture_(history|reason|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
