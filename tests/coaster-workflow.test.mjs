@@ -127,6 +127,7 @@ test('APPROVE-001 category and project route through parallel manager and financ
   assert.equal(c.status, 'approved')
   const done = await h.get(`claims/${c.id}`, t.sam)
   assert.equal(done.decisions.length, 4)
+  assert.equal(done.decisions.at(-1).actor_email,HEAD,'decision history ends with the completing reviewer')
   assert.deepEqual(done.claim.workflow_tasks.map(task => [task.email, task.status]), [[PRIYA, 'approved'], [PRIYA, 'approved'], [FINANCE, 'approved'], [HEAD, 'approved']])
   assert.equal(done.events.filter(e => e.action === 'claim-approved').length, 1)
   const batch = await h.post('batches', { claims: [c.id] }, t.morgan)

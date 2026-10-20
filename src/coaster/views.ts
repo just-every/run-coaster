@@ -65,7 +65,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const items = await claimItems(db, claim.id);
   const [revisions, decisions, events, receipts] = await db.batch([
     db.prepare('SELECT revision,submitted_by,submitted_at,total_minor,snapshot FROM c_revisions WHERE claim_id=? ORDER BY revision').bind(claim.id),
-    db.prepare('SELECT revision,decision_step,workflow_final,decision,reason,actor_email,on_behalf_of,at,exceptions FROM c_decisions WHERE claim_id=? ORDER BY revision,decision_step').bind(claim.id),
+    db.prepare('SELECT revision,decision_step,workflow_final,decision,reason,actor_email,on_behalf_of,at,exceptions FROM c_decisions WHERE claim_id=? ORDER BY revision,at,rowid').bind(claim.id),
     db.prepare('SELECT at,actor_email,action,detail FROM c_events WHERE claim_id=? ORDER BY seq').bind(claim.id),
     db.prepare('SELECT id,name,media_type,size,sha256,source,uploaded_by,uploaded_at FROM c_receipts WHERE claim_id=? ORDER BY uploaded_at, id').bind(claim.id),
   ]);

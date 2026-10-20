@@ -31,7 +31,7 @@ export async function decideWorkflowClaim(db:D1Database,actor:Actor,claim:Claim,
   ...(approved?route.writes:[]),
   db.prepare('UPDATE c_claims SET status=?,approver_email=?,on_behalf_of=?,version=version+1,updated_at=? WHERE id=?').bind(approved&&!route.final?'submitted':b.decision,approved?route.next?.email??claim.approver_email:claim.approver_email,approved?route.next?.on_behalf_of??null:claim.on_behalf_of,at,claim.id),
   ...(approved&&route.final?[auditSample(db,claim.id,claim.revision)]:[]),
-  event(db,actor,approved&&!route.final?'claim-step-approved':`claim-${b.decision}`,{claim:claim.id},{revision:claim.revision,slot:route.task.slot,stage:route.task.stage,onBehalfOf,reason:override??reason,workflowVersion:plan.version}),
+  event(db,actor,approved&&!route.final?'claim-step-approved':`claim-${b.decision}`,{claim:claim.id},{revision:claim.revision,slot:route.task.slot,stage:route.task.stage,stages:plan.stages.length,nextApprover:route.next?.email??null,onBehalfOf,reason:override??reason,workflowVersion:plan.version}),
  ]);
  return loadClaim(db,claim.id);
 }

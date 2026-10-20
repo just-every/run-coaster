@@ -51,10 +51,10 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   const deciding = claim.status === 'submitted' && (claim.assigned_emails?.length ? claim.assigned_emails.includes(me) : claim.approver_email === me) && !mine;
   const names: Record<string, string> = state.names;
   const lastReturn = [...detail.decisions].reverse().find((d: D) => d.decision === 'returned' && d.revision === claim.revision);
-  const lastDecision = detail.decisions.at(-1), submitted = detail.revisions.at(-1);
+  const lastDecision = detail.decisions.filter((d: D) => d.revision === claim.revision).at(-1), submitted = detail.revisions.at(-1);
   // An unapproval sent to the employee keeps its revision; one sent to the approver reopens it as the next revision.
   const unapproved = [...detail.events].reverse().find((e: D) => e.action === 'claim-unapproved' && (e.detail.revision === claim.revision || submitted?.snapshot.reopened?.fromRevision === e.detail.revision));
-  const approval = [...detail.decisions].reverse().find((d: D) => d.decision === 'approved' && d.revision === claim.revision);
+  const approval = [...detail.decisions].reverse().find((d: D) => d.decision === 'approved' && d.workflow_final === 1 && d.revision === claim.revision);
   const unapprovable = approval && (claim.status === 'approved' || (claim.status === 'batched' && state.actor.roles.finance)) && (state.actor.roles.finance || state.actor.roles.owner || (state.actor.roles.manager && [approval.actor_email, approval.on_behalf_of].includes(me)));
   const merchantOf = (item: string) => items.find((i: D) => i.id === item)?.merchant;
   const categories = [...new Set(items.flatMap((i: D) => i.allocations.map((a: D) => a.category_name)))];
@@ -79,7 +79,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         <li><Icon name="person" /><span>{names[claim.employee_email] ?? claim.employee_email}</span></li>
         <li><Icon name="users" /><span className="approver">Approver: {claim.approver_email ? names[claim.approver_email] ?? claim.approver_email : 'set at submission'}{claim.on_behalf_of ? ` on behalf of ${names[claim.on_behalf_of] ?? claim.on_behalf_of}` : ''}{claim.assigned_emails?.length > 1 ? ` · Also waiting for ${claim.assigned_emails.filter((e: string) => e !== claim.approver_email).map((e: string) => names[e] ?? e).join(', ')}` : ''}</span></li>
         {categories.length > 0 && <li><Icon name="tag" /><span>{categories.join(', ')}</span></li>}
-        {lastDecision && <li><Icon name="send" /><span>{lastDecision.decision === 'approved' ? 'Approved' : lastDecision.decision === 'returned' ? 'Returned' : 'Rejected'} by {names[lastDecision.actor_email] ?? lastDecision.actor_email}{lastDecision.on_behalf_of ? ` on behalf of ${names[lastDecision.on_behalf_of] ?? lastDecision.on_behalf_of}` : ''} {day(lastDecision.at)}</span></li>}
+        {lastDecision && <li><Icon name="send" /><span>{lastDecision.decision === 'approved' ? (lastDecision.workflow_final === 0 ? 'Review approved' : 'Approved') : lastDecision.decision === 'returned' ? 'Returned' : 'Rejected'} by {names[lastDecision.actor_email] ?? lastDecision.actor_email}{lastDecision.on_behalf_of ? ` on behalf of ${names[lastDecision.on_behalf_of] ?? lastDecision.on_behalf_of}` : ''} {day(lastDecision.at)}</span></li>}
         {claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}
       </ul>
     </section>
