@@ -480,7 +480,7 @@ Judged from the code and tests at commit `03dfb25` (20 October 2026). Status row
 | `RETAIN-001` | Record retention and legal hold | target | done | `src/coaster/retention.ts`; `migrations/core/0036_retention.sql`; `src/coaster/batches.ts`; `src/ui/retention.tsx`; `tests/coaster.test.mjs` (RETAIN-001) |  |
 | `SEC-001` | Financial data and provider credential custody | target | missing |  | No provider credentials or financial account data exist yet; agent keys are stored hashed (`src/coaster/agents.ts`). |
 | `DATA-001` | Declared external data flows | target | done | `seed.json`; `tests/harness.mjs`; `tests/identity-provider.mjs`; `tests/coaster.test.mjs` (DATA-001) |  |
-| `A11Y-001` | Accessible screens | target | partial | `tests/browser.mjs` | Screens are driven at 1440 and 390 px; no axe run, keyboard-only journey or screen-reader check. |
+| `A11Y-001` | Accessible screens | target | partial | `tests/browser.mjs`; `tests/browser-accessibility.mjs` (A11Y-001); `tests/accessibility.mjs` | Keyboard-only claim creation, receipt selection, submission, return, correction, resubmission and approval are asserted at 1440 and 390 with visible focus and exact resulting revisions. Every-main-screen axe and VoiceOver state-announcement checks remain unproven. |
 | `COST-001` | Visible provider costs in USD | target | missing |  | No provider costs or caps. |
 | `AGENT-001` | The spend agent closes every expense | push-further | missing |  | Agents only prepare drafts and batch proposals (COA-010). |
 | `AGENT-002` | Resolve unclear receipts with one question | push-further | missing |  | No receipt reading to reconcile. |

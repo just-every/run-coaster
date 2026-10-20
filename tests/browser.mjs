@@ -14,6 +14,7 @@ import { perDiemJourney } from './browser-per-diem.mjs'
 import { cutoverJourney, cutoverCarryJourney } from './browser-cutover.mjs'
 import { captureJourney, assertRestoredInbox } from './browser-capture.mjs'
 import { captureFiles } from './fixtures/capture-files.mjs'
+import { keyboardJourney } from './browser-accessibility.mjs'
 import { concurJourney } from './browser-concur.mjs'
 import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
@@ -123,6 +124,7 @@ try {
   const job = after.imported.jobs.find(j => j.source === 'expensify' && j.state === 'completed')
   assert.ok(job, 'the completed Expensify move-in survives alongside undone Concur jobs')
   assert.equal((await api(restoredOwner.context, server.origin, 'import/undo', { source: job.source, id: job.id, mappingVersion: job.mappingVersion })).job.state, 'undone', 'the restored owner can still undo the move-in')
+  for (const width of [1440, 390]) await keyboardJourney(browser, second, server.origin, width, evidence, shots)
   await restoredOwner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
   assert.deepEqual(rows(await records(join(evidence, 'restored.rer'))), rows(await records(archive)), 'every portable row, every history line included (AUDIT-001), survives export → restore → export')
   await command(second, ['reset', '--yes'])
