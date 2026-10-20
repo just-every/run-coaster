@@ -41,7 +41,7 @@ export async function cutoverCarryJourney(browser, root, owner, origin, width, e
  const finance=await session(browser,root,origin,'finance',width)
  try {
  const lines=(await readFile('tests/fixtures/expensify-cutover.csv','utf8')).trim().split('\n')
- const csv=[lines[0],lines[1]].join('\n').replaceAll('CUT-',`CARRY-${width}-`).replace('sam@harbourfinch.example',PEOPLE.employee).replace('priya@harbourfinch.example',PEOPLE.manager)
+ const csv=[lines[0],lines[1]].join('\n').replaceAll('CUT-',`CARRY-${width}-`).replace('Harbour stationery',`Harbour stationery ${width}`).replace('sam@harbourfinch.example',PEOPLE.employee).replace('priya@harbourfinch.example',PEOPLE.manager)
  const input={csv,filename:`carry-${width}.csv`,mapping:{date:'YYYY-MM-DD',statuses:{Open:'open'}}}
  const preview=await api(owner.context,origin,'import/preview',input)
  const imported=await api(owner.context,origin,'import/commit',{...input,fingerprint:preview.fingerprint})
