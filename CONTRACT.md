@@ -320,7 +320,7 @@ The commit the Status section was judged at is the `main` commit the `contract-t
 
 Every capability claim the homepage (run-coaster.com, `src/site/landing/`) states or draws, mapped to the clauses that promise it and judged against this commit's code: `done` when the claimed form runs today, `partial` when a narrower form is in code and the rest is contract, `missing` when it is contract only. The homepage shows the product being built toward (owner, 17 October 2026); this table and the Status table show how far the code has come. `OWN` is the MIT license and the public repository.
 
-**51 claims: 8 done, 11 partial, 32 missing.**
+**51 claims: 8 done, 12 partial, 31 missing.**
 
 | # | Section | Claim | Clause(s) | Status |
 | --- | --- | --- | --- | --- |
@@ -366,7 +366,7 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 | 40 | 10 | QuickBooks Amex account tie-out with accruals | ACCT-001, ACCT-006 | missing |
 | 41 | 10 | "hands Megan an accrual ready to post" | AGENT-008 | missing |
 | 42 | 10 | 42 reimbursements paid, all cleared in QuickBooks | ACCT-001, PAY-001 | missing |
-| 43 | 11 Policy | Coaster spots an exception everyone approves and proposes a fix | AGENT-005, AGENT-003 | missing |
+| 43 | 11 Policy | Coaster spots an exception everyone approves and proposes a fix | AGENT-005, AGENT-003 | partial |
 | 44 | 11 | Replay on 12 months; adopt; v8 effective, past decisions keep v7 | AGENT-003, POLICY-001 | done |
 | 45 | 12 Moving in | "Your Expensify history" moves in | COA-011, MOVE-001 | partial |
 | 46 | 12 | Preview reviewed before anything moves | COA-011 | done |

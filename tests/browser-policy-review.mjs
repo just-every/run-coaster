@@ -13,7 +13,7 @@ export async function inspectPolicyReview(person, origin, claimId, width, eviden
  for(const r of frozen.recommendations){
   for(const reason of r.reasons)assert.ok((await section.innerText()).includes(reason.message),'AGENT-005 actual evaluator reason is visible')
  }
- for(const disclosure of await section.getByText('Review evidence',{exact:true}).all())await disclosure.click()
+ for(const disclosure of await section.getByText('Review evidence',{exact:true}).all())if(!await disclosure.evaluate(el=>el.parentElement.open))await disclosure.click()
  for(const r of frozen.recommendations)if(r.evidence.receipt)assert.ok((await section.innerText()).includes(r.evidence.receipt.sha256),'AGENT-005 exact receipt citation is visible')
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`AGENT-005 no overflow at ${width}`)
  const path=join(evidence,`policy-review-${phase}-${width}.jpg`);await section.screenshot({path,type:'jpeg',quality:85});shots.push({screen:`policy-review-${phase}`,viewport:width,path})
