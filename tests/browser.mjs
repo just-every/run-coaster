@@ -12,7 +12,7 @@ import { command, fresh, freePort, report, start } from './browser-runtime.mjs'
 import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
 import { perDiemJourney } from './browser-per-diem.mjs'
 import { cutoverJourney, cutoverCarryJourney } from './browser-cutover.mjs'
-import { captureJourney, assertRestoredInbox } from './browser-capture.mjs'
+import { captureJourney, assertRestoredInbox, expandedReasonJourney } from './browser-capture.mjs'
 import { captureFiles } from './fixtures/capture-files.mjs'
 import { keyboardJourney } from './browser-accessibility.mjs'
 import { concurJourney } from './browser-concur.mjs'
@@ -56,6 +56,7 @@ try {
   for (const width of [1440, 390]) { await cutoverJourney(owner, server.origin, width, evidence, shots); await cutoverCarryJourney(browser, root, owner, server.origin, width, evidence, shots) }
   const captureInputs = await captureFiles()
   for (const width of [1440, 390]) await captureJourney(browser, root, server.origin, width, evidence, shots, captureInputs.files)
+  await expandedReasonJourney(browser, root, server.origin, owner)
   const captureEmployee = await session(browser, root, server.origin, 'employee', 390)
   const capturedInbox = (await api(captureEmployee.context, server.origin, 'receipt-inbox')).receipts
   await captureEmployee.context.close()

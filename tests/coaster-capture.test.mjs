@@ -243,5 +243,30 @@ test('ERASURE-001 / CAPTURE-004 preserves discarded originals and reasons with e
     const original = await h.db.prepare('SELECT * FROM c_capture_receipts WHERE id=?').bind(receipt.id).first()
     const bucket = await h.mf.getR2Bucket('COASTER_RECEIPTS')
     assert.deepEqual(Buffer.from(await (await bucket.get(original.object_key)).arrayBuffer()), png)
+    // The shortest valid name exercises the exact expansion bound, including a delegate.
+    const bea = await h.person('bea@harbourfinch.example', { employee: true }, 'priya@harbourfinch.example')
+    const a = await h.person('short-a@harbourfinch.example', { employee: true })
+    await h.post('settings/members', { email: 'short-a@harbourfinch.example', name: 'A', employee: true })
+    await h.post('delegates', { delegate: 'short-a@harbourfinch.example', level: 'submit' }, bea)
+    const expandedIds = []
+    for (const delegated of [false, true]) {
+      const original = await upload(h, bea, `expanded-${delegated}.png`, png)
+      expandedIds.push(original.id)
+      const result = await h.send(`/api/coaster/${discardPath(original.id)}`, discardBody('A'.repeat(1000)), delegated ? a : bea, delegated ? { 'x-coaster-acting-for': 'bea@harbourfinch.example' } : {})
+      assert.equal(result.status, 200)
+    }
+    await h.post('settings/members', { email: 'short-a@harbourfinch.example', name: 'A', employee: true, active: false })
+    const erasedA = await h.post('settings/members/erase', { email: 'short-a@harbourfinch.example' })
+    assert.equal(erasedA.removed.discardReasons, 2)
+    const expanded = (await h.get('receipt-inbox', bea)).receipts.filter(r => expandedIds.includes(r.id))
+    for (const r of expanded) {
+      assert.equal(r.lifecycle[0].reason, erasedA.label.repeat(1000))
+      assert.equal(r.lifecycle[0].reason.length, 22000)
+      assert.equal(Buffer.byteLength(r.lifecycle[0].reason), 22000)
+    }
+    await h.post('settings/members', { email: 'form@harbourfinch.example', name: 'Form', employee: true, active: false })
+    const erasedForm = await h.post('settings/members/erase', { email: 'form@harbourfinch.example' })
+    assert.equal(erasedForm.removed.discardReasons, 0)
+    for (const r of (await h.get('receipt-inbox', bea)).receipts) assert.equal(r.lifecycle[0].reason, erasedA.label.repeat(1000))
   } finally { await h.close() }
 })

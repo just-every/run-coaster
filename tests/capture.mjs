@@ -5,7 +5,7 @@ import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, start } from './browser-runtime.mjs'
 import { PEOPLE, api, session, setUp } from './browser-journey.mjs'
-import { captureJourney, assertRestoredInbox } from './browser-capture.mjs'
+import { captureJourney, assertRestoredInbox, expandedReasonJourney } from './browser-capture.mjs'
 import { captureFiles } from './fixtures/capture-files.mjs'
 import { records, rows, tampered, rejectCaptureLifecycleArchives } from './browser-archive.mjs'
 
@@ -23,6 +23,7 @@ try {
   await setUp(owner, server.origin)
   const { files } = await captureFiles(), shots = []
   for (const width of [1440, 390]) await captureJourney(browser, root, server.origin, width, evidence, shots, files)
+  await expandedReasonJourney(browser, root, server.origin, owner)
   const employee = await session(browser, root, server.origin, 'employee', 390)
   const captured = (await api(employee.context, server.origin, 'receipt-inbox')).receipts
   await employee.context.close(); await owner.context.close()
@@ -62,8 +63,8 @@ try {
   for (const row of erasedRows.filter(row => ['c_capture_receipts', 'c_capture_receipt_events', 'c_capture_lifecycle'].includes(row.table)))
     assert.ok(!JSON.stringify(row).includes(PEOPLE.employee), 'erasure removes employee identity from inbox provenance/history')
   const dispositions = erasedRows.filter(row => row.table === 'c_capture_lifecycle')
-  assert.equal(dispositions.length, 3)
-  for (const { row } of dispositions) {
+  assert.equal(dispositions.length, 5)
+  for (const { row } of dispositions.filter(item => item.row.reason.includes('kept this duplicate'))) {
     assert.ok(row.reason.includes(erased.label) && row.reason.includes(erased.retained.subject))
     assert.ok(!/Sam Taylor|employee@dev\.localhost/i.test(row.reason))
     assert.ok(row.reason.includes('kept this duplicate for the records'))

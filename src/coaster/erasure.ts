@@ -1,3 +1,4 @@
+import { replaceDiscardIdentity } from './receipts/reasons.mjs';
 import { advancesFor } from './advances';
 import { redactionStatements, invalidateTransfersStatements } from '@runeditrun/rer/modules/portability/journal';
 import { retireD1ImportCustody, type D1Sql } from '../modules/import-kit/src/d1/index';
@@ -94,6 +95,11 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   const receipts = (await db.prepare('SELECT r.sha256 FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id JOIN c_claims c ON c.id=i.claim_id WHERE c.employee_email=? UNION SELECT sha256 FROM c_capture_receipts WHERE owner_email=? ORDER BY sha256').bind(address, address).all<{ sha256: string }>()).results.map(r => r.sha256);
   const count = async (query: string, ...params: unknown[]) => (await db.prepare(`SELECT COUNT(*) AS n FROM ${query}`).bind(...params).first<{ n: number }>())!.n;
   const operator = await db.prepare('SELECT id FROM oa_operators WHERE lower(email)=?').bind(address).first<{ id: string }>();
+  // Matching rows and old values are guarded before the erasure batch writes.
+  const matchReasons = 'instr(lower(reason),?)>0 OR instr(reason,?)>0';
+  const discardReasons = (await db.prepare(`SELECT receipt_id,sequence,reason FROM c_capture_lifecycle WHERE ${matchReasons}`).bind(address, member.name).all<{ receipt_id: string; sequence: number; reason: string }>()).results;
+  const members = (await db.prepare('SELECT email,name FROM c_members').all<{email:string;name:string}>()).results;
+  const rewrittenReasons = discardReasons.map(row => ({ ...row, replaced: replaceDiscardIdentity(row.reason, members, address, member.name, subject, label) })).filter(row => row.reason !== row.replaced);
   const removed = {
     name: true, email: true, signInAccount: Boolean(operator),
     agentKeys: await count('c_agent_keys WHERE member_email=?', address),
@@ -101,30 +107,16 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     approverAssignments: await count('c_members WHERE approver_email=?', address),
     comments: await count('c_comments WHERE author_email=?', address),
     reminders: await count('c_reminder_items WHERE person=?', address),
+    discardReasons: rewrittenReasons.length,
   };
   const retained = { subject, claims: claims.map(c => ({ claim: claimNumber(c.number), status: c.status, totalMinor: c.total_minor })), receiptSha256: receipts, kept: RETAINED };
   const state = sql("EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=0) AND NOT EXISTS(SELECT 1 FROM c_claims WHERE employee_email=? AND status NOT IN ('reimbursed','rejected')) AND NOT EXISTS(SELECT 1 FROM c_legal_holds WHERE released_at IS NULL AND (scope='business' OR (scope='person' AND member_email=?)))", address, address, address);
   const guard = authority(actor, 'owner');
-  // CAPTURE-004 reasons remain business evidence; replace the subject's name
-  // and address wherever they occur, including reasons written by others.
-  const discardReasons = (await db.prepare('SELECT receipt_id,sequence,reason FROM c_capture_lifecycle').all<{ receipt_id: string; sequence: number; reason: string }>()).results;
-  const addressPattern = new RegExp(address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-  const replaceReason = (reason: string) => {
-    let at = 0, result = '';
-    while (at < reason.length) {
-      addressPattern.lastIndex = at;
-      const addressMatch = addressPattern.exec(reason), nameAt = reason.indexOf(member.name, at);
-      if (!addressMatch && nameAt < 0) return result + reason.slice(at);
-      const isAddress = !!addressMatch && (nameAt < 0 || addressMatch.index <= nameAt);
-      const next = isAddress ? addressMatch!.index : nameAt;
-      result += reason.slice(at, next) + (isAddress ? subject : label);
-      at = next + (isAddress ? addressMatch![0].length : member.name.length);
-    }
-    return result;
-  };
   const check = sql(`INSERT INTO c_guard SELECT CASE WHEN (${guard.sql}) AND (${state.sql}) THEN 1 ELSE 0 END`, ...guard.params, ...state.params!);
   const native: D1Sql[] = [
-    check, sql('INSERT INTO c_guard SELECT CASE WHEN (SELECT COUNT(*) FROM c_capture_lifecycle)=? THEN 1 ELSE 0 END', discardReasons.length), sql('INSERT INTO c_erasing(email) VALUES(?)', address), sql('INSERT INTO c_capture_erasing(email) VALUES(?)', address),
+    check, sql(`INSERT INTO c_guard SELECT CASE WHEN (SELECT COUNT(*) FROM c_capture_lifecycle WHERE ${matchReasons})=? THEN 1 ELSE 0 END`, address, member.name, discardReasons.length),
+    ...discardReasons.map(row => sql('INSERT INTO c_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND sequence=? AND reason=?) THEN 1 ELSE 0 END', row.receipt_id, row.sequence, row.reason)),
+    sql('INSERT INTO c_erasing(email) VALUES(?)', address), sql('INSERT INTO c_capture_erasing(email) VALUES(?)', address),
     // Removed outright: their own comments (replies by others stay, as top-level comments), agent keys, delegations and reminders.
     sql('UPDATE c_comments SET parent_id=NULL WHERE parent_id IN (SELECT id FROM c_comments WHERE author_email=?)', address),
     sql('DELETE FROM c_comments WHERE author_email=?', address),
@@ -141,10 +133,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql("UPDATE c_reimbursement_keys SET key='expense:'||?||substr(key,length(?)+9) WHERE substr(key,1,length(?)+9)='expense:'||?||'|'", subject, address, address, address),
     sql("UPDATE c_receipts SET uploaded_by=substr(uploaded_by,1,length(uploaded_by)-length(?))||? WHERE source='agent' AND substr(uploaded_by,-(length(?)+5))=' for '||?", address, subject, address, address),
     // Kept, under the label: every column holding their address, and their address inside JSON.
-    ...discardReasons.filter(row => replaceReason(row.reason) !== row.reason).flatMap(row => [
-      sql('INSERT INTO c_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND sequence=? AND reason=?) THEN 1 ELSE 0 END', row.receipt_id, row.sequence, row.reason),
-      sql('UPDATE c_capture_lifecycle SET reason=? WHERE receipt_id=? AND sequence=?', replaceReason(row.reason), row.receipt_id, row.sequence),
-    ]),
+    ...rewrittenReasons.map(row => sql('UPDATE c_capture_lifecycle SET reason=? WHERE receipt_id=? AND sequence=? AND reason=?', row.replaced, row.receipt_id, row.sequence, row.reason)),
     ...ADDRESS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=? WHERE ${c}=?`, subject, address))),
     ...JSON_COLUMNS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=replace(${c},?,?) WHERE instr(${c},?)>0`, quoted, quotedLabel, quoted))),
     sql("UPDATE c_members SET email=?,name=?,member_id=?,approver_email=NULL,updated_at=? WHERE email=?", subject, label, uid(), at, address),

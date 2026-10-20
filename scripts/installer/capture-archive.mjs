@@ -1,4 +1,5 @@
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
+import { validDiscardReason } from '../../src/coaster/receipts/reasons.mjs';
 
 const check = (ok, code) => { if (!ok) throw new PortabilityError('coaster_capture_' + code, 409); };
 const timestamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -15,14 +16,12 @@ export async function validateCaptureArchive(read, manifest) {
   check(objects.length === receipts.length, 'objects');
   const byKey = new Map(objects.map(object => [object.key, object]));
   const byId = new Map(receipts.map(receipt => [receipt.id, receipt]));
-  const lifecycle = await read('c_capture_lifecycle'), discarded = new Set();
+  const lifecycle = await read('c_capture_lifecycle'), members = await read('c_members'), discarded = new Set();
   for (const event of lifecycle) {
     const receipt = byId.get(event.receipt_id);
-    check(receipt && !discarded.has(event.receipt_id), 'lifecycle_receipt');
-    check(event.sequence === 1 && event.kind === 'discarded'
-      && typeof event.reason === 'string' && event.reason === event.reason.trim()
-      && event.reason.length > 0 && event.reason.length <= 1000
-      && timestamp(event.at) && event.at >= receipt.uploaded_at, 'lifecycle');
+    check(receipt && !discarded.has(event.receipt_id), 'history');
+    check(validDiscardReason(event.reason, members) && !Object.hasOwn(event, 'reason_redacted'), 'reason');
+    check(event.sequence === 1 && event.kind === 'discarded' && timestamp(event.at) && event.at >= receipt.uploaded_at, 'history');
     check(event.channel === 'app' && typeof event.actor_email === 'string' && event.actor_email.length > 0
       && event.on_behalf_of === (event.actor_email === receipt.owner_email ? null : receipt.owner_email), 'lifecycle_provenance');
     discarded.add(event.receipt_id);

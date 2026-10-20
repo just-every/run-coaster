@@ -28,6 +28,7 @@ export async function rejectInconsistentArchives(root, archive) {
     claim_total: ['c_claims', row => { row.total_minor += 1 }],
     receipt_bytes: ['c_receipts', row => { const bytes = Buffer.from(row.bytes.blob, 'base64'); bytes[bytes.length - 1] ^= 1; row.bytes.blob = bytes.toString('base64') }],
     capture_bytes: ['c_capture_receipts', row => { row.size += 1 }],
+    capture_reason: ['c_capture_lifecycle', row => { row.reason = 'x'.repeat(1001) }],
     decision_revision: ['c_decisions', row => { row.revision += 7 }],
   }
   for (const [code, [table, change]] of Object.entries(cases)) {
@@ -43,6 +44,8 @@ export async function rejectInconsistentArchives(root, archive) {
 /** CAPTURE-004 / AUDIT-001: re-sealed lifecycle corruption is still refused. */
 export async function rejectCaptureLifecycleArchives(root, archive) {
   const source = rows(await records(archive)).filter(item => item.table === 'c_capture_lifecycle');
+  const expanded = source.find(item => item.row.reason.length > 1000);
+  assert.ok(expanded, 'the archive holds the worst-case expanded reason');
   assert.ok(source.length >= 2, 'the public inbox journey discarded two originals');
   await command(root, ['export', '--output', 'exports/lifecycle-before.rer']);
   const before = rows(await records(join(root, 'exports/lifecycle-before.rer')));
@@ -52,6 +55,10 @@ export async function rejectCaptureLifecycleArchives(root, archive) {
     kind: row => { row.kind = 'restored' },
     blank_reason: row => { row.reason = ' ' },
     long_reason: row => { row.reason = 'x'.repeat(1001) },
+    expanded_overflow: row => { row.reason = expanded.row.reason + 'x' },
+    fake_tokens: row => { row.reason = 'Former member 00000000'.repeat(60) },
+    untrimmed: row => { row.reason = ' needs trimming ' },
+    forged_marker: row => { row.reason = 'x'.repeat(1500); row.reason_redacted = 1 },
     bad_time: row => { row.at = 'not-a-time' },
     early_time: row => { row.at = '1970-01-01T00:00:00.000Z' },
     channel: row => { row.channel = 'agent' },
@@ -60,7 +67,9 @@ export async function rejectCaptureLifecycleArchives(root, archive) {
   };
   for (const [name, change] of Object.entries(cases)) {
     await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change), { mode: 0o600 });
-    assert.match(await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: 4 }), /coaster_capture_lifecycle/, `CAPTURE-004 refuses ${name}`);
+    const log = await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: 4 });
+    assert.match(log, /coaster_capture_(history|reason|lifecycle_provenance)/, `CAPTURE-004 refuses ${name}`);
+    assert.ok(!log.includes('finance@dev.localhost') && !log.includes('Sam Taylor'), 'refusal never echoes identity or reason text');
   }
   await command(root, ['export', '--output', 'exports/lifecycle-after.rer']);
   assert.deepEqual(rows(await records(join(root, 'exports/lifecycle-after.rer'))), before, 'CAPTURE-004 refused archives leave the destination untouched');
