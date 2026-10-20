@@ -128,18 +128,18 @@ export async function expandedReasonJourney(browser, root, origin, owner) {
   const employee = await session(browser, root, origin, 'employee', 390)
   const delegate = await session(browser, root, origin, 'finance', 390)
   try {
-    await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'A', employee: true, finance: true })
+    await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Z', employee: true, finance: true })
     await api(employee.context, origin, 'delegates', { delegate: PEOPLE.finance, level: 'submit' })
     const png = await readFile('tests/fixtures/receipts/bistro.png'), ids = []
     for (const acting of [false, true]) {
       const uploaded = await employee.context.request.post(`${origin}/api/coaster/receipt-inbox`, { headers: { origin }, multipart: { source: 'upload', file: { name: `expanded-${acting}.png`, mimeType: 'image/png', buffer: png } } })
       assert.equal(uploaded.status(), 200)
       const original = (await uploaded.json()).receipt; ids.push(original.id)
-      const response = await (acting ? delegate.context : employee.context).request.post(`${origin}/api/coaster/receipt-inbox/${original.id}/discard`, { headers: { origin, ...(acting ? { 'x-coaster-acting-for': PEOPLE.employee } : {}) }, data: { expectedSequence: 0, reason: 'A'.repeat(1000) } })
+      const response = await (acting ? delegate.context : employee.context).request.post(`${origin}/api/coaster/receipt-inbox/${original.id}/discard`, { headers: { origin, ...(acting ? { 'x-coaster-acting-for': PEOPLE.employee } : {}) }, data: { expectedSequence: 0, reason: 'Z'.repeat(1000) } })
       assert.equal(response.status(), 200)
     }
     await delegate.context.close()
-    await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'A', employee: true, finance: true, active: false })
+    await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Z', employee: true, finance: true, active: false })
     const erased = await api(owner.context, origin, 'settings/members/erase', { email: PEOPLE.finance })
     assert.equal(erased.removed.discardReasons, 2)
     for (const receipt of (await api(employee.context, origin, 'receipt-inbox')).receipts.filter(r => ids.includes(r.id))) {
