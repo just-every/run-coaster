@@ -31,7 +31,7 @@ export async function imageSignalCases(h,t,suffix='') {
    assert.ok(e.inkSimilarity>=0&&e.inkSimilarity<=1);assert.ok(e.overlap>=0&&e.overlap<=1)
    assert.ok(e.changedInkFraction>=0&&e.changedInkFraction<=1)
    assert.equal(e.transform.length,6);assert.ok(e.transform.every(Number.isFinite))
-   const compared=results.find(r=>r.item===e.item)??(await h.get(`claims/${source.id}`,t.morgan)).revisions[0].snapshot.receiptSignals.find(r=>r.item===e.item)
+   const compared=results.find(r=>r.item===e.item)??(await h.get(`claims/${e.claim}`,t.morgan)).revisions.at(-1).snapshot.receiptSignals.find(r=>r.item===e.item)
    assert.ok(compared,'comparison identifies an actual submitted expense')
    assert.equal(e.receiptSha256,compared.sha256);assert.match(signal.reason,new RegExp(e.receiptSha256))
    if(code==='image-content-change'){assert.ok(e.changedInkFraction>0);assert.ok(e.changedRegions>0);assert.equal(e.changedBands,1)}
