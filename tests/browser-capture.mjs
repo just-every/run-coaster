@@ -101,7 +101,7 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
     await duplicateRow.getByLabel('Receipt to keep', { exact: true }).selectOption(keeper.id)
     await duplicateRow.getByRole('button', { name: 'Merge receipt', exact: true }).click()
     await duplicateRow.getByRole('alert').getByText(/Reason is required unless both receipts are identical/).waitFor()
-    await duplicateRow.getByLabel('Reason', { exact: true }).fill(mergeReason)
+    await duplicateRow.getByLabel('Reason for merging', { exact: true }).fill(mergeReason)
     await duplicateRow.getByRole('button', { name: 'Merge receipt', exact: true }).click()
     const mergedRegion = inbox.getByRole('region', { name: 'Merged receipts', exact: true })
     await mergedRegion.getByRole('link', { name: duplicate.name, exact: true }).waitFor()
