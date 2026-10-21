@@ -30,7 +30,8 @@ export function normalizeRaster({ width: w, height: h, gray }: Raster): { ink: U
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const x0 = Math.max(0, x - radius), x1 = Math.min(w, x + radius + 1), y0 = Math.max(0, y - radius), y1 = Math.min(h, y + radius + 1);
     const mean = (integral[y1 * (w + 1) + x1] - integral[y0 * (w + 1) + x1] - integral[y1 * (w + 1) + x0] + integral[y0 * (w + 1) + x0]) / ((x1 - x0) * (y1 - y0));
-    dark[y * w + x] = Math.min(255, Math.max(0, (mean - gray[y * w + x] - 8) * 2));
+    const contrast = Math.min(255, Math.max(0, (mean - gray[y * w + x] - 8) * 2));
+    dark[y * w + x] = contrast < 48 ? 0 : contrast;
   }
   const points: [number, number, number][] = [];
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) if (dark[y * w + x] > 48) points.push([x - w / 2, y - h / 2, dark[y * w + x] / 255]);

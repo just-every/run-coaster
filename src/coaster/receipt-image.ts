@@ -1,4 +1,4 @@
-import { refineAlignment } from './receipt-image-alignment';
+import { refineAlignment, alignInkRows, type RowShift } from './receipt-image-alignment';
 import { decode as decodeJpeg } from 'jpeg-js';
 import { decode as decodePng, convertIndexedToRgb } from 'fast-png';
 import { decode as decodeWebp, getWebpInfo, parseRiff } from '@stacksjs/ts-webp';
@@ -9,7 +9,7 @@ export type ImageObservation = { code: 'compression-grid'; label: 'possible, nee
 export type ReceiptImageInspection = { status: 'checked' | 'unsupported' | 'corrupt' | 'limited'; fingerprint?: ReceiptImageFingerprint; observations: ImageObservation[]; reason?: string };
 export type ImageComparison = {
   status: 'compared' | 'insufficient';
-  evidence: { inkSimilarity: number; overlap: number; changedInkFraction: number; changedRegions: number; changedBands: number; registrationInliers: number; registrationMatches: number; transform: Transform };
+  evidence: { inkSimilarity: number; overlap: number; changedInkFraction: number; changedRegions: number; changedBands: number; registrationInliers: number; registrationMatches: number; transform: Transform; localTranslations?: RowShift[] };
   signals: { code: 'near-duplicate-image' | 'image-content-change'; label: 'possible, needs review'; reason: string }[];
 };
 type Pixels = { width: number; height: number; data: Uint8Array | Uint8ClampedArray | Uint16Array; channels: number; max: number };
@@ -93,11 +93,13 @@ export async function inspectReceiptImage(bytes: Uint8Array, media: string): Pro
     return { status: 'checked', fingerprint: { version: 1, width: decoded.width, height: decoded.height, ink: packInk(normalized.ink), landmarks: landmarks(normalized.ink), coverage: normalized.coverage, skew: normalized.skew }, observations };
   } catch (error) { return { status: error instanceof InspectionLimit ? 'limited' : 'corrupt', observations: [], reason: error instanceof InspectionLimit ? error.message : `Image bytes could not be decoded for local content inspection: ${error instanceof Error ? error.message : 'decoder refused'}` }; }
 }
-function measure(a: Uint8Array, b: Uint8Array, t: Transform) {
+function measure(a: Uint8Array, b: Uint8Array, t: Transform, shifts: RowShift[] = []) {
+  const offsets = new Float32Array(SIDE);
+  for (const shift of shifts) offsets.fill(shift.dx, shift.top, shift.bottom + 1);
   let shared = 0, union = 0, available = 0, total = 0, changed = 0;
   const tiles = new Float64Array(24 * 24), masses = new Float64Array(24 * 24);
   for (let y = 1; y < SIDE - 1; y++) for (let x = 1; x < SIDE - 1; x++) {
-    const v = a[y * SIDE + x], bx = t[0] * x + t[1] * y + t[2], by = t[3] * x + t[4] * y + t[5]; total += v;
+    const v = a[y * SIDE + x], bx = t[0] * x + t[1] * y + t[2] + offsets[y], by = t[3] * x + t[4] * y + t[5]; total += v;
     if (bx < 1 || by < 1 || bx >= SIDE - 1 || by >= SIDE - 1) continue;
     available += v; const w = sample(b, bx, by), difference = Math.abs(v - w), mass = Math.max(v, w), tile = (y >> 3) * 24 + (x >> 3);
     shared += Math.min(v, w); union += mass; masses[tile] += mass;
@@ -111,7 +113,7 @@ function measure(a: Uint8Array, b: Uint8Array, t: Transform) {
   }
   let changedBands = 0, previous = false;
   for (let y = 0; y < 24; y++) { const present = active.slice(y * 24, (y + 1) * 24).some(Boolean); if (present && !previous) changedBands++; previous = present; }
-  return { changedBands, inkSimilarity: shared / Math.max(1, union), overlap: available / Math.max(1, total), changedInkFraction: changed / Math.max(1, union), changedRegions: regions };
+  return { localTranslations: shifts, changedBands, inkSimilarity: shared / Math.max(1, union), overlap: available / Math.max(1, total), changedInkFraction: changed / Math.max(1, union), changedRegions: regions };
 }
 /** Reusable fingerprints contain no merchant/date assumptions or fixture-specific recognition. */
 export function compareReceiptImages(first: ReceiptImageFingerprint, second: ReceiptImageFingerprint): ImageComparison {
@@ -131,6 +133,8 @@ export function compareReceiptImages(first: ReceiptImageFingerprint, second: Rec
     if (registrationInliers >= 8 && (first.width !== second.width || first.height !== second.height || Math.abs(first.skew - second.skew) > 0.1 || transform.some((n, i) => Math.abs(n - IDENTITY[i]) > 0.01))) {
       const refined = refineAlignment(a, b, transform), candidate = measure(a, b, refined);
       if (candidate.inkSimilarity * candidate.overlap > evidence.inkSimilarity * evidence.overlap) { evidence = candidate; transform = refined; }
+      const shifts = alignInkRows(a, b, transform), aligned = measure(a, b, transform, shifts);
+      if (aligned.inkSimilarity * aligned.overlap > evidence.inkSimilarity * evidence.overlap) { evidence = { ...aligned, localTranslations: shifts } as typeof evidence; }
     }
     const signals: ImageComparison['signals'] = [], { inkSimilarity: similarity, overlap, changedInkFraction: fraction, changedRegions: regions } = evidence;
     if (overlap >= 0.72 && similarity >= 0.91 && fraction < 0.012 && regions === 0) signals.push({ code: 'near-duplicate-image', label: 'possible, needs review', reason: 'The overlapping visible receipt ink closely matches an earlier image after geometric normalization. Recompression, a crop, or a later photograph can explain this; compare the original receipts.' });
