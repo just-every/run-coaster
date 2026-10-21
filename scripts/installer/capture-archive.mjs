@@ -50,9 +50,9 @@ export async function validateCaptureArchive(read, manifest) {
       check((!attached || !items.some(i=>i.id===attached.item_id)) && event.reason==='' && event.survivor_id===null && event.claim_id===null && event.item_id===null && event.channel==='app','match_choice');
       if(event.kind==='match-details') {
         let data; try {data=JSON.parse(event.match_data);} catch {check(false,'match_choice');}
-        check(data && merchantValid(data.merchant)
+        check(data && Object.keys(data).length===5&&['merchant','date','totalMinor','currency','last4'].every(k=>Object.hasOwn(data,k))&&merchantValid(data.merchant)
           && /^\d{4}-\d{2}-\d{2}$/.test(data.date) && Number.isFinite(Date.parse(data.date)) && new Date(data.date).toISOString().slice(0,10)===data.date
-          && Number.isSafeInteger(data.totalMinor) && data.totalMinor>0 && data.totalMinor<=1e11 && /^[A-Z]{3}$/.test(data.currency)
+          && Number.isSafeInteger(data.totalMinor) && data.totalMinor>0 && data.totalMinor<=1e11 && /^[A-Z]{3}$/.test(data.currency)&&Intl.supportedValuesOf('currency').includes(data.currency)
           && (data.last4===null || /^\d{4}$/.test(data.last4)), 'match_choice');
         check(!drafts.some(d=>d.receipt_id===receipt.id&&d.created_at<=event.at),'match_choice');
       } else if(event.kind==='match-withdrawn') check(event.match_data===null,'match_choice');

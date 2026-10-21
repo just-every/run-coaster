@@ -134,6 +134,8 @@ try {
   const automated=r=>r.channel==='schedule'
   const cases=[
     ['match_choice','c_capture_lifecycle',r=>r.kind==='match-details',r=>{const d=JSON.parse(r.match_data);d.totalMinor=0;r.match_data=JSON.stringify(d)}],
+    ['match_choice_currency','c_capture_lifecycle',r=>r.kind==='match-details',r=>{const d=JSON.parse(r.match_data);d.currency='ZZZ';r.match_data=JSON.stringify(d)}],
+    ['match_choice_last_four','c_capture_lifecycle',r=>r.kind==='match-details',r=>{const d=JSON.parse(r.match_data);d.last4='synthetic-full-card-number';r.match_data=JSON.stringify(d)}],
     ['match_basis','c_capture_lifecycle',r=>r.channel==='schedule',r=>{r.on_behalf_of='foreign@dev.localhost'}],
     ['card_charge','c_card_charges',()=>true,r=>{r.card_id='missing-card'}],
     ['match_rejection','c_card_match_rejections',()=>true,r=>{r.transaction_key='card:forged'}],
@@ -152,7 +154,7 @@ try {
   for(const [code,table,pick,change] of cases) {
     await writeFile(join(restored,`exports/${code}.rer`),await tampered(archive,table,change,pick),{mode:0o600})
     const result=await command(restored,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4})
-    assert.match(result,new RegExp(code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('match_history')?'coaster_capture_history':code.startsWith('match_basis_')?'coaster_capture_match_basis':'coaster_capture_'+code))
+    assert.match(result,new RegExp(code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
     await command(restored,['export','--output',`exports/unchanged-${code}.rer`])
     assert.deepEqual(rows(await records(join(restored,`exports/unchanged-${code}.rer`))),empty,'malformed match archive writes nothing')
   }

@@ -365,6 +365,10 @@ test('CAPTURE-004 FEED-004 hourly decision budget is 100 oldest-waiting original
 test('CAPTURE-004 ERASURE-001 private match choices withdraw on erasure and typed identities are replaced without changing the original',()=>withAgency(async(h,t)=>{
   const r=await original(h,t.sam),hash=r.sha256
   await choose(h,t,r,{merchant:`sam ${SAM.toUpperCase()} bistro`})
+  const grant=await h.post('delegates',{delegate:ALEX,level:'full'},t.sam)
+  const delegated=await h.send(`/api/coaster/receipt-inbox/${r.id}/card-match`,{expectedSequence:1,enabled:true,merchant:`alex ${ALEX.toUpperCase()} bistro`,date:'2026-10-02',total:'48.20',currency:'AUD',notice:NOTICE},t.alex,{'x-coaster-acting-for':SAM})
+  assert.equal(delegated.status,200)
+  await h.post(`delegates/${grant.id}/revoke`,{},t.sam)
   await h.post('settings/members',{email:SAM,name:'sam',employee:true,active:false})
   const erased=await h.post('settings/members/erase',{email:SAM})
   const lines=(await h.db.prepare('SELECT * FROM c_capture_lifecycle WHERE receipt_id=? ORDER BY sequence').bind(r.id).all()).results
@@ -372,6 +376,10 @@ test('CAPTURE-004 ERASURE-001 private match choices withdraw on erasure and type
   assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_card_match_generations WHERE employee_email=?').bind(SAM).first()).n,0,'native account deletion must not reintroduce erased identity into the derived cache')
   assert.ok(lines.every(line=>!JSON.stringify(line).toLowerCase().includes(SAM)))
   const details=JSON.parse(lines[0].match_data);assert.ok(details.merchant.includes(erased.label)&&details.merchant.includes(erased.retained.subject))
+  await h.post('settings/members',{email:ALEX,name:'alex',employee:true,active:false})
+  await h.post('settings/members/erase',{email:ALEX})
+  const anonymized=(await h.db.prepare('SELECT * FROM c_capture_lifecycle WHERE receipt_id=?').bind(r.id).all()).results
+  assert.ok(anonymized.every(line=>!JSON.stringify(line).toLowerCase().includes(SAM)&&!JSON.stringify(line).toLowerCase().includes(ALEX)))
   assert.equal((await h.db.prepare('SELECT sha256 FROM c_capture_receipts WHERE id=?').bind(r.id).first()).sha256,hash)
   await tick(h)
   assert.equal((await h.db.prepare("SELECT COUNT(*) AS n FROM c_capture_lifecycle WHERE receipt_id=? AND channel='schedule'").bind(r.id).first()).n,0)
@@ -502,6 +510,7 @@ test('CAPTURE-004 complete role/privacy matrix: employee and both live delegates
       assert.equal(frozen.receipt.sha256,r.sha256)
       const provenance=after.manifest.receipts.find(f=>f.id===item.receipt_id)
       assert.equal(provenance.name,r.name);assert.equal(provenance.uploadedBy,SAM)
+      assert.equal(provenance.source,'upload');assert.equal(provenance.size,bytes.length);assert.equal(provenance.mediaType,'image/png');assert.equal(provenance.uploadedAt,r.uploadedAt)
       assert.deepEqual(after.files[provenance.file],bytes)
       for(const token of [privateMerchant,'match-details','match-rejected'])assert.ok(!Buffer.concat(Object.values(after.files)).toString().includes(token))
     }

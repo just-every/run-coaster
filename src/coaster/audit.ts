@@ -104,7 +104,7 @@ export async function auditPack(db: D1Database, actor: Actor, from?: string, to?
       decisions: (decisions.results as Data[]).filter(d => d.claim_id === c.id).map(d => ({ revision: d.revision, decision: d.decision, reason: d.reason, by: d.actor_email, onBehalfOf: d.on_behalf_of, at: d.at, exceptionsAcknowledged: JSON.parse(d.exceptions) })),
       payment: c.batch_number ? { batch: batchNumber(c.batch_number), status: c.batch_status, reviewedBy: c.reviewed_by, reviewedAt: c.reviewed_at, reference: c.paid_reference, paidOn: c.paid_on, paidBy: c.paid_by } : null,
     })),
-    receipts: files.map(({ receipt: r, name }) => ({ id: r.id, claim: numbers.get(r.claim_id), name: r.name, mediaType: r.media_type, size: r.size, sha256: r.sha256, uploadedBy: r.uploaded_by, uploadedAt: r.uploaded_at, file: name })),
+    receipts: files.map(({ receipt: r, name }) => ({ id: r.id, claim: numbers.get(r.claim_id), name: r.name, mediaType: r.media_type, size: r.size, sha256: r.sha256, source: r.source, uploadedBy: r.uploaded_by, uploadedAt: r.uploaded_at, file: name })),
     history: { file: 'history.csv', lines: events.results.length },
   };
   const history = csv([['seq', 'at', 'actor', 'channel', 'agent', 'action', 'claim', 'batch', 'detail'], ...(events.results as Data[]).map(line).map(l => [l.seq, l.at, l.actor_email, l.channel, l.agent ?? '', l.action, l.claim?.number ? claimNumber(l.claim.number) : '', l.batch?.number ? batchNumber(l.batch.number) : '', JSON.stringify(l.detail)])]);
