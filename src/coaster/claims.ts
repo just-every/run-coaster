@@ -173,10 +173,10 @@ export async function submitClaim(db: D1Database, actor: Actor, id: string, b: D
 }
 
 /** The hourly run submits a stipend's claim in the employee's name, recorded under the schedule's name (CLAIM-009). */
-export async function submitScheduled(db: D1Database, id: string, by: string) {
+export async function submitScheduled(db: D1Database, id: string, by: string, bucket?: R2Bucket) {
   const claim = await loadClaim(db, id);
   requireThat(claim.status === 'draft', 'This claim can no longer be changed', 409);
-  return submission(db, claim, by, { sql: '1', params: [] }, (action, detail) => ruleEvent(db, by, action, { claim: claim.id }, detail), '');
+  return submission(db, claim, by, { sql: '1', params: [] }, (action, detail) => ruleEvent(db, by, action, { claim: claim.id }, detail), '', bucket);
 }
 
 /** Everything a submission checks and writes once the submitter's authority is known. */

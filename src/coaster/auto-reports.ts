@@ -97,7 +97,7 @@ export async function runAutoSubmit(env: Bindings, at: Date) {
         ruleEvent(db, SCHEDULE, 'claim-created', { claim: rest }, { title: claim.title, automatic: claim.auto_key, from: claim.id }),
       ]);
     }
-    try { await submitScheduled(db, claim.id, SCHEDULE); }
+    try { await submitScheduled(db, claim.id, SCHEDULE, env.COASTER_RECEIPTS); }
     catch (error) { await ruleEvent(db, SCHEDULE, 'auto-submit-failed', { claim: claim.id }, { reason: (error as Error).message }).run(); }
   }
 }

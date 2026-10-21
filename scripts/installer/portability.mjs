@@ -28,7 +28,7 @@ export async function validateCoasterArchive(read, manifest) {
     } else {
       const original = captureReceipts.find(original => original.id === r.capture_receipt_id);
       check(body.length === 0 && original && ['owner_email', 'name', 'media_type', 'size', 'sha256', 'source', 'uploaded_by', 'uploaded_at'].every(key => r[key] === original[key]), 'receipt_bytes');
-      check(typeof r.claim_id === 'string' && r.proposal_id === null, 'receipt_claim');
+      check(typeof r.claim_id === 'string' && r.proposal_id === null && claims.some(c=>c.id===r.claim_id && c.employee_email===original.owner_email), 'receipt_claim');
     }
     check(!r.claim_id || claimIds.has(r.claim_id), 'receipt_claim');
   }

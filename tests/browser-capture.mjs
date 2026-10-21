@@ -192,7 +192,9 @@ export async function cashWindowJourney(browser, root, origin, evidence, shots, 
       assert.equal(await owner.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
       let path=join(evidence,`cash-window-confirm-${width}.png`)
       await owner.page.screenshot({path});shots.push({screen:'CAPTURE-004 finance confirms older-original count',viewport:width,path})
+      const saved=owner.page.waitForResponse(response=>new URL(response.url()).pathname==='/api/coaster/settings/cash-draft-window'&&response.request().method()==='POST')
       await section.getByRole('button',{name:'Confirm cash draft window',exact:true}).click()
+      assert.equal((await saved).status(),200,'the setting is committed before the scheduled delivery')
       await section.getByText('Current window: 1 days',{exact:true}).waitFor()
     } finally {await owner.context.close()}
   }
