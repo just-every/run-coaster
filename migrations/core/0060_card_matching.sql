@@ -105,15 +105,15 @@ INSERT INTO c_card_match_epoch VALUES(1,0);
 CREATE TABLE c_card_match_generations(employee_email TEXT PRIMARY KEY, version INTEGER NOT NULL);
 CREATE TABLE c_card_match_checks(receipt_id TEXT PRIMARY KEY REFERENCES c_capture_receipts(id), generation INTEGER NOT NULL, rule_version INTEGER NOT NULL, evaluated_at TEXT NOT NULL);
 
-CREATE TRIGGER c_match_dirty_c_capture_lifecycle_insert AFTER INSERT ON c_capture_lifecycle 
+CREATE TRIGGER c_match_dirty_c_capture_lifecycle_insert AFTER INSERT ON c_capture_lifecycle
  BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
  INSERT INTO c_card_match_generations(employee_email,version) VALUES((SELECT owner_email FROM c_capture_receipts WHERE id=NEW.receipt_id),1) ON CONFLICT(employee_email) DO UPDATE SET version=version+1; END;
 
-CREATE TRIGGER c_match_dirty_c_card_charges_insert AFTER INSERT ON c_card_charges 
+CREATE TRIGGER c_match_dirty_c_card_charges_insert AFTER INSERT ON c_card_charges
  BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
  INSERT INTO c_card_match_generations(employee_email,version) VALUES(NEW.employee_email,1) ON CONFLICT(employee_email) DO UPDATE SET version=version+1; END;
 
-CREATE TRIGGER c_match_dirty_c_card_charges_delete AFTER DELETE ON c_card_charges 
+CREATE TRIGGER c_match_dirty_c_card_charges_delete AFTER DELETE ON c_card_charges
  BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
  INSERT INTO c_card_match_generations(employee_email,version) VALUES(OLD.employee_email,1) ON CONFLICT(employee_email) DO UPDATE SET version=version+1; END;
 
