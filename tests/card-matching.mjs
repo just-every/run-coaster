@@ -27,7 +27,7 @@ try {
   }
   for(const [index,width] of [1440,390].entries()) {
     const employee=await session(browser,root,server.origin,'employee',width),{page,context}=employee
-    const name=`card-receipt-${width}.png`,amount=(10+index).toFixed(2)
+    const name=`card-receipt-${width}.png`,amount=(10+index*100).toFixed(2)
     await page.goto(server.origin+'/app#/claims')
     const inbox=page.getByRole('region',{name:'Receipt inbox',exact:true})
     await inbox.getByLabel('Upload receipts',{exact:true}).setInputFiles({name,mimeType:'image/png',buffer:await readFile('tests/fixtures/receipts/bistro.png')})
@@ -69,7 +69,7 @@ try {
     const replay=await server.scheduled();assert.equal(replay.status,200,await replay.text())
     assert.equal((await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===receipt.id).attachment,null)
     // Two same-amount charges ask. The native answer is a person attach, never a guessed automation line.
-    const tieName=`question-${width}.png`,tieAmount=(30+index).toFixed(2)
+    const tieName=`question-${width}.png`,tieAmount=(30+index*300).toFixed(2)
     await page.reload();await inbox.getByLabel('Upload receipts',{exact:true}).setInputFiles({name:tieName,mimeType:'image/png',buffer:await readFile('tests/fixtures/receipts/bistro.png')})
     await inbox.getByRole('link',{name:tieName,exact:true}).waitFor()
     const tie=(await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.name===tieName)

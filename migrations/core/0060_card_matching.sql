@@ -136,3 +136,25 @@ CREATE TRIGGER c_match_dirty_rule AFTER INSERT ON c_card_match_rules
 CREATE TRIGGER c_match_dirty_fx AFTER UPDATE OF fx_enabled ON c_business WHEN NEW.fx_enabled IS NOT OLD.fx_enabled
  BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
  UPDATE c_card_match_generations SET version=version+1; END;
+
+-- Keep the original report id after RETAIN-001 removes the financial expense. It remains immutable statement provenance.
+ALTER TABLE c_card_charges ADD COLUMN claim_id TEXT NOT NULL DEFAULT '';
+DROP TRIGGER c_card_charges_immutable;
+UPDATE c_card_charges SET claim_id=COALESCE((SELECT claim_id FROM c_items WHERE id=c_card_charges.item_id),'');
+CREATE TRIGGER c_card_charges_immutable BEFORE UPDATE ON c_card_charges WHEN NOT EXISTS(SELECT 1 FROM c_erasing)
+ BEGIN SELECT RAISE(ABORT,'statement facts are immutable'); END;
+CREATE TRIGGER c_match_dirty_item_delete AFTER DELETE ON c_items WHEN OLD.receipt_id IS NOT NULL OR OLD.card_charge_id IS NOT NULL
+ BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
+ INSERT INTO c_card_match_generations(employee_email,version) SELECT employee_email,1 FROM c_claims WHERE id=OLD.claim_id
+ ON CONFLICT(employee_email) DO UPDATE SET version=version+1; END;
+CREATE TRIGGER c_match_dirty_item_insert AFTER INSERT ON c_items WHEN NEW.receipt_id IS NOT NULL OR NEW.card_charge_id IS NOT NULL
+ BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
+ INSERT INTO c_card_match_generations(employee_email,version) SELECT employee_email,1 FROM c_claims WHERE id=NEW.claim_id
+ ON CONFLICT(employee_email) DO UPDATE SET version=version+1; END;
+CREATE TRIGGER c_match_dirty_account_insert AFTER INSERT ON oa_operators
+ BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
+ INSERT INTO c_card_match_generations(employee_email,version) VALUES(lower(NEW.email),1) ON CONFLICT(employee_email) DO UPDATE SET version=version+1; END;
+
+CREATE TRIGGER c_match_dirty_account_delete AFTER DELETE ON oa_operators
+ BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
+ INSERT INTO c_card_match_generations(employee_email,version) VALUES(lower(OLD.email),1) ON CONFLICT(employee_email) DO UPDATE SET version=version+1; END;

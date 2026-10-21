@@ -87,7 +87,7 @@ async function basis(details: Data, charge: Charge, rule: Rule, business: {curre
     if(BigInt(Math.abs(charged-reference))*100n>BigInt(reference)*BigInt(rule.fx_percent)) return null;
     kind='fx';
   } else return null;
-  return {ruleVersion:rule.version,basis:kind,enteredTotalMinor:details.totalMinor,enteredCurrency:details.currency,enteredDate:details.date,differenceMinor:charged-reference,...conversion};
+  return {ruleVersion:rule.version,basis:kind,enteredTotalMinor:details.totalMinor,enteredCurrency:details.currency,enteredDate:details.date,differenceMinor:charged-reference,differenceCurrency:same?details.currency:business.currency,...conversion};
 }
 async function chargesFor(db:D1Database,employee:string) {
   return (await db.prepare(`SELECT ch.*,i.claim_id,c.version,cd.last4 FROM c_card_charges ch JOIN c_items i ON i.id=ch.item_id AND i.card_charge_id=ch.id

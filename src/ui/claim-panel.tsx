@@ -33,7 +33,7 @@ const conversion = (item: D, currency: string) => item.original_minor == null ||
 function matchBasis(item: D) {
   if(!item.card_match_basis) return null;
   const basis=typeof item.card_match_basis==='string'?JSON.parse(item.card_match_basis):item.card_match_basis;
-  return `Attached automatically to this card charge · rule v${basis.ruleVersion} · ${basis.basis} · entered ${money(basis.enteredTotalMinor,basis.enteredCurrency)} on ${basis.enteredDate} · difference ${basis.differenceMinor} minor units`;
+  return `Attached automatically to this card charge · rule v${basis.ruleVersion} · ${basis.basis} · entered ${money(basis.enteredTotalMinor,basis.enteredCurrency)} on ${basis.enteredDate} · difference ${money(basis.differenceMinor,basis.differenceCurrency)}`;
 }
 
 function merchantLine(item: D, currency: string) {

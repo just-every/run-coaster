@@ -14,7 +14,7 @@ export function ReceiptCardMatch({receipt,currency,reload}:{receipt:D;currency:s
   },[receipt.id,receipt.lifecycleSequence,receipt.attachment,choice?.enabled]);
   if(receipt.attachment||receipt.cashDraft) return null;
   return <Details label={`Card matching for ${receipt.name}`}>
-    <p>{choice?.enabled?'Waiting for a unique posted card charge. Matching runs hourly; this original stays outside the cash-draft window.':'Choose matching for this original by entering its details. Reading is unavailable; these are details you enter by hand.'}</p>
+    <p>{choice?.enabled?(choice.automationEnabled?'Waiting for a unique posted card charge. Matching runs hourly; this original stays outside the cash-draft window.':'Automatic matching is turned off for this business. Your choice is saved; you can still attach by hand. This original stays outside the cash-draft window.'):'Choose matching for this original by entering its details. Reading is unavailable; these are details you enter by hand.'}</p>
     {error&&<p role="alert" className="form-error">{error}</p>}
     {question?.ambiguous&&<section aria-label={`Match question for ${receipt.name}`}><p>Which card charge belongs with this receipt? Coaster will not guess.</p>
       {question.candidates.map((c:D)=><Form key={c.chargeId} label="This one" onSubmit={async()=>{await call(`receipt-inbox/${receipt.id}/attach`,{expectedSequence:receipt.lifecycleSequence,claimId:c.claimId,itemId:c.itemId,version:c.version});await reload();}}><p>{c.merchant} · {c.transactionDate??c.postedDate} · posted {c.postedDate} · {money(c.amountMinor,c.currency)} · card ending {c.last4}</p></Form>)}
