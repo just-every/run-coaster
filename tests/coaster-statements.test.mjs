@@ -568,7 +568,7 @@ test('CAPTURE-004 complete role/privacy matrix: employee and both live delegates
   }
 }))
 
-test('CAPTURE-004 matched basis and original bytes survive partial approval, hold release and both audit-pack revisions without a second private attach',()=>withAgency(async(h,t)=>{
+test('CAPTURE-004 FEED-004 matched basis survives partial approval and hold release, and a later company charge blocks release of a reimbursable hold',()=>withAgency(async(h,t)=>{
   const r=await original(h,t.sam);await choose(h,t,r)
   const job=await statement(h,t,[{}, {amount:'20.00',merchant:'Synthetic Other'}]);await tick(h)
   let d=await h.get(`claims/${job.claims[0]}`,t.sam),matched=d.items.find(i=>i.receipt_id)
@@ -600,4 +600,18 @@ test('CAPTURE-004 matched basis and original bytes survive partial approval, hol
   await tick(h)
   assert.equal((await inbox(h,t,r.id)).lifecycle.filter(e=>e.kind==='attached').length,1)
   assert.equal((await (await h.mf.getR2Bucket('COASTER_RECEIPTS')).list()).objects.length,1)
+  // A manager cannot release a reimbursement hold after a statement proves the company paid it.
+  let reimbursement=await h.post('claims',{title:'Office visit paid personally'},t.sam)
+  reimbursement=await h.post(`claims/${reimbursement.id}/items`,{version:reimbursement.version,kind:'receipt',date:'2026-10-07',merchant:'Office depot',amount:'61.00',category:t.c.office,explanation:'Receipt pending'},t.sam)
+  reimbursement=await h.post(`claims/${reimbursement.id}/items`,{version:reimbursement.version,kind:'receipt',date:'2026-10-07',merchant:'Parking',amount:'10.00',category:t.c.travel,explanation:'Meter receipt unavailable'},t.sam)
+  const originalReport=await h.get(`claims/${reimbursement.id}`,t.sam),office=originalReport.items.find(i=>i.merchant==='Office depot')
+  const pending=await h.post(`claims/${reimbursement.id}/submit`,{version:reimbursement.version},t.sam)
+  await h.post(`claims/${reimbursement.id}/decision`,{version:pending.version,revision:pending.revision,decision:'approved',hold:[office.id],reason:'Please locate the office receipt',acknowledge:true},t.priya)
+  const heldReimbursement=(await h.get('state',t.sam)).claims.find(c=>c.held_from===reimbursement.id)
+  await statement(h,t,[{transaction:'2026-10-07',amount:'61.00',merchant:'Office depot'}],{name:'late-office-charge.csv'})
+  await h.post(`claims/${heldReimbursement.id}/release`,{version:heldReimbursement.version,acknowledge:true},t.priya,409)
+  await h.post(`claims/${heldReimbursement.id}/submit`,{version:heldReimbursement.version},t.sam,409)
+  const stillHeld=await h.get(`claims/${heldReimbursement.id}`,t.sam)
+  assert.equal(stillHeld.claim.status,'returned');assert.equal(stillHeld.claim.version,heldReimbursement.version)
+  assert.deepEqual(stillHeld.revisions,[]);assert.deepEqual(stillHeld.decisions,[])
 }))
