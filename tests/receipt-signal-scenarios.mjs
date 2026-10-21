@@ -28,14 +28,14 @@ export async function imageSignalCases(h,t,suffix='') {
  return {claim:c,source,results}
 }
 export async function patternSignalCases(h,t,suffix='') {
- const category=await h.post('settings/categories',{name:'Equipment review',accountCode:'6501',taxCode:'GST',limit:'500'})
+ const category=await h.post('settings/categories',{name:'Equipment review'+suffix,accountCode:'6501',taxCode:'GST',limit:'500'})
  let c=await h.post('claims',{title:'Split and repeated spend observations'+suffix},t.sam)
  const cases=[
   {id:'SYNTHETIC-COASTER-401',merchant:'Equipment House',amount:480,date:'2026-06-16',category:category.id},
   {id:'SYNTHETIC-COASTER-402',merchant:'Equipment House',amount:480,date:'2026-06-16',category:category.id},
   ...['2026-06-06','2026-06-07','2026-06-13'].map((date,i)=>({id:'SYNTHETIC-COASTER-'+(410+i),merchant:'Weekend workshops',amount:100,date,category:t.c.office})),
  ]
- for(const [index,record] of cases.entries())c=await addSignalExpense(h,t.sam,c,{...record,employee:baseReceipt.employee,explanation:'Distinct project purchase, finance to review grouping'},index===1?undefined:makeReceipt({...record,employee:baseReceipt.employee}))
+ for(const [index,record] of cases.map(r=>({...r,id:r.id+suffix.trim(),merchant:r.merchant+suffix})).entries())c=await addSignalExpense(h,t.sam,c,{...record,employee:baseReceipt.employee,explanation:'Distinct project purchase, finance to review grouping'},index===1?undefined:makeReceipt({...record,employee:baseReceipt.employee}))
  c=await h.post(`claims/${c.id}/submit`,{version:c.version},t.sam)
  const detail=await h.get(`claims/${c.id}`,t.morgan),results=detail.revisions.at(-1).snapshot.receiptSignals
  for(const code of ['split-charge','round-amount-pattern','weekend-pattern'])assert.ok(results.some(r=>r.signals.some(s=>s.code===code)),code)

@@ -35,11 +35,11 @@ export async function receiptSignals(db: D1Database, claimId: string, bucket?: R
   for (const result of results.filter(r => r.receipt)) for (const candidate of candidates) {
     if (candidate.id === result.item || !candidate.receiptId) continue;
     // Revisions from before image inspection are examined from their retained original on first comparison.
-    if (!candidate.image || !candidate.receiptSha) {
+    if (!candidate.image || !candidate.receiptSha || candidate.image.status === 'checked' && !candidate.image.fingerprint && candidate.receiptSha !== result.sha256) {
       const original = await db.prepare('SELECT * FROM c_receipts WHERE id=?').bind(candidate.receiptId).first<Data>();
       if (!original) continue;
       candidate.receiptSha = original.sha256;
-      candidate.image ??= await inspectReceiptImage(await claimReceiptBytes(db, original, bucket), original.media_type);
+      candidate.image = await inspectReceiptImage(await claimReceiptBytes(db, original, bucket), original.media_type);
     }
     const reference = candidate.number ? `claim CL-${String(candidate.number).padStart(4, '0')}` : 'another expense in this claim';
     if (candidate.receiptSha === result.sha256) {
@@ -49,5 +49,8 @@ export async function receiptSignals(db: D1Database, claimId: string, bucket?: R
       for (const signal of compared.signals) if (!result.signals.some((s: AdvisorySignal) => s.code === signal.code)) result.signals.push({ ...signal, reason: `${signal.reason} Compared with ${reference}, receipt SHA-256 ${candidate.receiptSha}.`, evidence: { ...compared.evidence, receiptSha256: candidate.receiptSha, item: candidate.id, claim: candidate.claim } });
     }
   }
-  return results;
+  // Pixels are temporary comparison material. The submitted revision keeps its
+  // original receipt reference, inspection status and numeric evidence, not a
+  // second, reversible image copy in the descriptor.
+  return results.map(r => ({ ...r, image: { status: r.image.status, reason: r.image.reason } }));
 }
