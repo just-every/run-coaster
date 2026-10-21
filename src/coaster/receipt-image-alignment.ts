@@ -46,10 +46,11 @@ export function alignInkRows(a: Uint8Array, b: Uint8Array, t: Transform): RowShi
     const band = bands.at(-1);
     if (band && band.bottom >= y - 1) band.bottom = y; else bands.push({ top: y, bottom: y, dx: 0, dy: 0 });
   }
+  const aligned: RowShift[] = [];
   for (const band of bands) {
-    const value = (dx: number, dy: number) => {
+    const value = (dx: number, dy: number, top = band.top, bottom = band.bottom) => {
       let shared = 0, union = 0;
-      for (let y = band.top; y <= band.bottom; y++) for (let x = 1; x < SIDE - 1; x++) {
+      for (let y = top; y <= bottom; y++) for (let x = 1; x < SIDE - 1; x++) {
         const v = a[y * SIDE + x], w = sample(b, t[0] * x + t[1] * y + t[2] + dx, t[3] * x + t[4] * y + t[5] + dy);
         shared += Math.min(v, w); union += Math.max(v, w);
       }
@@ -57,6 +58,18 @@ export function alignInkRows(a: Uint8Array, b: Uint8Array, t: Transform): RowShi
     };
     let best = value(0, 0);
     for (let pass = 0; pass < 2; pass++) for (const axis of ['dx', 'dy'] as const) for (let delta = -1.5; delta <= 1.5; delta += 0.25) { const candidate = value(axis === 'dx' ? delta : band.dx, axis === 'dy' ? delta : band.dy); if (candidate > best + 0.00001) { best = candidate; band[axis] = delta; } }
+    // Raster resampling rounds a camera shear at scanline boundaries. A common
+    // bounded shift of the entire scanline preserves the glyph residuals.
+    for (let y = band.top; y <= band.bottom; y++) {
+      let dx = band.dx, rowScore = value(dx, band.dy, y, y);
+      for (let candidate = -1.5; candidate <= 1.5; candidate += 0.25) {
+        const next = value(candidate, band.dy, y, y);
+        if (next > rowScore + 0.001) { dx = candidate; rowScore = next; }
+      }
+      const previous = aligned.at(-1);
+      if (previous && previous.bottom === y - 1 && previous.dx === dx && previous.dy === band.dy) previous.bottom = y;
+      else aligned.push({ top: y, bottom: y, dx, dy: band.dy });
+    }
   }
-  return bands;
+  return aligned;
 }
