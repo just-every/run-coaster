@@ -50,11 +50,11 @@ export async function patternSignalCases(h,t,suffix='') {
 export async function cardSignalCases(h,t,{upload,tick,suffix=''}) {
  const issuer='Synthetic Coaster card'
  await h.post('statements/cards',{issuer,last4:'1111',employee:(await h.get('state',t.sam)).actor.email})
- const record={...baseReceipt,id:'SYNTHETIC-COASTER-501'+suffix,merchant:'Harbour Bistro'},bytes=makeReceipt(record)
+ const record={...baseReceipt,id:'SYNTHETIC-COASTER-501'+suffix,merchant:'Harbour Bistro'+suffix},bytes=makeReceipt(record)
  const original=await upload(bytes,'synthetic-coaster-501.png',t.sam)
  const notice="When this receipt matches one of your card charges, Coaster attaches it automatically. Approvers and finance can see the receipt, its file name and the total, currency and date you entered once that expense is submitted — by you, your delegate or the owner's scheduled submission."
  await h.post(`receipt-inbox/${original.id}/card-match`,{expectedSequence:original.lifecycleSequence,enabled:true,merchant:record.merchant,date:record.date,total:'40',currency:'AUD',last4:'1111',notice},t.sam)
- const statement={format:'csv',name:'synthetic-coaster-501'+suffix+'.csv',issuer,category:t.c.office,content:'Posted,Transaction,Merchant,Amount,Id\n2026-06-17,2026-06-16,Harbour Bistro,48.00,synthetic-coaster-501'+suffix,mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Posted',transactionDate:'Transaction',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}}
+ const statement={format:'csv',name:'synthetic-coaster-501'+suffix+'.csv',issuer,category:t.c.office,content:'Posted,Transaction,Merchant,Amount,Id\n2026-06-17,2026-06-16,'+record.merchant+',48.00,synthetic-coaster-501'+suffix,mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Posted',transactionDate:'Transaction',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}}
  const preview=await h.post('statements/preview',statement,t.morgan),job=await h.post('statements/commit',{...statement,fingerprint:preview.fingerprint},t.morgan)
  await tick()
  let detail=await h.get(`claims/${job.claims[0]}`,t.sam)
