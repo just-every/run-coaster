@@ -272,8 +272,12 @@ test('CAPTURE-004 FEED-004 rule v1 never breaks amount ties with merchant or dat
   const q=await h.get(`receipt-inbox/${r.id}/card-match-question`,t.sam);assert.equal(q.ambiguous,true);assert.equal(q.candidates.length,2)
   await h.post(`receipt-inbox/${r.id}/card-match-reject`,{expectedSequence:current.lifecycleSequence,chargeIds:[q.candidates[0].chargeId]},t.sam,409)
   const chosen=q.candidates[1]
-  await h.post(`receipt-inbox/${r.id}/attach`,{expectedSequence:current.lifecycleSequence,claimId:chosen.claimId,itemId:chosen.itemId,version:chosen.version},t.sam)
-  current=await inbox(h,t,r.id);assert.equal(current.lifecycle.at(-1).actorEmail,SAM);assert.equal(current.lifecycle.at(-1).channel,'app')
+  await h.post('delegates',{delegate:ALEX,level:'submit'},t.sam)
+  const answer=await h.send(`/api/coaster/receipt-inbox/${r.id}/attach`,{expectedSequence:current.lifecycleSequence,claimId:chosen.claimId,itemId:chosen.itemId,version:chosen.version},t.alex,{'x-coaster-acting-for':SAM})
+  assert.equal(answer.status,200,JSON.stringify(answer.value))
+  current=await inbox(h,t,r.id);assert.equal(current.lifecycle.at(-1).actorEmail,ALEX);assert.equal(current.lifecycle.at(-1).onBehalfOf,SAM);assert.equal(current.lifecycle.at(-1).channel,'app')
+  const global=(await h.get('history?q=card-charge-matched',t.morgan)).lines
+  assert.equal(global.at(-1).actor_email,ALEX);assert.deepEqual(Object.keys(global.at(-1).detail).sort(),['charge','ruleVersion'])
   const a=await original(h,t.sam,'duplicate-a.png'),b=await original(h,t.sam,'duplicate-b.png')
   for(const original of [a,b]) await choose(h,t,original)
   await tick(h)

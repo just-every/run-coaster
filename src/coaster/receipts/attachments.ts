@@ -2,7 +2,7 @@ import { all, authority, commit } from '../session';
 import { claimState, claimTotal, loadClaim } from '../claims';
 import { requireThat, uid, type Actor, type Data } from '../types';
 import { openOriginal, terminal } from './lifecycle';
-import { event } from '../events';
+import { ruleEvent } from '../events';
 import { matchRule, privateMatchLine } from './card-matching';
 import { listInbox } from './inbox';
 
@@ -31,7 +31,7 @@ export async function changeAttachment(db: D1Database, actor: Actor, id: string,
   if (item.card_charge_id) {
     const evidence = detach ? await db.prepare('SELECT card_match_basis FROM c_receipts WHERE id=?').bind(item.receipt_id).first<{card_match_basis:string|null}>() : null;
     const version = evidence?.card_match_basis ? JSON.parse(evidence.card_match_basis).ruleVersion : (await matchRule(db))!.version;
-    statements.push(event(db, actor, detach ? 'card-charge-unmatched' : 'card-charge-matched', {claim:claim.id}, {charge:item.card_charge_id,ruleVersion:version}));
+    statements.push(ruleEvent(db, actor.delegate?.email??actor.email, detach ? 'card-charge-unmatched' : 'card-charge-matched', {claim:claim.id}, {charge:item.card_charge_id,ruleVersion:version}));
     if (detach) statements.push(
       db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,sequence) VALUES(?,?,?)').bind(id,item.card_charge_id,sequence+1),
       privateMatchLine(db,id,sequence+2,'match-withdrawn',actor.delegate?.email??actor.email,actor.delegate?actor.email:null),
