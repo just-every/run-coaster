@@ -378,7 +378,7 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 
 ## Status
 
-Judged from the code and tests at commit `cab50d43f127d37018f643bf3cd063817ca352c8` (21 October 2026). Status rows describe the implementation tree carrying this file.
+Judged from the code and tests at commit `9b629f7500741dd184c7ba6ffb0609eb7b7f63a0` (21 October 2026). Status rows describe the implementation tree carrying this file.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |

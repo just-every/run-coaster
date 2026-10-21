@@ -167,7 +167,7 @@ try {
     ['match_basis','c_capture_lifecycle',r=>r.channel==='schedule',r=>{r.on_behalf_of='foreign@dev.localhost'}],
     ['card_charge','c_card_charges',()=>true,r=>{r.card_id='missing-card'}],
     ['match_rejection','c_card_match_rejections',()=>true,r=>{r.transaction_key='card:forged'}],
-    ['match_basis_snapshot','c_revisions',()=>true,r=>{const snapshot=JSON.parse(r.snapshot);const item=snapshot.items.find(i=>i.card_match_basis);const data=JSON.parse(item.card_match_basis);data.differenceMinor+=1;item.card_match_basis=JSON.stringify(data);r.snapshot=JSON.stringify(snapshot)}],
+    ['match_basis_snapshot','c_revisions',r=>JSON.parse(r.snapshot).items.some(i=>i.card_match_basis),r=>{const snapshot=JSON.parse(r.snapshot);const item=snapshot.items.find(i=>i.card_match_basis);const data=JSON.parse(item.card_match_basis);data.differenceMinor+=1;item.card_match_basis=JSON.stringify(data);r.snapshot=JSON.stringify(snapshot)}],
     ['match_basis_rule','c_capture_lifecycle',automated,alterBasis(d=>{d.ruleVersion=999})],
     ['match_basis_total','c_capture_lifecycle',automated,alterBasis(d=>{d.enteredTotalMinor+=1})],
     ['match_basis_difference','c_capture_lifecycle',automated,alterBasis(d=>{d.differenceMinor+=1})],
