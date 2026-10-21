@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { makeReceipt } from './fixtures/receipt-metadata.mjs'
 import { photographedCopy,croppedCopy,compressionGridCopy } from './fixtures/receipt-image-variants.mjs'
 
@@ -24,6 +25,24 @@ export async function imageSignalCases(h,t,suffix='') {
   assert.ok(results[index].signals.some(s=>s.code===code),`${variants[index][0]}: ${JSON.stringify(results[index].signals)}`)
   const signal=results[index].signals.find(s=>s.code===code)
   assert.equal(signal.label,'possible, needs review');assert.ok(signal.reason);assert.ok(signal.evidence)
+  if(['near-duplicate-image','image-content-change'].includes(code)) {
+   const e=signal.evidence
+   for(const key of ['inkSimilarity','overlap','changedInkFraction','changedRegions','changedBands','registrationInliers','registrationMatches'])assert.ok(Number.isFinite(e[key]),key)
+   assert.ok(e.inkSimilarity>=0&&e.inkSimilarity<=1);assert.ok(e.overlap>=0&&e.overlap<=1)
+   assert.ok(e.changedInkFraction>=0&&e.changedInkFraction<=1)
+   assert.equal(e.transform.length,6);assert.ok(e.transform.every(Number.isFinite))
+   const compared=results.find(r=>r.item===e.item)??(await h.get(`claims/${source.id}`,t.morgan)).revisions[0].snapshot.receiptSignals.find(r=>r.item===e.item)
+   assert.ok(compared,'comparison identifies an actual submitted expense')
+   assert.equal(e.receiptSha256,compared.sha256);assert.match(signal.reason,new RegExp(e.receiptSha256))
+   if(code==='image-content-change'){assert.ok(e.changedInkFraction>0);assert.ok(e.changedRegions>0);assert.equal(e.changedBands,1)}
+   if(index===1){assert.ok(e.registrationInliers>=8);assert.ok(e.registrationMatches>=e.registrationInliers)}
+  }
+  if(code==='same-receipt')assert.equal(signal.evidence.sha256,createHash('sha256').update(original).digest('hex'))
+  if(code==='compression-grid') {
+   assert.ok(signal.evidence.boundaryContrast>10);assert.ok(signal.evidence.boundaryToInteriorRatio>2.5)
+   assert.match(signal.reason,/ordinary JPEG compression can produce this artifact/)
+   assert.match(signal.reason,/does not identify an editor or generator/)
+  }
  }
  return {claim:c,source,results}
 }
@@ -44,6 +63,12 @@ export async function patternSignalCases(h,t,suffix='') {
  assert.equal(split.evidence.purchases.length,2)
  assert.equal(results[1].receipt,null,'receipt-less purchases participate in the same spend detector')
  assert.ok(results[1].signals.some(s=>s.code==='split-charge'))
+ for(const result of results)for(const signal of result.signals.filter(s=>['split-charge','round-amount-pattern','weekend-pattern'].includes(s.code))) {
+  const purchases=signal.evidence.purchases
+  assert.deepEqual(purchases,purchases.map(p=>({item:p.item,claim:c.id,date:cases[results.findIndex(r=>r.item===p.item)].date,amountMinor:cases[results.findIndex(r=>r.item===p.item)].amount*100})))
+  assert.ok(purchases.every(p=>p.item&&p.claim&&p.date&&Number.isInteger(p.amountMinor)))
+  if(signal.code!=='split-charge'){assert.ok(new Set(purchases.map(p=>p.date)).size>=3);assert.equal(signal.evidence.through,'2026-06-13');assert.equal(signal.evidence.from,'2026-05-30')}
+ }
  return {claim:c,results}
 }
 
