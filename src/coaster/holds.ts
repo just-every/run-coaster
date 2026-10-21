@@ -13,13 +13,13 @@ import { now, optionalText, requireThat, uid, type Actor, type Data } from './ty
 import { type Task, insertTasks, resolveStage } from './workflow-routing';
 import { chainState, claimChain, freezeChain } from './approval-chain';
 
-/** Moves expenses to another claim. They keep their ids, splits and attendees; each receipt is copied byte for byte onto
- * the new claim, and the original stays on the old claim and its earlier revisions. */
+/** Moves expenses to another claim. They keep their ids, splits and attendees; each receipt's evidence and storage
+ * reference are copied onto the new claim, and the original stays on the old claim and its earlier revisions. */
 export function moveItems(db: D1Database, items: Data[], from: string, to: string) {
   return items.flatMap(item => [
     db.prepare('UPDATE c_items SET claim_id=? WHERE id=? AND claim_id=?').bind(to, item.id, from),
     ...(item.receipt_id ? (copy => [
-      db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) SELECT ?,?,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at FROM c_receipts WHERE id=?').bind(copy, to, item.receipt_id),
+      db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id) SELECT ?,?,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id FROM c_receipts WHERE id=?').bind(copy, to, item.receipt_id),
       db.prepare('UPDATE c_items SET receipt_id=? WHERE id=?').bind(copy, item.id),
     ])(uid()) : []),
   ]);
@@ -69,7 +69,7 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
 
 /** The approver who held expenses releases the hold before the employee resubmits: the held claim as it stands is frozen
  * as its first revision and approved, still submitted by whoever submitted the original. */
-export async function releaseHold(db: D1Database, actor: Actor, id: string, b: Data) {
+export async function releaseHold(db: D1Database, actor: Actor, id: string, b: Data, bucket?: R2Bucket) {
   requireThat(actor.kind === 'person' && actor.roles.manager, 'Only the approver who held these expenses releases them', 403);
   const claim = await loadClaim(db, id);
   requireThat(claim.held_from, 'This claim holds no expenses on hold', 409);
@@ -92,7 +92,7 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   requireThat(original, 'Original claim missing', 409);
   const at = now(), total = items.reduce((n, i) => n + i.amount_minor, 0), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of, by = actor.delegate?.email ?? actor.email;
   const reason = override ?? optionalText(b.reason, 'Reason', 1000);
-  const snapshot = { receiptSignals: await receiptSignals(db, claim.id), policyReview: policyReview(items, exceptions, active), policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: policyReview(items, exceptions, active), policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
   await commit(db, all(authority(actor, 'manager'), policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['returned'])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,1,?,?,?,?)').bind(claim.id, original.submitted_by, at, total, JSON.stringify(snapshot)),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,1,'approved',?,?,?,?,?)").bind(uid(), claim.id, reason, by, at, JSON.stringify(exceptions), onBehalfOf),

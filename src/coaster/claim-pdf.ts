@@ -4,18 +4,19 @@ import { requireThat, optionalText, type Actor, type Data } from './types';
 import { money } from './exceptions';
 import { PdfLayout } from './pdf-layout';
 import { appendReceipt } from './pdf-receipts';
+import { claimReceiptBytes } from './receipts/claim-storage';
 
 /** The claim's normal visibility gate applies before querying receipt bytes. */
-export async function claimPdf(db: D1Database, actor: Actor, id: string, customer?: string, project?: string) {
+export async function claimPdf(db: D1Database, actor: Actor, id: string, customer?: string, project?: string, bucket?: R2Bucket) {
   const detail = await claimDetail(db, actor, id);
   const filter = billingFilter(customer, project);
   const layout = await PdfLayout.create();
-  await appendClaim(db, layout, detail, filter);
+  await appendClaim(db, layout, detail, filter, bucket);
   return download(await layout.finish(), `${claimNumber(detail.claim.number)}${filter.project ? '-project' : filter.customer ? '-customer' : ''}.pdf`);
 }
 
 /** A batch is one PDF, in claim-number order, with the same per-claim receipt ordering. */
-export async function batchPdf(db: D1Database, actor: Actor, id: string, customer?: string, project?: string) {
+export async function batchPdf(db: D1Database, actor: Actor, id: string, customer?: string, project?: string, bucket?: R2Bucket) {
   const detail = await batchDetail(db, actor, id);
   const filter = billingFilter(customer, project), layout = await PdfLayout.create();
   layout.newPage(`Reimbursement batch RB-${String(detail.batch.number).padStart(4, '0')}`);
@@ -37,7 +38,7 @@ export async function batchPdf(db: D1Database, actor: Actor, id: string, custome
   layout.text(`Total: ${money(total, detail.batch.currency)}`);
   for (const entry of detail.claims as Data[]) {
     const claim = await claimDetail(db, actor, entry.claim_id);
-    if (!filter.active || selectedItems(exportItems(claim), filter).length) await appendClaim(db, layout, claim, filter);
+    if (!filter.active || selectedItems(exportItems(claim), filter).length) await appendClaim(db, layout, claim, filter, bucket);
   }
   return download(await layout.finish(), `RB-${String(detail.batch.number).padStart(4, '0')}${filter.project ? '-project' : filter.customer ? '-customer' : ''}.pdf`);
 }
@@ -58,7 +59,7 @@ function exportItems(detail: Awaited<ReturnType<typeof claimDetail>>): Data[] {
   return snapshot.items.map((item: Data) => ({ ...item, receipt_id: item.receipt?.id ?? item.receipt_id, receipt_sha256: item.receipt?.sha256, attendees: item.attendees ?? [], fields: item.fields ?? {} }));
 }
 
-async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<ReturnType<typeof claimDetail>>, filter: BillingFilter) {
+async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<ReturnType<typeof claimDetail>>, filter: BillingFilter, bucket?: R2Bucket) {
   const { claim } = detail, items = selectedItems(exportItems(detail), filter);
   requireThat(!filter.active || items.length, 'No billable expenses match this customer and project on this claim', 404);
   const ids = new Set(items.map(i => i.id)), total = items.reduce((sum, item) => sum + item.amount_minor, 0);
@@ -138,7 +139,8 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
   for (const [index, item] of items.entries()) if (item.receipt_id) {
     const receipt = await db.prepare('SELECT * FROM c_receipts WHERE id=? AND claim_id=?').bind(item.receipt_id, claim.id).first<Data>();
     requireThat(receipt, 'A receipt is missing from this claim', 409);
-    await appendReceipt(layout, item, receipt, `${claimNumber(claim.number)} expense ${index + 1}`);
+    const bytes = await claimReceiptBytes(db, receipt, bucket);
+    await appendReceipt(layout, item, { ...receipt, bytes }, `${claimNumber(claim.number)} expense ${index + 1}`);
   }
 }
 

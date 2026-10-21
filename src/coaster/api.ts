@@ -1,3 +1,4 @@
+import { changeAttachment } from './receipts/attachments';
 import { Hono, type Context } from 'hono';
 import { deploymentHealth } from '../base/deployment-health';
 import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server';
@@ -84,11 +85,13 @@ api.get('/api/coaster/receipt-inbox', as(async (a, c) => listInbox(db(c), a)));
 api.post('/api/coaster/receipt-inbox', as(async (a, c) => receiveReceipt(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, c.req.raw)));
 api.post('/api/coaster/receipt-inbox/:id/discard', as(async (a, c) => discardReceipt(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/receipt-inbox/:id/merge', as(async (a, c) => mergeReceipt(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/receipt-inbox/:id/attach', as(async (a, c) => changeAttachment(db(c), a, param(c, 'id'), await body(c), false)));
+api.post('/api/coaster/receipt-inbox/:id/detach', as(async (a, c) => changeAttachment(db(c), a, param(c, 'id'), await body(c), true)));
 api.get('/api/coaster/receipt-inbox/:id', as(async (a, c) => inboxReceiptFile(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, param(c, 'id'), c.req.query('inline') === '1')));
 
 api.get('/api/coaster/state', as(async (a, c) => workspace(db(c), a)));
 api.get('/api/coaster/claims/:id', as(async (a, c) => claimDetail(db(c), a, param(c, 'id'))));
-api.get('/api/coaster/claims/:id/pdf', as(async (a, c) => claimPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'))));
+api.get('/api/coaster/claims/:id/pdf', as(async (a, c) => claimPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/claims', as(async (a, c) => createClaim(db(c), a, await body(c))));
 api.post('/api/coaster/expenses', as(async (a, c) => addExpense(db(c), a, await body(c))));
 api.post('/api/coaster/claims/:id/title', as(async (a, c) => renameClaim(db(c), a, param(c, 'id'), await body(c))));
@@ -96,13 +99,13 @@ api.post('/api/coaster/claims/:id/items', as(async (a, c) => saveItem(db(c), a, 
 api.post('/api/coaster/claims/:id/items/remove', as(async (a, c) => removeItem(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/receipts', as(async (a, c) => uploadReceipt(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/receipt-signals/review', as(async (a, c) => reviewReceiptSignal(db(c), a, param(c, 'id'), await body(c))));
-api.post('/api/coaster/claims/:id/submit', as(async (a, c) => submitClaim(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/claims/:id/submit', as(async (a, c) => submitClaim(db(c), a, param(c, 'id'), await body(c), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/claims/:id/decision', as(async (a, c) => decide(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/retract', as(async (a, c) => retractClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/unapprove', as(async (a, c) => unapproveClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/comments', as(async (a, c) => addComment(db(c), runtimeBindings(c.env), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/comments/:id/edit', as(async (a, c) => editComment(db(c), a, param(c, 'id'), await body(c))));
-api.post('/api/coaster/claims/:id/release', as(async (a, c) => releaseHold(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/claims/:id/release', as(async (a, c) => releaseHold(db(c), a, param(c, 'id'), await body(c), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/claims/:id/reassign', as(async (a, c) => reassign(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/requests', as(async (a, c) => createRequest(db(c), a, await body(c))));
 api.post('/api/coaster/requests/:id/reassign', as(async (a,c) => reassignRequest(db(c),a,param(c,'id'),await body(c))));
@@ -117,7 +120,7 @@ api.post('/api/coaster/delegations', as(async (a, c) => saveDelegation(db(c), a,
 api.post('/api/coaster/delegations/:id/revoke', as(async (a, c) => revokeDelegation(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/delegates', as(async (a, c) => grantDelegate(db(c), runtimeBindings(c.env), a, await body(c))));
 api.post('/api/coaster/delegates/:id/revoke', as(async (a, c) => revokeDelegate(db(c), a, param(c, 'id'))));
-api.get('/api/coaster/receipts/:id', as(async (a, c) => receiptFile(db(c), a, param(c, 'id'), c.req.query('inline') === '1')));
+api.get('/api/coaster/receipts/:id', as(async (a, c) => receiptFile(db(c), a, param(c, 'id'), c.req.query('inline') === '1', runtimeBindings(c.env).COASTER_RECEIPTS)));
 
 api.post('/api/coaster/settings/business', as(async (a, c) => saveBusiness(db(c), a, await body(c))));
 api.post('/api/coaster/settings/mileage-rates', as(async (a, c) => saveMileageRate(db(c), a, await body(c))));
@@ -134,7 +137,7 @@ api.post('/api/coaster/settings/members/invite', as(async (a, c) => {
 }));
 
 api.get('/api/coaster/batches/:id', as(async (a, c) => batchDetail(db(c), a, param(c, 'id'))));
-api.get('/api/coaster/batches/:id/pdf', as(async (a, c) => batchPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'))));
+api.get('/api/coaster/batches/:id/pdf', as(async (a, c) => batchPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/batches', as(async (a, c) => createBatch(db(c), a, await body(c))));
 api.post('/api/coaster/batches/:id/remove', as(async (a, c) => removeFromBatch(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/batches/:id/approve', as(async (a, c) => approveBatch(db(c), a, param(c, 'id'), await body(c))));
@@ -195,7 +198,7 @@ api.post('/api/coaster/allowances/:id/stop', as(async (a, c) => stopAllowance(db
 api.post('/api/coaster/recurring', as(async (a, c) => saveRecurring(db(c), a, await body(c))));
 api.post('/api/coaster/recurring/:id/stop', as(async (a, c) => stopRecurring(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));
-api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'))));
+api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'), runtimeBindings(c.env).COASTER_RECEIPTS)));
 
 api.get('/api/coaster/import/cutover', as(async (a, c) => cutoverReport(db(c), a)));
 api.get('/api/coaster/import', as(async (a, c) => { need(a, 'owner'); return { jobs: await importJobs(db(c)), history: await importedHistory(db(c)) }; }));

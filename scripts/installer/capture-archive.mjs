@@ -26,24 +26,56 @@ export async function validateCaptureArchive(read, manifest) {
   const byKey = new Map(objects.map(object => [object.key, object]));
   const byId = new Map(receipts.map(receipt => [receipt.id, receipt]));
   const lifecycle = await read('c_capture_lifecycle'), members = await read('c_members'), ended = new Map();
-  for (const event of lifecycle) {
-    const receipt = byId.get(event.receipt_id);
+  const items = await read('c_items'), aliases = await read('c_receipts');
+  const ordered = [...lifecycle].sort((a,b) => a.receipt_id.localeCompare(b.receipt_id) || a.sequence-b.sequence);
+  const latest = new Map(), associations = new Map();
+  for (const event of ordered) {
+    const receipt = byId.get(event.receipt_id), previous = latest.get(event.receipt_id);
     check(receipt && !ended.has(event.receipt_id), 'history');
-    const survivor = event.kind === 'merged' ? byId.get(event.survivor_id) : undefined;
-    // CAPTURE-004: a merge names another original of the same employee and states its reason unless the files are identical.
-    if (event.kind === 'merged') check(survivor && survivor.id !== receipt.id && survivor.owner_email === receipt.owner_email
-      && event.at >= survivor.uploaded_at && (event.reason === '' ? survivor.sha256 === receipt.sha256 : validDiscardReason(event.reason, members)), 'merge');
-    else check(event.kind === 'discarded' && event.survivor_id === null && validDiscardReason(event.reason, members), 'reason');
-    check(!Object.hasOwn(event, 'reason_redacted'), 'reason');
-    check(event.sequence === 1 && timestamp(event.at) && event.at >= receipt.uploaded_at, 'history');
+    check(event.sequence === (previous?.sequence ?? 0)+1 && timestamp(event.at)
+      && event.at >= (previous?.at ?? receipt.uploaded_at), 'history');
     check(event.channel === 'app' && typeof event.actor_email === 'string' && event.actor_email.length > 0
       && event.on_behalf_of === (event.actor_email === receipt.owner_email ? null : receipt.owner_email), 'lifecycle_provenance');
-    ended.set(event.receipt_id, event);
+    check(!Object.hasOwn(event, 'reason_redacted'), 'reason');
+    if (event.kind === 'attached' || event.kind === 'detached') {
+      check(event.reason === '' && event.survivor_id === null && typeof event.claim_id === 'string' && event.claim_id.length > 0
+        && typeof event.item_id === 'string' && event.item_id.length > 0, 'attachment');
+      const claim = claims.find(c => c.id === event.claim_id);
+      check(!claim || claim.employee_email === receipt.owner_email, 'attachment');
+      if (event.kind === 'attached') {
+        check(!associations.has(receipt.id), 'attachment');
+        associations.set(receipt.id,event);
+      } else {
+        const attached = associations.get(receipt.id);
+        // A native partial approval may move an expense to a correction claim, keeping its id.
+        check(attached && attached.item_id === event.item_id, 'attachment');
+        associations.delete(receipt.id);
+      }
+    } else {
+      check(!associations.has(receipt.id) && event.claim_id === null && event.item_id === null, 'attachment');
+      const survivor = event.kind === 'merged' ? byId.get(event.survivor_id) : undefined;
+      if (event.kind === 'merged') check(survivor && survivor.id !== receipt.id && survivor.owner_email === receipt.owner_email
+        && event.at >= survivor.uploaded_at && (event.reason === '' ? survivor.sha256 === receipt.sha256 : validDiscardReason(event.reason, members)), 'merge');
+      else check(event.kind === 'discarded' && event.survivor_id === null && validDiscardReason(event.reason, members), 'reason');
+      ended.set(event.receipt_id,event);
+    }
+    latest.set(receipt.id,event);
   }
-  // A survivor was still open when it kept a duplicate, and never merged back into it.
   for (const event of lifecycle) if (event.kind === 'merged') {
     const later = ended.get(event.survivor_id);
     check(!later || (later.at >= event.at && later.survivor_id !== event.receipt_id), 'merge');
+  }
+  for (const item of items) {
+    const alias = aliases.find(a=>a.id===item.receipt_id);
+    if (!alias?.capture_receipt_id) continue;
+    const attached = associations.get(alias.capture_receipt_id);
+    check(attached && attached.item_id === item.id, 'attachment');
+  }
+  for (const [id, attached] of associations) {
+    const item = items.find(i=>i.id===attached.item_id), claim = claims.find(c=>c.id===attached.claim_id);
+    // A retained history line survives financial-record retention; a live expense must still carry its original.
+    if (item) check(aliases.some(a=>a.id===item.receipt_id && a.capture_receipt_id===id), 'attachment');
+    else check(!claim, 'attachment');
   }
   check(byKey.size === objects.length && byId.size === receipts.length, 'objects');
   const history = new Map();

@@ -6,9 +6,10 @@ import { Fault, now, requireThat, uid, type Actor, type Data } from '../types';
 
 const DAY = 86_400_000;
 export const CASH_DRAFT_ACTOR = 'automation: cash-draft window';
-// No attachment capability exists yet. Every inbox original is unattached; terminal originals and reserved drafts are excluded.
+// Only currently unattached, nonterminal originals without a permanent draft reservation are eligible.
 const eligible = `FROM c_capture_receipts r JOIN c_members m ON m.email=r.owner_email AND m.active=1 AND m.is_employee=1
- WHERE r.uploaded_at<=? AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle l WHERE l.receipt_id=r.id)
+ WHERE r.uploaded_at<=? AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle l WHERE l.receipt_id=r.id AND l.kind IN ('discarded','merged'))
+ AND NOT EXISTS(SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE a.capture_receipt_id=r.id)
  AND NOT EXISTS(SELECT 1 FROM c_capture_cash_drafts d WHERE d.receipt_id=r.id)`;
 const cutoff = (at: string, days: number) => new Date(Date.parse(at) - days * DAY).toISOString();
 function finance(actor: Actor) {

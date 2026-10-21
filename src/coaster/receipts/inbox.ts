@@ -9,7 +9,7 @@ type InboxReceipt = StoredReceipt & {
   state: 'received' | 'reading' | 'read' | 'needs-attention'; reason: string;
 };
 type InboxEvent = { receipt_id: string; sequence: number; state: InboxReceipt['state']; reason: string; at: string; actor_email: string; on_behalf_of: string | null; channel: 'app' };
-type Lifecycle = Omit<InboxEvent, 'state'> & { kind: 'discarded' | 'merged'; survivor_id: string | null };
+type Lifecycle = Omit<InboxEvent, 'state'> & { kind: 'discarded' | 'merged' | 'attached' | 'detached'; survivor_id: string | null; claim_id: string | null; item_id: string | null };
 const ATTENTION = 'Automatic receipt reading is not available. Enter the expense details manually using this original.';
 const SELECT = `SELECT r.*,e.state,e.reason FROM c_capture_receipts r JOIN c_capture_receipt_events e ON e.receipt_id=r.id
   AND e.sequence=(SELECT MAX(latest.sequence) FROM c_capture_receipt_events latest WHERE latest.receipt_id=r.id)`;
@@ -24,22 +24,23 @@ const summary = (r: InboxReceipt, history: InboxEvent[], lifecycle: Lifecycle[] 
   source: r.source, uploadedBy: r.uploaded_by, uploadedAt: r.uploaded_at,
   state: r.state, attentionReason: r.reason,
   history: history.map(e => ({ sequence: e.sequence, state: e.state, reason: e.reason, at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
-  disposition: lifecycle.at(-1)?.kind ?? 'active', lifecycleSequence: lifecycle.at(-1)?.sequence ?? 0,
-  lifecycle: lifecycle.map(e => ({ sequence: e.sequence, kind: e.kind, reason: e.reason, ...(e.survivor_id ? { survivorId: e.survivor_id } : {}), at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
+  disposition: lifecycle.find(e => e.kind === 'discarded' || e.kind === 'merged')?.kind ?? 'active', lifecycleSequence: lifecycle.at(-1)?.sequence ?? 0,
+  lifecycle: lifecycle.map(e => ({ sequence: e.sequence, kind: e.kind, reason: e.reason, ...(e.survivor_id ? { survivorId: e.survivor_id } : {}), ...(e.claim_id ? { claimId: e.claim_id, itemId: e.item_id } : {}), at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
   downloadUrl: `/api/coaster/receipt-inbox/${r.id}`,
 });
 
 /** Unattached originals follow employee privacy and existing ADMIN-005 grants. */
 export async function listInbox(db: D1Database, actor: Actor) {
   ownInbox(actor);
-  const [receipts, history, lifecycle, drafts] = await db.batch([
+  const [receipts, history, lifecycle, drafts, attachments] = await db.batch([
     db.prepare(`${SELECT} WHERE r.owner_email=? ORDER BY r.uploaded_at DESC,r.id DESC`).bind(actor.email),
     db.prepare('SELECT e.* FROM c_capture_receipt_events e JOIN c_capture_receipts r ON r.id=e.receipt_id WHERE r.owner_email=? ORDER BY e.receipt_id,e.sequence').bind(actor.email),
     db.prepare('SELECT e.* FROM c_capture_lifecycle e JOIN c_capture_receipts r ON r.id=e.receipt_id WHERE r.owner_email=? ORDER BY e.receipt_id,e.sequence').bind(actor.email),
     db.prepare('SELECT d.*,c.status AS claim_status,CASE WHEN c.id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM c_items i WHERE i.claim_id=c.id) THEN 1 ELSE 0 END AS needs_details FROM c_capture_cash_drafts d JOIN c_capture_receipts r ON r.id=d.receipt_id LEFT JOIN c_claims c ON c.id=d.claim_id WHERE r.owner_email=?').bind(actor.email),
+    db.prepare(`SELECT a.capture_receipt_id AS receiptId,i.id AS itemId,c.id AS claimId,c.version,c.status,c.title AS claimTitle,i.merchant FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id JOIN c_claims c ON c.id=i.claim_id WHERE a.capture_receipt_id IS NOT NULL AND c.employee_email=?`).bind(actor.email),
   ]);
   const events = history.results as InboxEvent[];
-  return { receipts: (receipts.results as InboxReceipt[]).map(r => summary(r, events.filter(e => e.receipt_id === r.id), (lifecycle.results as Lifecycle[]).filter(e => e.receipt_id === r.id))).map(receipt => ({ ...receipt, cashDraft: (drafts.results as { receipt_id: string; claim_id: string; expense_date: string; created_at: string }[]).find(d => d.receipt_id === receipt.id) ?? null })) };
+  return { receipts: (receipts.results as InboxReceipt[]).map(r => summary(r, events.filter(e => e.receipt_id === r.id), (lifecycle.results as Lifecycle[]).filter(e => e.receipt_id === r.id))).map(receipt => ({ ...receipt, attachment: (attachments.results as {receiptId: string; status: string}[]).filter(a=>a.receiptId===receipt.id).map(a=>({...a,editable:['draft','returned'].includes(a.status)}))[0] ?? null, cashDraft: (drafts.results as { receipt_id: string; claim_id: string; expense_date: string; created_at: string }[]).find(d => d.receipt_id === receipt.id) ?? null })) };
 }
 
 export async function receiveReceipt(db: D1Database, originalBucket: R2Bucket | undefined, actor: Actor, request: Request) {

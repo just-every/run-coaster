@@ -1,16 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { acting, apiHref, call, type D } from './api';
 import { Badge, Details, Empty, Field, Form, Section } from './parts';
+import { ReceiptAttachment } from './receipt-attachment';
 
 const formats = 'image/jpeg,image/png,image/webp,image/heic,application/pdf';
 const bytes = (size: number) => `${size.toLocaleString()} bytes`;
+
+function ReceiptLifecycle({ receipt, receipts }: { receipt: D; receipts: D[] }) {
+  return <ol>{receipt.lifecycle.map((event: D) => <li key={event.sequence} value={event.sequence}>
+    {event.kind}{event.survivorId ? ` into ${receipts.find(other => other.id === event.survivorId)?.name ?? 'another receipt'}` : ''}
+    {event.claimId && <> · <a href={`#/claims/${event.claimId}`}>{event.itemId ? 'Claim expense' : 'Claim'}</a></>}
+    {' · '}{event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}
+    {event.reason ? <p>{event.reason}</p> : event.kind === 'merged' ? <p>Identical file</p> : null}
+  </li>)}</ol>;
+}
 
 /** Independent per-file uploads keep successful receipts when another file is refused. */
 export function ReceiptInbox() {
   const [receipts, setReceipts] = useState<D[]>([]), [error, setError] = useState('');
   const [busy, setBusy] = useState(false), [progress, setProgress] = useState(''), [failures, setFailures] = useState<string[]>([]);
   const working = useRef(false), [over, setOver] = useState(false);
-  const reload = async () => { const data = await call('receipt-inbox'); setReceipts(data.receipts); };
+  const [workspace, setWorkspace] = useState<D | null>(null);
+  const reload = async () => { const [data, state] = await Promise.all([call('receipt-inbox'), call('state')]); setReceipts(data.receipts); setWorkspace(state); };
   useEffect(() => { reload().catch(e => setError(e.message)); }, []);
   async function upload(files: File[], source = 'upload') {
     if (working.current || !files.length) return;
@@ -33,12 +44,14 @@ export function ReceiptInbox() {
   const cards = (rows: D[]) => <ul className="receipt-inbox-list">{rows.map(receipt => <li key={receipt.id}>
       <div className="section-head"><a href={apiHref(`receipt-inbox/${receipt.id}`)}>{receipt.name}</a><Badge status={receipt.state} words="Needs attention" tone="wait" /></div>
       <p className="muted">{receipt.attentionReason}</p>
-      {receipt.cashDraft && <p>Cash draft · {receipt.cashDraft.needs_details ? 'needs details' : receipt.cashDraft.claim_status ?? 'claim expired'} · expense date {receipt.cashDraft.expense_date} (UTC upload date). {receipt.cashDraft.claim_status && <a href={`#/claims/${receipt.cashDraft.claim_id}`}>Open draft claim</a>} No amount was inferred; this original remains in your inbox and has not been attached.</p>}
+      {receipt.cashDraft && <p>Cash draft · {receipt.cashDraft.needs_details ? 'needs details' : receipt.cashDraft.claim_status ?? 'claim expired'} · expense date {receipt.cashDraft.expense_date} (UTC upload date). {receipt.cashDraft.claim_status && <a href={`#/claims/${receipt.cashDraft.claim_id}`}>Open draft claim</a>} No amount was inferred; this original remains in your inbox{receipt.attachment ? ' and is attached to an expense.' : ' and has not been attached.'}</p>}
       <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
-      {receipt.disposition === 'active' ? <>
+      {receipt.disposition === 'active' && workspace && <ReceiptAttachment key={`${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} claims={workspace.claims} employee={workspace.actor.email} reload={reload} />}
+      {receipt.disposition === 'active' && receipt.lifecycle.length > 0 && <Details label="Private receipt history"><ReceiptLifecycle receipt={receipt} receipts={receipts} /></Details>}
+      {receipt.disposition === 'active' ? !receipt.attachment && <>
         <Details label={`Discard ${receipt.name}`}><p>The original and your reason stay in your private history. This cannot be undone.</p><Form label="Discard receipt" onSubmit={async values => { await call(`receipt-inbox/${receipt.id}/discard`, { reason: values.reason, expectedSequence: receipt.lifecycleSequence }); await reload(); }}><Field label="Reason" name="reason" type="textarea" maxLength={1000} /></Form></Details>
         {receipts.some(other => other.id !== receipt.id && other.disposition === 'active') && <Details label={`Merge ${receipt.name} into another receipt`}><p>This receipt is retired as a duplicate and stays in your private history; the receipt you keep is not changed. A reason is needed unless both files are identical. This cannot be undone.</p><Form label="Merge receipt" onSubmit={async values => { await call(`receipt-inbox/${receipt.id}/merge`, { survivorId: values.survivorId, reason: values.reason, expectedSequence: receipt.lifecycleSequence }); await reload(); }}><Field label="Receipt to keep" name="survivorId" options={receipts.filter(other => other.id !== receipt.id && other.disposition === 'active').map(other => ({ value: other.id, label: `${other.name} · ${other.uploadedAt}${other.sha256 === receipt.sha256 ? ' · identical file' : ''}` }))} /><Field label="Reason for merging" name="reason" type="textarea" required={false} maxLength={1000} /></Form></Details>}
-      </> : <section aria-label={`Disposition of ${receipt.name}`}><h4>{receipt.disposition === 'merged' ? 'Merged' : 'Discarded'}</h4><ol>{receipt.lifecycle.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.kind}{event.survivorId ? ` into ${receipts.find(other => other.id === event.survivorId)?.name ?? 'another receipt'}` : ''} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? <p>{event.reason}</p> : <p>Identical file</p>}</li>)}</ol></section>}
+      </> : <section aria-label={`Disposition of ${receipt.name}`}><h4>{receipt.disposition === 'merged' ? 'Merged' : 'Discarded'}</h4><ReceiptLifecycle receipt={receipt} receipts={receipts} /></section>}
     </li>)}</ul>;
   const active = receipts.filter(receipt => receipt.disposition === 'active'), discarded = receipts.filter(receipt => receipt.disposition === 'discarded'), merged = receipts.filter(receipt => receipt.disposition === 'merged');
   return <Section title="Receipt inbox" className="receipt-inbox" label="Receipt inbox">

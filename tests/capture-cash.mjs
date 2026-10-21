@@ -5,6 +5,7 @@ import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, start } from './browser-runtime.mjs'
 import { api, session, setUp } from './browser-journey.mjs'
+import { attachmentJourney } from './browser-attachments.mjs'
 import { cashWindowJourney } from './browser-capture.mjs'
 import { records, rows, tampered } from './browser-archive.mjs'
 const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/cash-draft-proof')
@@ -37,6 +38,7 @@ try {
   await command(cash,['import','--input','exports/aged.rer','--yes']);
   server=await start(cash,cashPort);browser=await launch();
   await cashWindowJourney(browser,cash,server.origin,evidence,shots,()=>server.scheduled());
+  await attachmentJourney(browser,cash,server.origin,evidence,shots);
   await browser.close();browser=undefined;await server.close();server=undefined;
   await command(cash,['export','--output','exports/cash.rer']);
   const prepared=join(cash,'exports/cash.rer');

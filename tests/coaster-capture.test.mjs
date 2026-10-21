@@ -493,3 +493,68 @@ test('CAPTURE-004 cash window defaults off, confirms only finance-visible counts
     assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts').first()).n,27)
   } finally { await h.close() }
 })
+
+test('CAPTURE-004 attaches and detaches one R2 original on editable purchases, preserves revisions and proves delegate and authority boundaries', async () => {
+  const h=await harness()
+  try {
+    const t=await agency(h), png=await readFile('tests/fixtures/receipts/bistro.png')
+    const original=await upload(h,t.sam,'private-inbox.png',png)
+    let c=await h.post('claims',{title:'Client visit'},t.sam)
+    c=await h.post(`claims/${c.id}/items`,{version:c.version,kind:'receipt',date:'2026-10-20',merchant:'Client lunch',amount:'42.00',category:t.c.meals},t.sam)
+    let d=await h.get(`claims/${c.id}`,t.sam), item=d.items[0]
+    const path=kind=>`receipt-inbox/${original.id}/${kind}`
+    const body=(seq=0)=>({expectedSequence:seq,claimId:c.id,itemId:item.id,version:c.version})
+    const before=await h.get('receipt-inbox',t.sam)
+    await h.post(path('attach'),{...body(),extra:true},t.sam,400)
+    await h.post(path('attach'),{...body(),version:0},t.sam,409)
+    await h.post(path('attach'),body(),t.alex,404)
+    await h.post(path('attach'),body(),t.morgan,404)
+    await h.post(path('attach'),body(),h.owner,403)
+    await h.post(path('attach'),body(),'',401)
+    assert.equal((await h.send('/api/coaster/'+path('attach'),body(),t.sam,{origin:'https://elsewhere.example'})).status,403)
+    assert.deepEqual(await h.get('receipt-inbox',t.sam),before)
+    const attached=await h.post(path('attach'),body(),t.sam);c=attached.claim
+    assert.deepEqual([attached.receipt.lifecycleSequence,attached.receipt.attachment.itemId],[1,item.id])
+    d=await h.get(`claims/${c.id}`,t.sam);const first=d.items[0].receipt_id
+    assert.equal(d.items[0].receipt_sha256,sha(png));assert.equal(d.claim.total_minor,4200)
+    assert.equal((await h.db.prepare('SELECT length(bytes) n FROM c_receipts WHERE id=?').bind(first).first()).n,0)
+    assert.deepEqual((await download(h,t.sam,original.id)).bytes,png)
+    const file=await h.mf.dispatchFetch(`${h.origin}/api/coaster/receipts/${first}`,{headers:{cookie:t.sam}})
+    assert.equal(file.status,200);assert.deepEqual(Buffer.from(await file.arrayBuffer()),png)
+    await h.get(`receipts/${first}`,t.morgan,403)
+    await h.post(path('attach'),body(),t.sam,409)
+    await h.post(`receipt-inbox/${original.id}/discard`,{expectedSequence:1,reason:'private'},t.sam,409)
+    await h.post(`claims/${c.id}/items/remove`,{version:c.version,item:item.id},t.sam,409)
+    const detached=await h.post(path('detach'),body(1),t.sam);c=detached.claim
+    assert.equal(detached.receipt.attachment,null)
+    d=await h.get(`claims/${c.id}`,t.sam);assert.equal(d.items[0].receipt_id,null)
+    await h.post(`claims/${c.id}/items`,{version:c.version,item:item.id,kind:'receipt',date:'2026-10-20',merchant:'Client lunch',amount:'42.00',category:t.c.meals,receipt:first},t.sam,409)
+    for(const level of ['submit','full']){
+      const grant=await h.post('delegates',{delegate:'alex@harbourfinch.example',level},t.sam), headers={'x-coaster-acting-for':SAM}
+      let seq=(await h.get('receipt-inbox',t.sam)).receipts[0].lifecycleSequence
+      let response=await h.send('/api/coaster/'+path('attach'),body(seq),t.alex,headers)
+      assert.equal(response.status,200);c=response.value.claim
+      assert.deepEqual([response.value.receipt.lifecycle.at(-1).actorEmail,response.value.receipt.lifecycle.at(-1).onBehalfOf],['alex@harbourfinch.example',SAM])
+      response=await h.send('/api/coaster/'+path('detach'),body(seq+1),t.alex,headers)
+      assert.equal(response.status,200);c=response.value.claim
+      await h.post(`delegates/${grant.id}/revoke`,{},t.sam)
+      assert.equal((await h.send('/api/coaster/'+path('attach'),body(seq+2),t.alex,headers)).status,403)
+    }
+    let seq=(await h.get('receipt-inbox',t.sam)).receipts[0].lifecycleSequence
+    const raced=await Promise.all([h.send('/api/coaster/'+path('attach'),body(seq),t.sam),h.send('/api/coaster/'+path('attach'),body(seq),t.sam)])
+    assert.deepEqual(raced.map(r=>r.status).sort(),[200,409]);c=raced.find(r=>r.status===200).value.claim
+    c=await h.post(`claims/${c.id}/submit`,{version:c.version},t.sam)
+    await h.post(path('detach'),body(seq+1),t.sam,409)
+    d=await h.get(`claims/${c.id}`,t.morgan);const submittedAlias=d.items[0].receipt_id
+    assert.equal((await h.mf.dispatchFetch(`${h.origin}/api/coaster/receipts/${submittedAlias}`,{headers:{cookie:t.morgan}})).status,200)
+    c=await h.post(`claims/${c.id}/decision`,{version:c.version,revision:c.revision,decision:'returned',reason:'Correct the purpose'},t.priya)
+    c=(await h.post(path('detach'),body(seq+1),t.sam)).claim
+    d=await h.get(`claims/${c.id}`,t.sam)
+    assert.equal(d.revisions[0].snapshot.items[0].receipt.id,submittedAlias)
+    assert.equal((await h.mf.dispatchFetch(`${h.origin}/api/coaster/receipts/${submittedAlias}`,{headers:{cookie:t.morgan}})).status,200,'submitted evidence stays visible')
+    const bucket=await h.mf.getR2Bucket('COASTER_RECEIPTS');assert.equal((await bucket.list()).objects.length,1)
+    assert.equal((await h.db.prepare('SELECT SUM(length(bytes)) n FROM c_receipts').first()).n,0)
+    assert.ok(!JSON.stringify(await h.get('history')).includes('private-inbox.png'))
+    for(const sql of ['UPDATE c_capture_lifecycle SET item_id=NULL','DELETE FROM c_capture_lifecycle'])await assert.rejects(h.db.prepare(sql).run(),/permanent|CHECK/)
+  } finally {await h.close()}
+})

@@ -76,11 +76,12 @@ export async function renameClaim(db: D1Database, actor: Actor, id: string, b: D
   return loadClaim(db, id);
 }
 
-async function ownReceipt(db: D1Database, claim: Claim, receiptId: unknown) {
+async function ownReceipt(db: D1Database, claim: Claim, receiptId: unknown, itemId: unknown) {
   if (receiptId === undefined || receiptId === null || receiptId === '') return null;
   requireThat(typeof receiptId === 'string', 'Receipt not found', 404);
-  const receipt = await db.prepare('SELECT id FROM c_receipts WHERE id=? AND claim_id=?').bind(receiptId, claim.id).first<{ id: string }>();
+  const receipt = await db.prepare('SELECT id,capture_receipt_id FROM c_receipts WHERE id=? AND claim_id=?').bind(receiptId, claim.id).first<{ id: string; capture_receipt_id: string | null }>();
   requireThat(receipt, 'Receipt not found on this claim', 404);
+  if (receipt.capture_receipt_id) requireThat(typeof itemId === 'string' && await db.prepare('SELECT 1 FROM c_items WHERE id=? AND claim_id=? AND receipt_id=?').bind(itemId,claim.id,receipt.id).first(), 'Attach inbox originals through the receipt inbox', 409);
   return receipt.id;
 }
 
@@ -88,7 +89,7 @@ async function ownReceipt(db: D1Database, claim: Claim, receiptId: unknown) {
 export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
-  const business = await requireBusiness(db), receiptId = await ownReceipt(db, claim, b.receipt);
+  const business = await requireBusiness(db), receiptId = await ownReceipt(db, claim, b.receipt, b.item);
   let item: ItemInput = { ...await pricedItem(b, business, await categories(db)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
   // A purchase claimed against a cap is reimbursed up to what is left of it (CLAIM-009).
   if (b.allowance) item = await capToAllowance(db, claim.employee_email, item, b.allowance, typeof b.item === 'string' ? b.item : null);
@@ -96,8 +97,9 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
   const statements: D1PreparedStatement[] = [];
   let itemId: string = uid(), position: number;
   if (b.item) {
-    const existing = await db.prepare('SELECT id,position FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first<{ id: string; position: number }>();
+    const existing = await db.prepare('SELECT i.id,i.position,i.receipt_id,a.capture_receipt_id FROM c_items i LEFT JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=?').bind(b.item, claim.id).first<{ id: string; position: number; receipt_id: string | null; capture_receipt_id: string | null }>();
     requireThat(existing, 'Expense not found on this claim', 404);
+    requireThat(!existing.capture_receipt_id || (receiptId === existing.receipt_id && item.kind === 'receipt'), 'Detach the inbox receipt before replacing it or changing its type', 409);
     itemId = existing.id; position = existing.position;
     statements.push(db.prepare('DELETE FROM c_items WHERE id=?').bind(itemId));
   } else {
@@ -115,6 +117,7 @@ export async function removeItem(db: D1Database, actor: Actor, id: string, b: Da
   editable(actor, claim, b);
   const existing = await db.prepare('SELECT id,merchant,amount_minor FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first<{ id: string; merchant: string; amount_minor: number }>();
   requireThat(existing, 'Expense not found on this claim', 404);
+  requireThat(!await db.prepare('SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND a.capture_receipt_id IS NOT NULL').bind(existing.id).first(), 'Detach the inbox receipt before removing this expense', 409);
   await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), [db.prepare('DELETE FROM c_items WHERE id=?').bind(existing.id), claimTotal(db, claim.id), event(db, actor, 'expense-removed', { claim: claim.id }, { item: existing.id, merchant: existing.merchant, amountMinor: existing.amount_minor })]);
   return loadClaim(db, id);
 }
@@ -142,6 +145,7 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
   const source = b.source === 'camera' ? 'camera' : 'upload';
   const statements = [db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(receiptId, claim.id, claim.employee_email, name, media, bytes.length, sha, bytes, source, actor.delegate?.email ?? actor.email, now())];
   if (b.item) {
+    requireThat(!await db.prepare('SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=? AND a.capture_receipt_id IS NOT NULL').bind(b.item,claim.id).first(), 'Detach the inbox receipt before replacing it', 409);
     const item = await db.prepare('SELECT id FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first();
     requireThat(item, 'Expense not found on this claim', 404);
     statements.push(db.prepare('UPDATE c_items SET receipt_id=? WHERE id=?').bind(receiptId, b.item));
@@ -162,10 +166,10 @@ export async function claimItems(db: D1Database, claimId: string): Promise<Claim
 
 /** Submission freezes the exact claim as a new revision and routes it to the employee's manager, or approves it at
  * once when the owner's approval rule covers every expense (APPROVE-004). */
-export async function submitClaim(db: D1Database, actor: Actor, id: string, b: Data) {
+export async function submitClaim(db: D1Database, actor: Actor, id: string, b: Data, bucket?: R2Bucket) {
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
-  return submission(db, claim, actor.delegate?.email ?? actor.email, authority(actor, 'employee'), (action, detail) => event(db, actor, action, { claim: claim.id }, detail), optionalText(b.note, 'Note', 1000));
+  return submission(db, claim, actor.delegate?.email ?? actor.email, authority(actor, 'employee'), (action, detail) => event(db, actor, action, { claim: claim.id }, detail), optionalText(b.note, 'Note', 1000), bucket);
 }
 
 /** The hourly run submits a stipend's claim in the employee's name, recorded under the schedule's name (CLAIM-009). */
@@ -176,7 +180,7 @@ export async function submitScheduled(db: D1Database, id: string, by: string) {
 }
 
 /** Everything a submission checks and writes once the submitter's authority is known. */
-async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, history: (action: string, detail: Data) => D1PreparedStatement, note: string) {
+async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, history: (action: string, detail: Data) => D1PreparedStatement, note: string, bucket?: R2Bucket) {
   const items = await claimItems(db, claim.id);
   requireThat(items.length > 0, 'Add at least one expense before submitting');
   const configured = await configuredChain(db, claim.employee_email);
@@ -198,7 +202,7 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const routed = resolved?.tasks[0];
   const rule = await currentRule(db), byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
   const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();
-  const snapshot = { receiptSignals: await receiptSignals(db, claim.id), policyReview: policyReview(items, exceptions, active), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: policyReview(items, exceptions, active), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
   await commit(db, all(auth, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),
     ...(workflow && resolved ? insertTasks(db, 'claim', claim.id, revision, 0, 0, resolved.tasks) : []),

@@ -1,4 +1,5 @@
 import { currentWorkflow } from './workflow-configuration';
+import { claimReceiptBytes } from './receipts/claim-storage';
 import { policyConfiguration } from './policy-configuration';
 import { business } from './settings';
 import { canSee, claimItems, loadClaim, visible, type Claim } from './claims';
@@ -68,9 +69,15 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
     db.prepare('SELECT revision,submitted_by,submitted_at,total_minor,snapshot FROM c_revisions WHERE claim_id=? ORDER BY revision').bind(claim.id),
     db.prepare('SELECT revision,decision_step,workflow_final,decision,reason,actor_email,on_behalf_of,at,exceptions FROM c_decisions WHERE claim_id=? ORDER BY revision,at,rowid').bind(claim.id),
     db.prepare('SELECT at,actor_email,action,detail FROM c_events WHERE claim_id=? ORDER BY seq').bind(claim.id),
-    db.prepare('SELECT id,name,media_type,size,sha256,source,uploaded_by,uploaded_at FROM c_receipts WHERE claim_id=? ORDER BY uploaded_at, id').bind(claim.id),
+    db.prepare('SELECT id,name,media_type,size,sha256,source,uploaded_by,uploaded_at,capture_receipt_id FROM c_receipts WHERE claim_id=? ORDER BY uploaded_at, id').bind(claim.id),
   ]);
   const history = (revisions.results as Data[]).map(r => ({ ...r, snapshot: JSON.parse(r.snapshot) }));
+  const submittedReceipts = new Set(history.flatMap(r => (r.snapshot.items as Data[]).map(i => i.receipt?.id ?? i.receipt_id)));
+  const hiddenReceipts = new Set((receipts.results as Data[]).filter(r => r.capture_receipt_id && actor.email !== claim.employee_email && !submittedReceipts.has(r.id)).map(r => r.id));
+  const shownReceipts = (receipts.results as Data[]).filter(r => !hiddenReceipts.has(r.id)).map(({ capture_receipt_id, ...r }) => r);
+  const shownItems = items.map(item => hiddenReceipts.has(item.receipt_id)
+    ? { ...item, receipt_id: null, receipt_sha256: null, receipt_name: null, receipt_media: null, receipt_size: null }
+    : item);
   const settings = await business(db), known = await categories(db);
   const configured = settings ? await policyConfiguration(db, settings, known, ['draft', 'returned'].includes(claim.status) ? undefined : history.at(-1)?.snapshot.policyVersion) : { categories: known };
   const byId = new Map(configured.categories.map(c => [c.id, c]));
@@ -81,21 +88,27 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const linked = [...new Set(items.map(i => i.request_id).filter(Boolean))];
   const requests = await Promise.all(linked.map(async id => ({ ...(await loadRequest(db, id)), claim_minor: items.filter(i => i.request_id === id).reduce((n, i) => n + i.amount_minor, 0) })));
   return {
-    claim, requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: items.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: receipts.results,
+    claim, requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
     events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
   };
 }
 
 /** Receipt bytes, for anyone who can see a claim (any revision) or proposal holding them. */
-export async function receiptFile(db: D1Database, actor: Actor, id: string, inline: boolean) {
+export async function receiptFile(db: D1Database, actor: Actor, id: string, inline: boolean, bucket?: R2Bucket) {
   const receipt = await db.prepare('SELECT r.*, p.for_email FROM c_receipts r LEFT JOIN c_proposals p ON p.id=r.proposal_id WHERE r.id=?').bind(id).first<Data>();
   requireThat(receipt, 'Receipt not found', 404);
-  if (receipt.claim_id) visible(actor, await loadClaim(db, receipt.claim_id));
-  else requireThat(receipt.for_email === actor.email, 'This receipt is outside your access', 403);
+  if (receipt.claim_id) {
+    const claim = await loadClaim(db, receipt.claim_id);
+    visible(actor, claim);
+    if (receipt.capture_receipt_id && actor.email !== claim.employee_email) {
+      const submitted = await db.prepare(`SELECT 1 FROM c_revisions v,json_each(v.snapshot,'$.items') i WHERE v.claim_id=? AND COALESCE(json_extract(i.value,'$.receipt.id'),json_extract(i.value,'$.receipt_id'))=? LIMIT 1`).bind(claim.id, receipt.id).first();
+      requireThat(submitted, 'Receipt not found', 404);
+    }
+  } else requireThat(receipt.for_email === actor.email, 'This receipt is outside your access', 403);
   const image = String(receipt.media_type).startsWith('image/') && receipt.media_type !== 'image/heic';
   const safeName = String(receipt.name).replace(/[^a-zA-Z0-9._-]/g, '_');
-  return new Response(new Uint8Array(receipt.bytes as ArrayBuffer), { headers: {
+  return new Response(new Uint8Array(await claimReceiptBytes(db, receipt, bucket)), { headers: {
     'content-type': receipt.media_type, 'content-disposition': `${inline && image ? 'inline' : 'attachment'}; filename="${safeName}"`,
     'content-security-policy': "default-src 'none'; sandbox", 'x-content-type-options': 'nosniff', 'cache-control': 'private, no-store',
   } });

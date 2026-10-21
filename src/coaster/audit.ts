@@ -4,6 +4,7 @@ import { business } from './settings';
 import { claimNumber } from './claims';
 import { batchNumber, csv } from './batches';
 import { zip } from './zip';
+import { claimReceiptBytes } from './receipts/claim-storage';
 import { isoDate, optionalText, requireThat, type Actor, type Data } from './types';
 
 /** The owner, finance and auditors read the full history and export audit packs (ADMIN-001 matrix). */
@@ -66,7 +67,7 @@ const safe = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
 /** One ZIP for a period: every claim submitted in it with each revision's expenses, exceptions and explanations, the
  * decisions, payment references and every receipt's exact bytes beside its SHA-256, plus the period's history. */
-export async function auditPack(db: D1Database, actor: Actor, from?: string, to?: string) {
+export async function auditPack(db: D1Database, actor: Actor, from?: string, to?: string, bucket?: R2Bucket) {
   needAuditAccess(actor);
   const settings = await business(db);
   requireThat(settings, 'The owner has not set up the business yet', 409);
@@ -75,17 +76,18 @@ export async function auditPack(db: D1Database, actor: Actor, from?: string, to?
   requireThat(Date.parse(last) - Date.parse(first) <= 366 * 86_400_000, 'An audit pack covers at most one year');
   const start = startOf(first, settings.timezone), end = startOf(nextDay(last), settings.timezone);
   const inPeriod = 'SELECT DISTINCT claim_id FROM c_revisions WHERE submitted_at>=? AND submitted_at<?';
-  const size = await db.prepare(`SELECT COALESCE(SUM(size),0) AS n FROM c_receipts WHERE claim_id IN (${inPeriod})`).bind(start, end).first<{ n: number }>();
+  const visibleReceipt = `(r.capture_receipt_id IS NULL OR EXISTS(SELECT 1 FROM c_revisions v,json_each(v.snapshot,'$.items') i WHERE v.claim_id=r.claim_id AND COALESCE(json_extract(i.value,'$.receipt.id'),json_extract(i.value,'$.receipt_id'))=r.id))`;
+  const size = await db.prepare(`SELECT COALESCE(SUM(r.size),0) AS n FROM c_receipts r WHERE r.claim_id IN (${inPeriod}) AND ${visibleReceipt}`).bind(start, end).first<{ n: number }>();
   requireThat((size?.n ?? 0) <= PACK_LIMIT, 'The receipts in this period are too large for one pack; choose a shorter period', 413);
   const [claims, revisions, decisions, receipts, events] = await db.batch([
     db.prepare(`SELECT c.*, m.name AS employee_name, b.number AS batch_number, b.status AS batch_status, b.reviewed_by, b.reviewed_at, b.paid_reference, b.paid_on, b.paid_by FROM c_claims c LEFT JOIN c_members m ON m.email=c.employee_email LEFT JOIN c_batches b ON b.id=c.batch_id WHERE c.id IN (${inPeriod}) ORDER BY c.number`).bind(start, end),
     db.prepare(`SELECT * FROM c_revisions WHERE claim_id IN (${inPeriod}) ORDER BY claim_id, revision`).bind(start, end),
     db.prepare(`SELECT * FROM c_decisions WHERE claim_id IN (${inPeriod}) ORDER BY claim_id, revision`).bind(start, end),
-    db.prepare(`SELECT id,claim_id,name,media_type,size,sha256,bytes,uploaded_by,uploaded_at FROM c_receipts WHERE claim_id IN (${inPeriod}) ORDER BY uploaded_at, id`).bind(start, end),
+    db.prepare(`SELECT r.* FROM c_receipts r WHERE r.claim_id IN (${inPeriod}) AND ${visibleReceipt} ORDER BY r.uploaded_at, r.id`).bind(start, end),
     db.prepare(`${LINE} WHERE e.at>=? AND e.at<? ORDER BY e.seq`).bind(start, end),
   ]);
   const numbers = new Map((claims.results as Data[]).map(c => [c.id, claimNumber(c.number)]));
-  const files = (receipts.results as Data[]).map(r => ({ receipt: r, name: `receipts/${numbers.get(r.claim_id)}/${r.sha256}-${safe(String(r.name))}`, bytes: new Uint8Array(r.bytes as ArrayBuffer) }));
+  const files = await Promise.all((receipts.results as Data[]).map(async r => ({ receipt: r, name: `receipts/${numbers.get(r.claim_id)}/${r.sha256}-${safe(String(r.name))}`, bytes: await claimReceiptBytes(db, r, bucket) })));
   const fileOf = (sha: string | undefined) => files.find(f => f.receipt.sha256 === sha)?.name ?? null;
   const manifest = {
     business: settings.name, currency: settings.currency, timezone: settings.timezone, period: { from: first, to: last }, generatedAt: new Date().toISOString(), generatedBy: actor.email,

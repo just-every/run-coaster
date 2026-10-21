@@ -9,7 +9,7 @@ const bytes = cell => cell && typeof cell === 'object' && typeof cell.blob === '
 
 /** Read-only checks on the staged archive before any row is written. */
 export async function validateCoasterArchive(read, manifest) {
-  const [claims, items, allocations, receipts, revisions, decisions, batches, batchClaims, keys] = await Promise.all(['c_claims', 'c_items', 'c_allocations', 'c_receipts', 'c_revisions', 'c_decisions', 'c_batches', 'c_batch_claims', 'c_reimbursement_keys'].map(t => read(t)));
+  const [claims, items, allocations, receipts, revisions, decisions, batches, batchClaims, keys, captureReceipts] = await Promise.all(['c_claims', 'c_items', 'c_allocations', 'c_receipts', 'c_revisions', 'c_decisions', 'c_batches', 'c_batch_claims', 'c_reimbursement_keys', 'c_capture_receipts'].map(t => read(t)));
   const claimIds = new Set(claims.map(c => c.id)), itemIds = new Set(items.map(i => i.id));
   for (const claim of claims) {
     const own = items.filter(i => i.claim_id === claim.id);
@@ -23,7 +23,13 @@ export async function validateCoasterArchive(read, manifest) {
   for (const a of allocations) check(itemIds.has(a.item_id), 'allocation_item');
   for (const r of receipts) {
     const body = bytes(r.bytes);
-    check(body.length === r.size && createHash('sha256').update(body).digest('hex') === r.sha256, 'receipt_bytes');
+    if (r.capture_receipt_id == null) {
+      check(body.length === r.size && createHash('sha256').update(body).digest('hex') === r.sha256, 'receipt_bytes');
+    } else {
+      const original = captureReceipts.find(original => original.id === r.capture_receipt_id);
+      check(body.length === 0 && original && ['owner_email', 'name', 'media_type', 'size', 'sha256', 'source', 'uploaded_by', 'uploaded_at'].every(key => r[key] === original[key]), 'receipt_bytes');
+      check(typeof r.claim_id === 'string' && r.proposal_id === null, 'receipt_claim');
+    }
     check(!r.claim_id || claimIds.has(r.claim_id), 'receipt_claim');
   }
   for (const r of revisions) { check(claimIds.has(r.claim_id), 'revision_claim'); JSON.parse(r.snapshot); }
