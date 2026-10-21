@@ -18,7 +18,7 @@ A private question lists ambiguous charges; **This one** attaches by you, while 
 
 ## Company-card expenses from a statement file
 
-When finance imports your card's statement file (an OFX, QFX or CSV download; Coaster calls this a statement file import, not a feed), each purchase appears as a **company-card expense** on your draft report for that month. The company paid it, so it never adds to what you are reimbursed. Its merchant, amount and date come from the statement and cannot be changed or removed; you can change its category and cost center, add a description, attendees or a receipt, and explain it. Submit the report as usual. If you also claim the same purchase out of pocket, finance cannot reimburse it.
+When finance imports your card's statement file (an OFX, QFX or CSV download; Coaster calls this a statement file import, not a feed), each purchase appears as a **company-card expense** on your draft report for that month. The company paid it, so it never adds to what you are reimbursed. Its merchant, amount and date come from the statement and cannot be changed or removed; you can change its category and cost center, add a description, attendees or a receipt, and explain it. Submit the report as usual. If you also claim the same purchase out of pocket, submission is refused: correct or remove the duplicate first. Scheduled submission and hold release enforce the same rule. If the card charge arrives after a reimbursement was approved, finance still cannot put it in a reimbursement batch.
 
 ## Start a claim
 

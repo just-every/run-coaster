@@ -607,7 +607,7 @@ test('CAPTURE-004 FEED-004 matched basis survives partial approval and hold rele
   const originalReport=await h.get(`claims/${reimbursement.id}`,t.sam),office=originalReport.items.find(i=>i.merchant==='Office depot')
   const pending=await h.post(`claims/${reimbursement.id}/submit`,{version:reimbursement.version},t.sam)
   await h.post(`claims/${reimbursement.id}/decision`,{version:pending.version,revision:pending.revision,decision:'approved',hold:[office.id],reason:'Please locate the office receipt',acknowledge:true},t.priya)
-  const heldReimbursement=(await h.get('state',t.sam)).claims.find(c=>c.held_from===reimbursement.id)
+  const heldReimbursement=(await h.get('state',t.sam)).claims.find(c=>c.title==='Office visit paid personally (held)')
   await statement(h,t,[{transaction:'2026-10-07',amount:'61.00',merchant:'Office depot'}],{name:'late-office-charge.csv'})
   await h.post(`claims/${heldReimbursement.id}/release`,{version:heldReimbursement.version,acknowledge:true},t.priya,409)
   await h.post(`claims/${heldReimbursement.id}/submit`,{version:heldReimbursement.version},t.sam,409)
