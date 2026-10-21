@@ -21,11 +21,11 @@ export function readStatement(b: Data, currency: string): Statement {
     requireThat(mapping && typeof mapping === 'object' && !Array.isArray(mapping), 'Map the CSV columns');
     const parsed = parseStatementCsv(b.content, mapping, currency);
     requireThat(parsed.rows.length <= ROW_LIMIT, `Import at most ${ROW_LIMIT} rows per file`);
-    return { format: 'csv', name, issuer, cards: parsed.cards, rows: parsed.rows, period: parsed.period, currency: parsed.currency, masked: parsed.masked, mapping };
+    return { format: 'csv', name, issuer, cards: parsed.cards, rows: parsed.rows, period: parsed.period, currency: parsed.currency, masked: parsed.masked, mapping, balances: {} };
   }
   const parsed = parseOfx(b.content);
   requireThat(parsed.rows.length <= ROW_LIMIT, `Import at most ${ROW_LIMIT} rows per file`);
-  return { format: b.format, name, issuer, cards: parsed.cards, rows: parsed.rows, period: parsed.period, currency: parsed.currency, masked: parsed.masked, mapping: {} };
+  return { format: b.format, name, issuer, cards: parsed.cards, rows: parsed.rows, period: parsed.period, currency: parsed.currency, masked: parsed.masked, mapping: {}, balances: parsed.balances };
 }
 
 /** Preview writes nothing: it classifies every row against the cards, earlier charges and imported history, and names the

@@ -353,3 +353,18 @@ and [Image Delivery index](https://help.sap.com/docs/SAP_CONCUR/ceeea7fe419f4997
 ## Foreign-currency history (CLAIM-003)
 
 Enable ECB currency conversion in Settings before importing foreign amounts. Coaster downloads only the fixed public ECB history file; no source expense fields leave the installation. It selects the transaction date or latest publication before it and cross-rates via EUR, rounds half up to cents (credits away from zero), and keeps originals plus rate/date/source. The final Concur allocation takes the remainder so totals reconcile. An unavailable or unsupported rate blocks commit; a changed rate invalidates the preview. ECB reference rates are not card rates. Native expenses also allow an explicit rate entered by hand, without a network request.
+
+## Reconciling a statement period (FEED-005)
+
+After a statement file is imported, finance reconciles each card's period against the retained masked original.
+`POST /api/coaster/statements/:file/reconcile` opens it for one card (`{"last4": "1111", "openingBalance": "600.00"}`;
+an OFX file states its closing balance in `LEDGERBAL`, where a negative amount is owed, and for a CSV finance sends
+`statementBalance`; the opening balance is the previous closed statement's, entered only for a card's first). The answer lists the
+totals and each difference: a purchase on the statement with no card expense (`missing-charge`), a refund not yet
+acknowledged (`credit`), a row that cannot be classified, and a statement that does not add up to its balance (`footing`).
+`POST /api/coaster/statements/reconciliations/:id/resolve` adds a missing charge as a card expense
+(`{"line": 4, "resolution": "add", "category": "<category id>"}`), explains it (`"explain"` with a `note`), or acknowledges a
+credit (`"credit"` with the refunded `charge` or a `note`). `POST .../close` writes the period's double entries to the
+card liability ledger once; the answer's `ledger` shows the card account equal to the statement balance. Owner and finance act;
+auditors read (`GET /api/coaster/statements/reconciliations`). A card's charges from one file go on one draft report named for the card and
+the statement period. Fixtures: `tests/fixtures/statements/reconcile-september.ofx` and `reconcile-earlier.qfx`.

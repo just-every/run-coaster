@@ -139,6 +139,11 @@ try {
   assert.deepEqual(JSON.parse(heldDetail.items[0].card_match_basis),JSON.parse(detail.items.find(i=>i.id===attachment.itemId).card_match_basis))
   await api(manager.context,server.origin,`claims/${held.id}/release`,{version:held.version,acknowledge:true})
   await manager.context.close();await employee.context.close()
+  // FEED-005: one reconciled and closed statement (its resolution, ledger and history) rides the same archive round trip.
+  const kept=(await api(owner.context,server.origin,'statements')).files.find(f=>f.name==='synthetic-kept-match.csv')
+  const reconciliation=await api(owner.context,server.origin,`statements/${kept.id}/reconcile`,{last4:'1111',openingBalance:'0.00',statementBalance:'1.00'})
+  const closedStatement=await api(owner.context,server.origin,`statements/reconciliations/${reconciliation.id}/close`,{})
+  assert.deepEqual([closedStatement.ledger.cardAccountMinor,closedStatement.ledger.matches],[100,true])
   await owner.context.close();await browser.close();browser=undefined;await server.close();server=undefined
   await command(root,['export','--output','exports/matching.rer'])
   const archive=join(root,'exports/matching.rer');await copyFile(archive,join(evidence,'matching.rer'))
@@ -178,11 +183,12 @@ try {
     ['match_history_discarded','c_capture_lifecycle',r=>r.kind==='match-details',(r)=>{r.kind='discarded';r.reason='synthetic-discarded';r.match_data=null}],
     ['match_history_merged','c_capture_lifecycle',r=>r.kind==='match-details',(r,input)=>{r.kind='merged';r.reason='synthetic-merged';r.match_data=null;r.survivor_id=rows(input).find(i=>i.table==='c_capture_receipts'&&i.row.id!==r.receipt_id).row.id}],
     ['card_charge_employee','c_card_charges',()=>true,r=>{r.employee_email='synthetic-foreign@example.test'}],
+    ['card_statement_ledger','c_card_ledger',()=>true,r=>{r.amount_minor+=1}],
   ]
   for(const [code,table,pick,change] of cases.filter((_,index)=>index%of===part)) {
     await writeFile(join(restored,`exports/${code}.rer`),await tampered(archive,table,change,pick),{mode:0o600})
     const result=await command(restored,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4})
-    assert.match(result,new RegExp(code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
+    assert.match(result,new RegExp(code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('card_statement')?'coaster_card_statement':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
     await command(restored,['export','--output',`exports/unchanged-${code}.rer`])
     assert.deepEqual(rows(await records(join(restored,`exports/unchanged-${code}.rer`))),empty,'malformed match archive writes nothing')
   }

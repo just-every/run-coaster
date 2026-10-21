@@ -1,5 +1,5 @@
 import { requireThat } from '../types';
-import type { StatementCard, StatementRow } from './statement';
+import type { StatementBalance, StatementCard, StatementRow } from './statement';
 
 type Node = { name: string; value: string; children: Node[] };
 
@@ -35,7 +35,7 @@ const kind = (type: string): StatementRow['kind'] => {
   return 'other';
 };
 
-export type Parsed = { cards: StatementCard[]; rows: StatementRow[]; period: { start: string | null; end: string | null }; currency: string; masked: string; errors: string[] };
+export type Parsed = { cards: StatementCard[]; rows: StatementRow[]; period: { start: string | null; end: string | null }; currency: string; masked: string; errors: string[]; balances: Record<string, StatementBalance> };
 
 /** A credit-card statement response (CCSTMTRS) or nothing: bank, investment and other message sets are refused, and any
  * full account number is masked to its last four before the caller keeps or stores anything (SEC-001). */
@@ -47,11 +47,12 @@ export function parseOfx(raw: string): Parsed {
   requireThat(!all(root, 'BANKACCTFROM').length && !all(root, 'BANKID').length && !all(root, 'BANKACCTTO').length, 'Bank account and routing numbers are never accepted; export the credit-card statement');
   const statements = all(root, 'CCSTMTRS');
   requireThat(statements.length > 0, 'No credit-card statement (CCSTMTRS) in this file');
-  const cards: StatementCard[] = [], rows: StatementRow[] = [], errors: string[] = [], full = new Map<string, string>();
+  const cards: StatementCard[] = [], rows: StatementRow[] = [], errors: string[] = [], full = new Map<string, string>(), balances: Record<string, StatementBalance> = {};
   let currency = '', start: string | null = null, end: string | null = null;
   for (const s of statements) {
     const account = text(s, 'CCACCTFROM', 'ACCTID').replace(/[\s-]/g, '');
-    requireThat(/^\d{4,19}$/.test(account), 'The statement has no card number in ACCTID (at least the last four digits)');
+    // A retained original is already masked (asterisks before the last four digits); a file may arrive that way too.
+    requireThat(/^[\d*]{4,19}$/.test(account) && /^\d{4}$/.test(account.slice(-4)), 'The statement has no card number in ACCTID (at least the last four digits)');
     const last4 = account.slice(-4);
     const known = full.get(last4);
     requireThat(!known || known === account, `Two cards in this file share the last four ${last4}; import them in separate files`);
@@ -61,6 +62,9 @@ export function parseOfx(raw: string): Parsed {
     requireThat(/^[A-Z]{3}$/.test(cur), 'The statement names no currency (CURDEF)');
     requireThat(!currency || currency === cur, 'One file holds one statement currency');
     currency = cur;
+    // LEDGERBAL follows the OFX credit-card convention: a negative BALAMT is the amount the cardholder owes.
+    const owed = money(text(s, 'LEDGERBAL', 'BALAMT')), asOf = dateOf(text(s, 'LEDGERBAL', 'DTASOF'));
+    if (owed !== null) balances[last4] = { owedMinor: -owed, asOf };
     const list = find(s, 'BANKTRANLIST');
     const from = dateOf(text(list, 'DTSTART')), to = dateOf(text(list, 'DTEND'));
     if (from && (!start || from < start)) start = from;
@@ -82,5 +86,5 @@ export function parseOfx(raw: string): Parsed {
   let masked = raw;
   for (const number of full.values()) if (number.length > 4) masked = masked.split(number).join('*'.repeat(number.length - 4) + number.slice(-4));
   masked = masked.replace(/(<ACCTID>)([^<\r\n]*)/gi, (_, open: string, value: string) => { const d = value.replace(/[\s-]/g, ''); return open + (d.length > 4 ? '*'.repeat(d.length - 4) + d.slice(-4) : value); });
-  return { cards, rows, period: { start, end }, currency, masked, errors };
+  return { cards, rows, period: { start, end }, currency, masked, errors, balances };
 }

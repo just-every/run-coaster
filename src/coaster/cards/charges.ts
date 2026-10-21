@@ -25,21 +25,24 @@ export async function assignCard(db: D1Database, actor: Actor, b: Data) {
   return { id, issuer, last4: b.last4, employee: holder };
 }
 
-/** Where a charge lands (G5): the cardholder's own draft automatic report for the expense month, never a hand-built claim.
- * A report holds at most 100 expenses, so a busy month continues in a further automatic report. */
-async function placements(db: D1Database, held: Held[]) {
+/** Where a charge lands (FEED-005): the cardholder's own draft automatic report for the card's statement period, never a
+ * hand-built claim; a statement without a closing date falls back to the expense month (G5). A report holds at most 100
+ * expenses, so a busy statement continues in a further automatic report under the same key. */
+export async function placements(db: D1Database, held: Held[], issuer: string, periodEnd: string | null) {
+  const keyOf = (h: Held) => periodEnd ? `statement:${h.cardId}:${periodEnd}` : `month:${h.date.slice(0, 7)}`;
+  const titleOf = (h: Held) => periodEnd ? `Card statement · ${issuer} ····${h.row.last4} · ${periodEnd}` : `Expenses · ${h.date.slice(0, 7)}`;
   const groups = new Map<string, Held[]>();
-  for (const h of held) groups.set(`${h.employee}|${h.date.slice(0, 7)}`, [...(groups.get(`${h.employee}|${h.date.slice(0, 7)}`) ?? []), h]);
+  for (const h of held) groups.set(`${h.employee}|${keyOf(h)}`, [...(groups.get(`${h.employee}|${keyOf(h)}`) ?? []), h]);
   const business = (await db.prepare('SELECT currency FROM c_business WHERE id=1').first<{ currency: string }>())!;
-  const claims = new Map<string, { id: string; version: number | null; position: number; room: number; created: boolean; employee: string; month: string }>(), guards: Sql[] = [], statements: D1PreparedStatement[] = [], where = new Map<string, string>();
+  const claims = new Map<string, { id: string; version: number | null; position: number; room: number; created: boolean }>(), guards: Sql[] = [], statements: D1PreparedStatement[] = [], where = new Map<string, string>();
   for (const [group, rows] of groups) {
-    const [employee, month] = group.split('|'), key = `month:${month}`;
+    const employee = group.slice(0, group.indexOf('|')), key = keyOf(rows[0]), title = titleOf(rows[0]);
     const drafts = (await db.prepare("SELECT c.id,c.version,(SELECT COUNT(*) FROM c_items i WHERE i.claim_id=c.id) AS n,(SELECT COALESCE(MAX(position),-1)+1 FROM c_items i WHERE i.claim_id=c.id) AS next FROM c_claims c WHERE c.employee_email=? AND c.auto_key=? AND c.status='draft' ORDER BY c.number").bind(employee, key).all<{ id: string; version: number; n: number; next: number }>()).results;
-    let open = drafts.map(d => ({ id: d.id, version: d.version as number | null, position: d.next, room: 100 - d.n, created: false, employee, month })).filter(d => d.room > 0)[0];
+    let open = drafts.map(d => ({ id: d.id, version: d.version as number | null, position: d.next, room: 100 - d.n, created: false })).filter(d => d.room > 0)[0];
     for (const h of rows) {
       if (!open || open.room <= 0) {
-        open = { id: uid(), version: null, position: 0, room: 100, created: true, employee, month };
-        statements.push(insertClaim(db, open.id, employee, `Expenses · ${month}`, business.currency, null), db.prepare('UPDATE c_claims SET auto_key=? WHERE id=?').bind(key, open.id));
+        open = { id: uid(), version: null, position: 0, room: 100, created: true };
+        statements.push(insertClaim(db, open.id, employee, title, business.currency, null), db.prepare('UPDATE c_claims SET auto_key=? WHERE id=?').bind(key, open.id));
       }
       claims.set(open.id, open);
       where.set(h.id, `${open.id}|${open.position}`);
@@ -48,6 +51,17 @@ async function placements(db: D1Database, held: Held[]) {
   }
   for (const c of claims.values()) if (!c.created) guards.push(claimState(c.id, c.version!, ['draft']));
   return { claims, guards, statements, where };
+}
+
+/** The charge, its native card expense on the placed report and the history line for one statement purchase. */
+export function chargeStatements(db: D1Database, actor: Actor, c: { file: string; issuer: string; category: Awaited<ReturnType<typeof categoryFor>>; costCentre: string; held: Held; claim: string; position: number; at: string }) {
+  const { held: h, issuer } = c, chargeId = uid(), itemId = uid(), r = h.row;
+  const item: ItemInput = { kind: 'receipt', spent_on: h.date, merchant: r.descriptor.slice(0, 200), description: r.memo, amount_minor: r.amountMinor!, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: c.category.id, cost_centre: c.costCentre, amount_minor: r.amountMinor! }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: '', project: '', card_charge_id: chargeId };
+  return { charge: chargeId, statements: [
+    db.prepare('INSERT INTO c_card_charges(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(chargeId, c.file, h.cardId, h.employee, `card:${issuer.toLowerCase()}|${r.last4}:${r.key}`, r.postedOn, r.transactionOn, item.merchant, r.memo, r.amountMinor, r.currency, r.originalMinor, r.originalCurrency, itemId, c.category.id, c.at, c.claim),
+    ...insertItem(db, c.claim, itemId, c.position, item, null),
+    event(db, actor, 'import-card-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false }),
+  ] };
 }
 
 /** Commit applies exactly the previewed bytes and mapping: each importable purchase becomes one company-card expense. */
@@ -60,23 +74,17 @@ export async function commitStatement(db: D1Database, actor: Actor, b: Data) {
   requireThat(!review.errors.length, `Resolve the file errors before importing: ${review.errors.slice(0, 3).join('; ')}`, 409);
   requireThat(!review.unassigned.length, `Assign card ····${review.unassigned.join(', ····')} to an employee, or exclude it, before importing`, 409);
   requireThat(plan.importable.length > 0, 'This file has no new purchases to import', 409);
-  const id = uid(), at = now(), place = await placements(db, plan.importable);
+  const id = uid(), at = now(), issuer = plan.statement.issuer, place = await placements(db, plan.importable, issuer, plan.statement.period.end);
   const statements: D1PreparedStatement[] = [
     db.prepare('INSERT INTO c_statement_files(id,name,format,issuer,fingerprint,sha256,size,bytes,period_start,period_end,mapping,excluded_cards,included_rows,charges,total_minor,imported_by,imported_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id, plan.statement.name, plan.statement.format, plan.statement.issuer, plan.fingerprint, plan.sha, plan.bytes.length, plan.bytes, plan.statement.period.start, plan.statement.period.end, JSON.stringify({ ...plan.statement.mapping, coding: { category: plan.category, costCentre: plan.costCentre } }), JSON.stringify(plan.exclude), JSON.stringify(plan.include), plan.importable.length, review.totalMinor, actor.email, at),
     ...place.statements,
   ];
   const cardGuards: Sql[] = [...new Set(plan.importable.map(h => `${h.cardId}|${h.employee}`))].map(x => { const [card, holder] = x.split('|'); return { sql: 'EXISTS(SELECT 1 FROM c_cards c JOIN c_members m ON m.email=c.employee_email AND m.active=1 AND m.is_employee=1 WHERE c.id=? AND c.employee_email=?)', params: [card, holder] }; });
-  const issuer = plan.statement.issuer;
   for (const h of plan.importable) {
-    const [claimId, position] = place.where.get(h.id)!.split('|'), chargeId = uid(), itemId = uid(), r = h.row;
-    const item: ItemInput = { kind: 'receipt', spent_on: h.date, merchant: r.descriptor.slice(0, 200), description: r.memo, amount_minor: r.amountMinor!, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: category.id, cost_centre: plan.costCentre, amount_minor: r.amountMinor! }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: '', project: '', card_charge_id: chargeId };
-    statements.push(
-      db.prepare('INSERT INTO c_card_charges(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(chargeId, id, h.cardId, h.employee, `card:${issuer.toLowerCase()}|${r.last4}:${r.key}`, r.postedOn, r.transactionOn, item.merchant, r.memo, r.amountMinor, r.currency, r.originalMinor, r.originalCurrency, itemId, category.id, at, claimId),
-      ...insertItem(db, claimId, itemId, Number(position), item, null),
-      event(db, actor, 'import-card-charge-created', { claim: claimId }, { charge: chargeId, file: id, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false }),
-    );
+    const [claim, position] = place.where.get(h.id)!.split('|');
+    statements.push(...chargeStatements(db, actor, { file: id, issuer, category, costCentre: plan.costCentre, held: h, claim, position: Number(position), at }).statements);
   }
-  for (const c of place.claims.values()) statements.push(claimTotal(db, c.id));
+  for (const c of place.claims.keys()) statements.push(claimTotal(db, c));
   statements.push(event(db, actor, 'import-statement-committed', {}, { file: id, name: plan.statement.name, format: plan.statement.format, issuer, sha256: plan.sha, charges: plan.importable.length, totalMinor: review.totalMinor, period: plan.statement.period, excludedCards: plan.exclude, includedRows: plan.include, duplicates: review.duplicates.length, excludedRows: review.excluded.length, masked: true }));
   await commit(db, all(authority(actor, 'finance'), ...place.guards, ...cardGuards, { sql: 'NOT EXISTS(SELECT 1 FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL)', params: [plan.fingerprint] }), statements);
   return { ...review, file: id, claims: [...place.claims.keys()] };
@@ -89,6 +97,7 @@ export async function undoStatement(db: D1Database, actor: Actor, id: string) {
   const file = await db.prepare('SELECT id,name,mapping,undone_at FROM c_statement_files WHERE id=?').bind(id).first<{ id: string; name: string; mapping: string; undone_at: string | null }>();
   requireThat(file, 'Statement import not found', 404);
   requireThat(!file.undone_at, 'This import was already undone', 409);
+  requireThat(!await db.prepare('SELECT 1 FROM c_card_statements WHERE file_id=? AND closed_at IS NOT NULL').bind(id).first(), 'A closed card statement was reconciled from this import, so it can no longer be undone', 409);
   const coding = JSON.parse(file.mapping).coding as { category: string; costCentre: string };
   const rows = (await db.prepare(`SELECT ch.id AS charge,ch.item_id,ch.descriptor,ch.amount_minor,ch.memo,i.claim_id,c.status,c.version,i.receipt_id,i.explanation,i.description,i.attendees,i.fields,i.request_id,i.billable,i.customer,i.project,i.sales_tax_minor,i.allowance_id,
       (SELECT COUNT(*) FROM c_allocations a WHERE a.item_id=i.id) AS parts,(SELECT COUNT(*) FROM c_allocations a WHERE a.item_id=i.id AND a.category_id=? AND a.cost_centre=? AND a.amount_minor=i.amount_minor AND a.description='') AS as_imported
@@ -97,7 +106,7 @@ export async function undoStatement(db: D1Database, actor: Actor, id: string) {
   const removable = rows.filter(r => !reason(r)), kept = rows.filter(r => reason(r)).map(r => ({ charge: r.charge, merchant: r.descriptor, amountMinor: r.amount_minor, reason: reason(r) }));
   const claims = new Map(removable.map(r => [r.claim_id as string, r.version as number]));
   const at = now();
-  await commit(db, all(authority(actor, 'finance'), { sql: 'EXISTS(SELECT 1 FROM c_statement_files WHERE id=? AND undone_at IS NULL)', params: [id] }, ...[...claims].map(([claim, version]) => claimState(claim, version, ['draft']))), [
+  await commit(db, all(authority(actor, 'finance'), { sql: 'EXISTS(SELECT 1 FROM c_statement_files WHERE id=? AND undone_at IS NULL)', params: [id] }, { sql: 'NOT EXISTS(SELECT 1 FROM c_card_statements WHERE file_id=? AND closed_at IS NOT NULL)', params: [id] }, ...[...claims].map(([claim, version]) => claimState(claim, version, ['draft']))), [
     db.prepare('UPDATE c_statement_files SET undone_at=?,undone_by=? WHERE id=? AND undone_at IS NULL').bind(at, actor.email, id),
     ...removable.flatMap(r => [
       db.prepare('DELETE FROM c_allocations WHERE item_id=?').bind(r.item_id), db.prepare('DELETE FROM c_items WHERE id=?').bind(r.item_id), db.prepare('DELETE FROM c_card_charges WHERE id=?').bind(r.charge),

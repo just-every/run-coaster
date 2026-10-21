@@ -58,6 +58,18 @@ export async function validateCoasterArchive(read, manifest) {
     else check(typeof charge.claim_id==='string'&&charge.claim_id.length>0&&events.some(e=>e.action==='claim-expired'&&e.claim_id===charge.claim_id),'card_charge');
   }
   for(const item of items.filter(i=>i.card_charge_id)) check(charges.some(c=>c.id===item.card_charge_id&&c.item_id===item.id),'card_charge');
+  // FEED-005: a closed statement carries its ledger, and the card account equals the statement balance at every close.
+  const statements=await read('c_card_statements'), resolutions=await read('c_card_statement_resolutions'), ledger=await read('c_card_ledger');
+  for(const st of statements) check(cards.some(c=>c.id===st.card_id)&&files.some(f=>f.id===st.file_id)&&Boolean(st.closed_at)===ledger.some(l=>l.statement_id===st.id),'card_statement');
+  for(const r of resolutions) check(statements.some(st=>st.id===r.statement_id),'card_statement');
+  for(const l of ledger) check(statements.some(st=>st.id===l.statement_id&&st.card_id===l.card_id&&st.closed_at===l.posted_at),'card_statement');
+  for(const card of cards) {
+    const account=`Card liability · ${card.issuer} ····${card.last4}`;
+    for(const st of statements.filter(x=>x.card_id===card.id&&x.closed_at)) {
+      const owed=ledger.filter(l=>l.card_id===card.id&&l.posted_at<=st.closed_at).reduce((n,l)=>n+(l.credit_account===account?l.amount_minor:0)-(l.debit_account===account?l.amount_minor:0),0);
+      check(owed===st.statement_minor,'card_statement');
+    }
+  }
   await validateCaptureArchive(read, manifest);
   return true;
 }

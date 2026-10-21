@@ -49,6 +49,7 @@ import { perDiemLocations, pricePerDiem } from './per-diem';
 import { assignCard, commitStatement, statementFile, statementState, undoStatement } from './cards/charges';
 import { cardMatchQuestion, chooseCardMatch, matchRule, rejectMatchQuestion, saveMatchRule } from './receipts/card-matching';
 import { planStatement } from './cards/plan';
+import { closeReconciliation, openReconciliation, reconciliation, reconciliations, resolveDifference } from './cards/reconcile';
 import { Fault, requireThat, type Actor, type Data } from './types';
 
 type C = Context<{ Bindings: Bindings }>;
@@ -216,6 +217,12 @@ api.post('/api/coaster/statements/cards', as(async (a, c) => assignCard(db(c), a
 api.post('/api/coaster/statements/preview', as(async (a, c) => { need(a, 'finance'); requireThat(a.kind === 'person', 'Only a person imports statements', 403); return (await planStatement(db(c), await body(c, 2_500_000))).review; }));
 api.post('/api/coaster/statements/commit', as(async (a, c) => commitStatement(db(c), a, await body(c, 2_500_000))));
 api.post('/api/coaster/statements/:id/undo', as(async (a, c) => undoStatement(db(c), a, param(c, 'id'))));
+// FEED-005 statement reconciliation: finance opens a card's statement period, settles each listed difference, and closes it into the card ledger.
+api.get('/api/coaster/statements/reconciliations', as(async (a, c) => reconciliations(db(c), a)));
+api.get('/api/coaster/statements/reconciliations/:id', as(async (a, c) => reconciliation(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/statements/:id/reconcile', as(async (a, c) => openReconciliation(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/statements/reconciliations/:id/resolve', as(async (a, c) => resolveDifference(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/statements/reconciliations/:id/close', as(async (a, c) => closeReconciliation(db(c), a, param(c, 'id'))));
 
 api.get('/api/coaster/import/cutover', as(async (a, c) => cutoverReport(db(c), a)));
 api.get('/api/coaster/import', as(async (a, c) => { need(a, 'owner'); return { jobs: await importJobs(db(c)), history: await importedHistory(db(c)) }; }));

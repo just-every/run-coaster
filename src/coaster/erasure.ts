@@ -46,6 +46,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_delegates', ['created_by', 'revoked_by']],
   ['c_policies', ['published_by']],
   ['c_cards', ['employee_email', 'assigned_by']], ['c_card_charges', ['employee_email']], ['c_card_charge_undo_history', ['employee_email']], ['c_statement_files', ['imported_by', 'undone_by']],
+  ['c_card_statements', ['opened_by', 'closed_by']], ['c_card_statement_resolutions', ['resolved_by']],
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [

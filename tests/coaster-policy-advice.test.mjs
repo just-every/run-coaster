@@ -206,7 +206,7 @@ test('FEED-004 AGENT-003 card spend replays tightening and relaxation without be
       await h.post(`claims/${cardClaim}/items`,{version:c.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),category:t.c.meals,explanation:'Company card business purchase'},t.sam)
     }
     // A mixed report must keep its cash reimbursement while excluding every card amount.
-    await h.post('expenses', {kind:'receipt',date:today,merchant:'Cash taxi',amount:'10.00',category:t.c.meals,explanation:'Paid personally'}, t.sam)
+    await h.post(`claims/${cardClaim}/items`, {version:(await h.get(`claims/${cardClaim}`,t.sam)).claim.version,kind:'receipt',date:today,merchant:'Cash taxi',amount:'10.00',category:t.c.meals,explanation:'Paid personally'}, t.sam)
     const approve = async id => {
       let c = (await h.get(`claims/${id}`,t.sam)).claim
       c = await h.post(`claims/${id}/submit`,{version:c.version},t.sam)

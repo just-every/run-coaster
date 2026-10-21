@@ -9,7 +9,9 @@ export type StatementRow = {
   pending: boolean; problems: string[];
 };
 export type StatementCard = { last4: string; label: string };
-export type Statement = { format: 'ofx' | 'qfx' | 'csv'; name: string; issuer: string; cards: StatementCard[]; rows: StatementRow[]; period: { start: string | null; end: string | null }; currency: string; masked: string; mapping: Record<string, unknown> };
+/** The closing balance a statement file states for one card, as an amount owed (positive) or in credit (negative). */
+export type StatementBalance = { owedMinor: number; asOf: string | null };
+export type Statement = { format: 'ofx' | 'qfx' | 'csv'; name: string; issuer: string; cards: StatementCard[]; rows: StatementRow[]; period: { start: string | null; end: string | null }; currency: string; masked: string; mapping: Record<string, unknown>; balances: Record<string, StatementBalance> };
 
 export const STATEMENT_LIMIT = 1_500_000;
 /** One import is one D1 batch (at most 1,000 statements per invocation), so a file's importable charges are capped. */
