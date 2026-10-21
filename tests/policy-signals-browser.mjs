@@ -58,7 +58,7 @@ try {
   batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:approved.total_minor},finance.context)
   batch=await h.post(`batches/${batch.id}/release`,{version:batch.version})
   await h.post(`batches/${batch.id}/paid`,{version:batch.version,reference:'synthetic-coaster-'+width,paidOn:'2026-06-20'},finance.context)
-  await page.reload();await page.getByText('Reimbursed',{exact:true}).first().waitFor()
+  await page.reload();await page.locator('.detail .badge',{hasText:'Reimbursed'}).waitFor()
   assert.equal((await h.get(`claims/${c.id}`,finance.context)).claim.status,'reimbursed')
   await screenshot('signals-paid-unresolved')
   await page.getByRole('navigation',{name:'Coaster'}).getByRole('link',{name:'Batches',exact:true}).click()
