@@ -1375,13 +1375,14 @@ test('POLICY-003 finance works one queue of open exceptions across claims by ris
   filed.push(await submit(h, t.alex, await claim(h, t.alex, 'Taxi', [expense('Taxi', '15.00', { date: '2026-06-11' })])))
   await h.get('exceptions', t.sam, 403)
   let queue = await h.get('exceptions', t.jordan)
-  assert.deepEqual(queue.open.map(x => [x.number, x.code, x.risk]), [['CL-0004', 'duplicate-receipt', 5], ['CL-0002', 'over-limit', 3], ['CL-0001', 'missing-receipt', 2], ['CL-0005', 'missing-receipt', 2]])
-  assert.deepEqual((await h.get('exceptions?sort=age', t.jordan)).open.map(x => x.number), ['CL-0001', 'CL-0002', 'CL-0004', 'CL-0005'])
+  assert.deepEqual(queue.open.map(x => [x.number, x.code, x.risk]), [['CL-0004', 'duplicate-receipt', 5], ['CL-0002', 'over-limit', 3], ['CL-0001', 'missing-receipt', 2], ['CL-0005', 'missing-receipt', 2], ['CL-0004', 'same-receipt', 1]])
+  assert.deepEqual((await h.get('exceptions?sort=age', t.jordan)).open.map(x => x.number), ['CL-0001', 'CL-0002', 'CL-0004', 'CL-0004', 'CL-0005'])
   const top = queue.open[0]
   await h.post('exceptions/review', { claim: top.claim, revision: top.revision, item: top.item, code: top.code, note: '' }, t.jordan, 400)
   await h.post('exceptions/review', { claim: top.claim, revision: top.revision, item: top.item, code: top.code, note: 'Two different purchases on one receipt; confirmed with sam' }, t.sam, 403)
   queue = await h.post('exceptions/review', { claim: top.claim, revision: top.revision, item: top.item, code: top.code, note: 'Two different purchases on one receipt; confirmed with sam' }, t.jordan)
-  assert.ok(!queue.open.some(x => x.number === 'CL-0004'), 'a reviewed exception leaves the queue')
+  assert.ok(!queue.open.some(x => x.number === 'CL-0004' && x.code === 'duplicate-receipt'), 'a reviewed exception leaves the queue')
+  assert.ok(queue.open.some(x => x.number === 'CL-0004' && x.code === 'same-receipt' && x.signal), 'the separate unreviewed receipt signal stays visible')
   await h.post('exceptions/review', { claim: top.claim, revision: top.revision, item: top.item, code: top.code, note: 'Again' }, t.jordan, 409)
   assert.equal((await h.get(`claims/${top.claim}`, t.sam)).events.at(-1).action, 'exception-reviewed')
 

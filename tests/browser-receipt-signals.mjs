@@ -5,12 +5,12 @@ import { api } from './browser-journey.mjs'
 
 export async function inspectReceiptSignals(person,origin,claimId,width,evidence,shots,phase='submitted',resolve=false){
  const {page,context}=person,before=await api(context,origin,`claims/${claimId}`),frozen=before.revisions.at(-1).snapshot.receiptSignals
- const section=page.getByRole('region',{name:'Receipt metadata signals',exact:true})
- await section.getByText('possible, needs review',{exact:true}).waitFor()
- for(const summary of await section.getByText('Metadata evidence',{exact:true}).all())if(!await summary.evaluate(el=>el.parentElement.open))await summary.click()
+ const section=page.getByRole('region',{name:'Receipt and spend signals',exact:true})
+ await section.getByText('possible, needs review',{exact:true}).first().waitFor()
+ for(const summary of await section.getByText('Signal evidence',{exact:true}).all())if(!await summary.evaluate(el=>el.parentElement.open))await summary.click()
  const text=await section.innerText()
  for(const receipt of frozen){
-  assert.ok(text.includes(receipt.sha256))
+  assert.ok(!receipt.sha256 || text.includes(receipt.sha256))
   for(const signal of receipt.signals)assert.ok(text.includes(signal.reason),'POLICY-002 computed signal reason is visible')
  }
  assert.ok(text.includes('no metadata to check'),'POLICY-002 stripped metadata is not a flag')

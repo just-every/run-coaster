@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
 import {createHash} from 'node:crypto'
 import {harness,agency} from './harness.mjs'
+import {imageSignalCases,patternSignalCases,cardSignalCases} from './receipt-signal-scenarios.mjs'
+import {cleanSignalMeasurement} from './receipt-signals-clean.mjs'
 import {withExif} from './fixtures/receipt-exif.mjs'
 import {makeReceipt,addTextMetadata} from './fixtures/receipt-metadata.mjs'
 
@@ -30,6 +32,7 @@ test('POLICY-002 metadata signals name computable software/date evidence, never 
  assert.match(evidence.signals[1].reason,/Later photographs can be legitimate/)
  assert.equal(evidence.sha256,createHash('sha256').update(bytes).digest('hex'))
  assert.equal(evidence.fields.software,record.software)
+ assert.equal(evidence.image.status,'checked',JSON.stringify(evidence.image))
  const body={revision:1,item:evidence.item,code:'editing-software',note:'Legitimate supplier preparation; finance reviewed the original.'}
  const review=()=>h.post(`claims/${c.id}/receipt-signals/review`,body,t.morgan)
  for(const cookie of [t.sam,t.priya])await h.post(`claims/${c.id}/receipt-signals/review`,body,cookie,403)
@@ -53,7 +56,7 @@ test('POLICY-002 metadata signals name computable software/date evidence, never 
   image=await h.post(`claims/${image.id}/submit`,{version:image.version},t.alex)
   const result=(await h.get(`claims/${image.id}`,t.morgan)).revisions[0].snapshot.receiptSignals[0]
   assert.equal(result.fields.software,'GIMP 3.0');assert.equal(result.fields.dateTimeOriginal,'2026:06:19 12:00:00')
-  assert.deepEqual(result.signals.map(s=>s.code),['editing-software','image-date-mismatch'])
+  assert.deepEqual(result.signals.filter(s=>['editing-software','image-date-mismatch'].includes(s.code)).map(s=>s.code),['editing-software','image-date-mismatch'])
  }
  // Stripped metadata, arbitrary trailing text and a damaged metadata chunk never invent a flag.
  const stripped=makeReceipt({...record,software:undefined,imageDate:undefined}),damaged=addTextMetadata(stripped,'Software','Adobe Photoshop');damaged[damaged.indexOf(Buffer.from('tEXt'))+8]^=1
@@ -62,28 +65,59 @@ test('POLICY-002 metadata signals name computable software/date evidence, never 
   plain=await upload(h,t.alex,plain,{...record,id:'NO-META-'+index,merchant:'Unflagged merchant '+index},clean)
   plain=await h.post(`claims/${plain.id}/submit`,{version:plain.version},t.alex)
   const observed=(await h.get(`claims/${plain.id}`,t.morgan)).revisions[0].snapshot.receiptSignals[0]
-  assert.equal(observed.status,'no metadata to check');assert.deepEqual(observed.signals,[])
+  assert.equal(observed.status,'no metadata to check');assert.deepEqual(observed.signals.filter(s=>['editing-software','image-date-mismatch'].includes(s.code)),[])
+  if(index===1)assert.ok(observed.signals.some(s=>s.code==='near-duplicate-image'),'the same pixels with different metadata still raise the image comparison')
  }
  }finally{await h.close()}
 })
 
-test('POLICY-002 clean metadata fixture measurement covers 300 legitimate receipts across 20 employees with subscriptions, attendee-split meals and round amounts',async()=>{
- const h=await harness();try{
- const t=await agency(h),employees=[...new Set(corpus.map(r=>r.employee))]
- assert.ok(corpus.length>=300);assert.ok(employees.length>=20)
- let signalled=0,checked=0,noMetadata=0
- for(const employee of employees){
-  const who=await h.person(employee,{employee:true},'priya@harbourfinch.example')
-  let c=await h.post('claims',{title:'Metadata clean set '+employee},who)
-  const records=corpus.filter(r=>r.employee===employee)
-  for(const record of records)c=await upload(h,who,c,{...record,category:t.c.office})
-  c=await h.post(`claims/${c.id}/submit`,{version:c.version},who)
-  const evidence=(await h.get(`claims/${c.id}`,t.priya)).revisions[0].snapshot.receiptSignals
-  assert.equal(evidence.length,records.length)
-  for(const result of evidence){checked++;if(result.status==='no metadata to check')noMetadata++;if(result.signals.length)signalled++}
- }
- console.log(`POLICY-002 metadata clean-set false-positive rate: ${signalled}/${checked} (${(signalled/checked*100).toFixed(2)}%); ${noMetadata} stripped receipts`)
- assert.ok(signalled/checked<=0.02,'metadata detector stays within the declared clean-set false-positive bound')
- assert.ok(noMetadata>0)
+test('POLICY-002 combined detectors stay within the 300 legitimate expense false-positive bound across 20 employees',cleanSignalMeasurement)
+
+test('POLICY-002 exact, cropped, photographed and visibly changed receipts name comparative evidence across employees',async()=>{
+ const h=await harness();try {
+  const t=await agency(h)
+  await imageSignalCases(h,t)
+ }finally{await h.close()}
+})
+
+test('POLICY-002 split and round/weekend patterns enter the finance queue and reviewed reasons never gate reimbursement',async()=>{
+ const h=await harness();try {
+  const t=await agency(h),{claim:c,results}=await patternSignalCases(h,t)
+  const queue=await h.get('exceptions',t.morgan),signals=queue.open.filter(x=>x.signal&&x.claim===c.id)
+  assert.ok(signals.length>=4)
+  assert.ok(signals.every(s=>s.message&&s.evidence))
+  const target=signals.find(s=>s.code==='split-charge'),frozen=JSON.stringify(results)
+  const review={claim:c.id,revision:c.revision,item:target.item,code:target.code,note:'Legitimate separate equipment purchases; original supplier records checked.'}
+  await h.post('exceptions/review',review,t.sam,403)
+  await h.post('exceptions/review',{...review,note:''},t.morgan,400)
+  const reviewed=await h.post('exceptions/review',review,t.morgan)
+  assert.ok(!reviewed.open.some(s=>s.claim===c.id&&s.item===target.item&&s.code===target.code))
+  await h.post('exceptions/review',review,t.morgan,409)
+  let approved=await h.post(`claims/${c.id}/decision`,{version:c.version,revision:c.revision,decision:'approved',acknowledge:true},t.priya)
+  let batch=await h.post('batches',{claims:[c.id]},t.morgan)
+  batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:approved.total_minor},t.morgan)
+  await h.paid(batch.id,batch.version,{reference:'synthetic-coaster-401',paidOn:'2026-06-20'},t.morgan)
+  const after=await h.get(`claims/${c.id}`,t.morgan)
+  assert.equal(after.claim.status,'reimbursed');assert.equal(JSON.stringify(after.revisions.at(-1).snapshot.receiptSignals),frozen)
+  assert.equal(after.events.find(e=>e.action==='receipt-signal-reviewed').detail.note,review.note)
+  assert.ok((await h.get('exceptions',t.morgan)).open.some(s=>s.signal&&s.claim===c.id),'other unresolved signals survive payment')
+ }finally{await h.close()}
+})
+
+test('POLICY-002 matched receipt and posted card differences show entered totals, tip and FX context without blocking approval',async()=>{
+ const h=await harness();try {
+  const t=await agency(h)
+  const {claim}=await cardSignalCases(h,t,{
+   async upload(bytes,name,who) {
+    const form=new FormData();form.append('file',new Blob([bytes]),name)
+    const request=new Request(h.origin+'/api/coaster/receipt-inbox',{method:'POST',headers:{origin:h.origin,cookie:who},body:form})
+    const response=await h.mf.dispatchFetch(request.url,{method:'POST',headers:Object.fromEntries(request.headers),body:await request.arrayBuffer()})
+    assert.equal(response.status,200);return (await response.json()).receipt
+   },
+   tick:async()=> (await h.mf.getWorker()).scheduled({scheduledTime:Date.now(),cron:'17 * * * *'})
+  })
+  let c=claim
+  c=await h.post(`claims/${c.id}/decision`,{version:c.version,revision:c.revision,decision:'approved'},t.priya)
+  assert.equal(c.status,'approved');assert.equal(c.total_minor,0,'company-card charge remains non-reimbursable')
  }finally{await h.close()}
 })

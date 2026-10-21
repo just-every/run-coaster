@@ -7,7 +7,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-01"
+    "imageDate": "2026-01-01",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0002",
@@ -17,7 +18,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-01"
+    "imageDate": "2026-02-01",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0003",
@@ -26,7 +28,8 @@
     "date": "2026-03-01",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-01"
+    "imageDate": "2026-03-01",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0004",
@@ -35,7 +38,8 @@
     "date": "2026-04-01",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0005",
@@ -45,7 +49,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-01"
+    "imageDate": "2026-05-01",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0006",
@@ -54,7 +59,8 @@
     "date": "2026-06-01",
     "amount": 18.0,
     "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share",
-    "imageDate": "2026-06-01"
+    "imageDate": "2026-06-01",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0007",
@@ -64,7 +70,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 4 attendees split AUD 80.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-01"
+    "imageDate": "2026-06-01",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0008",
@@ -73,7 +80,8 @@
     "date": "2026-06-01",
     "amount": 22.5,
     "scenario": "Shared team meal: 5 attendees split AUD 112.50 equally; one attendee share",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0009",
@@ -82,7 +90,8 @@
     "date": "2026-06-01",
     "amount": 25.0,
     "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share",
-    "imageDate": "2026-06-01"
+    "imageDate": "2026-06-01",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0010",
@@ -92,7 +101,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 2 attendees split AUD 60.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-01"
+    "imageDate": "2026-06-01",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0011",
@@ -102,7 +112,8 @@
     "amount": 13.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-01"
+    "imageDate": "2026-07-01",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0012",
@@ -110,7 +121,8 @@
     "merchant": "Office Supply House",
     "date": "2026-07-01",
     "amount": 40.95,
-    "scenario": "Office supplies"
+    "scenario": "Office supplies",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0013",
@@ -120,7 +132,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-01"
+    "imageDate": "2026-07-01",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0014",
@@ -130,7 +143,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-01"
+    "imageDate": "2026-07-01",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0015",
@@ -139,7 +153,8 @@
     "date": "2026-07-01",
     "amount": 49.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-01"
+    "imageDate": "2026-07-01",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0016",
@@ -148,7 +163,8 @@
     "date": "2026-01-02",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0017",
@@ -158,7 +174,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-02"
+    "imageDate": "2026-02-02",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0018",
@@ -167,7 +184,8 @@
     "date": "2026-03-02",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-02"
+    "imageDate": "2026-03-02",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0019",
@@ -177,7 +195,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-02"
+    "imageDate": "2026-04-02",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0020",
@@ -186,7 +205,8 @@
     "date": "2026-05-02",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0021",
@@ -195,7 +215,8 @@
     "date": "2026-06-02",
     "amount": 18.0,
     "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share",
-    "imageDate": "2026-06-02"
+    "imageDate": "2026-06-02",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0022",
@@ -205,7 +226,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 5 attendees split AUD 100.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-02"
+    "imageDate": "2026-06-02",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0023",
@@ -215,7 +237,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 6 attendees split AUD 135.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-02"
+    "imageDate": "2026-06-02",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0024",
@@ -223,7 +246,8 @@
     "merchant": "Dockside Noodles",
     "date": "2026-06-02",
     "amount": 25.0,
-    "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share"
+    "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0025",
@@ -233,7 +257,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 3 attendees split AUD 90.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-02"
+    "imageDate": "2026-06-02",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0026",
@@ -243,7 +268,8 @@
     "amount": 14.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-02"
+    "imageDate": "2026-07-02",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0027",
@@ -252,7 +278,8 @@
     "date": "2026-07-02",
     "amount": 41.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-02"
+    "imageDate": "2026-07-02",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0028",
@@ -261,7 +288,8 @@
     "date": "2026-07-02",
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0029",
@@ -271,7 +299,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-02"
+    "imageDate": "2026-07-02",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0030",
@@ -280,7 +309,8 @@
     "date": "2026-07-02",
     "amount": 50.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-02"
+    "imageDate": "2026-07-02",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0031",
@@ -290,7 +320,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-03"
+    "imageDate": "2026-01-03",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0032",
@@ -299,7 +330,8 @@
     "date": "2026-02-03",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0033",
@@ -308,7 +340,8 @@
     "date": "2026-03-03",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-03"
+    "imageDate": "2026-03-03",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0034",
@@ -318,7 +351,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-03"
+    "imageDate": "2026-04-03",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0035",
@@ -328,7 +362,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-03"
+    "imageDate": "2026-05-03",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0036",
@@ -336,7 +371,8 @@
     "merchant": "Quayside Kitchen",
     "date": "2026-06-03",
     "amount": 18.0,
-    "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share"
+    "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0037",
@@ -346,7 +382,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 6 attendees split AUD 120.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-03"
+    "imageDate": "2026-06-03",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0038",
@@ -356,7 +393,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 2 attendees split AUD 45.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-03"
+    "imageDate": "2026-06-03",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0039",
@@ -365,7 +403,8 @@
     "date": "2026-06-03",
     "amount": 25.0,
     "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share",
-    "imageDate": "2026-06-03"
+    "imageDate": "2026-06-03",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0040",
@@ -374,7 +413,8 @@
     "date": "2026-06-03",
     "amount": 30.0,
     "scenario": "Shared team meal: 4 attendees split AUD 120.00 equally; one attendee share",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0041",
@@ -384,7 +424,8 @@
     "amount": 12.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-03"
+    "imageDate": "2026-07-03",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0042",
@@ -393,7 +434,8 @@
     "date": "2026-07-03",
     "amount": 39.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-03"
+    "imageDate": "2026-07-03",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0043",
@@ -403,7 +445,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-03"
+    "imageDate": "2026-07-03",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0044",
@@ -412,7 +455,8 @@
     "date": "2026-07-03",
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0045",
@@ -421,7 +465,8 @@
     "date": "2026-07-03",
     "amount": 48.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-03"
+    "imageDate": "2026-07-03",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0046",
@@ -431,7 +476,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-04"
+    "imageDate": "2026-01-04",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0047",
@@ -441,7 +487,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-04"
+    "imageDate": "2026-02-04",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0048",
@@ -449,7 +496,8 @@
     "merchant": "Harbour Cloud Services",
     "date": "2026-03-04",
     "amount": 20,
-    "scenario": "Recurring monthly business subscription"
+    "scenario": "Recurring monthly business subscription",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0049",
@@ -459,7 +507,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-04"
+    "imageDate": "2026-04-04",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0050",
@@ -469,7 +518,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-04"
+    "imageDate": "2026-05-04",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0051",
@@ -478,7 +528,8 @@
     "date": "2026-06-04",
     "amount": 18.0,
     "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share",
-    "imageDate": "2026-06-04"
+    "imageDate": "2026-06-04",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0052",
@@ -487,7 +538,8 @@
     "date": "2026-06-04",
     "amount": 20.0,
     "scenario": "Shared team meal: 2 attendees split AUD 40.00 equally; one attendee share",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0053",
@@ -497,7 +549,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 3 attendees split AUD 67.50 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-04"
+    "imageDate": "2026-06-04",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0054",
@@ -506,7 +559,8 @@
     "date": "2026-06-04",
     "amount": 25.0,
     "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share",
-    "imageDate": "2026-06-04"
+    "imageDate": "2026-06-04",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0055",
@@ -516,7 +570,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 5 attendees split AUD 150.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-04"
+    "imageDate": "2026-06-04",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0056",
@@ -525,7 +580,8 @@
     "date": "2026-07-04",
     "amount": 13.8,
     "scenario": "Business travel fare",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0057",
@@ -534,7 +590,8 @@
     "date": "2026-07-04",
     "amount": 40.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-04"
+    "imageDate": "2026-07-04",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0058",
@@ -544,7 +601,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-04"
+    "imageDate": "2026-07-04",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0059",
@@ -554,7 +612,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-04"
+    "imageDate": "2026-07-04",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0060",
@@ -562,7 +621,8 @@
     "merchant": "Business Books",
     "date": "2026-07-04",
     "amount": 49.5,
-    "scenario": "Professional reference book"
+    "scenario": "Professional reference book",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0061",
@@ -572,7 +632,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-05"
+    "imageDate": "2026-01-05",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0062",
@@ -582,7 +643,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-05"
+    "imageDate": "2026-02-05",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0063",
@@ -591,7 +653,8 @@
     "date": "2026-03-05",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-05"
+    "imageDate": "2026-03-05",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0064",
@@ -600,7 +663,8 @@
     "date": "2026-04-05",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0065",
@@ -610,7 +674,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-05"
+    "imageDate": "2026-05-05",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0066",
@@ -619,7 +684,8 @@
     "date": "2026-06-05",
     "amount": 18.0,
     "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share",
-    "imageDate": "2026-06-05"
+    "imageDate": "2026-06-05",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0067",
@@ -629,7 +695,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 3 attendees split AUD 60.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-05"
+    "imageDate": "2026-06-05",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0068",
@@ -638,7 +705,8 @@
     "date": "2026-06-05",
     "amount": 22.5,
     "scenario": "Shared team meal: 4 attendees split AUD 90.00 equally; one attendee share",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0069",
@@ -647,7 +715,8 @@
     "date": "2026-06-05",
     "amount": 25.0,
     "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share",
-    "imageDate": "2026-06-05"
+    "imageDate": "2026-06-05",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0070",
@@ -657,7 +726,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 6 attendees split AUD 180.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-05"
+    "imageDate": "2026-06-05",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0071",
@@ -667,7 +737,8 @@
     "amount": 14.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-05"
+    "imageDate": "2026-07-05",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0072",
@@ -675,7 +746,8 @@
     "merchant": "Office Supply House",
     "date": "2026-07-05",
     "amount": 41.95,
-    "scenario": "Office supplies"
+    "scenario": "Office supplies",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0073",
@@ -685,7 +757,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-05"
+    "imageDate": "2026-07-05",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0074",
@@ -695,7 +768,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-05"
+    "imageDate": "2026-07-05",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0075",
@@ -704,7 +778,8 @@
     "date": "2026-07-05",
     "amount": 50.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-05"
+    "imageDate": "2026-07-05",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0076",
@@ -713,7 +788,8 @@
     "date": "2026-01-06",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0077",
@@ -723,7 +799,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-06"
+    "imageDate": "2026-02-06",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0078",
@@ -732,7 +809,8 @@
     "date": "2026-03-06",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-06"
+    "imageDate": "2026-03-06",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0079",
@@ -742,7 +820,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-06"
+    "imageDate": "2026-04-06",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0080",
@@ -751,7 +830,8 @@
     "date": "2026-05-06",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0081",
@@ -760,7 +840,8 @@
     "date": "2026-06-06",
     "amount": 18.0,
     "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share",
-    "imageDate": "2026-06-06"
+    "imageDate": "2026-06-06",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0082",
@@ -770,7 +851,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 4 attendees split AUD 80.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-06"
+    "imageDate": "2026-06-06",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0083",
@@ -780,7 +862,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 5 attendees split AUD 112.50 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-06"
+    "imageDate": "2026-06-06",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0084",
@@ -788,7 +871,8 @@
     "merchant": "Dockside Noodles",
     "date": "2026-06-06",
     "amount": 25.0,
-    "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share"
+    "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0085",
@@ -798,7 +882,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 2 attendees split AUD 60.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-06"
+    "imageDate": "2026-06-06",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0086",
@@ -808,7 +893,8 @@
     "amount": 12.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-06"
+    "imageDate": "2026-07-06",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0087",
@@ -817,7 +903,8 @@
     "date": "2026-07-06",
     "amount": 39.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-06"
+    "imageDate": "2026-07-06",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0088",
@@ -826,7 +913,8 @@
     "date": "2026-07-06",
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0089",
@@ -836,7 +924,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-06"
+    "imageDate": "2026-07-06",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0090",
@@ -845,7 +934,8 @@
     "date": "2026-07-06",
     "amount": 48.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-06"
+    "imageDate": "2026-07-06",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0091",
@@ -855,7 +945,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-07"
+    "imageDate": "2026-01-07",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0092",
@@ -864,7 +955,8 @@
     "date": "2026-02-07",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0093",
@@ -873,7 +965,8 @@
     "date": "2026-03-07",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-07"
+    "imageDate": "2026-03-07",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0094",
@@ -883,7 +976,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-07"
+    "imageDate": "2026-04-07",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0095",
@@ -893,7 +987,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-07"
+    "imageDate": "2026-05-07",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0096",
@@ -901,7 +996,8 @@
     "merchant": "Quayside Kitchen",
     "date": "2026-06-07",
     "amount": 18.0,
-    "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share"
+    "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0097",
@@ -911,7 +1007,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 5 attendees split AUD 100.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-07"
+    "imageDate": "2026-06-07",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0098",
@@ -921,7 +1018,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 6 attendees split AUD 135.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-07"
+    "imageDate": "2026-06-07",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0099",
@@ -930,7 +1028,8 @@
     "date": "2026-06-07",
     "amount": 25.0,
     "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share",
-    "imageDate": "2026-06-07"
+    "imageDate": "2026-06-07",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0100",
@@ -939,7 +1038,8 @@
     "date": "2026-06-07",
     "amount": 30.0,
     "scenario": "Shared team meal: 3 attendees split AUD 90.00 equally; one attendee share",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0101",
@@ -949,7 +1049,8 @@
     "amount": 13.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-07"
+    "imageDate": "2026-07-07",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0102",
@@ -958,7 +1059,8 @@
     "date": "2026-07-07",
     "amount": 40.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-07"
+    "imageDate": "2026-07-07",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0103",
@@ -968,7 +1070,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-07"
+    "imageDate": "2026-07-07",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0104",
@@ -977,7 +1080,8 @@
     "date": "2026-07-07",
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0105",
@@ -986,7 +1090,8 @@
     "date": "2026-07-07",
     "amount": 49.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-07"
+    "imageDate": "2026-07-07",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0106",
@@ -996,7 +1101,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-08"
+    "imageDate": "2026-01-08",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0107",
@@ -1006,7 +1112,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-08"
+    "imageDate": "2026-02-08",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0108",
@@ -1014,7 +1121,8 @@
     "merchant": "Harbour Cloud Services",
     "date": "2026-03-08",
     "amount": 20,
-    "scenario": "Recurring monthly business subscription"
+    "scenario": "Recurring monthly business subscription",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0109",
@@ -1024,7 +1132,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-08"
+    "imageDate": "2026-04-08",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0110",
@@ -1034,7 +1143,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-08"
+    "imageDate": "2026-05-08",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0111",
@@ -1043,7 +1153,8 @@
     "date": "2026-06-08",
     "amount": 18.0,
     "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share",
-    "imageDate": "2026-06-08"
+    "imageDate": "2026-06-08",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0112",
@@ -1052,7 +1163,8 @@
     "date": "2026-06-08",
     "amount": 20.0,
     "scenario": "Shared team meal: 6 attendees split AUD 120.00 equally; one attendee share",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0113",
@@ -1062,7 +1174,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 2 attendees split AUD 45.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-08"
+    "imageDate": "2026-06-08",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0114",
@@ -1071,7 +1184,8 @@
     "date": "2026-06-08",
     "amount": 25.0,
     "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share",
-    "imageDate": "2026-06-08"
+    "imageDate": "2026-06-08",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0115",
@@ -1081,7 +1195,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 4 attendees split AUD 120.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-08"
+    "imageDate": "2026-06-08",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0116",
@@ -1090,7 +1205,8 @@
     "date": "2026-07-08",
     "amount": 14.8,
     "scenario": "Business travel fare",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0117",
@@ -1099,7 +1215,8 @@
     "date": "2026-07-08",
     "amount": 41.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-08"
+    "imageDate": "2026-07-08",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0118",
@@ -1109,7 +1226,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-08"
+    "imageDate": "2026-07-08",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0119",
@@ -1119,7 +1237,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-08"
+    "imageDate": "2026-07-08",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0120",
@@ -1127,7 +1246,8 @@
     "merchant": "Business Books",
     "date": "2026-07-08",
     "amount": 50.5,
-    "scenario": "Professional reference book"
+    "scenario": "Professional reference book",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0121",
@@ -1137,7 +1257,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-09"
+    "imageDate": "2026-01-09",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0122",
@@ -1147,7 +1268,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-09"
+    "imageDate": "2026-02-09",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0123",
@@ -1156,7 +1278,8 @@
     "date": "2026-03-09",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-09"
+    "imageDate": "2026-03-09",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0124",
@@ -1165,7 +1288,8 @@
     "date": "2026-04-09",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0125",
@@ -1175,7 +1299,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-09"
+    "imageDate": "2026-05-09",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0126",
@@ -1184,7 +1309,8 @@
     "date": "2026-06-09",
     "amount": 18.0,
     "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share",
-    "imageDate": "2026-06-09"
+    "imageDate": "2026-06-09",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0127",
@@ -1194,7 +1320,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 2 attendees split AUD 40.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-09"
+    "imageDate": "2026-06-09",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0128",
@@ -1203,7 +1330,8 @@
     "date": "2026-06-09",
     "amount": 22.5,
     "scenario": "Shared team meal: 3 attendees split AUD 67.50 equally; one attendee share",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0129",
@@ -1212,7 +1340,8 @@
     "date": "2026-06-09",
     "amount": 25.0,
     "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share",
-    "imageDate": "2026-06-09"
+    "imageDate": "2026-06-09",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0130",
@@ -1222,7 +1351,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 5 attendees split AUD 150.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-09"
+    "imageDate": "2026-06-09",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0131",
@@ -1232,7 +1362,8 @@
     "amount": 12.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-09"
+    "imageDate": "2026-07-09",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0132",
@@ -1240,7 +1371,8 @@
     "merchant": "Office Supply House",
     "date": "2026-07-09",
     "amount": 39.95,
-    "scenario": "Office supplies"
+    "scenario": "Office supplies",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0133",
@@ -1250,7 +1382,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-09"
+    "imageDate": "2026-07-09",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0134",
@@ -1260,7 +1393,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-09"
+    "imageDate": "2026-07-09",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0135",
@@ -1269,7 +1403,8 @@
     "date": "2026-07-09",
     "amount": 48.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-09"
+    "imageDate": "2026-07-09",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0136",
@@ -1278,7 +1413,8 @@
     "date": "2026-01-10",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0137",
@@ -1288,7 +1424,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-10"
+    "imageDate": "2026-02-10",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0138",
@@ -1297,7 +1434,8 @@
     "date": "2026-03-10",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-10"
+    "imageDate": "2026-03-10",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0139",
@@ -1307,7 +1445,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-10"
+    "imageDate": "2026-04-10",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0140",
@@ -1316,7 +1455,8 @@
     "date": "2026-05-10",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0141",
@@ -1325,7 +1465,8 @@
     "date": "2026-06-10",
     "amount": 18.0,
     "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share",
-    "imageDate": "2026-06-10"
+    "imageDate": "2026-06-10",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0142",
@@ -1335,7 +1476,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 3 attendees split AUD 60.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-10"
+    "imageDate": "2026-06-10",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0143",
@@ -1345,7 +1487,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 4 attendees split AUD 90.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-10"
+    "imageDate": "2026-06-10",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0144",
@@ -1353,7 +1496,8 @@
     "merchant": "Dockside Noodles",
     "date": "2026-06-10",
     "amount": 25.0,
-    "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share"
+    "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0145",
@@ -1363,7 +1507,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 6 attendees split AUD 180.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-10"
+    "imageDate": "2026-06-10",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0146",
@@ -1373,7 +1518,8 @@
     "amount": 13.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-10"
+    "imageDate": "2026-07-10",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0147",
@@ -1382,7 +1528,8 @@
     "date": "2026-07-10",
     "amount": 40.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-10"
+    "imageDate": "2026-07-10",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0148",
@@ -1391,7 +1538,8 @@
     "date": "2026-07-10",
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0149",
@@ -1401,7 +1549,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-10"
+    "imageDate": "2026-07-10",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0150",
@@ -1410,7 +1559,8 @@
     "date": "2026-07-10",
     "amount": 49.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-10"
+    "imageDate": "2026-07-10",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0151",
@@ -1420,7 +1570,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-11"
+    "imageDate": "2026-01-11",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0152",
@@ -1429,7 +1580,8 @@
     "date": "2026-02-11",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0153",
@@ -1438,7 +1590,8 @@
     "date": "2026-03-11",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-11"
+    "imageDate": "2026-03-11",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0154",
@@ -1448,7 +1601,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-11"
+    "imageDate": "2026-04-11",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0155",
@@ -1458,7 +1612,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-11"
+    "imageDate": "2026-05-11",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0156",
@@ -1466,7 +1621,8 @@
     "merchant": "Quayside Kitchen",
     "date": "2026-06-11",
     "amount": 18.0,
-    "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share"
+    "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0157",
@@ -1476,7 +1632,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 4 attendees split AUD 80.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-11"
+    "imageDate": "2026-06-11",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0158",
@@ -1486,7 +1643,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 5 attendees split AUD 112.50 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-11"
+    "imageDate": "2026-06-11",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0159",
@@ -1495,7 +1653,8 @@
     "date": "2026-06-11",
     "amount": 25.0,
     "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share",
-    "imageDate": "2026-06-11"
+    "imageDate": "2026-06-11",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0160",
@@ -1504,7 +1663,8 @@
     "date": "2026-06-11",
     "amount": 30.0,
     "scenario": "Shared team meal: 2 attendees split AUD 60.00 equally; one attendee share",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0161",
@@ -1514,7 +1674,8 @@
     "amount": 14.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-11"
+    "imageDate": "2026-07-11",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0162",
@@ -1523,7 +1684,8 @@
     "date": "2026-07-11",
     "amount": 41.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-11"
+    "imageDate": "2026-07-11",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0163",
@@ -1533,7 +1695,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-11"
+    "imageDate": "2026-07-11",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0164",
@@ -1542,7 +1705,8 @@
     "date": "2026-07-11",
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0165",
@@ -1551,7 +1715,8 @@
     "date": "2026-07-11",
     "amount": 50.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-11"
+    "imageDate": "2026-07-11",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0166",
@@ -1561,7 +1726,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-12"
+    "imageDate": "2026-01-12",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0167",
@@ -1571,7 +1737,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-12"
+    "imageDate": "2026-02-12",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0168",
@@ -1579,7 +1746,8 @@
     "merchant": "Harbour Cloud Services",
     "date": "2026-03-12",
     "amount": 20,
-    "scenario": "Recurring monthly business subscription"
+    "scenario": "Recurring monthly business subscription",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0169",
@@ -1589,7 +1757,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-12"
+    "imageDate": "2026-04-12",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0170",
@@ -1599,7 +1768,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-12"
+    "imageDate": "2026-05-12",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0171",
@@ -1608,7 +1778,8 @@
     "date": "2026-06-12",
     "amount": 18.0,
     "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share",
-    "imageDate": "2026-06-12"
+    "imageDate": "2026-06-12",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0172",
@@ -1617,7 +1788,8 @@
     "date": "2026-06-12",
     "amount": 20.0,
     "scenario": "Shared team meal: 5 attendees split AUD 100.00 equally; one attendee share",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0173",
@@ -1627,7 +1799,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 6 attendees split AUD 135.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-12"
+    "imageDate": "2026-06-12",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0174",
@@ -1636,7 +1809,8 @@
     "date": "2026-06-12",
     "amount": 25.0,
     "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share",
-    "imageDate": "2026-06-12"
+    "imageDate": "2026-06-12",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0175",
@@ -1646,7 +1820,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 3 attendees split AUD 90.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-12"
+    "imageDate": "2026-06-12",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0176",
@@ -1655,7 +1830,8 @@
     "date": "2026-07-12",
     "amount": 12.8,
     "scenario": "Business travel fare",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0177",
@@ -1664,7 +1840,8 @@
     "date": "2026-07-12",
     "amount": 39.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-12"
+    "imageDate": "2026-07-12",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0178",
@@ -1674,7 +1851,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-12"
+    "imageDate": "2026-07-12",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0179",
@@ -1684,7 +1862,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-12"
+    "imageDate": "2026-07-12",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0180",
@@ -1692,7 +1871,8 @@
     "merchant": "Business Books",
     "date": "2026-07-12",
     "amount": 48.5,
-    "scenario": "Professional reference book"
+    "scenario": "Professional reference book",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0181",
@@ -1702,7 +1882,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-13"
+    "imageDate": "2026-01-13",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0182",
@@ -1712,7 +1893,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-13"
+    "imageDate": "2026-02-13",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0183",
@@ -1721,7 +1903,8 @@
     "date": "2026-03-13",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-13"
+    "imageDate": "2026-03-13",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0184",
@@ -1730,7 +1913,8 @@
     "date": "2026-04-13",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0185",
@@ -1740,7 +1924,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-13"
+    "imageDate": "2026-05-13",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0186",
@@ -1749,7 +1934,8 @@
     "date": "2026-06-13",
     "amount": 18.0,
     "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share",
-    "imageDate": "2026-06-13"
+    "imageDate": "2026-06-13",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0187",
@@ -1759,7 +1945,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 6 attendees split AUD 120.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-13"
+    "imageDate": "2026-06-13",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0188",
@@ -1768,7 +1955,8 @@
     "date": "2026-06-13",
     "amount": 22.5,
     "scenario": "Shared team meal: 2 attendees split AUD 45.00 equally; one attendee share",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0189",
@@ -1777,7 +1965,8 @@
     "date": "2026-06-13",
     "amount": 25.0,
     "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share",
-    "imageDate": "2026-06-13"
+    "imageDate": "2026-06-13",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0190",
@@ -1787,7 +1976,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 4 attendees split AUD 120.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-13"
+    "imageDate": "2026-06-13",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0191",
@@ -1797,7 +1987,8 @@
     "amount": 13.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-13"
+    "imageDate": "2026-07-13",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0192",
@@ -1805,7 +1996,8 @@
     "merchant": "Office Supply House",
     "date": "2026-07-13",
     "amount": 40.95,
-    "scenario": "Office supplies"
+    "scenario": "Office supplies",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0193",
@@ -1815,7 +2007,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-13"
+    "imageDate": "2026-07-13",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0194",
@@ -1825,7 +2018,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-13"
+    "imageDate": "2026-07-13",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0195",
@@ -1834,7 +2028,8 @@
     "date": "2026-07-13",
     "amount": 49.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-13"
+    "imageDate": "2026-07-13",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0196",
@@ -1843,7 +2038,8 @@
     "date": "2026-01-14",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0197",
@@ -1853,7 +2049,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-14"
+    "imageDate": "2026-02-14",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0198",
@@ -1862,7 +2059,8 @@
     "date": "2026-03-14",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-14"
+    "imageDate": "2026-03-14",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0199",
@@ -1872,7 +2070,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-14"
+    "imageDate": "2026-04-14",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0200",
@@ -1881,7 +2080,8 @@
     "date": "2026-05-14",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0201",
@@ -1890,7 +2090,8 @@
     "date": "2026-06-14",
     "amount": 18.0,
     "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share",
-    "imageDate": "2026-06-14"
+    "imageDate": "2026-06-14",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0202",
@@ -1900,7 +2101,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 2 attendees split AUD 40.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-14"
+    "imageDate": "2026-06-14",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0203",
@@ -1910,7 +2112,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 3 attendees split AUD 67.50 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-14"
+    "imageDate": "2026-06-14",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0204",
@@ -1918,7 +2121,8 @@
     "merchant": "Dockside Noodles",
     "date": "2026-06-14",
     "amount": 25.0,
-    "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share"
+    "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0205",
@@ -1928,7 +2132,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 5 attendees split AUD 150.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-14"
+    "imageDate": "2026-06-14",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0206",
@@ -1938,7 +2143,8 @@
     "amount": 14.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-14"
+    "imageDate": "2026-07-14",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0207",
@@ -1947,7 +2153,8 @@
     "date": "2026-07-14",
     "amount": 41.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-14"
+    "imageDate": "2026-07-14",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0208",
@@ -1956,7 +2163,8 @@
     "date": "2026-07-14",
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0209",
@@ -1966,7 +2174,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-14"
+    "imageDate": "2026-07-14",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0210",
@@ -1975,7 +2184,8 @@
     "date": "2026-07-14",
     "amount": 50.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-14"
+    "imageDate": "2026-07-14",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0211",
@@ -1985,7 +2195,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-15"
+    "imageDate": "2026-01-15",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0212",
@@ -1994,7 +2205,8 @@
     "date": "2026-02-15",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0213",
@@ -2003,7 +2215,8 @@
     "date": "2026-03-15",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-15"
+    "imageDate": "2026-03-15",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0214",
@@ -2013,7 +2226,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-15"
+    "imageDate": "2026-04-15",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0215",
@@ -2023,7 +2237,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-15"
+    "imageDate": "2026-05-15",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0216",
@@ -2031,7 +2246,8 @@
     "merchant": "Quayside Kitchen",
     "date": "2026-06-15",
     "amount": 18.0,
-    "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share"
+    "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0217",
@@ -2041,7 +2257,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 3 attendees split AUD 60.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-15"
+    "imageDate": "2026-06-15",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0218",
@@ -2051,7 +2268,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 4 attendees split AUD 90.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-15"
+    "imageDate": "2026-06-15",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0219",
@@ -2060,7 +2278,8 @@
     "date": "2026-06-15",
     "amount": 25.0,
     "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share",
-    "imageDate": "2026-06-15"
+    "imageDate": "2026-06-15",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0220",
@@ -2069,7 +2288,8 @@
     "date": "2026-06-15",
     "amount": 30.0,
     "scenario": "Shared team meal: 6 attendees split AUD 180.00 equally; one attendee share",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0221",
@@ -2079,7 +2299,8 @@
     "amount": 12.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-15"
+    "imageDate": "2026-07-15",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0222",
@@ -2088,7 +2309,8 @@
     "date": "2026-07-15",
     "amount": 39.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-15"
+    "imageDate": "2026-07-15",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0223",
@@ -2098,7 +2320,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-15"
+    "imageDate": "2026-07-15",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0224",
@@ -2107,7 +2330,8 @@
     "date": "2026-07-15",
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0225",
@@ -2116,7 +2340,8 @@
     "date": "2026-07-15",
     "amount": 48.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-15"
+    "imageDate": "2026-07-15",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0226",
@@ -2126,7 +2351,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-16"
+    "imageDate": "2026-01-16",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0227",
@@ -2136,7 +2362,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-16"
+    "imageDate": "2026-02-16",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0228",
@@ -2144,7 +2371,8 @@
     "merchant": "Harbour Cloud Services",
     "date": "2026-03-16",
     "amount": 20,
-    "scenario": "Recurring monthly business subscription"
+    "scenario": "Recurring monthly business subscription",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0229",
@@ -2154,7 +2382,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-16"
+    "imageDate": "2026-04-16",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0230",
@@ -2164,7 +2393,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-16"
+    "imageDate": "2026-05-16",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0231",
@@ -2173,7 +2403,8 @@
     "date": "2026-06-16",
     "amount": 18.0,
     "scenario": "Shared team meal: 3 attendees split AUD 54.00 equally; one attendee share",
-    "imageDate": "2026-06-16"
+    "imageDate": "2026-06-16",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0232",
@@ -2182,7 +2413,8 @@
     "date": "2026-06-16",
     "amount": 20.0,
     "scenario": "Shared team meal: 4 attendees split AUD 80.00 equally; one attendee share",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0233",
@@ -2192,7 +2424,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 5 attendees split AUD 112.50 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-16"
+    "imageDate": "2026-06-16",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0234",
@@ -2201,7 +2434,8 @@
     "date": "2026-06-16",
     "amount": 25.0,
     "scenario": "Shared team meal: 6 attendees split AUD 150.00 equally; one attendee share",
-    "imageDate": "2026-06-16"
+    "imageDate": "2026-06-16",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0235",
@@ -2211,7 +2445,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 2 attendees split AUD 60.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-16"
+    "imageDate": "2026-06-16",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0236",
@@ -2220,7 +2455,8 @@
     "date": "2026-07-16",
     "amount": 13.8,
     "scenario": "Business travel fare",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0237",
@@ -2229,7 +2465,8 @@
     "date": "2026-07-16",
     "amount": 40.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-16"
+    "imageDate": "2026-07-16",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0238",
@@ -2239,7 +2476,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-16"
+    "imageDate": "2026-07-16",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0239",
@@ -2249,7 +2487,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-16"
+    "imageDate": "2026-07-16",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0240",
@@ -2257,7 +2496,8 @@
     "merchant": "Business Books",
     "date": "2026-07-16",
     "amount": 49.5,
-    "scenario": "Professional reference book"
+    "scenario": "Professional reference book",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0241",
@@ -2267,7 +2507,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-17"
+    "imageDate": "2026-01-17",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0242",
@@ -2277,7 +2518,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-17"
+    "imageDate": "2026-02-17",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0243",
@@ -2286,7 +2528,8 @@
     "date": "2026-03-17",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-17"
+    "imageDate": "2026-03-17",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0244",
@@ -2295,7 +2538,8 @@
     "date": "2026-04-17",
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0245",
@@ -2305,7 +2549,8 @@
     "amount": 30,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-17"
+    "imageDate": "2026-05-17",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0246",
@@ -2314,7 +2559,8 @@
     "date": "2026-06-17",
     "amount": 18.0,
     "scenario": "Shared team meal: 4 attendees split AUD 72.00 equally; one attendee share",
-    "imageDate": "2026-06-17"
+    "imageDate": "2026-06-17",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0247",
@@ -2324,7 +2570,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 5 attendees split AUD 100.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-17"
+    "imageDate": "2026-06-17",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0248",
@@ -2333,7 +2580,8 @@
     "date": "2026-06-17",
     "amount": 22.5,
     "scenario": "Shared team meal: 6 attendees split AUD 135.00 equally; one attendee share",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0249",
@@ -2342,7 +2590,8 @@
     "date": "2026-06-17",
     "amount": 25.0,
     "scenario": "Shared team meal: 2 attendees split AUD 50.00 equally; one attendee share",
-    "imageDate": "2026-06-17"
+    "imageDate": "2026-06-17",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0250",
@@ -2352,7 +2601,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 3 attendees split AUD 90.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-17"
+    "imageDate": "2026-06-17",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0251",
@@ -2362,7 +2612,8 @@
     "amount": 14.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-17"
+    "imageDate": "2026-07-17",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0252",
@@ -2370,7 +2621,8 @@
     "merchant": "Office Supply House",
     "date": "2026-07-17",
     "amount": 41.95,
-    "scenario": "Office supplies"
+    "scenario": "Office supplies",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0253",
@@ -2380,7 +2632,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-17"
+    "imageDate": "2026-07-17",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0254",
@@ -2390,7 +2643,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-17"
+    "imageDate": "2026-07-17",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0255",
@@ -2399,7 +2653,8 @@
     "date": "2026-07-17",
     "amount": 50.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-17"
+    "imageDate": "2026-07-17",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0256",
@@ -2408,7 +2663,8 @@
     "date": "2026-01-18",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0257",
@@ -2418,7 +2674,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-18"
+    "imageDate": "2026-02-18",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0258",
@@ -2427,7 +2684,8 @@
     "date": "2026-03-18",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-18"
+    "imageDate": "2026-03-18",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0259",
@@ -2437,7 +2695,8 @@
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-18"
+    "imageDate": "2026-04-18",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0260",
@@ -2446,7 +2705,8 @@
     "date": "2026-05-18",
     "amount": 45,
     "scenario": "Recurring monthly business subscription",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0261",
@@ -2455,7 +2715,8 @@
     "date": "2026-06-18",
     "amount": 18.0,
     "scenario": "Shared team meal: 5 attendees split AUD 90.00 equally; one attendee share",
-    "imageDate": "2026-06-18"
+    "imageDate": "2026-06-18",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0262",
@@ -2465,7 +2726,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 6 attendees split AUD 120.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-18"
+    "imageDate": "2026-06-18",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0263",
@@ -2475,7 +2737,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 2 attendees split AUD 45.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-18"
+    "imageDate": "2026-06-18",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0264",
@@ -2483,7 +2746,8 @@
     "merchant": "Dockside Noodles",
     "date": "2026-06-18",
     "amount": 25.0,
-    "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share"
+    "scenario": "Shared team meal: 3 attendees split AUD 75.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0265",
@@ -2493,7 +2757,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 4 attendees split AUD 120.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-18"
+    "imageDate": "2026-06-18",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0266",
@@ -2503,7 +2768,8 @@
     "amount": 12.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-18"
+    "imageDate": "2026-07-18",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0267",
@@ -2512,7 +2778,8 @@
     "date": "2026-07-18",
     "amount": 39.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-18"
+    "imageDate": "2026-07-18",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0268",
@@ -2521,7 +2788,8 @@
     "date": "2026-07-18",
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
-    "software": "Brother ADS-1700W"
+    "software": "Brother ADS-1700W",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0269",
@@ -2531,7 +2799,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-18"
+    "imageDate": "2026-07-18",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0270",
@@ -2540,7 +2809,8 @@
     "date": "2026-07-18",
     "amount": 48.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-18"
+    "imageDate": "2026-07-18",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0271",
@@ -2550,7 +2820,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-19"
+    "imageDate": "2026-01-19",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0272",
@@ -2559,7 +2830,8 @@
     "date": "2026-02-19",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0273",
@@ -2568,7 +2840,8 @@
     "date": "2026-03-19",
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
-    "imageDate": "2026-03-19"
+    "imageDate": "2026-03-19",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0274",
@@ -2578,7 +2851,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-19"
+    "imageDate": "2026-04-19",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0275",
@@ -2588,7 +2862,8 @@
     "amount": 60,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-19"
+    "imageDate": "2026-05-19",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0276",
@@ -2596,7 +2871,8 @@
     "merchant": "Quayside Kitchen",
     "date": "2026-06-19",
     "amount": 18.0,
-    "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share"
+    "scenario": "Shared team meal: 6 attendees split AUD 108.00 equally; one attendee share",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0277",
@@ -2606,7 +2882,8 @@
     "amount": 20.0,
     "scenario": "Shared team meal: 2 attendees split AUD 40.00 equally; one attendee share",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-06-19"
+    "imageDate": "2026-06-19",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0278",
@@ -2616,7 +2893,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 3 attendees split AUD 67.50 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-19"
+    "imageDate": "2026-06-19",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0279",
@@ -2625,7 +2903,8 @@
     "date": "2026-06-19",
     "amount": 25.0,
     "scenario": "Shared team meal: 4 attendees split AUD 100.00 equally; one attendee share",
-    "imageDate": "2026-06-19"
+    "imageDate": "2026-06-19",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0280",
@@ -2634,7 +2913,8 @@
     "date": "2026-06-19",
     "amount": 30.0,
     "scenario": "Shared team meal: 5 attendees split AUD 150.00 equally; one attendee share",
-    "software": "Canon EOS R50"
+    "software": "Canon EOS R50",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0281",
@@ -2644,7 +2924,8 @@
     "amount": 13.8,
     "scenario": "Business travel fare",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-07-19"
+    "imageDate": "2026-07-19",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0282",
@@ -2653,7 +2934,8 @@
     "date": "2026-07-19",
     "amount": 40.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-19"
+    "imageDate": "2026-07-19",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0283",
@@ -2663,7 +2945,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-19"
+    "imageDate": "2026-07-19",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0284",
@@ -2672,7 +2955,8 @@
     "date": "2026-07-19",
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
-    "software": "HP ScanJet Pro 2500"
+    "software": "HP ScanJet Pro 2500",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0285",
@@ -2681,7 +2965,8 @@
     "date": "2026-07-19",
     "amount": 49.5,
     "scenario": "Professional reference book",
-    "imageDate": "2026-07-19"
+    "imageDate": "2026-07-19",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0286",
@@ -2691,7 +2976,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Nikon Z 6II",
-    "imageDate": "2026-01-20"
+    "imageDate": "2026-01-20",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0287",
@@ -2701,7 +2987,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "EPSON ET-2850",
-    "imageDate": "2026-02-20"
+    "imageDate": "2026-02-20",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0288",
@@ -2709,7 +2996,8 @@
     "merchant": "Harbour Cloud Services",
     "date": "2026-03-20",
     "amount": 20,
-    "scenario": "Recurring monthly business subscription"
+    "scenario": "Recurring monthly business subscription",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0289",
@@ -2719,7 +3007,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-04-20"
+    "imageDate": "2026-04-20",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0290",
@@ -2729,7 +3018,8 @@
     "amount": 20,
     "scenario": "Recurring monthly business subscription",
     "software": "Canon EOS R50",
-    "imageDate": "2026-05-20"
+    "imageDate": "2026-05-20",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0291",
@@ -2738,7 +3028,8 @@
     "date": "2026-06-20",
     "amount": 18.0,
     "scenario": "Shared team meal: 2 attendees split AUD 36.00 equally; one attendee share",
-    "imageDate": "2026-06-20"
+    "imageDate": "2026-06-20",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0292",
@@ -2747,7 +3038,8 @@
     "date": "2026-06-20",
     "amount": 20.0,
     "scenario": "Shared team meal: 3 attendees split AUD 60.00 equally; one attendee share",
-    "software": "EPSON ET-2850"
+    "software": "EPSON ET-2850",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0293",
@@ -2757,7 +3049,8 @@
     "amount": 22.5,
     "scenario": "Shared team meal: 4 attendees split AUD 90.00 equally; one attendee share",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-06-20"
+    "imageDate": "2026-06-20",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0294",
@@ -2766,7 +3059,8 @@
     "date": "2026-06-20",
     "amount": 25.0,
     "scenario": "Shared team meal: 5 attendees split AUD 125.00 equally; one attendee share",
-    "imageDate": "2026-06-20"
+    "imageDate": "2026-06-20",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0295",
@@ -2776,7 +3070,8 @@
     "amount": 30.0,
     "scenario": "Shared team meal: 6 attendees split AUD 180.00 equally; one attendee share",
     "software": "Canon EOS R50",
-    "imageDate": "2026-06-20"
+    "imageDate": "2026-06-20",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0296",
@@ -2785,7 +3080,8 @@
     "date": "2026-07-20",
     "amount": 14.8,
     "scenario": "Business travel fare",
-    "software": "Nikon Z 6II"
+    "software": "Nikon Z 6II",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0297",
@@ -2794,7 +3090,8 @@
     "date": "2026-07-20",
     "amount": 41.95,
     "scenario": "Office supplies",
-    "imageDate": "2026-07-20"
+    "imageDate": "2026-07-20",
+    "media": "image/jpeg"
   },
   {
     "id": "HF-2026-0298",
@@ -2804,7 +3101,8 @@
     "amount": 30,
     "scenario": "Business visit parking; legitimate round amount",
     "software": "Brother ADS-1700W",
-    "imageDate": "2026-07-20"
+    "imageDate": "2026-07-20",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0299",
@@ -2814,7 +3112,8 @@
     "amount": 150,
     "scenario": "Professional workshop; legitimate round amount",
     "software": "HP ScanJet Pro 2500",
-    "imageDate": "2026-07-20"
+    "imageDate": "2026-07-20",
+    "media": "image/png"
   },
   {
     "id": "HF-2026-0300",
@@ -2822,6 +3121,7 @@
     "merchant": "Business Books",
     "date": "2026-07-20",
     "amount": 50.5,
-    "scenario": "Professional reference book"
+    "scenario": "Professional reference book",
+    "media": "image/png"
   }
 ]

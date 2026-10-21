@@ -6,7 +6,7 @@ export function describe(e: D, names: Record<string, string> = {}) {
   const words: Record<string, string> = {
     'claim-created': `Started by ${who}`, 'claim-renamed': `Renamed by ${who} to “${d.title}”`,
     'expense-added': `${who} added ${d.merchant} · ${money(d.amountMinor ?? 0)}`, 'expense-changed': `${who} changed ${d.merchant}`, 'expense-removed': `${who} removed ${d.merchant}`,
-    'receipt-signal-reviewed': `${who} reviewed receipt metadata (${d.code}) on revision ${d.revision} · ${d.note}`,
+    'receipt-signal-reviewed': `${who} reviewed receipt/spend signal (${d.code}) on revision ${d.revision} · ${d.note}`,
     'receipt-added': `${who} added receipt ${d.name}`, 'claim-submitted': `Submitted by ${who}${d.exceptions ? ` · ${plural(d.exceptions, 'exception')} explained` : ''}`,
     'claim-step-approved': d.workflowVersion ? `Review by ${who}${d.onBehalfOf ? ` on behalf of ${names[d.onBehalfOf] ?? d.onBehalfOf}` : ''} completed in stage ${d.stage + 1} of ${d.stages}; waiting for ${names[d.nextApprover] ?? d.nextApprover}${d.reason ? ` · ${d.reason}` : ''}` : `Step ${d.step} of ${d.steps} approved by ${who}; next: ${names[d.nextApprover] ?? d.nextApprover}${d.reason ? ` · ${d.reason}` : ''}`,
     'claim-resubmitted': `Resubmitted by ${who} as revision ${d.revision}`, 'claim-approved': `Approved by ${who}${d.onBehalfOf ? ` on behalf of ${names[d.onBehalfOf] ?? d.onBehalfOf}` : ''}${d.reason ? ` · ${d.reason}` : ''}${d.exceptionsAcknowledged ? ` · ${plural(d.exceptionsAcknowledged, 'exception')} acknowledged` : ''}`,

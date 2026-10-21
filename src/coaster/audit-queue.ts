@@ -1,3 +1,4 @@
+import { reviewReceiptSignal } from './receipt-signal-review';
 import { all, authority, commit, need } from './session';
 import { event } from './events';
 import { claimNumber, loadClaim } from './claims';
@@ -22,19 +23,22 @@ const reader = (actor: Actor) => requireThat(actor.roles.finance || actor.roles.
  * that finance has not reviewed yet; ordered by risk then age, or by age then risk. Plus the audit samples. */
 export async function exceptionQueue(db: D1Database, actor: Actor, sort = 'risk') {
   reader(actor);
-  const [claims, reviews, samples] = await db.batch([
+  const [claims, reviews, samples, signalReviews] = await db.batch([
     db.prepare("SELECT c.id,c.number,c.employee_email,c.title,c.status,c.revision,c.total_minor,c.currency,r.submitted_at,r.snapshot FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision WHERE c.status IN ('submitted','approved','batched','reimbursed')"),
     db.prepare('SELECT claim_id,revision,item_id,code FROM c_exception_reviews'),
     db.prepare('SELECT s.*, c.number, c.employee_email, c.title, c.total_minor, c.currency FROM c_audit_samples s JOIN c_claims c ON c.id=s.claim_id ORDER BY s.sampled_at DESC'),
+    db.prepare("SELECT claim_id,json_extract(detail,'$.revision') AS revision,json_extract(detail,'$.item') AS item_id,json_extract(detail,'$.code') AS code FROM c_events WHERE action='receipt-signal-reviewed'"),
   ]);
   const done = new Set((reviews.results as Data[]).map(r => `${r.claim_id}|${r.revision}|${r.item_id}|${r.code}`)), at = Date.now();
+  const reviewedSignals = new Set((signalReviews.results as Data[]).map(r => `${r.claim_id}|${r.revision}|${r.item_id}|${r.code}`));
   const open: Data[] = [];
   for (const c of claims.results as Data[]) {
     const snapshot = JSON.parse(c.snapshot);
-    for (const e of snapshot.exceptions as Data[]) {
-      if (done.has(`${c.id}|${c.revision}|${e.item}|${e.code}`)) continue;
+    const signals = (snapshot.receiptSignals ?? []).flatMap((r: Data) => r.signals.map((s: Data) => ({ ...s, item: r.item, message: s.reason, signal: true })));
+    for (const e of [...snapshot.exceptions, ...signals] as Data[]) {
+      if ((e.signal ? reviewedSignals : done).has(`${c.id}|${c.revision}|${e.item}|${e.code}`)) continue;
       const item = (snapshot.items as Data[]).find(i => i.id === e.item);
-      open.push({ claim: c.id, number: claimNumber(c.number), employee: c.employee_email, title: c.title, status: c.status, revision: c.revision, submittedAt: c.submitted_at, ageDays: Math.floor((at - Date.parse(c.submitted_at)) / DAY), item: e.item, merchant: item?.merchant ?? '', amountMinor: item?.amount_minor ?? 0, currency: c.currency, code: e.code, message: e.message, explanation: item?.explanation ?? '', risk: RISK[e.code] ?? 1 });
+      open.push({ claim: c.id, number: claimNumber(c.number), employee: c.employee_email, title: c.title, status: c.status, revision: c.revision, submittedAt: c.submitted_at, ageDays: Math.floor((at - Date.parse(c.submitted_at)) / DAY), item: e.item, merchant: item?.merchant ?? '', amountMinor: item?.amount_minor ?? 0, currency: c.currency, code: e.code, signal: !!e.signal, evidence: e.evidence, message: e.message, explanation: item?.explanation ?? '', risk: RISK[e.code] ?? 1 });
     }
   }
   const byAge = (a: Data, b: Data) => a.submittedAt.localeCompare(b.submittedAt), byRisk = (a: Data, b: Data) => b.risk - a.risk;
@@ -50,6 +54,10 @@ export async function reviewException(db: D1Database, actor: Actor, b: Data) {
   const claim = await loadClaim(db, b.claim);
   requireThat(Number.isInteger(b.revision) && b.revision === claim.revision, 'That revision is no longer current; reload the queue', 409);
   const revision = await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(claim.id, claim.revision).first<{ snapshot: string }>();
+  if (revision && JSON.parse(revision.snapshot).receiptSignals?.some((r: Data) => r.item === b.item && r.signals.some((s: Data) => s.code === b.code))) {
+    await reviewReceiptSignal(db, actor, claim.id, b);
+    return exceptionQueue(db, actor);
+  }
   requireThat(revision && (JSON.parse(revision.snapshot).exceptions as Data[]).some(e => e.item === b.item && e.code === b.code), 'Exception not found on that revision', 404);
   const note = text(b.note, 'Review note', 1000);
   requireThat(!(await db.prepare('SELECT 1 FROM c_exception_reviews WHERE claim_id=? AND revision=? AND item_id=? AND code=?').bind(claim.id, claim.revision, b.item, b.code).first()), 'Someone already reviewed that exception', 409);

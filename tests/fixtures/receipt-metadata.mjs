@@ -1,7 +1,7 @@
 import { deflateSync } from 'node:zlib';
 
-// Synthetic test rasters measure metadata false positives only. They make no
-// claim about real-world provenance, perceptual hashing, or recompression.
+// Synthetic legible receipts exercise combined detector false positives.
+// The measured fixture result is not a real-world accuracy estimate.
 const SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const WIDTH = 432;
 const HEIGHT = 208;
