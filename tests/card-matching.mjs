@@ -20,8 +20,8 @@ try {
   const owner=await session(browser,root,server.origin,'owner',1440);await setUp(owner,server.origin)
   const category=(await api(owner.context,server.origin,'state')).categories.find(c=>c.name==='Office supplies').id
   await api(owner.context,server.origin,'statements/cards',{issuer:'Synthetic Card',last4:'1111',employee:PEOPLE.employee})
-  const importRows=async(name,amount,merchant,count=1)=>{
-    const input={format:'csv',name,issuer:'Synthetic Card',category,content:'Date,Merchant,Amount,Id\n'+Array.from({length:count},(_,i)=>`2026-10-02,${merchant},${amount},${name}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}}
+  const importRows=async(name,amount,merchant,count=1,date='2026-10-02')=>{
+    const input={format:'csv',name,issuer:'Synthetic Card',category,content:'Date,Merchant,Amount,Id\n'+Array.from({length:count},(_,i)=>`${date},${merchant},${amount},${name}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}}
     const preview=await api(owner.context,server.origin,'statements/preview',input)
     return api(owner.context,server.origin,'statements/commit',{...input,fingerprint:preview.fingerprint})
   }
@@ -107,8 +107,8 @@ try {
   const employee=await session(browser,root,server.origin,'employee',1440)
   const upload=await employee.context.request.post(server.origin+'/api/coaster/receipt-inbox',{multipart:{file:{name:'synthetic-submitted-match.png',mimeType:'image/png',buffer:await readFile('tests/fixtures/receipts/bistro.png')},source:'upload'},headers:{origin:server.origin}})
   assert.equal(upload.status(),200);const submittedOriginal=(await upload.json()).receipt
-  await api(employee.context,server.origin,`receipt-inbox/${submittedOriginal.id}/card-match`,{expectedSequence:0,enabled:true,merchant:'Bistro',date:'2026-10-02',total:'555.55',currency:'AUD',notice})
-  await importRows('synthetic-submitted-match.csv','555.55','Bistro')
+  await api(employee.context,server.origin,`receipt-inbox/${submittedOriginal.id}/card-match`,{expectedSequence:0,enabled:true,merchant:'Bistro',date:'2026-09-02',total:'555.55',currency:'AUD',notice})
+  await importRows('synthetic-submitted-match.csv','555.55','Bistro',1,'2026-09-02')
   const scheduled=await server.scheduled();assert.equal(scheduled.status,200,await scheduled.text())
   const attachment=(await api(employee.context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===submittedOriginal.id).attachment
   assert.ok(attachment)
