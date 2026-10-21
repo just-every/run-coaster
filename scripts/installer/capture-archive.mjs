@@ -33,6 +33,7 @@ export async function validateCaptureArchive(read, manifest) {
     const collapsed=value.replace(/(?:Former member |former-member-)([0-9a-f]{8})/g,(token,hex)=>subjects.has('former-member-'+hex)?'x':token);
     return collapsed.length<=200;
   };
+  const cards=await read('c_cards');
   const rules=(await read('c_card_match_rules')).sort((a,b)=>a.version-b.version);
   const ordered = [...lifecycle].sort((a,b) => a.receipt_id.localeCompare(b.receipt_id) || a.sequence-b.sequence);
   const latest = new Map(), associations = new Map();
@@ -70,6 +71,33 @@ export async function validateCaptureArchive(read, manifest) {
         check(!items.some(i=>i.id===event.item_id)||matchingAliases.length>0,'match_basis');
         const choice=ordered.filter(e=>e.receipt_id===receipt.id&&e.sequence<event.sequence&&['match-details','match-withdrawn'].includes(e.kind)).at(-1);
         check(choice?.kind==='match-details','match_basis');
+        const details=JSON.parse(choice.match_data),rule=rules.find(r=>r.version===data.ruleVersion);
+        const keys=['ruleVersion','basis','enteredTotalMinor','enteredCurrency','enteredDate','differenceMinor','differenceCurrency'];
+        if(data.basis==='fx') keys.push('fxRate','fxDate','fxSource');
+        check(Object.keys(data).length===keys.length&&keys.every(k=>Object.hasOwn(data,k))
+          && data.enteredTotalMinor===details.totalMinor&&data.enteredCurrency===details.currency&&data.enteredDate===details.date
+          && Number.isSafeInteger(data.differenceMinor)&&/^[A-Z]{3}$/.test(data.differenceCurrency),'match_basis');
+        const days=(Date.parse((charge.transaction_on??charge.posted_on)+'T00:00:00Z')-Date.parse(details.date+'T00:00:00Z'))/86400000;
+        check(rule.enabled===1&&days>=-1&&days<=rule.window_days
+          && (!details.last4||cards.some(c=>c.id===charge.card_id&&c.last4===details.last4)),'match_basis');
+        const inOriginal=charge.original_currency===details.currency&&charge.original_minor!==null;
+        const shared=details.currency===(inOriginal?charge.original_currency:charge.currency);
+        const charged=inOriginal?charge.original_minor:charge.amount_minor;
+        check(charge.amount_minor>0,'match_basis');
+        if(data.basis==='exact'||data.basis==='tip') {
+          check(shared&&data.differenceCurrency===details.currency&&data.differenceMinor===charged-details.totalMinor,'match_basis');
+          check(data.basis==='exact'?charged===details.totalMinor:
+            charged>details.totalMinor&&BigInt(charged)*100n<=BigInt(details.totalMinor)*BigInt(100+rule.tip_percent),'match_basis');
+        } else {
+          // Reference rates are frozen evidence; restore does not call ECB or use today's provider setting.
+          const reference=charged-data.differenceMinor;
+          check(!shared&&!inOriginal&&details.currency!==charge.currency&&data.differenceCurrency===charge.currency
+            && reference>0&&BigInt(Math.abs(data.differenceMinor))*100n<=BigInt(reference)*BigInt(rule.fx_percent)
+            && typeof data.fxRate==='string'&&/^\d+(?:\.\d{1,12})?$/.test(data.fxRate)&&Number(data.fxRate)>0
+            && /^\d{4}-\d{2}-\d{2}$/.test(data.fxDate)&&Number.isFinite(Date.parse(data.fxDate))
+            && new Date(data.fxDate).toISOString().slice(0,10)===data.fxDate&&data.fxDate<=details.date
+            && data.fxSource==='ECB reference rates','match_basis');
+        }
         check(!drafts.some(d=>d.receipt_id===receipt.id&&d.created_at<=event.at),'match_basis');
       }
       const claim = claims.find(c => c.id === event.claim_id);
@@ -111,6 +139,14 @@ export async function validateCaptureArchive(read, manifest) {
     // A retained history line survives financial-record retention; a live expense must still carry its original.
     if (item) check(aliases.some(a=>a.id===item.receipt_id && a.capture_receipt_id===id), 'attachment');
     // Historical expense ids remain in private history after financial retention, including an expense moved by partial approval.
+  }
+  // A receipt alias and every submitted revision carry the same frozen basis as the private automation line.
+  // Neither an alias nor a snapshot may invent a match or extend its shared fields.
+  for(const alias of aliases.filter(a=>a.card_match_basis!==null))
+    check(lifecycle.some(e=>e.receipt_id===alias.capture_receipt_id&&e.claim_id===alias.claim_id&&e.channel==='schedule'&&e.match_data===alias.card_match_basis),'match_basis');
+  for(const revision of await read('c_revisions')) for(const item of JSON.parse(revision.snapshot).items) {
+    const alias=aliases.find(a=>a.id===(item.receipt?.id??item.receipt_id));
+    check((item.card_match_basis??null)===(alias?.card_match_basis??null),'match_basis');
   }
   const rejections=await read('c_card_match_rejections');
   const chargeRecords=[...await read('c_card_charges'),...await read('c_card_charge_undo_history')];

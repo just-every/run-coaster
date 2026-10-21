@@ -103,6 +103,22 @@ try {
     assert.equal(answered.lifecycle.at(-1).actorEmail,PEOPLE.employee);assert.equal(answered.lifecycle.at(-1).channel,'app')
     chosen.push(tie.id);await context.close()
   }
+  // Freeze an automatic basis in a real submitted revision so restore also checks the shared evidence.
+  const employee=await session(browser,root,server.origin,'employee',1440)
+  const upload=await employee.context.request.post(server.origin+'/api/coaster/receipt-inbox',{multipart:{file:{name:'synthetic-submitted-match.png',mimeType:'image/png',buffer:await readFile('tests/fixtures/receipts/bistro.png')},source:'upload'},headers:{origin:server.origin}})
+  assert.equal(upload.status(),200);const submittedOriginal=(await upload.json()).receipt
+  await api(employee.context,server.origin,`receipt-inbox/${submittedOriginal.id}/card-match`,{expectedSequence:0,enabled:true,merchant:'Bistro',date:'2026-10-02',total:'555.55',currency:'AUD',notice})
+  await importRows('synthetic-submitted-match.csv','555.55','Bistro')
+  const scheduled=await server.scheduled();assert.equal(scheduled.status,200,await scheduled.text())
+  const attachment=(await api(employee.context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===submittedOriginal.id).attachment
+  assert.ok(attachment)
+  let detail=await api(employee.context,server.origin,`claims/${attachment.claimId}`)
+  for(const item of detail.items) {
+    await api(employee.context,server.origin,`claims/${detail.claim.id}/items`,{version:detail.claim.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),category:item.allocations[0].category_id,explanation:'Synthetic statement evidence; distinct posted transactions'})
+    detail=await api(employee.context,server.origin,`claims/${attachment.claimId}`)
+  }
+  await api(employee.context,server.origin,`claims/${detail.claim.id}/submit`,{version:detail.claim.version})
+  await employee.context.close()
   await owner.context.close();await browser.close();browser=undefined;await server.close();server=undefined
   await command(root,['export','--output','exports/matching.rer'])
   const archive=join(root,'exports/matching.rer');await copyFile(archive,join(evidence,'matching.rer'))
@@ -110,16 +126,33 @@ try {
   await command(restored,['setup','--owner-email','owner@harbourfinch.example','--port',String(restorePort)])
   await mkdir(join(restored,'exports'),{recursive:true});await command(restored,['export','--output','exports/empty.rer'])
   const empty=rows(await records(join(restored,'exports/empty.rer')))
+  const alterBasis=change=>(event,input)=>{
+    const data=JSON.parse(event.match_data);change(data);event.match_data=JSON.stringify(data)
+    for(const {row} of rows(input).filter(r=>r.table==='c_receipts'))
+      if(row.capture_receipt_id===event.receipt_id&&row.claim_id===event.claim_id&&row.card_match_basis)row.card_match_basis=event.match_data
+  }
+  const automated=r=>r.channel==='schedule'
   const cases=[
     ['match_choice','c_capture_lifecycle',r=>r.kind==='match-details',r=>{const d=JSON.parse(r.match_data);d.totalMinor=0;r.match_data=JSON.stringify(d)}],
     ['match_basis','c_capture_lifecycle',r=>r.channel==='schedule',r=>{r.on_behalf_of='foreign@dev.localhost'}],
     ['card_charge','c_card_charges',()=>true,r=>{r.card_id='missing-card'}],
     ['match_rejection','c_card_match_rejections',()=>true,r=>{r.transaction_key='card:forged'}],
+    ['match_basis_snapshot','c_revisions',()=>true,r=>{const snapshot=JSON.parse(r.snapshot);const item=snapshot.items.find(i=>i.card_match_basis);const data=JSON.parse(item.card_match_basis);data.differenceMinor+=1;item.card_match_basis=JSON.stringify(data);r.snapshot=JSON.stringify(snapshot)}],
+    ['match_basis_rule','c_capture_lifecycle',automated,alterBasis(d=>{d.ruleVersion=999})],
+    ['match_basis_total','c_capture_lifecycle',automated,alterBasis(d=>{d.enteredTotalMinor+=1})],
+    ['match_basis_difference','c_capture_lifecycle',automated,alterBasis(d=>{d.differenceMinor+=1})],
+    ['match_basis_currency','c_capture_lifecycle',automated,alterBasis(d=>{d.enteredCurrency='USD'})],
+    ['match_basis_date','c_capture_lifecycle',automated,alterBasis(d=>{d.enteredDate='2026-10-01'})],
+    ['match_basis_private_field','c_capture_lifecycle',automated,alterBasis(d=>{d.merchant='synthetic-private-details'})],
+    ['match_basis_withdrawn','c_capture_lifecycle',r=>r.kind==='match-details',(r)=>{r.kind='match-withdrawn';r.match_data=null}],
+    ['match_history_discarded','c_capture_lifecycle',r=>r.kind==='match-details',(r)=>{r.kind='discarded';r.reason='synthetic-discarded';r.match_data=null}],
+    ['match_history_merged','c_capture_lifecycle',r=>r.kind==='match-details',(r,input)=>{r.kind='merged';r.reason='synthetic-merged';r.match_data=null;r.survivor_id=rows(input).find(i=>i.table==='c_capture_receipts'&&i.row.id!==r.receipt_id).row.id}],
+    ['card_charge_employee','c_card_charges',()=>true,r=>{r.employee_email='synthetic-foreign@example.test'}],
   ]
   for(const [code,table,pick,change] of cases) {
     await writeFile(join(restored,`exports/${code}.rer`),await tampered(archive,table,change,pick),{mode:0o600})
     const result=await command(restored,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4})
-    assert.match(result,new RegExp(code==='match_basis'?'coaster_capture_lifecycle_provenance':code==='card_charge'?'coaster_card_charge':'coaster_capture_'+code))
+    assert.match(result,new RegExp(code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('match_history')?'coaster_capture_history':code.startsWith('match_basis_')?'coaster_capture_match_basis':'coaster_capture_'+code))
     await command(restored,['export','--output',`exports/unchanged-${code}.rer`])
     assert.deepEqual(rows(await records(join(restored,`exports/unchanged-${code}.rer`))),empty,'malformed match archive writes nothing')
   }
@@ -128,13 +161,13 @@ try {
   await command(restored,['export','--output','exports/restored.rer'])
   assert.deepEqual(rows(await records(join(restored,'exports/restored.rer'))),rows(await records(archive)),'matching, rule versions, masked statement originals, rejections and private history round trip exactly')
   server=await start(restored,restorePort);browser=await launch()
-  const employee=await session(browser,restored,server.origin,'employee',390)
-  const before=(await api(employee.context,server.origin,'receipt-inbox')).receipts
+  const restoredEmployee=await session(browser,restored,server.origin,'employee',390)
+  const before=(await api(restoredEmployee.context,server.origin,'receipt-inbox')).receipts
   for(const id of chosen) assert.ok(before.some(r=>r.id===id))
   const replay=await server.scheduled();assert.equal(replay.status,200,await replay.text())
-  const after=(await api(employee.context,server.origin,'receipt-inbox')).receipts
+  const after=(await api(restoredEmployee.context,server.origin,'receipt-inbox')).receipts
   assert.deepEqual(after,before,'restore and hourly replay preserve rejected pairs, existing attachments and private history')
-  await employee.context.close()
+  await restoredEmployee.context.close()
   await writeFile(join(evidence,'result.json'),JSON.stringify({clauses:['CAPTURE-004','FEED-004'],widths:[1440,390],archive:'exact round trip',refusals:cases.map(c=>c[0])},null,2)+'\n')
   console.log('CAPTURE-004 FEED-004 matching consent, questions, basis and undo at 1440/390; exact CLI archive round trip, malformed refusals and replay passed')
 } finally {

@@ -53,8 +53,8 @@ export async function searchHistory(db: D1Database, actor: Actor, query: Record<
     requireThat(found, `No batch ${q.toUpperCase()}`, 404);
     where.push('e.batch_id=?'); params.push(found.id);
   } else if (q) {
-    const like = '%' + q.toLowerCase().replace(/[\\%_]/g, m => '\\' + m) + '%';
-    where.push("(lower(e.action) LIKE ? ESCAPE '\\' OR e.actor_email LIKE ? ESCAPE '\\' OR lower(e.detail) LIKE ? ESCAPE '\\')"); params.push(like, like, like);
+    const needle = q.toLowerCase();
+    where.push('(instr(lower(e.action),?)>0 OR instr(lower(e.actor_email),?)>0 OR instr(lower(e.detail),?)>0)'); params.push(needle, needle, needle);
   }
   if (query.from) { where.push('e.at>=?'); params.push(startOf(isoDate(query.from, 'From'), timezone)); }
   if (query.to) { where.push('e.at<?'); params.push(startOf(nextDay(isoDate(query.to, 'Until')), timezone)); }
@@ -98,6 +98,7 @@ export async function auditPack(db: D1Database, actor: Actor, from?: string, to?
         return { revision: r.revision, submittedBy: r.submitted_by, submittedAt: r.submitted_at, totalMinor: r.total_minor, approver: s.approver, onBehalfOf: s.onBehalfOf ?? null, exceptions: s.exceptions,
           items: s.items.map((i: Data) => ({ id: i.id, date: i.spent_on, kind: i.kind, merchant: i.merchant, description: i.description, amountMinor: i.amount_minor, salesTaxMinor: i.sales_tax_minor ?? 0, explanation: i.explanation,
             allocations: i.allocations.map((a: Data) => ({ category: a.category_name, account: a.account_code, tax: a.tax_code, costCenter: a.cost_centre, amountMinor: a.amount_minor })),
+            cardMatchBasis: i.card_match_basis ? JSON.parse(i.card_match_basis) : null,
             receipt: i.receipt ? { sha256: i.receipt.sha256, file: fileOf(i.receipt.sha256) } : null })) };
       }),
       decisions: (decisions.results as Data[]).filter(d => d.claim_id === c.id).map(d => ({ revision: d.revision, decision: d.decision, reason: d.reason, by: d.actor_email, onBehalfOf: d.on_behalf_of, at: d.at, exceptionsAcknowledged: JSON.parse(d.exceptions) })),
