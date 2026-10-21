@@ -544,3 +544,37 @@ test('CAPTURE-004 complete role/privacy matrix: employee and both live delegates
     }
   }
 }))
+
+test('CAPTURE-004 matched basis and original bytes survive partial approval, hold release and both audit-pack revisions without a second private attach',()=>withAgency(async(h,t)=>{
+  const r=await original(h,t.sam);await choose(h,t,r)
+  const job=await statement(h,t,[{}, {amount:'20.00',merchant:'Synthetic Other'}]);await tick(h)
+  let d=await h.get(`claims/${job.claims[0]}`,t.sam),matched=d.items.find(i=>i.receipt_id)
+  const basis=JSON.parse(matched.card_match_basis)
+  const other=d.items.find(i=>!i.receipt_id)
+  await edit(h,t.sam,d.claim,other,{explanation:'Synthetic original unavailable'})
+  d=await h.get(`claims/${d.claim.id}`,t.sam)
+  const submitted=await h.post(`claims/${d.claim.id}/submit`,{version:d.claim.version},t.sam)
+  await h.post(`claims/${d.claim.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'approved',hold:[matched.id],reason:'Synthetic charge review',acknowledge:true},t.priya)
+  const held=(await h.get('state',t.sam)).claims.find(c=>c.title.endsWith('(held)'))
+  assert.ok(held)
+  const heldDetail=await h.get(`claims/${held.id}`,t.sam)
+  assert.equal(heldDetail.claim.held_from,d.claim.id)
+  assert.deepEqual(JSON.parse(heldDetail.items[0].card_match_basis),basis)
+  assert.notEqual(heldDetail.items[0].receipt_id,matched.receipt_id)
+  const alias=await h.db.prepare('SELECT * FROM c_receipts WHERE id=?').bind(heldDetail.items[0].receipt_id).first()
+  assert.equal(alias.capture_receipt_id,r.id);assert.equal(new Uint8Array(alias.bytes).byteLength,0)
+  await h.post(`claims/${held.id}/release`,{version:held.version,acknowledge:true},t.priya)
+  const shown=await h.get(`claims/${held.id}`,t.morgan)
+  assert.deepEqual(JSON.parse(shown.revisions[0].snapshot.items[0].card_match_basis),basis)
+  const response=await h.mf.dispatchFetch(h.origin+'/api/coaster/audit-pack?from=2026-01-01&to=2026-12-31',{headers:{cookie:h.owner}})
+  assert.equal(response.status,200)
+  const files=auditFiles(Buffer.from(await response.arrayBuffer())),manifest=JSON.parse(files['manifest.json'].toString())
+  for(const id of [d.claim.id,held.id]) {
+    const item=manifest.claims.find(c=>c.id===id).revisions.flatMap(r=>r.items).find(i=>i.id===matched.id)
+    assert.deepEqual(item.cardMatchBasis,basis);assert.equal(item.receipt.sha256,r.sha256)
+    assert.deepEqual(files[item.receipt.file],await readFile('tests/fixtures/receipts/bistro.png'))
+  }
+  await tick(h)
+  assert.equal((await inbox(h,t,r.id)).lifecycle.filter(e=>e.kind==='attached').length,1)
+  assert.equal((await (await h.mf.getR2Bucket('COASTER_RECEIPTS')).list()).objects.length,1)
+}))

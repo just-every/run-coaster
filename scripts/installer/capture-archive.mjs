@@ -67,7 +67,7 @@ export async function validateCaptureArchive(read, manifest) {
         check(rules.some(r=>r.version===data?.ruleVersion),'match_basis');
         check(data && Number.isSafeInteger(data.ruleVersion)&&['exact','tip','fx'].includes(data.basis)&&data.enteredTotalMinor>0,'match_basis');
         check(charge && charge.employee_email===receipt.owner_email,'match_basis');
-        const matchingAliases=aliases.filter(a=>a.capture_receipt_id===receipt.id&&a.claim_id===event.claim_id&&a.card_match_basis===event.match_data);
+        const matchingAliases=aliases.filter(a=>a.capture_receipt_id===receipt.id&&a.card_match_basis===event.match_data&&(a.claim_id===event.claim_id||items.some(i=>i.id===event.item_id&&i.receipt_id===a.id)));
         check(!items.some(i=>i.id===event.item_id)||matchingAliases.length>0,'match_basis');
         const choice=ordered.filter(e=>e.receipt_id===receipt.id&&e.sequence<event.sequence&&['match-details','match-withdrawn'].includes(e.kind)).at(-1);
         check(choice?.kind==='match-details','match_basis');
@@ -142,8 +142,11 @@ export async function validateCaptureArchive(read, manifest) {
   }
   // A receipt alias and every submitted revision carry the same frozen basis as the private automation line.
   // Neither an alias nor a snapshot may invent a match or extend its shared fields.
-  for(const alias of aliases.filter(a=>a.card_match_basis!==null))
-    check(lifecycle.some(e=>e.receipt_id===alias.capture_receipt_id&&e.claim_id===alias.claim_id&&e.channel==='schedule'&&e.match_data===alias.card_match_basis),'match_basis');
+  for(const alias of aliases.filter(a=>a.card_match_basis!==null)) {
+    const lineage=new Set();let id=alias.claim_id;
+    while(id&&!lineage.has(id)) {lineage.add(id);id=claims.find(c=>c.id===id)?.held_from;}
+    check(lifecycle.some(e=>e.receipt_id===alias.capture_receipt_id&&lineage.has(e.claim_id)&&e.channel==='schedule'&&e.match_data===alias.card_match_basis),'match_basis');
+  }
   for(const revision of await read('c_revisions')) for(const item of JSON.parse(revision.snapshot).items) {
     const alias=aliases.find(a=>a.id===(item.receipt?.id??item.receipt_id));
     check((item.card_match_basis??null)===(alias?.card_match_basis??null),'match_basis');

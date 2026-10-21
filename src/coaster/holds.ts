@@ -20,7 +20,7 @@ export function moveItems(db: D1Database, items: Data[], from: string, to: strin
   return items.flatMap(item => [
     db.prepare('UPDATE c_items SET claim_id=? WHERE id=? AND claim_id=?').bind(to, item.id, from),
     ...(item.receipt_id ? (copy => [
-      db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id) SELECT ?,?,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id FROM c_receipts WHERE id=?').bind(copy, to, item.receipt_id),
+      db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id,card_match_basis) SELECT ?,?,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id,card_match_basis FROM c_receipts WHERE id=?').bind(copy, to, item.receipt_id),
       db.prepare('UPDATE c_items SET receipt_id=? WHERE id=?').bind(copy, item.id),
     ])(uid()) : []),
   ]);

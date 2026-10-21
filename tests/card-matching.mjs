@@ -111,6 +111,7 @@ try {
   assert.equal(upload.status(),200);const submittedOriginal=(await upload.json()).receipt
   await api(employee.context,server.origin,`receipt-inbox/${submittedOriginal.id}/card-match`,{expectedSequence:0,enabled:true,merchant:'Bistro',date:'2026-09-02',total:'555.55',currency:'AUD',notice})
   await importRows('synthetic-submitted-match.csv','555.55','Bistro',1,'2026-09-02')
+  await importRows('synthetic-kept-match.csv','1.00','Synthetic Other',1,'2026-09-02')
   const scheduled=await server.scheduled();assert.equal(scheduled.status,200,await scheduled.text())
   const attachment=(await api(employee.context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===submittedOriginal.id).attachment
   assert.ok(attachment)
@@ -119,8 +120,16 @@ try {
     await api(employee.context,server.origin,`claims/${detail.claim.id}/items`,{version:detail.claim.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),category:item.allocations[0].category_id,receipt:item.receipt_id,explanation:'Synthetic statement evidence; distinct posted transactions'})
     detail=await api(employee.context,server.origin,`claims/${attachment.claimId}`)
   }
-  await api(employee.context,server.origin,`claims/${detail.claim.id}/submit`,{version:detail.claim.version})
-  await employee.context.close()
+  const submitted=await api(employee.context,server.origin,`claims/${detail.claim.id}/submit`,{version:detail.claim.version})
+  const manager=await session(browser,root,server.origin,'manager',1440)
+  await api(manager.context,server.origin,`claims/${detail.claim.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'approved',hold:[attachment.itemId],reason:'Synthetic review of the matched charge',acknowledge:true})
+  const held=(await api(employee.context,server.origin,'state')).claims.find(c=>c.title.endsWith('(held)'))
+  assert.ok(held)
+  const heldDetail=await api(employee.context,server.origin,`claims/${held.id}`)
+  assert.equal(heldDetail.claim.held_from,detail.claim.id)
+  assert.deepEqual(JSON.parse(heldDetail.items[0].card_match_basis),JSON.parse(detail.items.find(i=>i.id===attachment.itemId).card_match_basis))
+  await api(manager.context,server.origin,`claims/${held.id}/release`,{version:held.version,acknowledge:true})
+  await manager.context.close();await employee.context.close()
   await owner.context.close();await browser.close();browser=undefined;await server.close();server=undefined
   await command(root,['export','--output','exports/matching.rer'])
   const archive=join(root,'exports/matching.rer');await copyFile(archive,join(evidence,'matching.rer'))
