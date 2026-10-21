@@ -5,7 +5,7 @@ import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, start } from './browser-runtime.mjs'
 import { PEOPLE, api, session, setUp } from './browser-journey.mjs'
-import { captureJourney, assertRestoredInbox, expandedReasonJourney, cashWindowJourney } from './browser-capture.mjs'
+import { captureJourney, assertRestoredInbox, expandedReasonJourney } from './browser-capture.mjs'
 import { captureFiles } from './fixtures/capture-files.mjs'
 import { records, rows, tampered, rejectCaptureLifecycleArchives } from './browser-archive.mjs'
 
@@ -15,7 +15,7 @@ const [part, of] = (process.env.CAPTURE_REFUSALS ?? '0/1').split('/').map(Number
 assert.ok(Number.isInteger(part) && Number.isInteger(of) && part >= 0 && part < of, 'CAPTURE_REFUSALS is part/of')
 await mkdir(evidence, { recursive: true })
 const launch = () => chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
-let root, second, cash, restoredCash, server, browser
+let root, second, server, browser
 try {
   root = await fresh()
   await command(root, ['install'])
@@ -72,51 +72,9 @@ try {
     assert.ok(!/Sam Taylor|employee@dev\.localhost/i.test(row.reason))
     assert.ok(row.reason.includes('kept this duplicate for the records'))
   }
-  // CAPTURE-004: age exactly one active original in a re-sealed, fully validated archive fixture.
-  // Restoring through the real import door supplies the elapsed-time precondition without a test-only application clock.
-  const snapshot=rows(await records(archive)), closed=new Set(snapshot.filter(r=>r.table==='c_capture_lifecycle').map(r=>r.row.receipt_id));
-  const aged=snapshot.find(r=>r.table==='c_capture_receipts'&&!closed.has(r.row.id));
-  const old=new Date(Date.now()-3*86400000).toISOString();
-  cash=await fresh();await command(cash,['install']);const cashPort=await freePort();
-  await command(cash,['setup','--owner-email','owner@harbourfinch.example','--port',String(cashPort)]);
-  await mkdir(join(cash,'exports'),{recursive:true});
-  await writeFile(join(cash,'exports/aged.rer'),await tampered(archive,'c_capture_receipts',(row,input)=>{
-    row.uploaded_at=old;
-    for(const item of rows(input).filter(r=>r.table==='c_capture_receipt_events'&&r.row.receipt_id===row.id))item.row.at=old;
-  },row=>row.id===aged.row.id),{mode:0o600});
-  await command(cash,['import','--input','exports/aged.rer','--yes']);
-  server=await start(cash,cashPort);browser=await launch();
-  await cashWindowJourney(browser,cash,server.origin,evidence,shots);
-  await browser.close();browser=undefined;await server.close();server=undefined;
-  await command(cash,['export','--output','exports/cash.rer']);
-  const prepared=join(cash,'exports/cash.rer');
-  restoredCash=await fresh();await command(restoredCash,['install']);const restorePort=await freePort();
-  await command(restoredCash,['setup','--owner-email','owner@harbourfinch.example','--port',String(restorePort)]);
-  await mkdir(join(restoredCash,'exports'),{recursive:true});
-  await command(restoredCash,['export','--output','exports/empty.rer']);
-  const cashEmpty=rows(await records(join(restoredCash,'exports/empty.rer')));
-  for(const [code,table,mutate] of [['cash_window','c_capture_window',row=>{row.days=91}],['cash_draft','c_capture_cash_drafts',row=>{row.expense_date='2000-01-01'}]]){
-    await writeFile(join(restoredCash,`exports/${code}.rer`),await tampered(prepared,table,mutate),{mode:0o600});
-    assert.match(await command(restoredCash,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4}),new RegExp('coaster_capture_'+code));
-    await command(restoredCash,['export','--output','exports/unchanged.rer']);
-    assert.deepEqual(rows(await records(join(restoredCash,'exports/unchanged.rer'))),cashEmpty,'refused cash archive writes nothing');
-  }
-  await copyFile(prepared,join(restoredCash,'exports/cash.rer'));
-  await command(restoredCash,['import','--input','exports/cash.rer','--yes']);
-  await command(restoredCash,['export','--output','exports/restored.rer']);
-  assert.deepEqual(rows(await records(join(restoredCash,'exports/restored.rer'))),rows(await records(prepared)),'cash reservations and originals round trip exactly');
-  server=await start(restoredCash,restorePort);
-  const replay=await fetch(server.origin+'/cdn-cgi/handler/scheduled?cron='+encodeURIComponent('17 * * * *'));
-  assert.equal(replay.status,200,await replay.text());
-  await server.close();server=undefined;
-  await command(restoredCash,['export','--output','exports/replayed.rer']);
-  assert.deepEqual(rows(await records(join(restoredCash,'exports/replayed.rer'))),rows(await records(prepared)),'restore and scheduler replay make no second draft or writes');
-  console.log('CAPTURE-004 cash window 1440/390 confirmation, native Cron draft preparation, exact archive restore/replay and atomic malformed-archive refusal passed');
   console.log('CAPTURE-001 focused browser intake at 1440/390, refusal, exact R2 archive round trip, inconsistent archive refusal and erasure passed')
 } finally {
   await browser?.close(); await server?.close()
-  if (restoredCash) await rm(restoredCash, { recursive: true, force: true })
-  if (cash) await rm(cash, { recursive: true, force: true })
   if (second) await rm(second, { recursive: true, force: true })
   if (root) await rm(root, { recursive: true, force: true })
 }

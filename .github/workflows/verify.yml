@@ -138,9 +138,40 @@ jobs:
           name: coaster-accessibility-proof
           path: ${{ runner.temp }}/accessibility-proof
 
+  cash_drafts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - name: Check edition source lock freshness
+        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
+        run: node scripts/edition-authoring/cli.mjs check
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deps
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Cash-window screens, scheduled drafts and archive replay
+        run: node tests/capture-cash.mjs
+        env:
+          COASTER_EVIDENCE: ${{ runner.temp }}/cash-draft-proof
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: coaster-cash-draft-proof
+          path: ${{ runner.temp }}/cash-draft-proof
+
   verify:
     if: always()
-    needs: [app, browser, capture, accessibility]
+    needs: [app, browser, capture, accessibility, cash_drafts]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -150,4 +181,5 @@ jobs:
           BROWSER_RESULT: ${{ needs.browser.result }}
           CAPTURE_RESULT: ${{ needs.capture.result }}
           ACCESSIBILITY_RESULT: ${{ needs.accessibility.result }}
-        run: test "$APP_RESULT" = success && test "$BROWSER_RESULT" = success && test "$CAPTURE_RESULT" = success && test "$ACCESSIBILITY_RESULT" = success
+          CASH_DRAFT_RESULT: ${{ needs.cash_drafts.result }}
+        run: test "$APP_RESULT" = success && test "$BROWSER_RESULT" = success && test "$CAPTURE_RESULT" = success && test "$ACCESSIBILITY_RESULT" = success && test "$CASH_DRAFT_RESULT" = success

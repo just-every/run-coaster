@@ -431,7 +431,7 @@ test('CAPTURE-004 cash window defaults off, confirms only finance-visible counts
     await h.post(`receipt-inbox/${discarded.id}/discard`,{reason:'not a business expense',expectedSequence:0},t.sam)
     await h.post(`receipt-inbox/${merged.id}/merge`,{survivorId:originals[2].id,expectedSequence:0},t.sam)
     const before=(await h.db.prepare('SELECT * FROM c_capture_receipts ORDER BY id').all()).results
-    const future=Date.parse(originals.at(-1).uploadedAt)+2*86400000
+    const future=Date.parse(originals.at(-1).uploadedAt)+86400000
     await tick(future)
     assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts').first()).n,0,'off makes no drafts')
     const preview=await h.post('settings/cash-draft-window/preview',{days:1},t.morgan)
@@ -447,18 +447,21 @@ test('CAPTURE-004 cash window defaults off, confirms only finance-visible counts
     await tick(Date.parse(originals[0].uploadedAt)+86400000-1)
     assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts').first()).n,0,'inclusive eligibility starts only after a full elapsed day')
     const messages=h.messages.length
+    await tick(future)
+    assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts').first()).n,25,'one delivery prepares at most 25 drafts')
     await Promise.all([tick(future),tick(future)])
     const drafted=(await h.db.prepare('SELECT * FROM c_capture_cash_drafts ORDER BY receipt_id').all()).results
     assert.ok(drafted.length>=25&&drafted.length<=27,'each delivery is bounded, concurrent deliveries cannot duplicate an original')
     await tick(future)
     const all=(await h.db.prepare('SELECT * FROM c_capture_cash_drafts ORDER BY receipt_id').all()).results
     assert.equal(all.length,27)
+    assert.ok(all.some(d=>d.receipt_id===originals.at(-1).id),'a receipt exactly at the elapsed-day cutoff is included')
     assert.ok(!all.some(d=>[discarded.id,merged.id].includes(d.receipt_id)))
     for(const draft of all){
       const original=originals.find(o=>o.id===draft.receipt_id)
       assert.equal(draft.expense_date,original.uploadedAt.slice(0,10))
       const detail=await h.get(`claims/${draft.claim_id}`,t.sam)
-      assert.equal(detail.claim.status,'draft');assert.equal(detail.claim.total_minor,0)
+      assert.equal(detail.claim.status,'draft');assert.equal(detail.claim.total_minor,0);assert.equal(detail.claim.auto_key,null)
       assert.deepEqual(detail.items,[],'no amount or receipt content is invented')
       assert.equal(detail.events[0].actor_email,'automation: cash-draft window')
       const audit=await h.get('history?q='+encodeURIComponent('CL-'+String(detail.claim.number).padStart(4,'0')))
