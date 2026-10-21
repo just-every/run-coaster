@@ -13,6 +13,8 @@ await mkdir(evidence,{recursive:true})
 let root,restored,server,browser
 const launch=()=>chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
 const chosen=[]
+const [part,of]=(process.env.MATCH_REFUSALS??'0/1').split('/').map(Number)
+assert.ok(Number.isInteger(part)&&Number.isInteger(of)&&of>0&&part>=0&&part<of,'MATCH_REFUSALS must be part/of')
 try {
   root=await fresh();await command(root,['install']);const port=await freePort()
   await command(root,['setup','--owner-email','owner@harbourfinch.example','--port',String(port)])
@@ -151,7 +153,7 @@ try {
     ['match_history_merged','c_capture_lifecycle',r=>r.kind==='match-details',(r,input)=>{r.kind='merged';r.reason='synthetic-merged';r.match_data=null;r.survivor_id=rows(input).find(i=>i.table==='c_capture_receipts'&&i.row.id!==r.receipt_id).row.id}],
     ['card_charge_employee','c_card_charges',()=>true,r=>{r.employee_email='synthetic-foreign@example.test'}],
   ]
-  for(const [code,table,pick,change] of cases) {
+  for(const [code,table,pick,change] of cases.filter((_,index)=>index%of===part)) {
     await writeFile(join(restored,`exports/${code}.rer`),await tampered(archive,table,change,pick),{mode:0o600})
     const result=await command(restored,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4})
     assert.match(result,new RegExp(code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
@@ -170,7 +172,7 @@ try {
   const after=(await api(restoredEmployee.context,server.origin,'receipt-inbox')).receipts
   assert.deepEqual(after,before,'restore and hourly replay preserve rejected pairs, existing attachments and private history')
   await restoredEmployee.context.close()
-  await writeFile(join(evidence,'result.json'),JSON.stringify({clauses:['CAPTURE-004','FEED-004'],widths:[1440,390],archive:'exact round trip',refusals:cases.map(c=>c[0])},null,2)+'\n')
+  await writeFile(join(evidence,'result.json'),JSON.stringify({clauses:['CAPTURE-004','FEED-004'],widths:[1440,390],archive:'exact round trip',refusals:cases.filter((_,index)=>index%of===part).map(c=>c[0]),shard:{part,of}},null,2)+'\n')
   console.log('CAPTURE-004 FEED-004 matching consent, questions, basis and undo at 1440/390; exact CLI archive round trip, malformed refusals and replay passed')
 } finally {
   await browser?.close();await server?.close()

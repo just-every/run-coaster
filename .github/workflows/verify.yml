@@ -172,6 +172,10 @@ jobs:
   card_matching:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        refusals: ['0/3', '1/3', '2/3']
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -194,10 +198,11 @@ jobs:
         run: node tests/card-matching.mjs
         env:
           COASTER_EVIDENCE: ${{ runner.temp }}/card-matching-proof
+          MATCH_REFUSALS: ${{ matrix.refusals }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: coaster-card-matching-proof
+          name: coaster-card-matching-proof-${{ strategy.job-index }}
           path: ${{ runner.temp }}/card-matching-proof
 
   verify:
