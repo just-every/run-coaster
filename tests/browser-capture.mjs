@@ -179,7 +179,7 @@ export async function expandedReasonJourney(browser, root, origin, owner) {
 
 /** CAPTURE-004: the real Settings confirmation and inbox draft display at both widths.
  * The caller restored an aged upload through the ordinary archive door before invoking the local Cron door. */
-export async function cashWindowJourney(browser, root, origin, evidence, shots) {
+export async function cashWindowJourney(browser, root, origin, evidence, shots, schedule) {
   for (const width of [1440,390]) {
     const owner=await session(browser,root,origin,'owner',width)
     try {
@@ -197,7 +197,8 @@ export async function cashWindowJourney(browser, root, origin, evidence, shots) 
     } finally {await owner.context.close()}
   }
   // Vite's documented local scheduled-handler door calls the unchanged production hourly handler.
-  const scheduled=await fetch(origin+'/cdn-cgi/handler/scheduled?cron='+encodeURIComponent('17 * * * *'))
+  assert.equal((await fetch(origin+'/cdn-cgi/handler/scheduled')).status,404,'the app listener keeps runtime triggers private')
+  const scheduled=await schedule()
   assert.equal(scheduled.status,200,await scheduled.text())
   for(const width of [1440,390]) {
     const employee=await session(browser,root,origin,'employee',width)

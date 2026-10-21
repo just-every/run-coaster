@@ -36,7 +36,7 @@ try {
   },row=>row.id===aged.row.id),{mode:0o600});
   await command(cash,['import','--input','exports/aged.rer','--yes']);
   server=await start(cash,cashPort);browser=await launch();
-  await cashWindowJourney(browser,cash,server.origin,evidence,shots);
+  await cashWindowJourney(browser,cash,server.origin,evidence,shots,()=>server.scheduled());
   await browser.close();browser=undefined;await server.close();server=undefined;
   await command(cash,['export','--output','exports/cash.rer']);
   const prepared=join(cash,'exports/cash.rer');
@@ -56,7 +56,7 @@ try {
   await command(restoredCash,['export','--output','exports/restored.rer']);
   assert.deepEqual(rows(await records(join(restoredCash,'exports/restored.rer'))),rows(await records(prepared)),'cash reservations and originals round trip exactly');
   server=await start(restoredCash,restorePort);
-  const replay=await fetch(server.origin+'/cdn-cgi/handler/scheduled?cron='+encodeURIComponent('17 * * * *'));
+  const replay=await server.scheduled();
   assert.equal(replay.status,200,await replay.text());
   await server.close();server=undefined;
   await command(restoredCash,['export','--output','exports/replayed.rer']);
