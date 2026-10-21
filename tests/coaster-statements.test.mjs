@@ -16,6 +16,11 @@ const edit = (h, cookie, claim, item, over = {}) => h.post(`claims/${claim.id}/i
 
 test('FEED-002 FEED-004 a statement file posts company-card expenses that are never reimbursed, immutable, keyed by the card transaction and blocked as out-of-pocket duplicates', () => withAgency(async (h, t) => {
   const sent = h.outbound.length, base = await ofx({ category: t.c.office })
+  // A reimbursement approved before the statement arrives is still blocked at batching.
+  const early = await h.post('claims', { title: 'Flight before statement' }, t.sam)
+  const earlyItem = await h.post(`claims/${early.id}/items`, { version: early.version, kind: 'receipt', date: '2026-10-05', merchant: 'Qantas Airways', amount: '120.00', category: t.c.travel, explanation: 'Paid myself' }, t.sam)
+  const earlySub = await h.post(`claims/${early.id}/submit`, { version: earlyItem.version }, t.sam)
+  const earlyApproved = await h.post(`claims/${early.id}/decision`, { revision: earlySub.revision, version: earlySub.version, decision: 'approved', acknowledge: true }, t.priya)
   // Who may import: finance and the owner, never an employee, a manager, or an agent key.
   await h.post('statements/preview', base, t.sam, 403)
   await h.post('statements/preview', base, t.priya, 403)
@@ -83,9 +88,21 @@ test('FEED-002 FEED-004 a statement file posts company-card expenses that are ne
   // G4: the same purchase claimed out of pocket cannot be reimbursed.
   const dup = await h.post('claims', { title: 'Flight again' }, t.sam)
   const withDup = await h.post(`claims/${dup.id}/items`, { version: dup.version, kind: 'receipt', date: '2026-10-05', merchant: 'Qantas Airways', amount: '120.00', category: t.c.travel, explanation: 'Paid myself' }, t.sam)
-  const sub2 = await h.post(`claims/${dup.id}/submit`, { version: withDup.version }, t.sam)
-  const ok2 = await h.post(`claims/${dup.id}/decision`, { revision: sub2.revision, version: sub2.version, decision: 'approved', acknowledge: true }, t.priya)
-  const refused = await h.send('/api/coaster/batches', { claims: [ok2.id] }, t.morgan)
+  const duplicate = await h.post(`claims/${dup.id}/submit`, { version: withDup.version }, t.sam, 409)
+  assert.match(duplicate.error, /company card already paid/)
+  const unchanged = await h.get(`claims/${dup.id}`, t.sam)
+  assert.equal(unchanged.claim.status, 'draft'); assert.equal(unchanged.claim.version, withDup.version)
+  assert.deepEqual(unchanged.revisions, []); assert.deepEqual(unchanged.decisions, [])
+  // The employee can correct a genuinely different purchase and submit normally.
+  const corrected = await edit(h, t.sam, unchanged.claim, unchanged.items[0], { merchant: 'Airport Shuttle', amount: '119.00', explanation: 'Separate airport transfer' })
+  assert.equal((await h.post(`claims/${dup.id}/submit`, { version: corrected.version }, t.sam)).status, 'submitted')
+  // Scheduled submission uses the same gate, even with an explanation on the duplicate.
+  const auto = await h.post('expenses', { kind: 'receipt', date: '2026-10-05', merchant: '  QANTAS   Airways ', amount: '120.00', category: t.c.travel, explanation: 'Paid myself' }, t.sam)
+  await h.post('settings/auto-submit', { schedule: 'daily' })
+  await (await h.mf.getWorker()).scheduled({ scheduledTime: Date.parse('2026-10-13T01:00:00Z'), cron: '17 * * * *' })
+  const autoAfter = await h.get(`claims/${auto.id}`, t.sam)
+  assert.equal(autoAfter.claim.status, 'draft'); assert.deepEqual(autoAfter.revisions, [])
+  const refused = await h.send('/api/coaster/batches', { claims: [earlyApproved.id] }, t.morgan)
   assert.equal(refused.status, 409); assert.match(refused.value.error, /company card already paid/)
   // History: every charge, the commit and each assignment are numbered lines on the import channel or the person's.
   const lines = (await h.get('history?q=import-', t.morgan)).lines ?? (await h.get('history?q=import-', t.morgan))
@@ -196,6 +213,12 @@ test('CAPTURE-004 FEED-004 G6 APPROVE-004 matching never approves or samples a p
   assert.equal(d.decisions[0].actor_email,'rule v1');assert.equal((await h.get('exceptions',t.morgan)).samples.length,1)
   assert.deepEqual(JSON.parse(d.revisions[0].snapshot.items[0].card_match_basis),matchBasis)
   assert.equal(d.receipts[0].name,r.name)
+  // Receipt identity also blocks re-claiming it under different purchase fields or by another employee.
+  const copy = await h.post('claims', { title: 'Same company receipt, different details' }, t.alex)
+  const uploaded = await h.post(`claims/${copy.id}/receipts`, { version: copy.version, name: 'my-copy.png', base64: (await readFile('tests/fixtures/receipts/bistro.png')).toString('base64') }, t.alex)
+  const copyItem = await h.post(`claims/${copy.id}/items`, { version: uploaded.claim.version, receipt: uploaded.receipt, kind: 'receipt', date: '2026-10-08', merchant: 'Different entered merchant', amount: '19.00', category: t.c.office, explanation: 'Typed differently' }, t.alex)
+  await h.post(`claims/${copy.id}/submit`, { version: copyItem.version }, t.alex, 409)
+  assert.deepEqual((await h.get(`claims/${copy.id}`, t.alex)).revisions, [])
 }))
 
 test('CAPTURE-004 FEED-004 native per-original consent, live delegate authority, validated details, stale guards, withdrawal and the cash-window exclusion',()=>withAgency(async(h,t)=>{

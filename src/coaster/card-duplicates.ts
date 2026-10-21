@@ -1,0 +1,24 @@
+import type { ClaimItem } from './exceptions';
+import { isCardExpense } from './card-expenses';
+import { normalDescriptor } from './cards/statement';
+import type { Sql } from './session';
+import { requireThat } from './types';
+
+/** Refuse a reimbursement for a purchase already paid on a company card, before freezing a submission.
+ * The card facts are immutable. Guard the exact candidate set as well as receipt aliases, so a statement
+ * arriving or a receipt attaching between the check and commit cannot slip a duplicate through. */
+export async function noCardDuplicates(db: D1Database, employee: string, items: ClaimItem[]): Promise<Sql[]> {
+  const guards: Sql[] = [];
+  for (const item of items.filter(i => !isCardExpense(i))) {
+    const params = [employee, item.spent_on, item.amount_minor];
+    const where = 'employee_email=? AND COALESCE(transaction_on,posted_on)=? AND amount_minor=?';
+    const candidates = (await db.prepare(`SELECT id,descriptor FROM c_card_charges WHERE ${where} ORDER BY id`).bind(...params).all<{id: string; descriptor: string}>()).results;
+    const receiptSql = 'NOT EXISTS(SELECT 1 FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id JOIN c_card_charges ch ON ch.id=i.card_charge_id WHERE r.sha256=?)';
+    const receiptClear = !item.receipt_sha256 || !!(await db.prepare(`SELECT 1 AS clear WHERE ${receiptSql}`).bind(item.receipt_sha256).first());
+    const twin = candidates.find(c => normalDescriptor(c.descriptor) === normalDescriptor(item.merchant));
+    requireThat(!twin && receiptClear, `${item.merchant} (${item.spent_on}) repeats a purchase the company card already paid; correct or remove the out-of-pocket expense before submitting`, 409);
+    guards.push({ sql: `(SELECT COALESCE(group_concat(id,','),'') FROM (SELECT id FROM c_card_charges WHERE ${where} ORDER BY id))=?`, params: [...params, candidates.map(c => c.id).join(',')] });
+    if (item.receipt_sha256) guards.push({sql: receiptSql, params: [item.receipt_sha256]});
+  }
+  return guards;
+}

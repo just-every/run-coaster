@@ -12,6 +12,7 @@ import { policyReview } from './policy-review';
 import { policyConfiguration, policyStill } from './policy-configuration';
 import { workflowPlan, resolveStage, insertTasks, workflowAccess } from './workflow-routing';
 import { configuredChain, freezeChain } from './approval-chain';
+import { noCardDuplicates } from './card-duplicates';
 import { keepsStatementFacts, reimbursableMinor, REIMBURSABLE_SUM } from './card-expenses';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
@@ -192,6 +193,7 @@ export async function submitScheduled(db: D1Database, id: string, by: string, bu
 async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, history: (action: string, detail: Data) => D1PreparedStatement, note: string, bucket?: R2Bucket) {
   const items = await claimItems(db, claim.id);
   requireThat(items.length > 0, 'Add at least one expense before submitting');
+  const cardGuards = await noCardDuplicates(db, claim.employee_email, items);
   const configured = await configuredChain(db, claim.employee_email);
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(claim.employee_email).first<{ approver_email: string | null }>();
   const first = configured.chain?.steps[0].email ?? member?.approver_email;
@@ -212,7 +214,7 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const rule = await currentRule(db), byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
   const revision = claim.revision + 1, total = reimbursableMinor(items), at = now();
   const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: policyReview(items, exceptions, active), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(auth, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
+  await commit(db, all(auth, ...cardGuards, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),
     ...(workflow && resolved ? insertTasks(db, 'claim', claim.id, revision, 0, 0, resolved.tasks) : []),
     ...(!workflow && configured.chain ? [freezeChain(db, claim.id, revision, configured.chain.id, configured.chain.steps)] : []),
