@@ -62,7 +62,7 @@ try {
   assert.equal((await h.get(`claims/${c.id}`,finance.context)).claim.status,'reimbursed')
   await screenshot('signals-paid-unresolved')
   await page.getByRole('navigation',{name:'Coaster'}).getByRole('link',{name:'Batches',exact:true}).click()
-  await page.getByRole('region',{name:'Exception queue',exact:true}).waitFor()
+  await page.getByRole('region',{name:'Exception queue',exact:true}).getByText('possible, needs review',{exact:false}).first().waitFor()
   assert.ok((await page.getByRole('region',{name:'Exception queue',exact:true}).innerText()).includes('possible, needs review'))
   await screenshot('finance-signal-queue')
   for(const person of [employee,finance,manager])await person.context.close()
