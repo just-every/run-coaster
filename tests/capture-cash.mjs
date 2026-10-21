@@ -39,6 +39,8 @@ try {
   server=await start(cash,cashPort);browser=await launch();
   await cashWindowJourney(browser,cash,server.origin,evidence,shots,()=>server.scheduled());
   await attachmentJourney(browser,cash,server.origin,evidence,shots,server.siteOrigin);
+  // The entered expense now belongs to FOLLOWUP-001 as well. Finish its first hourly cycle before taking the replay baseline.
+  const settled=await server.scheduled();assert.equal(settled.status,200,await settled.text());
   await browser.close();browser=undefined;await server.close();server=undefined;
   await command(cash,['export','--output','exports/cash.rer']);
   const prepared=join(cash,'exports/cash.rer');
