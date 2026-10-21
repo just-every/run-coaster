@@ -46,8 +46,11 @@ try {
     await row.getByRole('alert').filter({hasText:'Read and acknowledge'}).waitFor()
     await acknowledgment.check();await row.getByText(notice,{exact:true}).scrollIntoViewIfNeeded()
     await page.screenshot({path:join(evidence,`matching-notice-${width}.png`),fullPage:true})
-    await row.getByRole('button',{name:'Match to my card charge',exact:true}).click()
-    await page.waitForTimeout(150)
+    const [optedIn]=await Promise.all([
+      page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname.endsWith('/card-match')),
+      row.getByRole('button',{name:'Match to my card charge',exact:true}).click(),
+    ])
+    assert.equal(optedIn.status(),200,await optedIn.text())
     let receipt=(await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.name===name)
     assert.equal(receipt.matchChoice.enabled,true)
     const uniqueJob=await importRows(`unique-${width}.csv`,amount,'Harbour View Bistro')
@@ -72,8 +75,11 @@ try {
     await page.screenshot({path:join(evidence,`matching-basis-${width}.png`),fullPage:true})
     await page.goto(server.origin+'/app#/claims')
     await row.locator('summary').filter({hasText:`Detach ${name}`}).click()
-    await row.getByRole('button',{name:'Detach receipt',exact:true}).click()
-    await page.waitForTimeout(150)
+    const [detached]=await Promise.all([
+      page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname.endsWith(`/receipt-inbox/${receipt.id}/detach`)),
+      row.getByRole('button',{name:'Detach receipt',exact:true}).click(),
+    ])
+    assert.equal(detached.status(),200,await detached.text())
     receipt=(await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===receipt.id)
     assert.equal(receipt.attachment,null);assert.equal(receipt.matchChoice.enabled,false)
     await api(context,server.origin,`receipt-inbox/${receipt.id}/card-match`,{expectedSequence:receipt.lifecycleSequence,enabled:true,merchant:'Bistro',date:'2026-10-02',total:amount,currency:'AUD',notice})
@@ -99,8 +105,11 @@ try {
     assert.equal(await question.getByRole('button',{name:'This one',exact:true}).count(),2)
     await question.scrollIntoViewIfNeeded();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
     await page.screenshot({path:join(evidence,`matching-question-${width}.png`),fullPage:true})
-    await question.getByRole('button',{name:'This one',exact:true}).last().click()
-    await page.waitForTimeout(150)
+    const [attached]=await Promise.all([
+      page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname.endsWith(`/receipt-inbox/${tie.id}/attach`)),
+      question.getByRole('button',{name:'This one',exact:true}).last().click(),
+    ])
+    assert.equal(attached.status(),200,await attached.text())
     const answered=(await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===tie.id)
     assert.equal(answered.lifecycle.at(-1).actorEmail,PEOPLE.employee);assert.equal(answered.lifecycle.at(-1).channel,'app')
     chosen.push(tie.id);await context.close()
@@ -143,6 +152,14 @@ try {
       if(row.capture_receipt_id===event.receipt_id&&row.claim_id===event.claim_id&&row.card_match_basis)row.card_match_basis=event.match_data
   }
   const automated=r=>r.channel==='schedule'
+  // Row order is by random receipt id. Select the consent that actually authorized an automatic attachment;
+  // withdrawing a later choice or a manually attached original is a valid archive, not an adversarial match.
+  const archivedLines=rows(await records(archive)).filter(r=>r.table==='c_capture_lifecycle').map(r=>r.row)
+  const automaticChoices=new Set(archivedLines.filter(automated).map(event=>{
+    const choice=archivedLines.filter(r=>r.receipt_id===event.receipt_id&&r.sequence<event.sequence&&['match-details','match-withdrawn'].includes(r.kind)).sort((a,b)=>a.sequence-b.sequence).at(-1)
+    assert.equal(choice?.kind,'match-details')
+    return `${choice.receipt_id}:${choice.sequence}`
+  }))
   const cases=[
     ['match_choice','c_capture_lifecycle',r=>r.kind==='match-details',r=>{const d=JSON.parse(r.match_data);d.totalMinor=0;r.match_data=JSON.stringify(d)}],
     ['match_choice_currency','c_capture_lifecycle',r=>r.kind==='match-details',r=>{const d=JSON.parse(r.match_data);d.currency='ZZZ';r.match_data=JSON.stringify(d)}],
@@ -157,7 +174,7 @@ try {
     ['match_basis_currency','c_capture_lifecycle',automated,alterBasis(d=>{d.enteredCurrency='USD'})],
     ['match_basis_date','c_capture_lifecycle',automated,alterBasis(d=>{d.enteredDate='2026-10-01'})],
     ['match_basis_private_field','c_capture_lifecycle',automated,alterBasis(d=>{d.merchant='synthetic-private-details'})],
-    ['match_basis_withdrawn','c_capture_lifecycle',r=>r.kind==='match-details',(r)=>{r.kind='match-withdrawn';r.match_data=null}],
+    ['match_basis_withdrawn','c_capture_lifecycle',r=>r.kind==='match-details'&&automaticChoices.has(`${r.receipt_id}:${r.sequence}`),(r)=>{r.kind='match-withdrawn';r.match_data=null}],
     ['match_history_discarded','c_capture_lifecycle',r=>r.kind==='match-details',(r)=>{r.kind='discarded';r.reason='synthetic-discarded';r.match_data=null}],
     ['match_history_merged','c_capture_lifecycle',r=>r.kind==='match-details',(r,input)=>{r.kind='merged';r.reason='synthetic-merged';r.match_data=null;r.survivor_id=rows(input).find(i=>i.table==='c_capture_receipts'&&i.row.id!==r.receipt_id).row.id}],
     ['card_charge_employee','c_card_charges',()=>true,r=>{r.employee_email='synthetic-foreign@example.test'}],
