@@ -30,8 +30,9 @@ try {
   })
   const page=finance.page
   async function screenshot(name) {
-   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${name} overflow at ${width}`)
    await page.screenshot({path:join(evidence,`${name}-${width}.png`),fullPage:true})
+   const overflow=await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).slice(0,8).map(el=>({tag:el.tagName,className:el.className,right:Math.round(el.getBoundingClientRect().right)})))
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${name} overflow at ${width}: ${JSON.stringify(overflow)}`)
   }
   async function openClaim(title) {
    await page.goto(server.origin+'/app');await page.getByRole('navigation',{name:'Coaster'}).getByRole('link',{name:'Claims',exact:true}).click()

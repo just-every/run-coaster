@@ -7,7 +7,7 @@ const names: Record<string, string> = { 'editing-software': 'Software', 'image-d
 export function ReceiptSignals({ revision, events, mayReview, claimId, done }: { revision?: D; events: D[]; mayReview: boolean; claimId: string; done: () => Promise<void> }) {
   const results = revision?.snapshot.receiptSignals;
   if (!results?.length) return null;
-  return <section className="panel-block" aria-label="Receipt and spend signals">
+  return <section className="panel-block" aria-label="Receipt and spend signals" style={{minWidth:0,overflowWrap:'anywhere'}}>
     <h3>Receipt and spend signals · revision {revision!.revision}</h3>
     <p className="muted">A possible signal needs a person’s review. These signals do not reject a claim, change its approval route or delay payment. Each observation names the measured comparison; it is not a finding of wrongdoing. A missing signal does not verify authenticity.</p>
     <ul className="ruled-list">{results.map((r: D) => <li key={r.item}>

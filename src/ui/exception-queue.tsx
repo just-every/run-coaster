@@ -13,7 +13,7 @@ export function ExceptionQueue({ state }: { state: D }) {
     <Section title={`Exception queue · ${queue.open.length}`} label="Exception queue" actions={<label className="field"><span className="field-label">Order</span><select value={sort} onChange={e => setSort(e.target.value)}><option value="risk">Highest risk first</option><option value="age">Oldest first</option></select></label>}>
       {queue.open.length ? <ul className="ruled-list">{queue.open.map((x: D) => <li key={`${x.claim}-${x.item}-${x.code}`} className="job">
         <span><strong>{x.number}</strong> · {state.names[x.employee] ?? x.employee} · {x.merchant} · {money(x.amountMinor, x.currency)} · {x.signal ? 'possible, needs review' : exceptionWords[x.code] ?? x.code} (risk {x.risk}) · {plural(x.ageDays, 'day')} old{x.explanation ? ` · “${x.explanation}”` : ''}</span>
-        <p>{x.message}</p>
+        <p style={{minWidth:0,overflowWrap:'anywhere'}}>{x.message}</p>
         {finance && <Form label="Mark reviewed" className="record-form-inline" onSubmit={async v => { setQueue(await call('exceptions/review', { claim: x.claim, revision: x.revision, item: x.item, code: x.code, note: v.note })); }}>
           <Field label="Review note" name="note" placeholder="Checked with the employee" />
         </Form>}
