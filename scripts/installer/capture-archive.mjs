@@ -43,7 +43,8 @@ export async function validateCaptureArchive(read, manifest) {
       const claim = claims.find(c => c.id === event.claim_id);
       check(!claim || claim.employee_email === receipt.owner_email, 'attachment');
       if (event.kind === 'attached') {
-        check(!associations.has(receipt.id), 'attachment');
+        const previousAttachment = associations.get(receipt.id);
+        check(!previousAttachment || !items.some(item=>item.id===previousAttachment.item_id), 'attachment');
         associations.set(receipt.id,event);
       } else {
         const attached = associations.get(receipt.id);
@@ -52,11 +53,13 @@ export async function validateCaptureArchive(read, manifest) {
         associations.delete(receipt.id);
       }
     } else {
-      check(!associations.has(receipt.id) && event.claim_id === null && event.item_id === null, 'attachment');
+      const previousAttachment = associations.get(receipt.id);
+      check((!previousAttachment || !items.some(item=>item.id===previousAttachment.item_id)) && event.claim_id === null && event.item_id === null, 'attachment');
       const survivor = event.kind === 'merged' ? byId.get(event.survivor_id) : undefined;
       if (event.kind === 'merged') check(survivor && survivor.id !== receipt.id && survivor.owner_email === receipt.owner_email
         && event.at >= survivor.uploaded_at && (event.reason === '' ? survivor.sha256 === receipt.sha256 : validDiscardReason(event.reason, members)), 'merge');
       else check(event.kind === 'discarded' && event.survivor_id === null && validDiscardReason(event.reason, members), 'reason');
+      associations.delete(receipt.id);
       ended.set(event.receipt_id,event);
     }
     latest.set(receipt.id,event);
@@ -72,10 +75,10 @@ export async function validateCaptureArchive(read, manifest) {
     check(attached && attached.item_id === item.id, 'attachment');
   }
   for (const [id, attached] of associations) {
-    const item = items.find(i=>i.id===attached.item_id), claim = claims.find(c=>c.id===attached.claim_id);
+    const item = items.find(i=>i.id===attached.item_id);
     // A retained history line survives financial-record retention; a live expense must still carry its original.
     if (item) check(aliases.some(a=>a.id===item.receipt_id && a.capture_receipt_id===id), 'attachment');
-    else check(!claim, 'attachment');
+    // Historical expense ids remain in private history after financial retention, including an expense moved by partial approval.
   }
   check(byKey.size === objects.length && byId.size === receipts.length, 'objects');
   const history = new Map();

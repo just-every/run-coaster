@@ -98,6 +98,7 @@ WHEN NEW.kind IN ('attached','detached') AND (
  WHERE i.id=NEW.item_id AND c.id=NEW.claim_id AND c.employee_email=r.owner_email AND c.status IN ('draft','returned') AND i.kind='receipt'
  AND ((NEW.kind='attached' AND EXISTS(SELECT 1 FROM c_receipts a WHERE a.id=i.receipt_id AND a.capture_receipt_id=r.id))
  OR (NEW.kind='detached' AND i.receipt_id IS NULL)))
- OR (NEW.kind='attached' AND COALESCE((SELECT kind FROM c_capture_lifecycle WHERE receipt_id=NEW.receipt_id ORDER BY sequence DESC LIMIT 1),'detached')<>'detached')
+ OR (NEW.kind='attached' AND COALESCE((SELECT kind FROM c_capture_lifecycle WHERE receipt_id=NEW.receipt_id ORDER BY sequence DESC LIMIT 1),'detached')<>'detached'
+ AND EXISTS(SELECT 1 FROM c_items WHERE id=(SELECT item_id FROM c_capture_lifecycle WHERE receipt_id=NEW.receipt_id ORDER BY sequence DESC LIMIT 1)))
  OR (NEW.kind='detached' AND COALESCE((SELECT kind FROM c_capture_lifecycle WHERE receipt_id=NEW.receipt_id ORDER BY sequence DESC LIMIT 1),'')<>'attached'))
 BEGIN SELECT RAISE(ABORT,'attachment needs its editable employee expense and exact transition'); END;

@@ -596,5 +596,18 @@ test('CAPTURE-004 attaches and detaches one R2 original on editable purchases, p
     assert.equal((await h.db.prepare('SELECT SUM(length(bytes)) n FROM c_receipts').first()).n,0)
     assert.ok(!JSON.stringify(await h.get('history')).includes('private-inbox.png'))
     for(const sql of ['UPDATE c_capture_lifecycle SET item_id=NULL','DELETE FROM c_capture_lifecycle'])await assert.rejects(h.db.prepare(sql).run(),/permanent|CHECK/)
+    // RETAIN-001 removes the financial claim, while the private original and its attachment history remain usable.
+    largeClaim=await h.post(`claims/${largeClaim.id}/decision`,{version:largeClaim.version,revision:largeClaim.revision,decision:'rejected',reason:'Not reimbursable'},t.priya)
+    await h.post('settings/retention',{years:1})
+    await (await h.mf.getWorker()).scheduled({scheduledTime:Date.parse('2028-10-22T04:00:00Z'),cron:'17 * * * *'})
+    const proposal=(await h.get('retention')).proposal;assert.ok(proposal)
+    await h.post(`retention/${proposal.id}/confirm`,{})
+    await h.get(`claims/${largeClaim.id}`,t.sam,404)
+    assert.deepEqual((await download(h,t.sam,large.id)).bytes,folio)
+    let later=await h.post('claims',{title:'Retained original review'},t.sam)
+    later=await h.post(`claims/${later.id}/items`,{version:later.version,kind:'receipt',date:'2026-10-19',merchant:'Harbour Hotel',amount:'240.00',category:t.c.travel},t.sam)
+    const laterDetail=await h.get(`claims/${later.id}`,t.sam)
+    await h.post(`receipt-inbox/${large.id}/attach`,{expectedSequence:1,claimId:later.id,itemId:laterDetail.items[0].id,version:later.version},t.sam)
+
   } finally {await h.close()}
 })
