@@ -48,9 +48,9 @@ try {
   await mkdir(join(restoredCash,'exports'),{recursive:true});
   await command(restoredCash,['export','--output','exports/empty.rer']);
   const cashEmpty=rows(await records(join(restoredCash,'exports/empty.rer')));
-  for(const [code,table,mutate] of [['cash_window','c_capture_window',row=>{row.days=91}],['cash_draft','c_capture_cash_drafts',row=>{row.expense_date='2000-01-01'}]]){
+  for(const [code,table,mutate] of [['cash_window','c_capture_window',row=>{row.days=91}],['cash_draft','c_capture_cash_drafts',row=>{row.expense_date='2000-01-01'}],['attachment','c_capture_lifecycle',row=>{row.item_id='unknown-expense'}],['receipt_bytes','c_receipts',row=>{row.sha256='0'.repeat(64)}]]){
     await writeFile(join(restoredCash,`exports/${code}.rer`),await tampered(prepared,table,mutate),{mode:0o600});
-    assert.match(await command(restoredCash,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4}),new RegExp('coaster_capture_'+code));
+    assert.match(await command(restoredCash,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4}),new RegExp(code==='receipt_bytes'?'coaster_receipt_bytes':'coaster_capture_'+code));
     await command(restoredCash,['export','--output',`exports/unchanged-${code}.rer`]);
     assert.deepEqual(rows(await records(join(restoredCash,`exports/unchanged-${code}.rer`))),cashEmpty,'refused cash archive writes nothing');
   }
@@ -59,6 +59,14 @@ try {
   await command(restoredCash,['export','--output','exports/restored.rer']);
   assert.deepEqual(rows(await records(join(restoredCash,'exports/restored.rer'))),rows(await records(prepared)),'cash reservations and originals round trip exactly');
   server=await start(restoredCash,restorePort);
+  browser=await launch();
+  const employeeRestored=await session(browser,restoredCash,server.origin,'employee',390);
+  const restoredInbox=(await api(employeeRestored.context,server.origin,'receipt-inbox')).receipts;
+  const active=restoredInbox.find(r=>r.attachment);assert.ok(active,'the final attached original survives restore');
+  const restoredClaim=await api(employeeRestored.context,server.origin,`claims/${active.attachment.claimId}`);
+  const restoredFile=await employeeRestored.context.request.get(server.origin+`/api/coaster/receipts/${restoredClaim.items[0].receipt_id}`);
+  assert.equal(restoredFile.status(),200);assert.deepEqual(await restoredFile.body(),await readFile('tests/fixtures/receipts/bistro.png'));
+  await employeeRestored.context.close();await browser.close();browser=undefined;
   const replay=await server.scheduled();
   assert.equal(replay.status,200,await replay.text());
   await server.close();server=undefined;

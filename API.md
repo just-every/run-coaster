@@ -18,6 +18,9 @@ with `actingFor`.
 | Route | Who | Does |
 |---|---|---|
 | `GET state` | anyone in Coaster | Their workspace: business, categories, the claims they may see, their proposals and agent keys; batches for finance and auditors. An auditor sees every submitted claim and changes nothing. |
+| `GET receipt-inbox` | employee or their live Submit-only/Full delegate | Private originals, reader/lifecycle history, cash drafts and current expense attachment. |
+| `POST receipt-inbox/:id/attach` `{expectedSequence, claimId, itemId, version}` | its employee or their live Submit-only/Full delegate | Attach an active unattached original to an unreceipted purchase on their own draft or returned claim; the shown notice explains receipt sharing on submission. |
+| `POST receipt-inbox/:id/detach` `{expectedSequence, claimId, itemId, version}` | same | Detach from the editable expense; keep the original and earlier submitted evidence. Both routes append private lifecycle history and advance the claim version. |
 | `POST claims` `{title}` | employee | Start a draft claim. |
 | `GET claims/:id` | who may see it | Items, receipts, exceptions, every revision, decision and history line. |
 | `POST claims/:id/items` `{version, item?, kind, date, merchant, amount \| distance \| days, description, explanation, billable?: boolean, customer?: string, project?: string, receipt?, allocations: [{category, costCentre, amount?, description?}], attendees?: [{kind: employee\|guest, name, email?}], fields?: {name: value}}` | its employee | Add or replace an expense (draft or returned); an itemized part names itself (room, tax), attendees count against a category's per-person limit, and every category's required fields must be filled before submission. |

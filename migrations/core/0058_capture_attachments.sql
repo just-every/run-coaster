@@ -17,9 +17,15 @@ CREATE TABLE c_receipts_next (
   CHECK ((capture_receipt_id IS NULL AND length(bytes)=size) OR (capture_receipt_id IS NOT NULL AND length(bytes)=0))
 );
 INSERT INTO c_receipts_next(id,claim_id,proposal_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) SELECT id,claim_id,proposal_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at FROM c_receipts;
+-- SQLite cannot drop a referenced parent even under deferred checks. Preserve
+-- every expense link, clear it only inside this migration, then restore it verbatim.
+CREATE TABLE c_capture_upgrade_links AS SELECT id,receipt_id FROM c_items WHERE receipt_id IS NOT NULL;
+UPDATE c_items SET receipt_id=NULL WHERE receipt_id IS NOT NULL;
 DROP TRIGGER c_receipts_no_delete;
 DROP TABLE c_receipts;
 ALTER TABLE c_receipts_next RENAME TO c_receipts;
+UPDATE c_items SET receipt_id=(SELECT receipt_id FROM c_capture_upgrade_links WHERE id=c_items.id) WHERE id IN (SELECT id FROM c_capture_upgrade_links);
+DROP TABLE c_capture_upgrade_links;
 CREATE INDEX c_receipts_claim ON c_receipts(claim_id);
 CREATE INDEX c_receipts_hash ON c_receipts(sha256);
 CREATE TRIGGER c_receipts_keep_bytes BEFORE UPDATE OF bytes,sha256,size,name,uploaded_at,capture_receipt_id ON c_receipts
