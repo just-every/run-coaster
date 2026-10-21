@@ -59,6 +59,7 @@ export async function chooseCardMatch(db: D1Database, actor: Actor, id: string, 
     details = {merchant,date,totalMinor,currency,last4:b.last4||null};
   }
   await commit(db,all(authority(actor,'employee'),openOriginal(actor,id,sequence,at),noAttachment(id),
+    {sql:'EXISTS(SELECT 1 FROM c_business WHERE id=1 AND currency=?)',params:[business.currency]},
     {sql: b.enabled?'NOT EXISTS(SELECT 1 FROM c_capture_cash_drafts WHERE receipt_id=?)':'1',params:b.enabled?[id]:[]}),[
     privateMatchLine(db,id,sequence+1,b.enabled?'match-details':'match-withdrawn',actor.delegate?.email??actor.email,actor.delegate?actor.email:null,details),
   ]);
@@ -125,12 +126,17 @@ export async function rejectMatchQuestion(db:D1Database,actor:Actor,id:string,b:
  * original, including those outside this delivery's 100-original decision budget. A global epoch guards that snapshot. */
 export async function runCardMatching(db:D1Database,at:Date) {
   const rule=await matchRule(db); if(!rule?.enabled) return;
-  const business=await requireBusiness(db),fx=createFx(!!business.fx_enabled,business.currency);
+  let cachedFx:FxResolver|undefined,fxKey='';
   const waiting=(await db.prepare(originalSelect+eligible+` AND NOT EXISTS(SELECT 1 FROM c_card_match_checks k WHERE k.receipt_id=r.id
     AND k.generation=COALESCE((SELECT version FROM c_card_match_generations WHERE employee_email=r.owner_email),0) AND k.rule_version=?)
     ORDER BY COALESCE((SELECT evaluated_at FROM c_card_match_checks WHERE receipt_id=r.id),r.uploaded_at),r.uploaded_at,r.id LIMIT 100`).bind(rule.version).all<Original>()).results;
   for(const pending of waiting) {
-    const e=await epoch(db),original=await db.prepare(originalSelect+eligible+' AND r.id=?').bind(pending.id).first<Original>();
+    const e=await epoch(db),currentRule=await matchRule(db);
+    if(!currentRule?.enabled) break;
+    const rule=currentRule,business=await requireBusiness(db),key=`${business.currency}:${business.fx_enabled}`;
+    if(key!==fxKey) {cachedFx=createFx(!!business.fx_enabled,business.currency);fxKey=key;}
+    const fx=cachedFx!;
+    const original=await db.prepare(originalSelect+eligible+' AND r.id=?').bind(pending.id).first<Original>();
     if(!original) continue;
     const charges=await chargesFor(db,original.owner_email),found=await candidates(db,original,charges,rule,business,fx);
     let unique=found.length===1;
