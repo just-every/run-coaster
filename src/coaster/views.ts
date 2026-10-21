@@ -76,7 +76,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const hiddenReceipts = new Set((receipts.results as Data[]).filter(r => r.capture_receipt_id && actor.email !== claim.employee_email && !submittedReceipts.has(r.id)).map(r => r.id));
   const shownReceipts = (receipts.results as Data[]).filter(r => !hiddenReceipts.has(r.id)).map(({ capture_receipt_id, ...r }) => r);
   const shownItems = items.map(item => hiddenReceipts.has(item.receipt_id)
-    ? { ...item, receipt_id: null, receipt_sha256: null, receipt_name: null, receipt_media: null, receipt_size: null }
+    ? { ...item, receipt_id: null, receipt_sha256: null, receipt_name: null, receipt_media: null, receipt_size: null, card_match_basis: null }
     : item);
   const settings = await business(db), known = await categories(db);
   const configured = settings ? await policyConfiguration(db, settings, known, ['draft', 'returned'].includes(claim.status) ? undefined : history.at(-1)?.snapshot.policyVersion) : { categories: known };

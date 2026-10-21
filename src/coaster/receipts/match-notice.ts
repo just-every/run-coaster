@@ -1,0 +1,2 @@
+/** The scope-review-67 notice is shared verbatim by the native API and receipt form. */
+export const MATCH_NOTICE = "When this receipt matches one of your card charges, Coaster attaches it automatically. Approvers and finance can see the receipt, its file name and the total, currency and date you entered once that expense is submitted — by you, your delegate or the owner's scheduled submission.";

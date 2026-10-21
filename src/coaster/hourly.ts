@@ -5,6 +5,7 @@ import { runBudgets } from './budgets';
 import { runAllowances } from './allowances';
 import { runAutoSubmit } from './auto-reports';
 import { runRetention } from './retention';
+import { runCardMatching } from './receipts/card-matching';
 import { runCashDrafts } from './receipts/cash-drafts';
 import { runPaySchedule } from './batches';
 
@@ -13,6 +14,7 @@ import { runPaySchedule } from './batches';
  * scheduled reports (REPORT-002) and opens the pay-day batch (PAY-004). */
 export async function runHourly(original: Bindings, at: Date) {
   const env = runtimeBindings(original);
+  await runCardMatching(env.DB, at);
   await runCashDrafts(env.DB, at);
   await runReminders(env, at);
   await runBudgets(env, at);

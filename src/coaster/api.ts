@@ -47,6 +47,7 @@ import { discardReceipt, mergeReceipt } from './receipts/lifecycle';
 import { reviewReceiptSignal } from './receipt-signal-review';
 import { perDiemLocations, pricePerDiem } from './per-diem';
 import { assignCard, commitStatement, statementFile, statementState, undoStatement } from './cards/charges';
+import { cardMatchQuestion, chooseCardMatch, matchRule, rejectMatchQuestion, saveMatchRule } from './receipts/card-matching';
 import { planStatement } from './cards/plan';
 import { Fault, requireThat, type Actor, type Data } from './types';
 
@@ -82,6 +83,12 @@ const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c:
 api.get('/api/coaster/settings/cash-draft-window', as(async (a, c) => cashWindow(db(c), a)));
 api.post('/api/coaster/settings/cash-draft-window/preview', as(async (a, c) => previewCashWindow(db(c), a, await body(c))));
 api.post('/api/coaster/settings/cash-draft-window', as(async (a, c) => saveCashWindow(db(c), a, await body(c))));
+
+api.get('/api/coaster/settings/card-matching', as(async (a, c) => { need(a, 'finance'); return matchRule(db(c)); }));
+api.post('/api/coaster/settings/card-matching', as(async (a, c) => saveMatchRule(db(c), a, await body(c))));
+api.post('/api/coaster/receipt-inbox/:id/card-match', as(async (a, c) => chooseCardMatch(db(c), a, param(c, 'id'), await body(c))));
+api.get('/api/coaster/receipt-inbox/:id/card-match-question', as(async (a, c) => cardMatchQuestion(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/receipt-inbox/:id/card-match-reject', as(async (a, c) => rejectMatchQuestion(db(c), a, param(c, 'id'), await body(c))));
 
 api.get('/api/coaster/receipt-inbox', as(async (a, c) => listInbox(db(c), a)));
 api.post('/api/coaster/receipt-inbox', as(async (a, c) => receiveReceipt(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, c.req.raw)));

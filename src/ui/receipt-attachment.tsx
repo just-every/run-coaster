@@ -24,7 +24,7 @@ export function ReceiptAttachment({ receipt, claims, employee, reload }: { recei
       <Form label="Detach receipt" onSubmit={async () => {
         await call(`receipt-inbox/${receipt.id}/detach`, { expectedSequence: receipt.lifecycleSequence, claimId: attachment.claimId, itemId: attachment.itemId, version: attachment.version });
         await reload();
-      }}><p>The expense will have no receipt. This original stays in your private inbox; earlier submitted revisions keep their receipt.</p></Form>
+      }}><p>The expense will have no receipt. This original stays in your private inbox; earlier submitted revisions keep their receipt. A detached card-charge pair is permanently excluded from matching, and automatic matching stops until you choose it again.</p></Form>
     </Details>}
   </>;
   const expenses: D[] = detail ? detail.items.filter((item: D) => item.kind === 'receipt' && !item.receipt_id) : [];

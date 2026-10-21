@@ -10,7 +10,9 @@ export const CASH_DRAFT_ACTOR = 'automation: cash-draft window';
 const eligible = `FROM c_capture_receipts r JOIN c_members m ON m.email=r.owner_email AND m.active=1 AND m.is_employee=1
  WHERE r.uploaded_at<=? AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle l WHERE l.receipt_id=r.id AND l.kind IN ('discarded','merged'))
  AND NOT EXISTS(SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE a.capture_receipt_id=r.id)
- AND NOT EXISTS(SELECT 1 FROM c_capture_cash_drafts d WHERE d.receipt_id=r.id)`;
+ AND NOT EXISTS(SELECT 1 FROM c_capture_cash_drafts d WHERE d.receipt_id=r.id)
+ AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle opt WHERE opt.receipt_id=r.id AND opt.kind='match-details'
+ AND opt.sequence=(SELECT MAX(sequence) FROM c_capture_lifecycle WHERE receipt_id=r.id AND kind IN ('match-details','match-withdrawn')))`;
 const cutoff = (at: string, days: number) => new Date(Date.parse(at) - days * DAY).toISOString();
 function finance(actor: Actor) {
   need(actor, 'finance');

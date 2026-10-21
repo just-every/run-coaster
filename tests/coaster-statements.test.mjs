@@ -135,3 +135,230 @@ test('FEED-002 QFX and mapped CSV import with masking, overlap flags, imported-h
   await h.get('statements', t.sam, 403)
   assert.equal(h.outbound.length, sent, 'statement import made no outbound request')
 }))
+
+const NOTICE = "When this receipt matches one of your card charges, Coaster attaches it automatically. Approvers and finance can see the receipt, its file name and the total, currency and date you entered once that expense is submitted — by you, your delegate or the owner's scheduled submission."
+const inbox = async(h,t,id) => (await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===id)
+async function original(h,cookie,name='private-card.png',headers={}) {
+  const form=new FormData();form.append('file',new Blob([await readFile('tests/fixtures/receipts/bistro.png')]),name);form.append('source','upload')
+  const req=new Request(h.origin+'/api/coaster/receipt-inbox',{method:'POST',headers:{origin:h.origin,cookie,...headers},body:form})
+  const r=await h.mf.dispatchFetch(req.url,{method:'POST',headers:Object.fromEntries(req.headers),body:await req.arrayBuffer()})
+  assert.equal(r.status,200);return (await r.json()).receipt
+}
+async function choose(h,t,r,over={}) {return h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:r.lifecycleSequence,enabled:true,merchant:'Different typed private merchant',date:'2026-10-02',total:'48.20',currency:'AUD',notice:NOTICE,...over},t.sam)}
+const tick = async h => (await h.mf.getWorker()).scheduled({scheduledTime:Date.now(),cron:'17 * * * *'})
+async function statement(h,t,rows,{last4='1111',employee=SAM,name='matching.csv'}={}) {
+  await h.post('statements/cards',{issuer:ISSUER,last4,employee})
+  const base={format:'csv',name,issuer:ISSUER,category:t.c.office,content:'Posted,Transaction,Merchant,Amount,Id,Status\n'+rows.map((r,i)=>`${r.date??'2026-10-03'},${r.transaction??'2026-10-02'},${r.merchant??'Harbour View Bistro'},${r.amount??'48.20'},${r.id??name+'-'+i},${r.status??'posted'}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Posted',transactionDate:'Transaction',description:'Merchant',amount:'Amount',transactionId:'Id',status:'Status',wholeFileLast4:last4}}
+  const preview=await h.post('statements/preview',base,t.morgan)
+  assert.deepEqual(preview.errors,[])
+  return preview.importable ? h.post('statements/commit',{...base,fingerprint:preview.fingerprint},t.morgan) : preview
+}
+
+test('CAPTURE-004 FEED-004 G6 APPROVE-004 matching never approves or samples a private card expense before submission; exact matching attaches once with private schedule provenance',()=>withAgency(async(h,t)=>{
+  const r=await original(h,t.sam),before=h.messages.length
+  await choose(h,t,r)
+  const job=await statement(h,t,[{}])
+  await h.post('settings/approval-rule',{enabled:true,limit:'75.00'})
+  await h.post('settings/audit-sample',{percent:'100'},t.morgan)
+  let d=await h.get(`claims/${job.claims[0]}`,t.sam)
+  assert.equal(d.items[0].receipt_id,null,'import itself does not attach or approve')
+  await Promise.all([tick(h),tick(h)])
+  const matched=await inbox(h,t,r.id)
+  assert.ok(matched.attachment);assert.deepEqual([matched.lifecycle.at(-1).kind,matched.lifecycle.at(-1).actorEmail,matched.lifecycle.at(-1).onBehalfOf,matched.lifecycle.at(-1).channel],['attached','automation: card match',SAM,'schedule'])
+  d=await h.get(`claims/${job.claims[0]}`,t.sam)
+  assert.equal(d.claim.status,'draft');assert.equal(d.claim.total_minor,0);assert.deepEqual(d.decisions,[]);assert.deepEqual(d.revisions,[])
+  assert.equal((await h.get('exceptions',t.morgan)).samples.length,0,'G6: no sampling before submission')
+  const alias=await h.db.prepare('SELECT * FROM c_receipts WHERE id=?').bind(d.items[0].receipt_id).first()
+  assert.equal(new Uint8Array(alias.bytes).byteLength,0);assert.equal(alias.capture_receipt_id,r.id)
+  const matchBasis=JSON.parse(d.items[0].card_match_basis)
+  assert.deepEqual(matchBasis,{ruleVersion:1,basis:'exact',enteredTotalMinor:4820,enteredCurrency:'AUD',enteredDate:'2026-10-02',differenceMinor:0})
+  const history=await h.get('history?q=card-charge-matched',t.morgan)
+  assert.equal(history.lines.length,1);assert.equal(history.lines[0].channel,'schedule')
+  assert.deepEqual(Object.keys(history.lines[0].detail).sort(),['charge','ruleVersion'])
+  assert.ok(!JSON.stringify(history).includes(r.id)&&!JSON.stringify(history).includes(r.name)&&!JSON.stringify(history).includes(r.sha256)&&!JSON.stringify(history).includes('Different typed private merchant'))
+  for(const cookie of [h.owner,t.morgan,t.priya]) {
+    await h.get(`claims/${job.claims[0]}`,cookie,403)
+    assert.deepEqual((await h.get('receipt-inbox',cookie)).receipts,[])
+    assert.deepEqual((await h.get(`receipt-inbox/${r.id}/card-match-question`,cookie)).candidates,[])
+  }
+  assert.equal(h.messages.length,before,'matching never notifies')
+  await Promise.all([tick(h),tick(h)])
+  assert.equal((await inbox(h,t,r.id)).lifecycle.filter(e=>e.kind==='attached').length,1)
+  assert.equal((await h.get('history?q=card-charge-matched',t.morgan)).lines.length,1)
+  const submitted=await h.post(`claims/${d.claim.id}/submit`,{version:d.claim.version},t.sam)
+  assert.equal(submitted.status,'approved')
+  d=await h.get(`claims/${d.claim.id}`,t.morgan)
+  assert.equal(d.decisions[0].actor_email,'rule v1');assert.equal((await h.get('exceptions',t.morgan)).samples.length,1)
+  assert.deepEqual(JSON.parse(d.revisions[0].snapshot.items[0].card_match_basis),matchBasis)
+  assert.equal(d.receipts[0].name,r.name)
+}))
+
+test('CAPTURE-004 FEED-004 native per-original consent, live delegate authority, validated details, stale guards, withdrawal and the cash-window exclusion',()=>withAgency(async(h,t)=>{
+  const r=await original(h,t.sam)
+  assert.equal(r.matchChoice.enabled,false);assert.equal(r.matchChoice.notice,NOTICE)
+  await h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:0,enabled:true,merchant:'Bistro',date:'2026-10-02',total:'48.20'},t.sam,400)
+  for(const [field,value] of [['merchant',' '],['merchant','x'.repeat(201)],['date','2026-02-30'],['total','0'],['total','1.001'],['currency','ZZZ'],['last4','4111111111111111']])
+    await h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:0,enabled:true,merchant:'Bistro',date:'2026-10-02',total:'48.20',currency:'AUD',notice:NOTICE,[field]:value},t.sam,400)
+  const key=await h.post('agent-keys',{label:'Cannot consent'},t.sam)
+  assert.equal((await h.send(`/api/coaster/receipt-inbox/${r.id}/card-match`,{expectedSequence:0,enabled:false},'',{authorization:`Bearer ${key.token}`})).status,401)
+  for(const cookie of [h.owner,t.morgan,t.priya,t.alex]) await h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:0,enabled:false},cookie,cookie===h.owner?403:404)
+  for(const level of ['submit','full']) {
+    const grant=await h.post('delegates',{delegate:ALEX,level},t.sam)
+    const current=await inbox(h,t,r.id)
+    const result=await h.send(`/api/coaster/receipt-inbox/${r.id}/card-match`,{expectedSequence:current.lifecycleSequence,enabled:true,merchant:'  Bistro  ',date:'2026-10-02',total:'48.20',notice:NOTICE},t.alex,{'x-coaster-acting-for':SAM})
+    assert.equal(result.status,200,JSON.stringify(result.value));assert.equal(result.value.details.currency,'AUD');assert.equal(result.value.details.merchant,'Bistro')
+    const line=(await inbox(h,t,r.id)).lifecycle.at(-1);assert.deepEqual([line.actorEmail,line.onBehalfOf],[ALEX,SAM])
+    await h.post('delegates/'+grant.id+'/revoke',{},t.sam)
+    assert.equal((await h.send(`/api/coaster/receipt-inbox/${r.id}/card-match`,{expectedSequence:result.value.sequence,enabled:false},t.alex,{'x-coaster-acting-for':SAM})).status,403)
+  }
+  await choose(h,t,r).then(()=>assert.fail('stale choice accepted'),e=>assert.match(e.message,/409/))
+  const older=await h.post('settings/cash-draft-window/preview',{days:1},t.morgan)
+  await h.post('settings/cash-draft-window',older,t.morgan)
+  await (await h.mf.getWorker()).scheduled({scheduledTime:Date.now()+2*86400000,cron:'17 * * * *'})
+  assert.equal((await inbox(h,t,r.id)).cashDraft,null,'an opted-in receipt never becomes a cash draft')
+  const current=await inbox(h,t,r.id)
+  await h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:current.lifecycleSequence,enabled:false},t.sam)
+  await (await h.mf.getWorker()).scheduled({scheduledTime:Date.now()+2*86400000,cron:'17 * * * *'})
+  const reserved=await inbox(h,t,r.id);assert.ok(reserved.cashDraft)
+  await choose(h,t,reserved).then(()=>assert.fail('cash-reserved choice accepted'),e=>assert.match(e.message,/409/))
+}))
+
+test('CAPTURE-004 FEED-004 G7 automatic path skips discarded, merged, attached, withdrawn, cash-reserved and inactive originals and foreign charges; undo permanently excludes its pair',()=>withAgency(async(h,t)=>{
+  const skipped=[]
+  for(const kind of ['discarded','merged','attached','withdrawn','inactive','cash-reserved']) {
+    const cookie=kind==='inactive'?t.alex:t.sam,r=await original(h,cookie,kind+'.png')
+    if(kind!=='cash-reserved') await choose(h,{...t,sam:cookie},r)
+    const current=(await h.get('receipt-inbox',cookie)).receipts.find(x=>x.id===r.id)
+    if(kind==='discarded') await h.post(`receipt-inbox/${r.id}/discard`,{expectedSequence:current.lifecycleSequence,reason:'Not needed'},cookie)
+    if(kind==='merged') {const survivor=await original(h,cookie,'survivor.png');await h.post(`receipt-inbox/${r.id}/merge`,{expectedSequence:current.lifecycleSequence,survivorId:survivor.id,reason:''},cookie)}
+    if(kind==='withdrawn') await h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:current.lifecycleSequence,enabled:false},cookie)
+    if(kind==='attached') {
+      let c=await h.post('claims',{title:'Manual private purchase'},cookie)
+      c=await h.post(`claims/${c.id}/items`,{version:c.version,kind:'receipt',date:'2026-10-02',merchant:'Hand-built',amount:'1.00',category:t.c.office},cookie)
+      const item=(await h.get(`claims/${c.id}`,cookie)).items[0]
+      await h.post(`receipt-inbox/${r.id}/attach`,{expectedSequence:current.lifecycleSequence,claimId:c.id,itemId:item.id,version:c.version},cookie)
+    }
+    if(kind==='inactive') await h.post('settings/members',{email:ALEX,name:'alex',employee:true,active:false})
+    if(kind==='cash-reserved') {
+      const preview=await h.post('settings/cash-draft-window/preview',{days:1},t.morgan);await h.post('settings/cash-draft-window',preview,t.morgan)
+      await (await h.mf.getWorker()).scheduled({scheduledTime:Date.now()+2*86400000,cron:'17 * * * *'})
+    }
+    skipped.push({r,kind,cookie})
+  }
+  const waiting=await original(h,t.sam,'genuine-waiting.png');await choose(h,t,waiting)
+  await statement(h,t,[{}],{last4:'4444',employee:'jordan@harbourfinch.example',name:'foreign.csv'})
+  await tick(h);assert.equal((await inbox(h,t,waiting.id)).attachment,null,'same amount on another employee card never matches')
+  await statement(h,t,[{}]);await tick(h)
+  for(const {r,kind,cookie} of skipped) {
+    if(kind==='inactive') continue
+    const result=(await h.get('receipt-inbox',cookie)).receipts.find(x=>x.id===r.id)
+    assert.equal(result.lifecycle.filter(e=>e.actorEmail==='automation: card match').length,0,kind)
+  }
+  assert.equal((await h.db.prepare("SELECT COUNT(*) AS n FROM c_capture_lifecycle WHERE receipt_id=? AND channel='schedule'").bind(skipped.find(x=>x.kind==='inactive').r.id).first()).n,0)
+  const matched=await inbox(h,t,waiting.id);assert.ok(matched.attachment)
+  await h.post(`receipt-inbox/${waiting.id}/detach`,{expectedSequence:matched.lifecycleSequence,claimId:matched.attachment.claimId,itemId:matched.attachment.itemId,version:matched.attachment.version},t.sam)
+  let undone=await inbox(h,t,waiting.id);assert.equal(undone.matchChoice.enabled,false)
+  await choose(h,t,undone);await tick(h)
+  undone=await inbox(h,t,waiting.id);assert.equal(undone.attachment,null)
+  assert.deepEqual((await h.get(`receipt-inbox/${waiting.id}/card-match-question`,t.sam)).candidates,[])
+  assert.equal((await h.get('history?q=card-charge-unmatched',t.morgan)).lines.length,1)
+}))
+
+test('CAPTURE-004 FEED-004 rule v1 never breaks amount ties with merchant or date; private questions can be rejected or attached by the person',()=>withAgency(async(h,t)=>{
+  const r=await original(h,t.sam);await choose(h,t,r,{merchant:'Harbour View Bistro'})
+  const job=await statement(h,t,[{}, {transaction:'2026-10-03',merchant:'Completely different merchant'}])
+  await tick(h)
+  let current=await inbox(h,t,r.id);assert.equal(current.attachment,null)
+  const q=await h.get(`receipt-inbox/${r.id}/card-match-question`,t.sam);assert.equal(q.ambiguous,true);assert.equal(q.candidates.length,2)
+  await h.post(`receipt-inbox/${r.id}/card-match-reject`,{expectedSequence:current.lifecycleSequence,chargeIds:[q.candidates[0].chargeId]},t.sam,409)
+  const chosen=q.candidates[1]
+  await h.post(`receipt-inbox/${r.id}/attach`,{expectedSequence:current.lifecycleSequence,claimId:chosen.claimId,itemId:chosen.itemId,version:chosen.version},t.sam)
+  current=await inbox(h,t,r.id);assert.equal(current.lifecycle.at(-1).actorEmail,SAM);assert.equal(current.lifecycle.at(-1).channel,'app')
+  const a=await original(h,t.sam,'duplicate-a.png'),b=await original(h,t.sam,'duplicate-b.png')
+  for(const original of [a,b]) await choose(h,t,original)
+  await tick(h)
+  for(const original of [a,b]) {assert.equal((await inbox(h,t,original.id)).attachment,null);assert.equal((await h.get(`receipt-inbox/${original.id}/card-match-question`,t.sam)).ambiguous,true)}
+  const question=await h.get(`receipt-inbox/${a.id}/card-match-question`,t.sam)
+  await h.post(`receipt-inbox/${a.id}/card-match-reject`,{expectedSequence:(await inbox(h,t,a.id)).lifecycleSequence,chargeIds:question.candidates.map(c=>c.chargeId)},t.sam)
+  await tick(h)
+  assert.ok((await inbox(h,t,b.id)).attachment,'eliminating one competitor makes the remaining mutual pair unique')
+  assert.equal((await inbox(h,t,a.id)).attachment,null)
+}))
+
+test('FEED-004 CAPTURE-004 exact rule v1 tip, date and optional binding last four boundaries, off switch and private replay-safe matching',()=>withAgency(async(h,t)=>{
+  let rule=await h.get('settings/card-matching',t.morgan)
+  assert.deepEqual([rule.version,rule.enabled,rule.window_days,rule.tip_percent,rule.fx_percent],[1,1,7,20,5])
+  const config={version:1,enabled:false,windowDays:7,tipPercent:20,fxPercent:5}
+  await h.post('settings/card-matching',config,t.sam,403)
+  await h.post('settings/card-matching',{...config,windowDays:15},t.morgan,400)
+  await h.post('settings/card-matching',config,t.morgan)
+  const r=await original(h,t.sam);await choose(h,t,r,{merchant:'BISTRO',total:'40.17',last4:'1111'})
+  await statement(h,t,[{amount:'48.20'}]) // floor(40.17 * 1.20) = 48.20
+  await tick(h);assert.equal((await inbox(h,t,r.id)).attachment,null)
+  await h.post('settings/card-matching',{...config,version:2,enabled:true},t.morgan)
+  await tick(h)
+  const matched=await inbox(h,t,r.id);assert.ok(matched.attachment)
+  const d=await h.get(`claims/${matched.attachment.claimId}`,t.sam)
+  assert.deepEqual([JSON.parse(d.items[0].card_match_basis).basis,JSON.parse(d.items[0].card_match_basis).differenceMinor],['tip',803])
+  const invalid=await original(h,t.sam,'wrong-card.png');await choose(h,t,invalid,{last4:'2222'})
+  assert.deepEqual((await h.get(`receipt-inbox/${invalid.id}/card-match-question`,t.sam)).candidates,[])
+  const tooLate=await original(h,t.sam,'late.png');await choose(h,t,tooLate,{date:'2026-09-24'})
+  assert.deepEqual((await h.get(`receipt-inbox/${tooLate.id}/card-match-question`,t.sam)).candidates,[])
+  await assert.rejects(h.db.prepare("UPDATE c_capture_lifecycle SET match_data='{}'").run(),/permanent/)
+  await assert.rejects(h.db.prepare('DELETE FROM c_card_match_rules').run(),/permanent/)
+}))
+
+test('FEED-004 CLAIM-003 rule v1 EUR reference matching needs ECB opt-in and merchant agreement, uses transaction dates and respects both inclusive date bounds',async()=>{
+  const xml='<Cube><Cube time="2026-10-02"><Cube currency="AUD" rate="1.5"/></Cube></Cube>'
+  const h=await harness({fxRates:xml})
+  try {
+    const t=await agency(h),r=await original(h,t.sam)
+    await choose(h,t,r,{merchant:'Bistro',total:'32.13',currency:'EUR'})
+    const job=await statement(h,t,[{}])
+    await tick(h);assert.equal((await inbox(h,t,r.id)).attachment,null)
+    assert.equal(h.outbound.filter(q=>q.url.includes('ecb.europa.eu')).length,0,'FX off sends nothing')
+    await h.post('settings/business',{name:'Harbour & Finch Studio',currency:'AUD',timezone:'Australia/Sydney',perDiem:'75.00',receiptThreshold:'',fxEnabled:true})
+    await tick(h)
+    const matched=await inbox(h,t,r.id);assert.ok(matched.attachment)
+    const d=await h.get(`claims/${job.claims[0]}`,t.sam),b=JSON.parse(d.items[0].card_match_basis)
+    assert.deepEqual([b.basis,b.enteredCurrency,b.enteredTotalMinor,b.differenceMinor,b.fxSource],['fx','EUR',3213,0,'ECB reference rates'])
+    assert.ok(h.outbound.filter(q=>q.url.includes('ecb.europa.eu')).every(q=>q.method==='GET'&&q.body===''&&q.url==='https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml'))
+    const rows=[{amount:'17.00',transaction:'2026-10-01'},{amount:'18.00',transaction:'2026-10-09'},{amount:'19.00',transaction:'2026-09-30'},{amount:'20.00',transaction:'2026-10-10'},{amount:'21.00'}]
+    await statement(h,t,rows,{name:'date-bounds.csv'})
+    for(const [index,expected] of [1,1,0,0,0].entries()) {
+      const o=await original(h,t.sam,`bounds-${index}.png`)
+      await choose(h,t,o,{total:(17+index).toFixed(2),...(index===4?{last4:'2222'}:{})})
+      const question=await h.get(`receipt-inbox/${o.id}/card-match-question`,t.sam)
+      assert.equal(question.candidates.length,expected,JSON.stringify(rows[index]))
+    }
+  } finally {await h.close()}
+})
+
+test('CAPTURE-004 FEED-004 hourly decision budget is 100 oldest-waiting originals and unchanged no-candidate originals do not starve later work',()=>withAgency(async(h,t)=>{
+  const originals=[]
+  for(let i=0;i<101;i++) {
+    const r=await original(h,t.sam,`waiting-${String(i).padStart(3,'0')}.png`);originals.push(r)
+    await choose(h,t,r,{total:i===100?'48.20':'11.11'})
+  }
+  await statement(h,t,[{}])
+  await tick(h)
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_card_match_checks').first()).n,100)
+  assert.equal((await inbox(h,t,originals[100].id)).attachment,null,'the 101st original waits for the next hourly delivery')
+  await tick(h)
+  assert.ok((await inbox(h,t,originals[100].id)).attachment,'unchanged earlier no-match originals do not starve the waiting match')
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_card_match_checks').first()).n,101)
+}))
+
+test('CAPTURE-004 ERASURE-001 private match choices withdraw on erasure and typed identities are replaced without changing the original',()=>withAgency(async(h,t)=>{
+  const r=await original(h,t.sam),hash=r.sha256
+  await choose(h,t,r,{merchant:`sam ${SAM.toUpperCase()} bistro`})
+  await h.post('settings/members',{email:SAM,name:'sam',employee:true,active:false})
+  const erased=await h.post('settings/members/erase',{email:SAM})
+  const lines=(await h.db.prepare('SELECT * FROM c_capture_lifecycle WHERE receipt_id=? ORDER BY sequence').bind(r.id).all()).results
+  assert.equal(lines.at(-1).kind,'match-withdrawn')
+  assert.ok(lines.every(line=>!JSON.stringify(line).toLowerCase().includes(SAM)))
+  const details=JSON.parse(lines[0].match_data);assert.ok(details.merchant.includes(erased.label)&&details.merchant.includes(erased.retained.subject))
+  assert.equal((await h.db.prepare('SELECT sha256 FROM c_capture_receipts WHERE id=?').bind(r.id).first()).sha256,hash)
+  await tick(h)
+  assert.equal((await h.db.prepare("SELECT COUNT(*) AS n FROM c_capture_lifecycle WHERE receipt_id=? AND channel='schedule'").bind(r.id).first()).n,0)
+}))

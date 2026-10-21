@@ -167,7 +167,7 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
 /** Current items with their allocations and receipt fingerprints. */
 export async function claimItems(db: D1Database, claimId: string): Promise<ClaimItem[]> {
   const [items, parts] = await db.batch([
-    db.prepare('SELECT i.*, r.sha256 AS receipt_sha256, r.name AS receipt_name, r.media_type AS receipt_media, r.size AS receipt_size, ch.transaction_key AS card_transaction_key, cd.issuer AS card_issuer, cd.last4 AS card_last4 FROM c_items i LEFT JOIN c_receipts r ON r.id=i.receipt_id LEFT JOIN c_card_charges ch ON ch.id=i.card_charge_id LEFT JOIN c_cards cd ON cd.id=ch.card_id WHERE i.claim_id=? ORDER BY i.position').bind(claimId),
+    db.prepare('SELECT i.*, r.sha256 AS receipt_sha256, r.name AS receipt_name, r.media_type AS receipt_media, r.size AS receipt_size, r.card_match_basis, ch.transaction_key AS card_transaction_key, cd.issuer AS card_issuer, cd.last4 AS card_last4 FROM c_items i LEFT JOIN c_receipts r ON r.id=i.receipt_id LEFT JOIN c_card_charges ch ON ch.id=i.card_charge_id LEFT JOIN c_cards cd ON cd.id=ch.card_id WHERE i.claim_id=? ORDER BY i.position').bind(claimId),
     db.prepare('SELECT a.*, c.name AS category_name, c.account_code, c.tax_code FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_categories c ON c.id=a.category_id WHERE i.claim_id=? ORDER BY a.item_id, a.position').bind(claimId),
   ]);
   return (items.results as ClaimItem[]).map(item => ({ ...item, per_diem: item.per_diem ? JSON.parse(item.per_diem) : null, attendees: JSON.parse(String(item.attendees)), fields: JSON.parse(String(item.fields)), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id) }) as ClaimItem);

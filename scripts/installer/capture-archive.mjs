@@ -1,5 +1,5 @@
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
-import { validDiscardReason } from '../../src/coaster/receipts/reasons.mjs';
+import { tokenSubjects, validDiscardReason } from '../../src/coaster/receipts/reasons.mjs';
 
 const check = (ok, code) => { if (!ok) throw new PortabilityError('coaster_capture_' + code, 409); };
 const timestamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -27,6 +27,12 @@ export async function validateCaptureArchive(read, manifest) {
   const byId = new Map(receipts.map(receipt => [receipt.id, receipt]));
   const lifecycle = await read('c_capture_lifecycle'), members = await read('c_members'), ended = new Map();
   const items = await read('c_items'), aliases = await read('c_receipts');
+  const merchantValid = value => {
+    if(typeof value!=='string'||value!==value.trim()||!value.length||value.length>4400)return false;
+    const subjects=tokenSubjects(members);
+    const collapsed=value.replace(/(?:Former member |former-member-)([0-9a-f]{8})/g,(token,hex)=>subjects.has('former-member-'+hex)?'x':token);
+    return collapsed.length<=200;
+  };
   const ordered = [...lifecycle].sort((a,b) => a.receipt_id.localeCompare(b.receipt_id) || a.sequence-b.sequence);
   const latest = new Map(), associations = new Map();
   for (const event of ordered) {
@@ -34,12 +40,36 @@ export async function validateCaptureArchive(read, manifest) {
     check(receipt && !ended.has(event.receipt_id), 'history');
     check(event.sequence === (previous?.sequence ?? 0)+1 && timestamp(event.at)
       && event.at >= (previous?.at ?? receipt.uploaded_at), 'history');
-    check(event.channel === 'app' && typeof event.actor_email === 'string' && event.actor_email.length > 0
+    check((event.channel === 'app' || event.channel === 'schedule' && event.kind === 'attached' && event.actor_email === 'automation: card match') && typeof event.actor_email === 'string' && event.actor_email.length > 0
       && event.on_behalf_of === (event.actor_email === receipt.owner_email ? null : receipt.owner_email), 'lifecycle_provenance');
     check(!Object.hasOwn(event, 'reason_redacted'), 'reason');
-    if (event.kind === 'attached' || event.kind === 'detached') {
+    if (['match-details','match-withdrawn','match-rejected'].includes(event.kind)) {
+      const attached = associations.get(receipt.id);
+      check((!attached || !items.some(i=>i.id===attached.item_id)) && event.reason==='' && event.survivor_id===null && event.claim_id===null && event.item_id===null && event.channel==='app','match_choice');
+      if(event.kind==='match-details') {
+        let data; try {data=JSON.parse(event.match_data);} catch {check(false,'match_choice');}
+        check(data && merchantValid(data.merchant)
+          && /^\d{4}-\d{2}-\d{2}$/.test(data.date) && Number.isFinite(Date.parse(data.date)) && new Date(data.date).toISOString().slice(0,10)===data.date
+          && Number.isSafeInteger(data.totalMinor) && data.totalMinor>0 && data.totalMinor<=1e11 && /^[A-Z]{3}$/.test(data.currency)
+          && (data.last4===null || /^\d{4}$/.test(data.last4)), 'match_choice');
+        check(!drafts.some(d=>d.receipt_id===receipt.id&&d.created_at<=event.at),'match_choice');
+      } else if(event.kind==='match-withdrawn') check(event.match_data===null,'match_choice');
+      else {let data;try{data=JSON.parse(event.match_data);}catch{check(false,'match_choice');}check(Array.isArray(data?.chargeIds)&&data.chargeIds.length>0&&data.chargeIds.every(id=>typeof id==='string'),'match_choice');}
+    } else if (event.kind === 'attached' || event.kind === 'detached') {
       check(event.reason === '' && event.survivor_id === null && typeof event.claim_id === 'string' && event.claim_id.length > 0
         && typeof event.item_id === 'string' && event.item_id.length > 0, 'attachment');
+      if(event.channel==='schedule') {
+        const charges=await read('c_card_charges');
+        const charge=charges.find(c=>c.item_id===event.item_id);
+        let data;try{data=JSON.parse(event.match_data);}catch{check(false,'match_basis');}
+        check(data && Number.isSafeInteger(data.ruleVersion)&&['exact','tip','fx'].includes(data.basis)&&data.enteredTotalMinor>0,'match_basis');
+        check(charge && charge.employee_email===receipt.owner_email,'match_basis');
+        const matchingAliases=aliases.filter(a=>a.capture_receipt_id===receipt.id&&a.claim_id===event.claim_id&&a.card_match_basis===event.match_data);
+        check(!items.some(i=>i.id===event.item_id)||matchingAliases.length>0,'match_basis');
+        const choice=ordered.filter(e=>e.receipt_id===receipt.id&&e.sequence<event.sequence&&['match-details','match-withdrawn'].includes(e.kind)).at(-1);
+        check(choice?.kind==='match-details','match_basis');
+        check(!drafts.some(d=>d.receipt_id===receipt.id&&d.created_at<=event.at),'match_basis');
+      }
       const claim = claims.find(c => c.id === event.claim_id);
       check(!claim || claim.employee_email === receipt.owner_email, 'attachment');
       if (event.kind === 'attached') {
@@ -80,6 +110,11 @@ export async function validateCaptureArchive(read, manifest) {
     if (item) check(aliases.some(a=>a.id===item.receipt_id && a.capture_receipt_id===id), 'attachment');
     // Historical expense ids remain in private history after financial retention, including an expense moved by partial approval.
   }
+  const rejections=await read('c_card_match_rejections');
+  for(const pair of rejections) check(lifecycle.some(e=>e.receipt_id===pair.receipt_id&&e.sequence===pair.sequence&&['match-rejected','detached'].includes(e.kind)),'match_rejection');
+  check(new Set(rejections.map(p=>p.receipt_id+'|'+p.charge_id)).size===rejections.length,'match_rejection');
+  const rules=(await read('c_card_match_rules')).sort((a,b)=>a.version-b.version);
+  check(rules.length>0&&rules.every((r,i)=>r.version===i+1&&[0,1].includes(r.enabled)&&Number.isInteger(r.window_days)&&r.window_days>=0&&r.window_days<=14&&Number.isInteger(r.tip_percent)&&r.tip_percent>=0&&r.tip_percent<=30&&Number.isInteger(r.fx_percent)&&r.fx_percent>=0&&r.fx_percent<=10),'match_rule');
   check(byKey.size === objects.length && byId.size === receipts.length, 'objects');
   const history = new Map();
   for (const event of events) {

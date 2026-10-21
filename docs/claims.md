@@ -1,12 +1,20 @@
-A claim is a set of expenses an employee paid for and wants back, with a receipt for each purchase.
+A claim groups expenses for review. Out-of-pocket expenses are reimbursable; company-card expenses were paid by the company and never add to reimbursement.
 
 ## Keep receipts before entering expenses
 
 Open **Receipt inbox** on Claims. Drop dozens of files, choose **Upload receipts**, or use **Photograph a receipt** on a phone. JPEG, PNG, WebP, HEIC and multi-page PDF originals up to 10 MB each stay in your inbox with their hash, size, uploader and source. A refused file leaves successful uploads intact; choose a smaller file to retry.
 
-Reading is unavailable, so each saved original says **Needs attention** and asks you to enter its expense details manually. To attach an inbox original, first add a purchase expense to your draft or returned claim. Expand its attach controls, choose the claim and expense, then attach. Approvers and finance can see it once submitted. You can detach while the expense is editable; earlier submitted evidence stays. Inbox originals keep their 10 MB limit and are stored once. Coaster does not yet match receipts to card charges by itself, so attach an inbox original to a company-card expense by hand, as to any purchase; direct file attachments below retain their 1.5 MB limit.
+Reading is unavailable, so each saved original says **Needs attention** and asks you to enter its expense details manually. To attach an inbox original, first add a purchase expense to your draft or returned claim. Expand its attach controls, choose the claim and expense, then attach. Approvers and finance can see it once submitted. You can detach while the expense is editable; earlier submitted evidence stays. Inbox originals keep their 10 MB limit and are stored once. You can also attach an original to a company-card expense by hand. Direct file attachments below retain their 1.5 MB limit.
 
 Finance can review **Cash receipt draft window** in Settings, then confirm its older-receipt count. It is off by default; choose 1–90 elapsed days. Each hourly run prepares up to 25 private draft claims, once per original, with the UTC upload date and **needs details**. No amount is inferred or receipt attached. The inbox links to the draft; enter its details yourself. Turning the window off keeps drafts already prepared.
+
+## Match a private original to a card charge
+
+Expand **Card matching** on one original. Enter its merchant, purchase date, positive total and ISO currency (the business currency is the default). Last four is optional; when entered, it must match. Read the sharing notice, check the acknowledgment and choose **Match to my card charge**. Nothing is preselected, and entering details does not read the receipt. You or a live Submit-only/Full delegate can change the details or withdraw while it is unattached.
+
+Hourly matching considers up to 100 oldest-waiting originals. It attaches only a mutually unique same-employee posted charge on a draft or returned report. The transaction date, or posted date when none is supplied, must be from one day before to seven days after the receipt date by default. Exact same-currency amounts need no merchant corroboration; upward tips up to 20% (rounded down to cents) and ECB reference conversions within 5% need merchant agreement. The owner or finance can version these bounds through `settings/card-matching` in the [API](/docs/api). Merchant agreement lowercases Unicode letters and digits, replaces other characters with spaces, then requires a shared typed token of four or more characters or containment of the compact typed merchant (four or more characters) in the compact statement merchant. Merchant and date proximity never resolve a tie.
+
+A private question lists ambiguous charges; **This one** attaches by you, while **None of these** permanently rejects the listed pairs. A detach permanently excludes that pair and stops automation for the original until you choose matching again. Opted-in originals never become cash drafts; an already reserved cash original can only be attached by hand. Discarded, merged, attached, withdrawn and inactive-member originals stay out of matching. Matching never changes statement facts, submits, approves or notifies. A matched original is stored once; its ordinary provenance and frozen rule/basis become visible with the submitted expense, while typed merchant, choices, questions and private history stay private.
 
 ## Company-card expenses from a statement file
 

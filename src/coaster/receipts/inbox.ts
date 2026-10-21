@@ -1,6 +1,7 @@
 import { authority, commit, need, sha256Hex } from '../session';
 import { now, requireThat, uid, type Actor } from '../types';
 import { originalBytes, receiptBucket, storeReceipt, type StoredReceipt } from './storage';
+import { MATCH_NOTICE } from './match-notice';
 import { receiptUpload } from './upload';
 
 type InboxReceipt = StoredReceipt & {
@@ -9,7 +10,7 @@ type InboxReceipt = StoredReceipt & {
   state: 'received' | 'reading' | 'read' | 'needs-attention'; reason: string;
 };
 type InboxEvent = { receipt_id: string; sequence: number; state: InboxReceipt['state']; reason: string; at: string; actor_email: string; on_behalf_of: string | null; channel: 'app' };
-type Lifecycle = Omit<InboxEvent, 'state'> & { kind: 'discarded' | 'merged' | 'attached' | 'detached'; survivor_id: string | null; claim_id: string | null; item_id: string | null };
+type Lifecycle = Omit<InboxEvent, 'state'> & { kind: 'discarded' | 'merged' | 'attached' | 'detached' | 'match-details' | 'match-withdrawn' | 'match-rejected'; survivor_id: string | null; claim_id: string | null; item_id: string | null; match_data: string | null };
 const ATTENTION = 'Automatic receipt reading is not available. Enter the expense details manually using this original.';
 const SELECT = `SELECT r.*,e.state,e.reason FROM c_capture_receipts r JOIN c_capture_receipt_events e ON e.receipt_id=r.id
   AND e.sequence=(SELECT MAX(latest.sequence) FROM c_capture_receipt_events latest WHERE latest.receipt_id=r.id)`;
@@ -26,6 +27,7 @@ const summary = (r: InboxReceipt, history: InboxEvent[], lifecycle: Lifecycle[] 
   history: history.map(e => ({ sequence: e.sequence, state: e.state, reason: e.reason, at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
   disposition: lifecycle.find(e => e.kind === 'discarded' || e.kind === 'merged')?.kind ?? 'active', lifecycleSequence: lifecycle.at(-1)?.sequence ?? 0,
   lifecycle: lifecycle.map(e => ({ sequence: e.sequence, kind: e.kind, reason: e.reason, ...(e.survivor_id ? { survivorId: e.survivor_id } : {}), ...(e.claim_id ? { claimId: e.claim_id, itemId: e.item_id } : {}), at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
+  matchChoice: (() => { const choice = lifecycle.filter(e => ['match-details','match-withdrawn'].includes(e.kind)).at(-1); return { enabled: choice?.kind==='match-details', details: choice?.kind==='match-details' ? JSON.parse(choice.match_data!) : null, notice: MATCH_NOTICE }; })(),
   downloadUrl: `/api/coaster/receipt-inbox/${r.id}`,
 });
 

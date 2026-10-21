@@ -13,7 +13,7 @@ export async function validateCoasterArchive(read, manifest) {
   const claimIds = new Set(claims.map(c => c.id)), itemIds = new Set(items.map(i => i.id));
   for (const claim of claims) {
     const own = items.filter(i => i.claim_id === claim.id);
-    check(claim.total_minor === own.reduce((n, i) => n + i.amount_minor, 0), 'claim_total');
+    check(claim.total_minor === own.reduce((n, i) => n + (i.card_charge_id ? 0 : i.amount_minor), 0), 'claim_total');
     check(claim.revision === revisions.filter(r => r.claim_id === claim.id).length, 'claim_revisions');
   }
   for (const item of items) {
@@ -45,6 +45,15 @@ export async function validateCoasterArchive(read, manifest) {
   for (const d of decisions) check(revisions.some(r => r.claim_id === d.claim_id && r.revision === d.revision), 'decision_revision');
   for (const b of batches) check(b.total_minor === batchClaims.filter(x => x.batch_id === b.id).reduce((n, x) => n + x.amount_minor, 0), 'batch_total');
   for (const k of keys) check(batchClaims.some(x => x.batch_id === k.batch_id && x.claim_id === k.claim_id), 'reimbursement_key');
+  const cards=await read('c_cards'), charges=await read('c_card_charges'), files=await read('c_statement_files');
+  for(const card of cards) check(/^\d{4}$/.test(card.last4),'card_last_four');
+  for(const charge of charges) {
+    check(cards.some(c=>c.id===charge.card_id)&&files.some(f=>f.id===charge.file_id),'card_charge');
+    const item=items.find(i=>i.id===charge.item_id), claim=item&&claims.find(c=>c.id===item.claim_id);
+    check(item&&claim&&item.card_charge_id===charge.id&&claim.employee_email===charge.employee_email&&item.amount_minor===charge.amount_minor
+      && item.merchant===charge.descriptor&&item.spent_on===(charge.transaction_on??charge.posted_on),'card_charge');
+  }
+  for(const item of items.filter(i=>i.card_charge_id)) check(charges.some(c=>c.id===item.card_charge_id&&c.item_id===item.id),'card_charge');
   await validateCaptureArchive(read, manifest);
   return true;
 }
