@@ -31,7 +31,7 @@ export async function receiptSignals(db: D1Database, claimId: string, bucket?: R
     const signals: AdvisorySignal[] = [...metadata.signals, ...image.observations, ...spendSignals(item, [...prior, ...current], active.categories, claim.currency, active.rules), ...cardDisagreement(item)];
     results.push({ item: item.id, receipt: receipt?.id ?? null, sha256: receipt?.sha256 ?? null, ...metadata, image, signals });
   }
-  const candidates = [...prior, ...results.map(r => ({ id: r.item, claim: claimId, receiptId: r.receipt, receiptSha: r.sha256, image: r.image }))];
+  const candidates: Data[] = [...prior, ...results.map(r => ({ id: r.item, claim: claimId, receiptId: r.receipt, receiptSha: r.sha256, image: r.image }))];
   for (const result of results.filter(r => r.receipt)) for (const candidate of candidates) {
     if (candidate.id === result.item || !candidate.receiptId) continue;
     // Revisions from before image inspection are examined from their retained original on first comparison.
