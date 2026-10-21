@@ -190,6 +190,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Combined 300-expense detector acceptance
+        run: node tests/policy-signals-scale.mjs
       - name: Receipt/spend signal evidence, review and payment screens
         run: node tests/policy-signals-browser.mjs
         env:

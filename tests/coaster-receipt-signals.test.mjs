@@ -4,7 +4,6 @@ import {readFile} from 'node:fs/promises'
 import {createHash} from 'node:crypto'
 import {harness,agency} from './harness.mjs'
 import {imageSignalCases,patternSignalCases,cardSignalCases,addSignalExpense} from './receipt-signal-scenarios.mjs'
-import {cleanSignalMeasurement} from './receipt-signals-clean.mjs'
 import {withExif} from './fixtures/receipt-exif.mjs'
 import {makeReceipt,addTextMetadata} from './fixtures/receipt-metadata.mjs'
 
@@ -71,8 +70,6 @@ test('POLICY-002 metadata signals name computable software/date evidence, never 
  }
  }finally{await h.close()}
 })
-
-test('POLICY-002 combined detectors stay within the 300 legitimate expense false-positive bound across 20 employees',cleanSignalMeasurement)
 
 test('POLICY-002 exact, cropped, photographed and visibly changed receipts name comparative evidence across employees',async()=>{
  const h=await harness();try {
