@@ -1,0 +1,7 @@
+Posted,Purchased,Merchant,Amount,Card,State,Kind,Ref
+2026-10-07,2026-10-06,Staples,64.95,5500 0000 0000 0004,Posted,Sale,REF-1
+2026-10-08,,Staples toner refund,12.00,5500 0000 0000 0004,Posted,Refund,REF-2
+2026-10-09,,Uber trip,18.40,5500 0000 0000 0004,Pending,Sale,REF-3
+2026-10-10,,Card payment,500.00,5500 0000 0000 0004,Posted,Payment,REF-4
+2026-04-07,,Staples,64.95,5500 0000 0000 0004,Posted,Sale,REF-5
+2026-10-12,,Officeworks,31.10,5500 0000 0000 0004,Posted,Sale,REF-6

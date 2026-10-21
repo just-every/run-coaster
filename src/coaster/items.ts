@@ -18,6 +18,8 @@ export type ItemInput = Partial<FxConversion> & {
   /** A stipend's allowance, or the cap a purchase is claimed against with the receipt's amount when it was capped (CLAIM-009). */
   allowance_id?: string | null; claimed_minor?: number | null;
   billable?: boolean; customer?: string; project?: string;
+  /** The statement charge a company-card expense carries (FEED-004); set only by the statement import. */
+  card_charge_id?: string | null;
 };
 
 export async function categories(db: D1Database): Promise<Category[]> {

@@ -23,8 +23,10 @@ const normal = (merchant: string) => merchant.trim().toLowerCase().replace(/\s+/
 /** Money as Coaster shows it: $1,234.56 for USD, otherwise the currency code first. */
 export const money = (minor: number, currency: string) => { const text = (minor / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return currency === 'USD' ? `$${text}` : `${currency} ${text}`; };
 
-/** The one key an exact expense reimburses under: its receipt bytes, or without a receipt its full description. */
+/** The one key an exact expense reimburses under: its receipt bytes, or without a receipt its full description; for card spend the
+ * card transaction itself (COA-005, FEED-004). */
 export function exactKey(employee: string, item: ClaimItem) {
+  if (item.card_transaction_key) return `card:${item.card_transaction_key}`;
   return item.receipt_sha256 ? `receipt:${item.receipt_sha256}` : `expense:${employee}|${item.spent_on}|${item.kind}|${normal(item.merchant)}|${item.amount_minor}`;
 }
 

@@ -1,3 +1,4 @@
+import { reimbursableMinor, REIMBURSABLE_SUM } from './card-expenses';
 import { receiptSignals } from './receipt-signals';
 import { policyReview } from './policy-review';
 import { policyConfiguration, policyStill } from './policy-configuration';
@@ -41,7 +42,7 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
   const kept = items.filter(i => !hold.includes(i.id)), exceptions = (snapshot.exceptions as Data[]).filter(e => !hold.includes(e.item));
   requireThat(!exceptions.length || b.acknowledge === true, 'Review and acknowledge the policy exceptions before approving', 409);
   const override = preApprovalOverride(exceptions, b);
-  const heldId = uid(), at = now(), revision = claim.revision + 1, total = kept.reduce((n, i) => n + i.amount_minor, 0);
+  const heldId = uid(), at = now(), revision = claim.revision + 1, total = reimbursableMinor(kept);
   const submitted = await db.prepare('SELECT submitted_by FROM c_revisions WHERE claim_id=? AND revision=?').bind(claim.id, claim.revision).first<{ submitted_by: string }>();
   requireThat(submitted, 'Submitted revision missing', 409);
   const onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of, by = actor.delegate?.email ?? actor.email;
@@ -52,7 +53,7 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
   ];
   writes.push(
     ...moveItems(db, items.filter(i => hold.includes(i.id)), claim.id, heldId),
-    db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?').bind(heldId, at, heldId),
+    db.prepare(`UPDATE c_claims SET total_minor=(SELECT ${REIMBURSABLE_SUM} FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?`).bind(heldId, at, heldId),
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, submitted.submitted_by, at, total, JSON.stringify({ ...snapshot, ...(snapshot.receiptSignals ? { receiptSignals: snapshot.receiptSignals.filter((r: Data) => !hold.includes(r.item)) } : {}), ...(snapshot.policyReview ? { policyReview: { ...snapshot.policyReview, recommendations: snapshot.policyReview.recommendations.filter((r: Data) => !hold.includes(r.item)) } } : {}), total_minor: total, exceptions, items: kept, split })),
     ...(task ? [db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step,workflow_final) VALUES(?,?,?,'approved',?,?,?,?,?,?,0)").bind(uid(),claim.id,claim.revision,override??reason,by,at,JSON.stringify(exceptions),onBehalfOf,task.slot),db.prepare("UPDATE c_workflow_tasks SET status='approved' WHERE kind='claim' AND record_id=? AND revision=? AND slot=?").bind(claim.id,claim.revision,task.slot)] : []),
     ...(chain ? [freezeChain(db, claim.id, revision, chain.chain_id, chain.steps, chain.position)] : []),
@@ -90,7 +91,7 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   const override = preApprovalOverride(exceptions, b);
   const original = await db.prepare('SELECT submitted_by FROM c_revisions WHERE claim_id=? ORDER BY revision DESC LIMIT 1').bind(claim.held_from).first<{ submitted_by: string }>();
   requireThat(original, 'Original claim missing', 409);
-  const at = now(), total = items.reduce((n, i) => n + i.amount_minor, 0), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of, by = actor.delegate?.email ?? actor.email;
+  const at = now(), total = reimbursableMinor(items), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of, by = actor.delegate?.email ?? actor.email;
   const reason = override ?? optionalText(b.reason, 'Reason', 1000);
   const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: policyReview(items, exceptions, active), policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
   await commit(db, all(authority(actor, 'manager'), policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['returned'])), [

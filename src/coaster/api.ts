@@ -46,6 +46,8 @@ import { cashWindow, previewCashWindow, saveCashWindow } from './receipts/cash-d
 import { discardReceipt, mergeReceipt } from './receipts/lifecycle';
 import { reviewReceiptSignal } from './receipt-signal-review';
 import { perDiemLocations, pricePerDiem } from './per-diem';
+import { assignCard, commitStatement, statementFile, statementState, undoStatement } from './cards/charges';
+import { planStatement } from './cards/plan';
 import { Fault, requireThat, type Actor, type Data } from './types';
 
 type C = Context<{ Bindings: Bindings }>;
@@ -199,6 +201,14 @@ api.post('/api/coaster/recurring', as(async (a, c) => saveRecurring(db(c), a, aw
 api.post('/api/coaster/recurring/:id/stop', as(async (a, c) => stopRecurring(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/history', as(async (a, c) => searchHistory(db(c), a, c.req.query())));
 api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.query('from'), c.req.query('to'), runtimeBindings(c.env).COASTER_RECEIPTS)));
+
+// FEED-002 statement-file import: preview writes nothing, commit applies exactly the previewed file, undo reverses untouched charges.
+api.get('/api/coaster/statements', as(async (a, c) => statementState(db(c), a)));
+api.get('/api/coaster/statements/:id/file', as(async (a, c) => statementFile(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/statements/cards', as(async (a, c) => assignCard(db(c), a, await body(c))));
+api.post('/api/coaster/statements/preview', as(async (a, c) => { need(a, 'finance'); requireThat(a.kind === 'person', 'Only a person imports statements', 403); return (await planStatement(db(c), await body(c, 2_500_000))).review; }));
+api.post('/api/coaster/statements/commit', as(async (a, c) => commitStatement(db(c), a, await body(c, 2_500_000))));
+api.post('/api/coaster/statements/:id/undo', as(async (a, c) => undoStatement(db(c), a, param(c, 'id'))));
 
 api.get('/api/coaster/import/cutover', as(async (a, c) => cutoverReport(db(c), a)));
 api.get('/api/coaster/import', as(async (a, c) => { need(a, 'owner'); return { jobs: await importJobs(db(c)), history: await importedHistory(db(c)) }; }));

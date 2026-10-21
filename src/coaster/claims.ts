@@ -12,6 +12,7 @@ import { policyReview } from './policy-review';
 import { policyConfiguration, policyStill } from './policy-configuration';
 import { workflowPlan, resolveStage, insertTasks, workflowAccess } from './workflow-routing';
 import { configuredChain, freezeChain } from './approval-chain';
+import { keepsStatementFacts, reimbursableMinor, REIMBURSABLE_SUM } from './card-expenses';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
 export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null; assigned_emails?: string[]; workflow_readers?: string[] };
@@ -45,8 +46,8 @@ function editable(actor: Actor, claim: Claim, b: Data) {
   requireThat(['draft', 'returned'].includes(claim.status), 'This claim can no longer be changed', 409);
   requireThat(b.version === claim.version, 'This claim changed; reload before trying again', 409);
 }
-/** Recount a claim's total from its expenses and move its version on. */
-export const claimTotal = (db: D1Database, id: string) => db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?').bind(id, now(), id);
+/** Recount a claim's reimbursable total from its expenses (company-card expenses are not reimbursed) and move its version on. */
+export const claimTotal = (db: D1Database, id: string) => db.prepare(`UPDATE c_claims SET total_minor=(SELECT ${REIMBURSABLE_SUM} FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?`).bind(id, now(), id);
 
 export function insertClaim(db: D1Database, id: string, employee: string, title: string, currency: string, preparedBy: string | null) {
   const at = now();
@@ -55,7 +56,7 @@ export function insertClaim(db: D1Database, id: string, employee: string, title:
 
 export function insertItem(db: D1Database, claimId: string, itemId: string, position: number, item: ItemInput, receiptId: string | null) {
   return [
-    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id,allowance_id,claimed_minor,billable,customer,project,original_minor,original_currency,fx_rate,fx_date,fx_source,original_sales_tax_minor,per_diem) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null, item.allowance_id ?? null, item.claimed_minor ?? null, item.billable ? 1 : 0, item.customer ?? '', item.project ?? '', item.original_minor ?? null, item.original_currency ?? '', item.fx_rate ?? '', item.fx_date ?? '', item.fx_source ?? '', item.original_sales_tax_minor ?? null, item.per_diem ? JSON.stringify(item.per_diem) : ''),
+    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id,allowance_id,claimed_minor,billable,customer,project,original_minor,original_currency,fx_rate,fx_date,fx_source,original_sales_tax_minor,per_diem,card_charge_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null, item.allowance_id ?? null, item.claimed_minor ?? null, item.billable ? 1 : 0, item.customer ?? '', item.project ?? '', item.original_minor ?? null, item.original_currency ?? '', item.fx_rate ?? '', item.fx_date ?? '', item.fx_source ?? '', item.original_sales_tax_minor ?? null, item.per_diem ? JSON.stringify(item.per_diem) : '', item.card_charge_id ?? null),
     ...item.allocations.map((a: Allocation, i) => db.prepare('INSERT INTO c_allocations(item_id,position,category_id,cost_centre,amount_minor,description,original_minor) VALUES(?,?,?,?,?,?,?)').bind(itemId, i, a.category_id, a.cost_centre, a.amount_minor, a.description ?? '', a.original_minor ?? null)),
   ];
 }
@@ -97,8 +98,15 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
   const statements: D1PreparedStatement[] = [];
   let itemId: string = uid(), position: number;
   if (b.item) {
-    const existing = await db.prepare('SELECT i.id,i.position,i.receipt_id,a.capture_receipt_id FROM c_items i LEFT JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=?').bind(b.item, claim.id).first<{ id: string; position: number; receipt_id: string | null; capture_receipt_id: string | null }>();
+    const existing = await db.prepare('SELECT i.id,i.position,i.receipt_id,i.card_charge_id,a.capture_receipt_id FROM c_items i LEFT JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=?').bind(b.item, claim.id).first<{ id: string; position: number; receipt_id: string | null; card_charge_id: string | null; capture_receipt_id: string | null }>();
     requireThat(existing, 'Expense not found on this claim', 404);
+    if (existing.card_charge_id) {
+      // Statement facts never change by any route (FEED-004); coding, memo, attendees and receipt stay editable.
+      const charge = await db.prepare('SELECT descriptor,amount_minor,posted_on,transaction_on FROM c_card_charges WHERE id=?').bind(existing.card_charge_id).first<{ descriptor: string; amount_minor: number; posted_on: string; transaction_on: string | null }>();
+      requireThat(charge, 'Card charge not found', 404);
+      keepsStatementFacts(item, charge);
+      item = { ...item, card_charge_id: existing.card_charge_id };
+    }
     requireThat(!existing.capture_receipt_id || (receiptId === existing.receipt_id && item.kind === 'receipt'), 'Detach the inbox receipt before replacing it or changing its type', 409);
     itemId = existing.id; position = existing.position;
     statements.push(db.prepare('DELETE FROM c_items WHERE id=?').bind(itemId));
@@ -115,8 +123,9 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
 export async function removeItem(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
-  const existing = await db.prepare('SELECT id,merchant,amount_minor FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first<{ id: string; merchant: string; amount_minor: number }>();
+  const existing = await db.prepare('SELECT id,merchant,amount_minor,card_charge_id FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first<{ id: string; merchant: string; amount_minor: number; card_charge_id: string | null }>();
   requireThat(existing, 'Expense not found on this claim', 404);
+  requireThat(!existing.card_charge_id, 'A company-card expense comes from its statement and cannot be removed; undo the statement import instead', 409);
   requireThat(!await db.prepare('SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND a.capture_receipt_id IS NOT NULL').bind(existing.id).first(), 'Detach the inbox receipt before removing this expense', 409);
   await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), [db.prepare('DELETE FROM c_items WHERE id=?').bind(existing.id), claimTotal(db, claim.id), event(db, actor, 'expense-removed', { claim: claim.id }, { item: existing.id, merchant: existing.merchant, amountMinor: existing.amount_minor })]);
   return loadClaim(db, id);
@@ -158,7 +167,7 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
 /** Current items with their allocations and receipt fingerprints. */
 export async function claimItems(db: D1Database, claimId: string): Promise<ClaimItem[]> {
   const [items, parts] = await db.batch([
-    db.prepare('SELECT i.*, r.sha256 AS receipt_sha256, r.name AS receipt_name, r.media_type AS receipt_media, r.size AS receipt_size FROM c_items i LEFT JOIN c_receipts r ON r.id=i.receipt_id WHERE i.claim_id=? ORDER BY i.position').bind(claimId),
+    db.prepare('SELECT i.*, r.sha256 AS receipt_sha256, r.name AS receipt_name, r.media_type AS receipt_media, r.size AS receipt_size, ch.transaction_key AS card_transaction_key, cd.issuer AS card_issuer, cd.last4 AS card_last4 FROM c_items i LEFT JOIN c_receipts r ON r.id=i.receipt_id LEFT JOIN c_card_charges ch ON ch.id=i.card_charge_id LEFT JOIN c_cards cd ON cd.id=ch.card_id WHERE i.claim_id=? ORDER BY i.position').bind(claimId),
     db.prepare('SELECT a.*, c.name AS category_name, c.account_code, c.tax_code FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_categories c ON c.id=a.category_id WHERE i.claim_id=? ORDER BY a.item_id, a.position').bind(claimId),
   ]);
   return (items.results as ClaimItem[]).map(item => ({ ...item, per_diem: item.per_diem ? JSON.parse(item.per_diem) : null, attendees: JSON.parse(String(item.attendees)), fields: JSON.parse(String(item.fields)), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id) }) as ClaimItem);
@@ -201,7 +210,7 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const resolved = workflow ? await resolveStage(db, workflow.plan.stages[0], claim.employee_email, business.timezone) : null;
   const routed = resolved?.tasks[0];
   const rule = await currentRule(db), byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
-  const revision = claim.revision + 1, total = items.reduce((n, i) => n + i.amount_minor, 0), at = now();
+  const revision = claim.revision + 1, total = reimbursableMinor(items), at = now();
   const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: policyReview(items, exceptions, active), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
   await commit(db, all(auth, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),

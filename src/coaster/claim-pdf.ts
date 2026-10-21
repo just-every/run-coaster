@@ -1,3 +1,4 @@
+import { isCardExpense, reimbursableMinor } from './card-expenses';
 import { claimNumber } from './claims';
 import { claimDetail, batchDetail } from './views';
 import { requireThat, optionalText, type Actor, type Data } from './types';
@@ -29,9 +30,9 @@ export async function batchPdf(db: D1Database, actor: Actor, id: string, custome
     const claim = await claimDetail(db, actor, entry.claim_id);
     const items = selectedItems(exportItems(claim), filter);
     if (filter.active && !items.length) continue;
-    total += items.reduce((sum, item) => sum + item.amount_minor, 0);
+    total += reimbursableMinor(items);
     count++;
-    layout.text(`${claimNumber(claim.claim.number)} | ${claim.claim.title} | ${money(items.reduce((sum, item) => sum + item.amount_minor, 0), claim.claim.currency)}`);
+    layout.text(`${claimNumber(claim.claim.number)} | ${claim.claim.title} | ${money(reimbursableMinor(items), claim.claim.currency)}`);
   }
   requireThat(count, 'No matching claims in this batch', 404);
   requireThat(filter.active || total === detail.batch.total_minor, 'The batch total no longer matches its claims; reload before downloading', 409);
@@ -62,7 +63,7 @@ function exportItems(detail: Awaited<ReturnType<typeof claimDetail>>): Data[] {
 async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<ReturnType<typeof claimDetail>>, filter: BillingFilter, bucket?: R2Bucket) {
   const { claim } = detail, items = selectedItems(exportItems(detail), filter);
   requireThat(!filter.active || items.length, 'No billable expenses match this customer and project on this claim', 404);
-  const ids = new Set(items.map(i => i.id)), total = items.reduce((sum, item) => sum + item.amount_minor, 0);
+  const ids = new Set(items.map(i => i.id)), total = reimbursableMinor(items);
   requireThat(filter.active || total === claim.total_minor, 'The claim total no longer matches its expenses; reload before downloading', 409);
   const [members, payment] = await Promise.all([
     db.prepare('SELECT email,name FROM c_members').all<{ email: string; name: string }>(),
@@ -102,6 +103,7 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
   for (const [index, item] of items.entries()) {
     layout.heading(`Expense ${index + 1}: ${item.merchant} | ${money(item.amount_minor, claim.currency)}`);
     layout.text(`${item.spent_on} | ${item.kind} | ${item.id}`);
+    if (isCardExpense(item)) layout.text(`Company card ${item.card_issuer ?? ''} ····${item.card_last4 ?? ''} | paid by the company, not reimbursed`);
     if (item.original_minor != null && item.original_currency !== claim.currency) {
       layout.text(`Original amount: ${money(item.original_minor, item.original_currency)}`);
       layout.text(`Exchange rate: 1 ${item.original_currency} = ${item.fx_rate} ${claim.currency} | Rate date: ${item.fx_date} | Source: ${item.fx_source}`);

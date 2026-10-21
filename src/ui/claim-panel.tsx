@@ -31,6 +31,7 @@ const billing = (item: D) => [item.customer && `Customer: ${item.customer}`, ite
 const conversion = (item: D, currency: string) => item.original_minor == null || !item.original_currency || item.original_currency === currency ? '' : `${money(item.original_minor, item.original_currency)} original · 1 ${item.original_currency} = ${item.fx_rate} ${currency} · rate ${day(item.fx_date)} · ${item.fx_source === 'ECB reference rates' ? 'ECB reference rate, not your card’s rate' : item.fx_source}`;
 
 function merchantLine(item: D, currency: string) {
+  if (item.card_charge_id) return `${item.merchant} · company card ····${item.card_last4} · paid by the company, not reimbursed`;
   if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${rate(item.rate_thousandths, currency)}`;
   if (item.per_diem) return `${item.merchant} · ${plural(item.days, 'day')} · ${item.per_diem.method} allowance`;
   if (item.kind === 'per_diem') return `${item.merchant} · ${plural(item.days, 'day')} at ${rate(item.rate_thousandths, currency)}`;
@@ -114,7 +115,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
           {(flags.length > 0 || editable) && <span className="line-extra">
             {flags.map((f: D) => <Warning key={f.code}>{exceptionWords[f.code] ?? f.code}</Warning>)}
             {flags.length > 0 && item.explanation && <span className="explanation">Explanation: {item.explanation}</span>}
-            {editable && <span className="line-actions">{item.kind !== 'stipend' && <button className="button small" onClick={() => setEditing(item.id)} aria-label={`Change ${item.merchant}`}>Change</button>}<button className="button small" aria-label={`Remove ${item.merchant}`} onClick={async () => { try { await call(`claims/${claim.id}/items/remove`, { version: claim.version, item: item.id }); await done(); } catch (e) { setError((e as Error).message); } }}>Remove</button></span>}
+            {editable && <span className="line-actions">{item.kind !== 'stipend' && <button className="button small" onClick={() => setEditing(item.id)} aria-label={`Change ${item.merchant}`}>Change</button>}{!item.card_charge_id && <button className="button small" aria-label={`Remove ${item.merchant}`} onClick={async () => { try { await call(`claims/${claim.id}/items/remove`, { version: claim.version, item: item.id }); await done(); } catch (e) { setError((e as Error).message); } }}>Remove</button>}</span>}
           </span>}
         </li>;
       })}</ul> : <Empty title="No expenses yet">{editable ? 'Add each expense with its receipt; mileage is priced at the rate for its date.' : null}</Empty>}

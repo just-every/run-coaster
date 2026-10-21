@@ -169,6 +169,77 @@ retires the erased person's import records, so undo and reimport cannot restore
 their identity. Configuration: at most 500 rows of each kind, 20 managers per
 chain, within the 8 MB request limit.
 
+# Statement file import (OFX, QFX and CSV credit-card statements)
+
+Statement file import brings a credit-card statement you downloaded into Coaster
+as company-card expenses. It is the recovery path for a card with no program
+feed, and it is not a feed, a connection, a daily file or a provider check: no
+issuer, Plaid or partner account is involved, nothing leaves the installation,
+and no real issuer's file has been imported yet. The owner or finance imports
+(**Statements** door: `POST /api/coaster/statements/preview`, `.../commit`,
+`.../:id/undo`); the owner assigns each card by issuer label and last four
+(`POST /api/coaster/statements/cards`). Agent keys are refused.
+
+## Formats read, and nothing else
+
+- **OFX 1.x (SGML) and 2.x (XML) credit-card statements**: a
+  `CREDITCARDMSGSRSV1/CCSTMTTRNRS/CCSTMTRS` with `CURDEF`, `CCACCTFROM/ACCTID`
+  and `BANKTRANLIST` (`DTSTART`, `DTEND`, `STMTTRN` with `TRNTYPE`, `DTPOSTED`,
+  optional `DTUSER`, `TRNAMT`, `FITID`, `NAME` or `PAYEE/NAME`, `MEMO`, optional
+  `CURRENCY` or `ORIGCURRENCY`). QFX is OFX with Intuit headers. Bank,
+  investment and other message sets are refused, and so is any `BANKID`,
+  `BANKACCTFROM` or `BANKACCTTO` (no bank account or routing number is accepted).
+  Negative `TRNAMT` on a `DEBIT` or `POS` is a purchase; `CREDIT` is a refund;
+  `PAYMENT`, `FEE`, `SRVCHG` and `INT` rows are never expenses.
+- **CSV with an explicit mapping**: `dateFormat` (`YYYY-MM-DD`, `MM/DD/YYYY` or
+  `DD/MM/YYYY`), `sign` (`purchases-negative` or `purchases-positive`),
+  `postedDate`, `description` and `amount` columns, a `card` column (its last
+  four digits are used) or `wholeFileLast4` for a one-card file, and optional
+  `transactionDate`, `transactionId`, `currency`, `status` (pending or
+  authorized rows are skipped) and `type` (`sale`, `purchase`, `debit`, `pos` are
+  purchases; `credit`, `refund`, `return` credits; `payment`, `fee`, `interest`
+  never expenses; any other type is skipped). A `cardholder` column may be mapped
+  to be shown but is never used to assign a card.
+
+Files may be up to 1.5 MB and 1,000 rows, with at most 150 new charges per
+import, and must be in the business's currency.
+
+## Card numbers are never kept
+
+Only the last four digits of a card are written anywhere. A full number in
+`ACCTID` or the CSV card column is replaced by asterisks and its last four in
+memory, before anything is stored, and the retained original is that masked
+file, labelled "card numbers masked" with its own SHA-256. This outranks keeping
+the file byte for byte. Download it from `GET /api/coaster/statements/:id/file`.
+
+## Preview, commit and undo
+
+Preview writes nothing. It names the statement period, each card and who it is
+assigned to, the importable purchases and total, credits, excluded rows (with
+the reason), repeats, possible duplicates and errors, and returns a fingerprint.
+Commit must carry the same file, mapping, issuer, starting category (an active
+category; coding stays editable), cost center, excluded cards and included rows
+plus that fingerprint, and applies exactly what was previewed. A card that is not
+assigned to an active employee blocks commit until the owner assigns it, or you
+exclude it (the exclusion is recorded).
+
+- The same file and choices import nothing a second time unless the earlier
+  import was undone. Each row is keyed by its card and `FITID` (CSV: its
+  transaction id, otherwise posted date, amount, description and occurrence), so
+  an overlapping later file never creates a charge twice. A row that matches an
+  earlier charge by card, posted date, amount and description under another id
+  is flagged and left out unless included, and a row matching imported Ramp,
+  Brex or Navan history is not created.
+- Each purchase becomes one company-card expense on its cardholder's own draft
+  automatic report for the expense month. The company paid it: it never adds to a
+  claim's reimbursable total, a batch or either reimbursement file. Its merchant,
+  amount, date and card cannot be changed or removed; coding, description,
+  attendees and receipt stay editable while the report is a draft or returned.
+- Undo removes only charges still exactly as imported (on a draft report, no
+  receipt, no edit) and lists the others as kept.
+
+Synthetic fixtures for each format are in `tests/fixtures/statements/`.
+
 # Moving in from SAP Concur
 
 On **Move in**, use **SAP Concur** to review configuration first, then the

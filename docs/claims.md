@@ -4,9 +4,13 @@ A claim is a set of expenses an employee paid for and wants back, with a receipt
 
 Open **Receipt inbox** on Claims. Drop dozens of files, choose **Upload receipts**, or use **Photograph a receipt** on a phone. JPEG, PNG, WebP, HEIC and multi-page PDF originals up to 10 MB each stay in your inbox with their hash, size, uploader and source. A refused file leaves successful uploads intact; choose a smaller file to retry.
 
-Reading is unavailable, so each saved original says **Needs attention** and asks you to enter its expense details manually. To attach an inbox original, first add a purchase expense to your draft or returned claim. Expand its attach controls, choose the claim and expense, then attach. Approvers and finance can see it once submitted. You can detach while the expense is editable; earlier submitted evidence stays. Inbox originals keep their 10 MB limit and are stored once. Card matching is not yet available; direct file attachments below retain their 1.5 MB limit.
+Reading is unavailable, so each saved original says **Needs attention** and asks you to enter its expense details manually. To attach an inbox original, first add a purchase expense to your draft or returned claim. Expand its attach controls, choose the claim and expense, then attach. Approvers and finance can see it once submitted. You can detach while the expense is editable; earlier submitted evidence stays. Inbox originals keep their 10 MB limit and are stored once. Coaster does not yet match receipts to card charges by itself, so attach an inbox original to a company-card expense by hand, as to any purchase; direct file attachments below retain their 1.5 MB limit.
 
 Finance can review **Cash receipt draft window** in Settings, then confirm its older-receipt count. It is off by default; choose 1–90 elapsed days. Each hourly run prepares up to 25 private draft claims, once per original, with the UTC upload date and **needs details**. No amount is inferred or receipt attached. The inbox links to the draft; enter its details yourself. Turning the window off keeps drafts already prepared.
+
+## Company-card expenses from a statement file
+
+When finance imports your card's statement file (an OFX, QFX or CSV download; Coaster calls this a statement file import, not a feed), each purchase appears as a **company-card expense** on your draft report for that month. The company paid it, so it never adds to what you are reimbursed. Its merchant, amount and date come from the statement and cannot be changed or removed; you can change its category and cost center, add a description, attendees or a receipt, and explain it. Submit the report as usual. If you also claim the same purchase out of pocket, finance cannot reimburse it.
 
 ## Start a claim
 
