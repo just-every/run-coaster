@@ -165,6 +165,8 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     ] : []),
     sql("INSERT INTO rer_erasure_operations(id,entity,subject,label,phase,step,planned,deleted,retained,requested_at,committed_at,completed_at) VALUES(?,'member',NULL,?,'complete',0,?,?,?,?,?,?)", id, label, JSON.stringify(removed), JSON.stringify(removed), JSON.stringify(retained), at, at, at),
     asSql(event(db, actor, 'member-erased', {}, { member: subject, erasure: id })),
+    // Native-account deletion dirties this derived cache after address replacement; remove the old identity last.
+    sql('DELETE FROM c_card_match_generations WHERE employee_email=?', address),
     sql('DELETE FROM c_capture_erasing'), sql('DELETE FROM c_erasing'), sql(`INSERT INTO c_guard SELECT CASE WHEN (${guard.sql}) THEN 1 ELSE 0 END`, ...guard.params), sql('DELETE FROM c_guard'),
   ];
   const checkpoint = [...await redactionStatements(db), ...await invalidateTransfersStatements(db)].map(asSql);

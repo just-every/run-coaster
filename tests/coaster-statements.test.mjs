@@ -368,6 +368,7 @@ test('CAPTURE-004 ERASURE-001 private match choices withdraw on erasure and type
   const erased=await h.post('settings/members/erase',{email:SAM})
   const lines=(await h.db.prepare('SELECT * FROM c_capture_lifecycle WHERE receipt_id=? ORDER BY sequence').bind(r.id).all()).results
   assert.equal(lines.at(-1).kind,'match-withdrawn')
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_card_match_generations WHERE employee_email=?').bind(SAM).first()).n,0,'native account deletion must not reintroduce erased identity into the derived cache')
   assert.ok(lines.every(line=>!JSON.stringify(line).toLowerCase().includes(SAM)))
   const details=JSON.parse(lines[0].match_data);assert.ok(details.merchant.includes(erased.label)&&details.merchant.includes(erased.retained.subject))
   assert.equal((await h.db.prepare('SELECT sha256 FROM c_capture_receipts WHERE id=?').bind(r.id).first()).sha256,hash)

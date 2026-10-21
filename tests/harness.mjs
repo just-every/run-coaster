@@ -14,7 +14,17 @@ import { heifEsbuildPlugin } from '../scripts/heif-worker.mjs'
 
 const freePort = async () => { const s = createServer(); await new Promise(r => s.listen(0, '127.0.0.1', r)); const { port } = s.address(); await new Promise(r => s.close(r)); return port }
 
-export async function harness({ identityProvider, fxRates, d1Barrier } = {}) {
+/** Retry only a Worker socket claimed between free-port selection and binding, before any application requests. */
+export async function harness(options = {}) {
+  try { return await startHarness(options) }
+  catch (error) {
+    if (error.code !== 'ERR_ADDRESS_IN_USE') throw error
+    console.error('Worker socket was claimed during startup; retrying once with another free port')
+    return startHarness(options)
+  }
+}
+
+async function startHarness({ identityProvider, fxRates, d1Barrier } = {}) {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(join(tmpdir(), 'coaster-test-'))
   const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023', plugins: [heifEsbuildPlugin()] })
   // Every request the Worker sends anywhere is recorded with its body, so a test can prove where data leaves (DATA-001).
