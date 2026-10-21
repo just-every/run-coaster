@@ -101,7 +101,7 @@ function measure(a: Uint8Array, b: Uint8Array, t: Transform, shifts: RowShift[] 
   for (let y = 1; y < SIDE - 1; y++) for (let x = 1; x < SIDE - 1; x++) {
     const v = a[y * SIDE + x], bx = t[0] * x + t[1] * y + t[2] + offsets[y], by = t[3] * x + t[4] * y + t[5]; total += v;
     if (bx < 1 || by < 1 || bx >= SIDE - 1 || by >= SIDE - 1) continue;
-    available += v; const w = sample(b, bx, by), difference = Math.abs(v - w), mass = Math.max(v, w), tile = (y >> 3) * 24 + (x >> 3);
+    available += v; const w = sample(b, bx, by), difference = Math.abs(v - w), mass = Math.max(v, w), tile = Math.floor(y / (SIDE / 24)) * 24 + Math.floor(x / (SIDE / 24));
     shared += Math.min(v, w); union += mass; masses[tile] += mass;
     // Differences smaller than quantization / gentle resampling do not form changed regions.
     const change = Math.max(0, difference - 38); changed += change; tiles[tile] += change;

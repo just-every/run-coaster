@@ -1,5 +1,6 @@
 /** Small, deterministic local descriptors. Values describe visible ink, never provenance. */
-export const SIDE = 192;
+import { decode, encode } from 'fast-png';
+export const SIDE = 384;
 export type Raster = { width: number; height: number; gray: Uint8Array };
 export type Landmark = { x: number; y: number; bits: number[] };
 export type Transform = [number, number, number, number, number, number];
@@ -10,12 +11,12 @@ export function encodeBytes(bytes: Uint8Array): string {
 }
 export function decodeBytes(value: string): Uint8Array { return Uint8Array.from(atob(value), c => c.charCodeAt(0)); }
 export function unpackInk(value: string): Uint8Array {
-  const bytes = decodeBytes(value), ink = new Uint8Array(bytes.length * 2);
-  bytes.forEach((v, i) => { ink[i * 2] = (v >> 4) * 17; ink[i * 2 + 1] = (v & 15) * 17; }); return ink;
+  const image = decode(decodeBytes(value), { checkCrc: true });
+  if (image.width !== SIDE || image.height !== SIDE || image.channels !== 1 || image.depth !== 8) throw new Error('Invalid image descriptor');
+  return new Uint8Array(image.data);
 }
 export function packInk(ink: Uint8Array): string {
-  const bytes = new Uint8Array(ink.length / 2);
-  bytes.forEach((_, i) => { bytes[i] = (Math.round(ink[i * 2] / 17) << 4) | Math.round(ink[i * 2 + 1] / 17); }); return encodeBytes(bytes);
+  return encodeBytes(encode({ width: SIDE, height: SIDE, data: ink, channels: 1, depth: 8 }));
 }
 export function sample(ink: Uint8Array, x: number, y: number): number {
   if (x < 0 || y < 0 || x >= SIDE - 1 || y >= SIDE - 1) return 0;
@@ -71,7 +72,7 @@ export function landmarks(ink: Uint8Array): string {
   const chosen: { x: number; y: number }[] = [], output: number[] = [];
   for (const p of candidates) {
     if (chosen.some(q => Math.hypot(p.x - q.x, p.y - q.y) < 7)) continue;
-    chosen.push(p); output.push(p.x, p.y);
+    chosen.push(p); output.push(Math.round(p.x * 255 / SIDE), Math.round(p.y * 255 / SIDE));
     for (let byte = 0; byte < 16; byte++) { let bits = 0; for (let j = 0; j < 8; j++) { const [x1, y1, x2, y2] = OFFSETS[byte * 8 + j]; if (ink[(p.y + y1) * SIDE + p.x + x1] > ink[(p.y + y2) * SIDE + p.x + x2]) bits |= 1 << j; } output.push(bits); }
     if (chosen.length === 128) break;
   }
@@ -79,7 +80,7 @@ export function landmarks(ink: Uint8Array): string {
 }
 function readLandmarks(value: string): Landmark[] {
   const bytes = decodeBytes(value), points: Landmark[] = [];
-  for (let p = 0; p + 17 < bytes.length; p += 18) points.push({ x: bytes[p], y: bytes[p + 1], bits: [...bytes.subarray(p + 2, p + 18)] }); return points;
+  for (let p = 0; p + 17 < bytes.length; p += 18) points.push({ x: bytes[p] * SIDE / 255, y: bytes[p + 1] * SIDE / 255, bits: [...bytes.subarray(p + 2, p + 18)] }); return points;
 }
 const COUNTS = Uint8Array.from({ length: 256 }, (_, n) => { let count = 0; for (; n; n &= n - 1) count++; return count; });
 export function register(a: string, b: string): { transform: Transform; inliers: number; matches: number } {
