@@ -12,6 +12,15 @@ const states = new Set(['received', 'reading', 'read', 'needs-attention']);
 export async function validateCaptureArchive(read, manifest) {
   const [receipts, events, erasing] = await Promise.all([read('c_capture_receipts'), read('c_capture_receipt_events'), read('c_capture_erasing')]);
   check(erasing.length === 0, 'erasure_guard');
+  const window = await read('c_capture_window'), drafts = await read('c_capture_cash_drafts'), claims = await read('c_claims');
+  check(window.length === 1 && window[0].id === 1 && (window[0].days === null || Number.isInteger(window[0].days) && window[0].days >= 1 && window[0].days <= 90)
+    && Number.isSafeInteger(window[0].version) && window[0].version >= 0, 'cash_window');
+  for (const draft of drafts) {
+    const original = receipts.find(r => r.id === draft.receipt_id), claim = claims.find(c => c.id === draft.claim_id);
+    check(original && typeof draft.claim_id === 'string' && draft.claim_id.length > 0 && draft.expense_date === original.uploaded_at.slice(0,10)
+      && timestamp(draft.created_at) && draft.created_at >= original.uploaded_at && (!claim || claim.employee_email === original.owner_email), 'cash_draft');
+  }
+  check(new Set(drafts.map(d => d.receipt_id)).size === drafts.length && new Set(drafts.map(d => d.claim_id)).size === drafts.length, 'cash_draft');
   const objects = manifest?.objects.filter(object => object.bucket === 'COASTER_RECEIPTS') ?? [];
   check(objects.length === receipts.length, 'objects');
   const byKey = new Map(objects.map(object => [object.key, object]));

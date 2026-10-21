@@ -176,3 +176,45 @@ export async function expandedReasonJourney(browser, root, origin, owner) {
       assert.equal(receipt.lifecycle[0].reason, erased.label.repeat(1000), 'later erasure protects earlier real tokens')
   } finally { await employee.context.close(); await delegate.context.close() }
 }
+
+/** CAPTURE-004: the real Settings confirmation and inbox draft display at both widths.
+ * The caller restored an aged upload through the ordinary archive door before invoking the local Cron door. */
+export async function cashWindowJourney(browser, root, origin, evidence, shots) {
+  for (const width of [1440,390]) {
+    const owner=await session(browser,root,origin,'owner',width)
+    try {
+      await owner.page.goto(origin+'/app#/settings')
+      const section=owner.page.getByRole('region',{name:'Cash receipt draft window',exact:true})
+      await section.getByLabel('Cash draft window (days)',{exact:true}).fill('1')
+      await section.getByRole('button',{name:'Review cash draft window',exact:true}).click()
+      await section.getByText('1 existing older unattached receipts will become eligible. Receipts are checked again before each draft opens.',{exact:true}).waitFor()
+      await section.scrollIntoViewIfNeeded()
+      assert.equal(await owner.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+      let path=join(evidence,`cash-window-confirm-${width}.png`)
+      await owner.page.screenshot({path});shots.push({screen:'CAPTURE-004 finance confirms older-original count',viewport:width,path})
+      await section.getByRole('button',{name:'Confirm cash draft window',exact:true}).click()
+      await section.getByText('Current window: 1 days',{exact:true}).waitFor()
+    } finally {await owner.context.close()}
+  }
+  // Vite's documented local scheduled-handler door calls the unchanged production hourly handler.
+  const scheduled=await fetch(origin+'/cdn-cgi/handler/scheduled?cron='+encodeURIComponent('17 * * * *'))
+  assert.equal(scheduled.status,200,await scheduled.text())
+  for(const width of [1440,390]) {
+    const employee=await session(browser,root,origin,'employee',width)
+    try {
+      const originals=(await api(employee.context,origin,'receipt-inbox')).receipts
+      const drafts=originals.filter(r=>r.cashDraft)
+      assert.equal(drafts.length,1)
+      const detail=await api(employee.context,origin,`claims/${drafts[0].cashDraft.claim_id}`)
+      assert.equal(detail.claim.status,'draft');assert.deepEqual(detail.items,[])
+      await employee.page.goto(origin+'/app#/claims')
+      const pending=employee.page.getByText(/Cash draft · needs details · expense date/)
+      await pending.waitFor();await pending.scrollIntoViewIfNeeded()
+      assert.equal(await employee.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+      const path=join(evidence,`cash-draft-inbox-${width}.png`)
+      await employee.page.screenshot({path});shots.push({screen:'CAPTURE-004 private needs-details draft',viewport:width,path})
+      await pending.getByRole('link',{name:'Open draft claim'}).click()
+      await employee.page.getByRole('button',{name:'Add expense',exact:true}).waitFor()
+    } finally {await employee.context.close()}
+  }
+}

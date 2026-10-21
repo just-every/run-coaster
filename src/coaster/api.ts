@@ -41,6 +41,7 @@ import { categories } from './items';
 import { business } from './settings';
 import { event } from './events';
 import { listInbox, receiveReceipt, inboxReceiptFile } from './receipts/inbox';
+import { cashWindow, previewCashWindow, saveCashWindow } from './receipts/cash-drafts';
 import { discardReceipt, mergeReceipt } from './receipts/lifecycle';
 import { reviewReceiptSignal } from './receipt-signal-review';
 import { perDiemLocations, pricePerDiem } from './per-diem';
@@ -74,6 +75,10 @@ const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) =
   return result instanceof Response ? result : c.json(result);
 };
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
+
+api.get('/api/coaster/settings/cash-draft-window', as(async (a, c) => cashWindow(db(c), a)));
+api.post('/api/coaster/settings/cash-draft-window/preview', as(async (a, c) => previewCashWindow(db(c), a, await body(c))));
+api.post('/api/coaster/settings/cash-draft-window', as(async (a, c) => saveCashWindow(db(c), a, await body(c))));
 
 api.get('/api/coaster/receipt-inbox', as(async (a, c) => listInbox(db(c), a)));
 api.post('/api/coaster/receipt-inbox', as(async (a, c) => receiveReceipt(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, c.req.raw)));

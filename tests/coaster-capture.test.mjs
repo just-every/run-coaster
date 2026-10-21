@@ -411,3 +411,77 @@ test('ERASURE-001 / CAPTURE-004 merged duplicates keep their originals; names an
     }
   } finally { await h.close() }
 })
+
+test('CAPTURE-004 cash window defaults off, confirms only finance-visible counts, and prepares bounded once-only dated drafts without amounts, attachment, submission or new receipt bytes', async () => {
+  const h = await harness()
+  try {
+    const t = await agency(h), png = await readFile('tests/fixtures/receipts/bistro.png')
+    const worker = await h.mf.getWorker(), tick = at => worker.scheduled({ scheduledTime: at, cron: '17 * * * *' })
+    const getWindow = () => h.get('settings/cash-draft-window',t.morgan)
+    assert.deepEqual(await getWindow(), { days:null,version:0 })
+    for (const cookie of [t.sam,t.priya]) {
+      await h.get('settings/cash-draft-window',cookie,403)
+      await h.post('settings/cash-draft-window/preview',{days:1},cookie,403)
+    }
+    for (const days of [0,91,1.5,'1']) await h.post('settings/cash-draft-window/preview',{days},t.morgan,400)
+    await h.post('settings/cash-draft-window/preview',{days:1,extra:true},t.morgan,400)
+    const originals=[]
+    for(let i=0;i<29;i++) originals.push(await upload(h,t.sam,`cash-${i}.png`,png))
+    const discarded=originals[0],merged=originals[1]
+    await h.post(`receipt-inbox/${discarded.id}/discard`,{reason:'not a business expense',expectedSequence:0},t.sam)
+    await h.post(`receipt-inbox/${merged.id}/merge`,{survivorId:originals[2].id,expectedSequence:0},t.sam)
+    const before=(await h.db.prepare('SELECT * FROM c_capture_receipts ORDER BY id').all()).results
+    const future=Date.parse(originals.at(-1).uploadedAt)+2*86400000
+    await tick(future)
+    assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts').first()).n,0,'off makes no drafts')
+    const preview=await h.post('settings/cash-draft-window/preview',{days:1},t.morgan)
+    assert.deepEqual(Object.keys(preview).sort(),['asOf','count','days','version'])
+    assert.equal(preview.count,0,'new originals are not yet old; private filenames and identities never reach finance')
+    await h.post('settings/cash-draft-window',{...preview,count:1},t.morgan,409)
+    await h.post('settings/cash-draft-window',{...preview,asOf:'2000-01-01T00:00:00.000Z'},t.morgan,409)
+    await h.post('settings/cash-draft-window',preview,t.sam,403)
+    const cross=await h.send('/api/coaster/settings/cash-draft-window',preview,t.morgan,{origin:'https://outside.example'})
+    assert.equal(cross.status,403)
+    await h.post('settings/cash-draft-window',preview,t.morgan)
+    await h.post('settings/cash-draft-window',preview,t.morgan,409,'stale version')
+    await tick(Date.parse(originals[0].uploadedAt)+86400000-1)
+    assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts').first()).n,0,'inclusive eligibility starts only after a full elapsed day')
+    const messages=h.messages.length
+    await Promise.all([tick(future),tick(future)])
+    const drafted=(await h.db.prepare('SELECT * FROM c_capture_cash_drafts ORDER BY receipt_id').all()).results
+    assert.ok(drafted.length>=25&&drafted.length<=27,'each delivery is bounded, concurrent deliveries cannot duplicate an original')
+    await tick(future)
+    const all=(await h.db.prepare('SELECT * FROM c_capture_cash_drafts ORDER BY receipt_id').all()).results
+    assert.equal(all.length,27)
+    assert.ok(!all.some(d=>[discarded.id,merged.id].includes(d.receipt_id)))
+    for(const draft of all){
+      const original=originals.find(o=>o.id===draft.receipt_id)
+      assert.equal(draft.expense_date,original.uploadedAt.slice(0,10))
+      const detail=await h.get(`claims/${draft.claim_id}`,t.sam)
+      assert.equal(detail.claim.status,'draft');assert.equal(detail.claim.total_minor,0)
+      assert.deepEqual(detail.items,[],'no amount or receipt content is invented')
+      assert.equal(detail.events[0].actor_email,'automation: cash-draft window')
+      const audit=await h.get('history?q='+encodeURIComponent('CL-'+String(detail.claim.number).padStart(4,'0')))
+      assert.equal(audit.lines.find(e=>e.action==='cash-draft-created').channel,'schedule')
+      assert.deepEqual(detail.events[0].detail,{state:'needs-details'})
+      await h.get(`claims/${draft.claim_id}`,t.morgan,403)
+      await h.post(`claims/${draft.claim_id}/submit`,{version:detail.claim.version},t.sam,400)
+    }
+    await tick(future+86400000)
+    assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts').first()).n,27)
+    assert.equal(h.messages.length,messages,'no receipt or suspicion notification is sent')
+    assert.deepEqual((await h.db.prepare('SELECT * FROM c_capture_receipts ORDER BY id').all()).results,before,'original evidence never changes')
+    assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_receipts').first()).n,0,'no duplicate BLOB copy')
+    const bucket=await h.mf.getR2Bucket('COASTER_RECEIPTS')
+    assert.equal((await bucket.list()).objects.length,29,'R2 stores each original once')
+    const inbox=await h.get('receipt-inbox',t.sam)
+    assert.equal(inbox.receipts.filter(r=>r.cashDraft).length,27)
+    assert.deepEqual((await download(h,t.sam,originals[2].id)).bytes,png)
+    await assert.rejects(h.db.prepare('DELETE FROM c_capture_cash_drafts').run(),/permanent/)
+    await assert.rejects(h.db.prepare("UPDATE c_capture_cash_drafts SET expense_date='2000-01-01'").run(),/permanent/)
+    const off=await h.post('settings/cash-draft-window/preview',{days:null},t.morgan)
+    await h.post('settings/cash-draft-window',off,t.morgan)
+    await upload(h,t.sam,'off-again.png',png);await tick(future+10*86400000)
+    assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts').first()).n,27)
+  } finally { await h.close() }
+})

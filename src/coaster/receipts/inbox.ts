@@ -32,13 +32,14 @@ const summary = (r: InboxReceipt, history: InboxEvent[], lifecycle: Lifecycle[] 
 /** Unattached originals follow employee privacy and existing ADMIN-005 grants. */
 export async function listInbox(db: D1Database, actor: Actor) {
   ownInbox(actor);
-  const [receipts, history, lifecycle] = await db.batch([
+  const [receipts, history, lifecycle, drafts] = await db.batch([
     db.prepare(`${SELECT} WHERE r.owner_email=? ORDER BY r.uploaded_at DESC,r.id DESC`).bind(actor.email),
     db.prepare('SELECT e.* FROM c_capture_receipt_events e JOIN c_capture_receipts r ON r.id=e.receipt_id WHERE r.owner_email=? ORDER BY e.receipt_id,e.sequence').bind(actor.email),
     db.prepare('SELECT e.* FROM c_capture_lifecycle e JOIN c_capture_receipts r ON r.id=e.receipt_id WHERE r.owner_email=? ORDER BY e.receipt_id,e.sequence').bind(actor.email),
+    db.prepare('SELECT d.*,c.status AS claim_status,CASE WHEN c.id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM c_items i WHERE i.claim_id=c.id) THEN 1 ELSE 0 END AS needs_details FROM c_capture_cash_drafts d JOIN c_capture_receipts r ON r.id=d.receipt_id LEFT JOIN c_claims c ON c.id=d.claim_id WHERE r.owner_email=?').bind(actor.email),
   ]);
   const events = history.results as InboxEvent[];
-  return { receipts: (receipts.results as InboxReceipt[]).map(r => summary(r, events.filter(e => e.receipt_id === r.id), (lifecycle.results as Lifecycle[]).filter(e => e.receipt_id === r.id))) };
+  return { receipts: (receipts.results as InboxReceipt[]).map(r => summary(r, events.filter(e => e.receipt_id === r.id), (lifecycle.results as Lifecycle[]).filter(e => e.receipt_id === r.id))).map(receipt => ({ ...receipt, cashDraft: (drafts.results as { receipt_id: string; claim_id: string; expense_date: string; created_at: string }[]).find(d => d.receipt_id === receipt.id) ?? null })) };
 }
 
 export async function receiveReceipt(db: D1Database, originalBucket: R2Bucket | undefined, actor: Actor, request: Request) {

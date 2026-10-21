@@ -1,3 +1,4 @@
+import { CaptureWindow } from './capture-window';
 import { WorkflowEditor } from './workflow-editor';
 import { useState } from 'react';
 import { amountText, call, day, money, moment, rate, today, type D } from './api';
@@ -57,6 +58,7 @@ export function Settings({ state, reload }: ViewProps) {
     </div>
     {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
     {b && (roles.employee || roles.finance || owner) && <Allowances state={state} reload={reload} onNotice={setNotice} />}
+    {(owner || roles.finance) && b && <CaptureWindow />}
     {(owner || roles.finance) && b && <Section title="Reminders">
       <p className="muted">Coaster emails whoever owes something (a receipt, a submission, a held claim, an answer or a decision) on the business days you set after it first opens, on US business days outside quiet hours ({b.timezone}), escalates what stays undone, and stops once it is done.</p>
       <Form label="Save reminders" onSubmit={async v => { await call('settings/reminders', v); await saved('Reminders saved.'); }}>

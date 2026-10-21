@@ -5,6 +5,7 @@ import { runBudgets } from './budgets';
 import { runAllowances } from './allowances';
 import { runAutoSubmit } from './auto-reports';
 import { runRetention } from './retention';
+import { runCashDrafts } from './receipts/cash-drafts';
 import { runPaySchedule } from './batches';
 
 /** The hourly Cron Trigger: chases open items (FOLLOWUP-001), alerts budgets (REPORT-004), pays stipends and opens recurring
@@ -12,6 +13,7 @@ import { runPaySchedule } from './batches';
  * scheduled reports (REPORT-002) and opens the pay-day batch (PAY-004). */
 export async function runHourly(original: Bindings, at: Date) {
   const env = runtimeBindings(original);
+  await runCashDrafts(env.DB, at);
   await runReminders(env, at);
   await runBudgets(env, at);
   await runAllowances(env, at);

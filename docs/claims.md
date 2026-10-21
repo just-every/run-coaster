@@ -6,6 +6,8 @@ Open **Receipt inbox** on Claims. Drop dozens of files, choose **Upload receipts
 
 Reading is unavailable, so each saved original says **Needs attention** and asks you to enter its expense details manually. The inbox does not yet attach receipts to claims or card charges; expense attachments below still use their existing 1.5 MB limit.
 
+Finance can review **Cash receipt draft window** in Settings, then confirm its older-receipt count. It is off by default; choose 1–90 elapsed days. Each hourly run prepares up to 25 private draft claims, once per original, with the UTC upload date and **needs details**. No amount is inferred or receipt attached. The inbox links to the draft; enter its details yourself. Turning the window off keeps drafts already prepared.
+
 ## Start a claim
 
 Open **Claims**, choose **New claim**, give it a title such as "Denver client trip" and choose **Start claim**.
