@@ -11,7 +11,7 @@ import { MATCH_NOTICE } from './match-notice';
 export { MATCH_NOTICE } from './match-notice';
 type Rule = { version: number; enabled: number; window_days: number; tip_percent: number; fx_percent: number };
 type Original = { id: string; owner_email: string; sequence: number; details_sequence: number; match_data: string; generation: number };
-type Charge = { id: string; item_id: string; claim_id: string; version: number; employee_email: string; amount_minor: number; currency: string; original_minor: number | null; original_currency: string; descriptor: string; transaction_on: string | null; posted_on: string; last4: string };
+type Charge = { transaction_key: string; id: string; item_id: string; claim_id: string; version: number; employee_email: string; amount_minor: number; currency: string; original_minor: number | null; original_currency: string; descriptor: string; transaction_on: string | null; posted_on: string; last4: string };
 export const matchRule = (db: D1Database) => db.prepare('SELECT * FROM c_card_match_rules ORDER BY version DESC LIMIT 1').first<Rule>();
 const active = `EXISTS(SELECT 1 FROM c_members m WHERE m.email=r.owner_email AND m.active=1 AND m.is_employee=1)
  AND EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=r.owner_email AND o.status='active')`;
@@ -96,9 +96,9 @@ async function chargesFor(db:D1Database,employee:string) {
     AND ch.amount_minor>0 AND f.undone_at IS NULL`).bind(employee).all<Charge>()).results;
 }
 async function candidates(db:D1Database,original:Original,charges:Charge[],rule:Rule,business:{currency:string},fx:FxResolver) {
-  const rejected=new Set((await db.prepare('SELECT charge_id FROM c_card_match_rejections WHERE receipt_id=?').bind(original.id).all<{charge_id:string}>()).results.map(r=>r.charge_id));
+  const rejected=new Set((await db.prepare('SELECT transaction_key FROM c_card_match_rejections WHERE receipt_id=?').bind(original.id).all<{transaction_key:string}>()).results.map(r=>r.transaction_key));
   const details=JSON.parse(original.match_data), found:{charge:Charge; basis:Data}[]=[];
-  for(const charge of charges) { if(rejected.has(charge.id)) continue; const match=await basis(details,charge,rule,business,fx); if(match) found.push({charge,basis:match}); }
+  for(const charge of charges) { if(rejected.has(charge.transaction_key)) continue; const match=await basis(details,charge,rule,business,fx); if(match) found.push({charge,basis:match}); }
   return found;
 }
 export async function cardMatchQuestion(db:D1Database,actor:Actor,id:string) {
@@ -119,7 +119,7 @@ export async function rejectMatchQuestion(db:D1Database,actor:Actor,id:string,b:
   requireThat(Array.isArray(b.chargeIds)&&JSON.stringify([...b.chargeIds].sort())===JSON.stringify(ids)&&ids.length,'The match question changed; reload it',409);
   await commit(db,all(authority(actor,'employee'),openOriginal(actor,id,sequence,at),noAttachment(id),unchanged(e)),[
     privateMatchLine(db,id,sequence+1,'match-rejected',actor.delegate?.email??actor.email,actor.delegate?actor.email:null,{chargeIds:ids}),
-    ...ids.map(charge=>db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,sequence) VALUES(?,?,?)').bind(id,charge,sequence+1)),
+    ...ids.map(charge=>db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,transaction_key,sequence) SELECT ?,id,transaction_key,? FROM c_card_charges WHERE id=?').bind(id,sequence+1,charge)),
   ]); return {rejected:ids.length,sequence:sequence+1};
 }
 /** Only the hourly delivery attaches automatically. Candidate uniqueness is checked against every eligible competing

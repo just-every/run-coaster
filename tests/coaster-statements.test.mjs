@@ -248,7 +248,7 @@ test('CAPTURE-004 FEED-004 G7 automatic path skips discarded, merged, attached, 
   const waiting=await original(h,t.sam,'genuine-waiting.png');await choose(h,t,waiting)
   await statement(h,t,[{}],{last4:'4444',employee:'jordan@harbourfinch.example',name:'foreign.csv'})
   await tick(h);assert.equal((await inbox(h,t,waiting.id)).attachment,null,'same amount on another employee card never matches')
-  await statement(h,t,[{}]);await tick(h)
+  const matchedJob=await statement(h,t,[{}]);await tick(h)
   for(const {r,kind,cookie} of skipped) {
     if(kind==='inactive') continue
     const result=(await h.get('receipt-inbox',cookie)).receipts.find(x=>x.id===r.id)
@@ -262,6 +262,14 @@ test('CAPTURE-004 FEED-004 G7 automatic path skips discarded, merged, attached, 
   undone=await inbox(h,t,waiting.id);assert.equal(undone.attachment,null)
   assert.deepEqual((await h.get(`receipt-inbox/${waiting.id}/card-match-question`,t.sam)).candidates,[])
   assert.equal((await h.get('history?q=card-charge-unmatched',t.morgan)).lines.length,1)
+  const excluded=(await h.db.prepare('SELECT transaction_key FROM c_card_match_rejections WHERE receipt_id=?').bind(waiting.id).first()).transaction_key
+  const undoneStatement=await h.post(`statements/${matchedJob.file}/undo`,{},t.morgan);assert.equal(undoneStatement.removed,1)
+  assert.equal((await h.db.prepare('SELECT transaction_key FROM c_card_charge_undo_history').first()).transaction_key,excluded)
+  await assert.rejects(h.db.prepare('DELETE FROM c_card_charge_undo_history').run(),/permanent/)
+  await statement(h,t,[{}]);await tick(h)
+  assert.equal((await inbox(h,t,waiting.id)).attachment,null,'the same transaction stays excluded after statement undo and re-import creates a new charge row')
+  assert.deepEqual((await h.get(`receipt-inbox/${waiting.id}/card-match-question`,t.sam)).candidates,[])
+  assert.ok((await h.db.prepare('SELECT transaction_key FROM c_card_charges').all()).results.some(c=>c.transaction_key===excluded))
 }))
 
 test('CAPTURE-004 FEED-004 rule v1 never breaks amount ties with merchant or date; private questions can be rejected or attached by the person',()=>withAgency(async(h,t)=>{

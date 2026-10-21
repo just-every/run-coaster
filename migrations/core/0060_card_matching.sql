@@ -89,8 +89,8 @@ CREATE TRIGGER c_card_match_rules_keep BEFORE UPDATE ON c_card_match_rules WHEN 
  BEGIN SELECT RAISE(ABORT,'matching rule versions are permanent'); END;
 CREATE TRIGGER c_card_match_rules_no_delete BEFORE DELETE ON c_card_match_rules BEGIN SELECT RAISE(ABORT,'matching rule versions are permanent'); END;
 CREATE TABLE c_card_match_rejections (
- receipt_id TEXT NOT NULL REFERENCES c_capture_receipts(id), charge_id TEXT NOT NULL,
- sequence INTEGER NOT NULL, PRIMARY KEY(receipt_id,charge_id),
+ receipt_id TEXT NOT NULL REFERENCES c_capture_receipts(id), charge_id TEXT NOT NULL, transaction_key TEXT NOT NULL,
+ sequence INTEGER NOT NULL, PRIMARY KEY(receipt_id,transaction_key),
  FOREIGN KEY(receipt_id,sequence) REFERENCES c_capture_lifecycle(receipt_id,sequence)
 );
 CREATE TRIGGER c_card_match_rejections_keep BEFORE UPDATE ON c_card_match_rejections BEGIN SELECT RAISE(ABORT,'a rejected pair stays rejected'); END;
@@ -158,3 +158,30 @@ CREATE TRIGGER c_match_dirty_account_insert AFTER INSERT ON oa_operators
 CREATE TRIGGER c_match_dirty_account_delete AFTER DELETE ON oa_operators
  BEGIN UPDATE c_card_match_epoch SET version=version+1 WHERE id=1;
  INSERT INTO c_card_match_generations(employee_email,version) VALUES(lower(OLD.email),1) ON CONFLICT(employee_email) DO UPDATE SET version=version+1; END;
+
+-- Undo removes the live expense, while immutable statement provenance remains available to private attachment history.
+CREATE TABLE c_card_charge_undo_history (
+  id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  card_id TEXT NOT NULL,
+  employee_email TEXT NOT NULL,
+  transaction_key TEXT NOT NULL,
+  posted_on TEXT NOT NULL,
+  transaction_on TEXT,
+  descriptor TEXT NOT NULL,
+  memo TEXT NOT NULL DEFAULT '',
+  amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+  currency TEXT NOT NULL,
+  original_minor INTEGER,
+  original_currency TEXT NOT NULL DEFAULT '',
+  item_id TEXT NOT NULL,
+  category_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  claim_id TEXT NOT NULL
+);
+CREATE TRIGGER c_card_charge_undo_capture BEFORE DELETE ON c_card_charges
+ BEGIN INSERT INTO c_card_charge_undo_history(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id) VALUES(OLD.id,OLD.file_id,OLD.card_id,OLD.employee_email,OLD.transaction_key,OLD.posted_on,OLD.transaction_on,OLD.descriptor,OLD.memo,OLD.amount_minor,OLD.currency,OLD.original_minor,OLD.original_currency,OLD.item_id,OLD.category_id,OLD.created_at,OLD.claim_id); END;
+CREATE TRIGGER c_card_charge_undo_keep BEFORE UPDATE ON c_card_charge_undo_history WHEN NOT EXISTS(SELECT 1 FROM c_erasing)
+ BEGIN SELECT RAISE(ABORT,'undone statement provenance is permanent'); END;
+CREATE TRIGGER c_card_charge_undo_no_delete BEFORE DELETE ON c_card_charge_undo_history
+ BEGIN SELECT RAISE(ABORT,'undone statement provenance is permanent'); END;

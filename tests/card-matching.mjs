@@ -48,7 +48,7 @@ try {
     await page.waitForTimeout(150)
     let receipt=(await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.name===name)
     assert.equal(receipt.matchChoice.enabled,true)
-    await importRows(`unique-${width}.csv`,amount,'Harbour View Bistro')
+    const uniqueJob=await importRows(`unique-${width}.csv`,amount,'Harbour View Bistro')
     assert.equal((await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===receipt.id).attachment,null)
     let rule=await api(owner.context,server.origin,'settings/card-matching')
     await api(owner.context,server.origin,'settings/card-matching',{version:rule.version,enabled:false,windowDays:7,tipPercent:20,fxPercent:5})
@@ -77,6 +77,10 @@ try {
     await api(context,server.origin,`receipt-inbox/${receipt.id}/card-match`,{expectedSequence:receipt.lifecycleSequence,enabled:true,merchant:'Bistro',date:'2026-10-02',total:amount,currency:'AUD',notice})
     const replay=await server.scheduled();assert.equal(replay.status,200,await replay.text())
     assert.equal((await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===receipt.id).attachment,null)
+    const undo=await api(owner.context,server.origin,`statements/${uniqueJob.file}/undo`,{});assert.equal(undo.removed,1)
+    await importRows(`unique-${width}.csv`,amount,'Harbour View Bistro')
+    const reimport=await server.scheduled();assert.equal(reimport.status,200,await reimport.text())
+    assert.equal((await api(context,server.origin,'receipt-inbox')).receipts.find(r=>r.id===receipt.id).attachment,null,'statement re-import never resurrects an undone pair')
     // Two same-amount charges ask. The native answer is a person attach, never a guessed automation line.
     const tieName=`question-${width}.png`,tieAmount=(30+index*300).toFixed(2)
     await page.reload();await inbox.getByLabel('Upload receipts',{exact:true}).setInputFiles({name:tieName,mimeType:'image/png',buffer:await readFile('tests/fixtures/receipts/bistro.png')})
@@ -110,6 +114,7 @@ try {
     ['match_choice','c_capture_lifecycle',r=>r.kind==='match-details',r=>{const d=JSON.parse(r.match_data);d.totalMinor=0;r.match_data=JSON.stringify(d)}],
     ['match_basis','c_capture_lifecycle',r=>r.channel==='schedule',r=>{r.on_behalf_of='foreign@dev.localhost'}],
     ['card_charge','c_card_charges',()=>true,r=>{r.card_id='missing-card'}],
+    ['match_rejection','c_card_match_rejections',()=>true,r=>{r.transaction_key='card:forged'}],
   ]
   for(const [code,table,pick,change] of cases) {
     await writeFile(join(restored,`exports/${code}.rer`),await tampered(archive,table,change,pick),{mode:0o600})

@@ -47,10 +47,13 @@ export async function validateCoasterArchive(read, manifest) {
   for (const k of keys) check(batchClaims.some(x => x.batch_id === k.batch_id && x.claim_id === k.claim_id), 'reimbursement_key');
   const cards=await read('c_cards'), charges=await read('c_card_charges'), files=await read('c_statement_files'), events=await read('c_events');
   for(const card of cards) check(/^\d{4}$/.test(card.last4),'card_last_four');
-  for(const charge of charges) {
+  const undone=await read('c_card_charge_undo_history');
+  check(new Set([...charges,...undone].map(c=>c.id)).size===charges.length+undone.length,'card_charge');
+  for(const charge of [...charges,...undone]) {
     check(cards.some(c=>c.id===charge.card_id)&&files.some(f=>f.id===charge.file_id),'card_charge');
     const item=items.find(i=>i.id===charge.item_id), claim=item&&claims.find(c=>c.id===item.claim_id);
-    if(item) check(claim&&item.card_charge_id===charge.id&&claim.employee_email===charge.employee_email&&item.amount_minor===charge.amount_minor
+    if(undone.some(c=>c.id===charge.id)) check(!item&&files.some(f=>f.id===charge.file_id&&f.undone_at),'card_charge');
+    else if(item) check(claim&&item.card_charge_id===charge.id&&claim.employee_email===charge.employee_email&&item.amount_minor===charge.amount_minor
       && item.merchant===charge.descriptor&&item.spent_on===(charge.transaction_on??charge.posted_on),'card_charge');
     else check(typeof charge.claim_id==='string'&&charge.claim_id.length>0&&events.some(e=>e.action==='claim-expired'&&e.claim_id===charge.claim_id),'card_charge');
   }

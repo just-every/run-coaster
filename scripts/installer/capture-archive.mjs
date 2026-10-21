@@ -60,7 +60,7 @@ export async function validateCaptureArchive(read, manifest) {
       check(event.reason === '' && event.survivor_id === null && typeof event.claim_id === 'string' && event.claim_id.length > 0
         && typeof event.item_id === 'string' && event.item_id.length > 0, 'attachment');
       if(event.channel==='schedule') {
-        const charges=await read('c_card_charges');
+        const charges=[...await read('c_card_charges'),...await read('c_card_charge_undo_history')];
         const charge=charges.find(c=>c.item_id===event.item_id);
         let data;try{data=JSON.parse(event.match_data);}catch{check(false,'match_basis');}
         check(rules.some(r=>r.version===data?.ruleVersion),'match_basis');
@@ -113,8 +113,13 @@ export async function validateCaptureArchive(read, manifest) {
     // Historical expense ids remain in private history after financial retention, including an expense moved by partial approval.
   }
   const rejections=await read('c_card_match_rejections');
-  for(const pair of rejections) check(lifecycle.some(e=>e.receipt_id===pair.receipt_id&&e.sequence===pair.sequence&&['match-rejected','detached'].includes(e.kind)),'match_rejection');
-  check(new Set(rejections.map(p=>p.receipt_id+'|'+p.charge_id)).size===rejections.length,'match_rejection');
+  const chargeRecords=[...await read('c_card_charges'),...await read('c_card_charge_undo_history')];
+  for(const pair of rejections) {
+    check(typeof pair.transaction_key==='string'&&pair.transaction_key.startsWith('card:')&&lifecycle.some(e=>e.receipt_id===pair.receipt_id&&e.sequence===pair.sequence&&['match-rejected','detached'].includes(e.kind)),'match_rejection');
+    const charge=chargeRecords.find(c=>c.id===pair.charge_id);
+    check(!charge||charge.transaction_key===pair.transaction_key&&charge.employee_email===byId.get(pair.receipt_id)?.owner_email,'match_rejection');
+  }
+  check(new Set(rejections.map(p=>p.receipt_id+'|'+p.transaction_key)).size===rejections.length,'match_rejection');
   check(rules.length>0&&rules.every((r,i)=>r.version===i+1&&[0,1].includes(r.enabled)&&Number.isInteger(r.window_days)&&r.window_days>=0&&r.window_days<=14&&Number.isInteger(r.tip_percent)&&r.tip_percent>=0&&r.tip_percent<=30&&Number.isInteger(r.fx_percent)&&r.fx_percent>=0&&r.fx_percent<=10),'match_rule');
   check(byKey.size === objects.length && byId.size === receipts.length, 'objects');
   const history = new Map();

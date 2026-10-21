@@ -33,7 +33,7 @@ export async function changeAttachment(db: D1Database, actor: Actor, id: string,
     const version = evidence?.card_match_basis ? JSON.parse(evidence.card_match_basis).ruleVersion : (await matchRule(db))!.version;
     statements.push(ruleEvent(db, actor.delegate?.email??actor.email, detach ? 'card-charge-unmatched' : 'card-charge-matched', {claim:claim.id}, {charge:item.card_charge_id,ruleVersion:version}));
     if (detach) statements.push(
-      db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,sequence) VALUES(?,?,?)').bind(id,item.card_charge_id,sequence+1),
+      db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,transaction_key,sequence) SELECT ?,id,transaction_key,? FROM c_card_charges WHERE id=?').bind(id,sequence+1,item.card_charge_id),
       privateMatchLine(db,id,sequence+2,'match-withdrawn',actor.delegate?.email??actor.email,actor.delegate?actor.email:null),
     );
   }
