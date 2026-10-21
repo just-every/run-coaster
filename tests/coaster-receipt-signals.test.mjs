@@ -3,12 +3,13 @@ import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
 import {createHash} from 'node:crypto'
 import {harness,agency} from './harness.mjs'
-import {imageSignalCases,patternSignalCases,cardSignalCases} from './receipt-signal-scenarios.mjs'
+import {imageSignalCases,patternSignalCases,cardSignalCases,addSignalExpense} from './receipt-signal-scenarios.mjs'
 import {cleanSignalMeasurement} from './receipt-signals-clean.mjs'
 import {withExif} from './fixtures/receipt-exif.mjs'
 import {makeReceipt,addTextMetadata} from './fixtures/receipt-metadata.mjs'
 
 const corpus=JSON.parse(await readFile('tests/fixtures/receipt-metadata-clean.json','utf8'))
+const splitCategory=results=>results.flatMap(r=>r.signals).find(s=>s.code==='split-charge').evidence.category
 const upload=async(h,who,claim,record,bytes=makeReceipt(record))=>{
  const r=await h.post(`claims/${claim.id}/receipts`,{version:claim.version,name:record.id+'.'+(record.ext??'png'),base64:bytes.toString('base64')},who)
  return h.post(`claims/${claim.id}/items`,{version:r.claim.version,kind:'receipt',date:record.date,merchant:record.merchant,amount:String(record.amount),receipt:r.receipt,allocations:[{category:record.category}]},who)
@@ -101,6 +102,13 @@ test('POLICY-002 split and round/weekend patterns enter the finance queue and re
   assert.equal(after.claim.status,'reimbursed');assert.equal(JSON.stringify(after.revisions.at(-1).snapshot.receiptSignals),frozen)
   assert.equal(after.events.find(e=>e.action==='receipt-signal-reviewed').detail.note,review.note)
   assert.ok((await h.get('exceptions',t.morgan)).open.some(s=>s.signal&&s.claim===c.id),'other unresolved signals survive payment')
+  const category=splitCategory(results)
+  let later=await h.post('claims',{title:'Purchase reported separately'},t.sam)
+  const record={...corpus[0],id:'SYNTHETIC-COASTER-403',merchant:'Equipment House',amount:480,date:'2026-06-16',category,explanation:'A separate purchase, submitted on its own report'}
+  later=await addSignalExpense(h,t.sam,later,record,makeReceipt(record))
+  later=await h.post(`claims/${later.id}/submit`,{version:later.version},t.sam)
+  const extra=(await h.get(`claims/${later.id}`,t.morgan)).revisions[0].snapshot.receiptSignals[0].signals.find(s=>s.code==='split-charge')
+  assert.equal(extra.evidence.purchases.length,3,'the detector crosses submitted claims while earlier observations stay frozen')
  }finally{await h.close()}
 })
 

@@ -35,13 +35,15 @@ export async function patternSignalCases(h,t,suffix='') {
   {id:'SYNTHETIC-COASTER-402',merchant:'Equipment House',amount:480,date:'2026-06-16',category:category.id},
   ...['2026-06-06','2026-06-07','2026-06-13'].map((date,i)=>({id:'SYNTHETIC-COASTER-'+(410+i),merchant:'Weekend workshops',amount:100,date,category:t.c.office})),
  ]
- for(const record of cases)c=await addSignalExpense(h,t.sam,c,{...record,employee:baseReceipt.employee,explanation:'Distinct project purchase, finance to review grouping'},makeReceipt({...record,employee:baseReceipt.employee}))
+ for(const [index,record] of cases.entries())c=await addSignalExpense(h,t.sam,c,{...record,employee:baseReceipt.employee,explanation:'Distinct project purchase, finance to review grouping'},index===1?undefined:makeReceipt({...record,employee:baseReceipt.employee}))
  c=await h.post(`claims/${c.id}/submit`,{version:c.version},t.sam)
  const detail=await h.get(`claims/${c.id}`,t.morgan),results=detail.revisions.at(-1).snapshot.receiptSignals
  for(const code of ['split-charge','round-amount-pattern','weekend-pattern'])assert.ok(results.some(r=>r.signals.some(s=>s.code===code)),code)
  const split=results[0].signals.find(s=>s.code==='split-charge')
  assert.deepEqual([split.evidence.limitMinor,split.evidence.totalMinor],[50000,96000])
  assert.equal(split.evidence.purchases.length,2)
+ assert.equal(results[1].receipt,null,'receipt-less purchases participate in the same spend detector')
+ assert.ok(results[1].signals.some(s=>s.code==='split-charge'))
  return {claim:c,results}
 }
 
