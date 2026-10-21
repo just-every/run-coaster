@@ -114,7 +114,7 @@ try {
   assert.ok(attachment)
   let detail=await api(employee.context,server.origin,`claims/${attachment.claimId}`)
   for(const item of detail.items) {
-    await api(employee.context,server.origin,`claims/${detail.claim.id}/items`,{version:detail.claim.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),category:item.allocations[0].category_id,explanation:'Synthetic statement evidence; distinct posted transactions'})
+    await api(employee.context,server.origin,`claims/${detail.claim.id}/items`,{version:detail.claim.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),category:item.allocations[0].category_id,receipt:item.receipt_id,explanation:'Synthetic statement evidence; distinct posted transactions'})
     detail=await api(employee.context,server.origin,`claims/${attachment.claimId}`)
   }
   await api(employee.context,server.origin,`claims/${detail.claim.id}/submit`,{version:detail.claim.version})
