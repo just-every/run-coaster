@@ -34,8 +34,8 @@ export async function cleanSignalMeasurement() {
   }
   const queue=await h.get('exceptions',t.morgan)
   const result={expenses:checked,employees:employees.length,signalled,percent:Number((signalled/checked*100).toFixed(2)),strippedReceipts:noMetadata,raised,queueSignals:queue.open.filter(x=>x.signal).length,formats:corpus.reduce((totals,r)=>(totals[r.media]=(totals[r.media]??0)+1,totals),{})}
-  console.log('POLICY-002 combined clean-set measurement '+JSON.stringify(result))
-  assert.ok(signalled/checked<=0.02,JSON.stringify(result))
+  console.log('POLICY-002 combined clean-set measurement '+JSON.stringify({...result,raised:raised.slice(0,6)}))
+  assert.ok(signalled/checked<=0.02,JSON.stringify({...result,raised:raised.slice(0,6)}))
   assert.ok(noMetadata>0)
   assert.equal(result.queueSignals,raised.reduce((n,r)=>n+r.signals.length,0),'all raised signals reach finance')
   return result

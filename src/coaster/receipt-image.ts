@@ -1,3 +1,4 @@
+import { refineAlignment } from './receipt-image-alignment';
 import { decode as decodeJpeg } from 'jpeg-js';
 import { decode as decodePng, convertIndexedToRgb } from 'fast-png';
 import { decode as decodeWebp, getWebpInfo, parseRiff } from '@stacksjs/ts-webp';
@@ -127,8 +128,12 @@ export function compareReceiptImages(first: ReceiptImageFingerprint, second: Rec
         if (candidate.inkSimilarity * candidate.overlap > evidence.inkSimilarity * evidence.overlap) { evidence = candidate; transform = alignment.transform; }
       }
     }
+    if (registrationInliers >= 8 && (first.width !== second.width || first.height !== second.height || Math.abs(first.skew - second.skew) > 0.1 || transform.some((n, i) => Math.abs(n - IDENTITY[i]) > 0.01))) {
+      const refined = refineAlignment(a, b, transform), candidate = measure(a, b, refined);
+      if (candidate.inkSimilarity * candidate.overlap > evidence.inkSimilarity * evidence.overlap) { evidence = candidate; transform = refined; }
+    }
     const signals: ImageComparison['signals'] = [], { inkSimilarity: similarity, overlap, changedInkFraction: fraction, changedRegions: regions } = evidence;
-    if (overlap >= 0.72 && (similarity >= 0.91 && fraction < 0.012 && regions === 0 || similarity >= 0.8 && registrationInliers >= 64 && registrationInliers / Math.max(1, registrationMatches) >= 0.95)) signals.push({ code: 'near-duplicate-image', label: 'possible, needs review', reason: 'The overlapping visible receipt ink closely matches an earlier image after geometric normalization. Recompression, a crop, or a later photograph can explain this; compare the original receipts.' });
+    if (overlap >= 0.72 && similarity >= 0.91 && fraction < 0.012 && regions === 0) signals.push({ code: 'near-duplicate-image', label: 'possible, needs review', reason: 'The overlapping visible receipt ink closely matches an earlier image after geometric normalization. Recompression, a crop, or a later photograph can explain this; compare the original receipts.' });
     else if (overlap >= 0.9 && similarity >= 0.87 && fraction >= 0.001 && fraction < 0.05 && evidence.changedBands === 1) signals.push({ code: 'image-content-change', label: 'possible, needs review', reason: 'Most visible receipt ink matches an earlier image, with a localized changed region. This can be an edit or legitimate receipt variation; review the changed area and source receipts.' });
     return { status: 'compared', evidence: { ...evidence, registrationInliers, registrationMatches, transform }, signals };
   } catch { return { status: 'insufficient', evidence: empty, signals: [] }; }
