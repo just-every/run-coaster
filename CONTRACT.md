@@ -378,13 +378,13 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 
 ## Status
 
-Judged from the code and tests at commit `03dfb25` (20 October 2026). Status rows describe the implementation tree carrying this file.
+Judged from the code and tests at commit `cab50d43f127d37018f643bf3cd063817ca352c8` (21 October 2026). Status rows describe the implementation tree carrying this file.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 36 | 17 | 37 | 90 |
-| All | 49 | 17 | 37 | 103 |
+| Target and push further | 37 | 16 | 37 | 90 |
+| All | 50 | 16 | 37 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -405,7 +405,7 @@ Judged from the code and tests at commit `03dfb25` (20 October 2026). Status row
 | `CAPTURE-001` | Photo, file and bulk receipt upload | target | partial | `src/coaster/receipts/inbox.ts`; `src/coaster/receipts/upload.ts`; `src/ui/receipt-inbox.tsx`; `tests/coaster-capture.test.mjs` (CAPTURE-001); `tests/browser-capture.mjs` (CAPTURE-001); `scripts/installer/capture-archive.mjs`; `tests/browser.mjs` | Bulk drop/file and phone camera-control intake now retain originals up to 10,000,000 bytes each in an employee receipt inbox, with R2 bytes, D1 hashes/provenance and private append-only state history. Physical phone photography remains unproven; CAPTURE-003 reading/read states are not implemented, so uploads honestly need attention for manual entry. Existing claim attachments still use their 1.5 MB D1 path; inbox attachment/matching belongs to CAPTURE-004. |
 | `CAPTURE-002` | Email-in receipts | target | missing |  | No inbound receipts address or mail intake. |
 | `CAPTURE-003` | Automatic receipt reading with a correction path | target | missing |  | No receipt reading and no labeled receipt corpus; every field is typed by hand. |
-| `CAPTURE-004` | Receipt inbox and automatic attachment | target | partial | `src/coaster/receipts/lifecycle.ts`; `src/coaster/receipts/reasons.mjs`; `src/coaster/receipts/cash-drafts.ts`; `src/coaster/receipts/attachments.ts`; `src/ui/receipt-attachment.tsx`; `tests/browser-attachments.mjs`; `src/ui/capture-window.tsx`; `tests/capture-cash.mjs`; `src/ui/receipt-inbox.tsx`; `tests/coaster-capture.test.mjs` (CAPTURE-004, AUDIT-001, ERASURE-001); `tests/browser-capture.mjs`; `tests/capture.mjs`; `tests/browser-archive.mjs`; `src/coaster/receipts/card-matching.ts`; `tests/card-matching.mjs`; `tests/coaster-statements.test.mjs` (G6, G7) | Private terminal discard/merge and finance-confirmed bounded cash-window draft preparation ship. Draft preparation keeps a dated needs-details record and empty native claim with no inferred amount, once per original. Native attach/detach and per-original matching consent now ship with private history, preserved submitted evidence and one R2 original. Hourly rule v1 exact/tip/ECB matching, private questions, permanent undo exclusions and G6/G7 HTTP proof ship; the full automatic-attachment public-door acceptance remains unasserted, so CAPTURE-004 stays partial. |
+| `CAPTURE-004` | Receipt inbox and automatic attachment | target | done | `src/coaster/receipts/lifecycle.ts`; `src/coaster/receipts/reasons.mjs`; `src/coaster/receipts/cash-drafts.ts`; `src/coaster/receipts/attachments.ts`; `src/ui/receipt-attachment.tsx`; `tests/browser-attachments.mjs`; `src/ui/capture-window.tsx`; `tests/capture-cash.mjs`; `src/ui/receipt-inbox.tsx`; `tests/coaster-capture.test.mjs` (CAPTURE-004, AUDIT-001, ERASURE-001); `tests/browser-capture.mjs`; `tests/capture.mjs`; `tests/browser-archive.mjs`; `src/coaster/receipts/card-matching.ts`; `tests/card-matching.mjs`; `tests/coaster-statements.test.mjs` (CAPTURE-004 privacy, audit packs, held basis, G6, G7); `src/coaster/audit.ts`; `src/coaster/holds.ts`; `scripts/installer/capture-archive.mjs` | |
 | `CAPTURE-005` | Inbox retrieval from Gmail and Outlook | target | missing |  | No Gmail or Outlook connection. |
 | `CAPTURE-006` | Receipts by Slack, Microsoft Teams and text message | target | missing |  | No Slack, Teams or SMS intake. |
 | `CAPTURE-007` | Merchant receipt feeds | target | missing |  | No merchant receipt feeds. |
