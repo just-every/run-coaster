@@ -18,16 +18,16 @@ export function spendSignals(item: Data, population: Data[], categories: Categor
   limits: for (const category of categories) for (const limit of new Set([category.limit_minor, ...rules.filter(r => r.kind === 'per-expense-limit' && r.category === category.id).map(r => r.limit_minor)])) {
     if (!limit) continue;
     const amount = (i: Data) => i.allocations.filter((a: Data) => a.category_id === category.id).reduce((n: number, a: Data) => n + a.amount_minor, 0);
-    const group = related.filter(i => i.spent_on === item.spent_on && (i.attendees?.length ?? 0) <= 1 && amount(i) > 0 && amount(i) <= limit && amount(i) * 5 >= limit * 4);
+    const group = related.filter(i => i.spent_on === item.spent_on && (i.attendees?.length ?? 0) <= 1 && amount(i) > 0 && amount(i) <= limit);
     const total = group.reduce((n, i) => n + amount(i), 0);
     if (group.some(i => i.id === item.id) && group.length >= 2 && total > limit) {
-      signals.push(observation('split-charge', `${group.length} ${item.merchant} purchases on ${item.spent_on} total ${money(total, currency)} in ${category.name}; each is within, and at least 80% of, the ${money(limit, currency)} per-expense limit. Separate purchases can be legitimate.`, { category: category.id, limitMinor: limit, totalMinor: total, purchases: rows(group) }));
+      signals.push(observation('split-charge', `${group.length} ${item.merchant} purchases on ${item.spent_on} total ${money(total, currency)} in ${category.name}; each is within the ${money(limit, currency)} per-expense limit. Separate purchases can be legitimate.`, { category: category.id, limitMinor: limit, totalMinor: total, purchases: rows(group) }));
       break limits;
     }
   }
   const recent = related.filter(i => day(i.spent_on) <= day(item.spent_on) && day(i.spent_on) >= day(item.spent_on) - 14 && (i.attendees?.length ?? 0) <= 1);
   for (const [code, group, description] of [
-    ['round-amount-pattern', recent.filter(i => i.amount_minor >= 10000 && i.amount_minor % 10000 === 0), 'round hundreds'],
+    ['round-amount-pattern', recent.filter(i => i.amount_minor >= 100 && i.amount_minor % 100 === 0), 'whole-amount purchases'],
     ['weekend-pattern', recent.filter(i => weekend(i.spent_on)), 'weekend purchases'],
   ] as const) {
     if (group.some(i => i.id === item.id) && new Set(group.map(i => i.spent_on)).size >= 3)
