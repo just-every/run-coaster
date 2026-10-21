@@ -1,13 +1,13 @@
 import { commit, authority } from './session';
 import { event } from './events';
 import { business } from './settings';
-import { claimNumber } from './claims';
+import { spendLines } from './spend-lines';
 import { budgetReport } from './budgets';
 import { isoDate, now, requireThat, text, uid, type Actor, type Data } from './types';
 
-/** Spend analytics (REPORT-001). Departments (ADMIN-001), projects (CODE-001), cards (FEED-004) and budgets (REPORT-004)
+/** Spend analytics (REPORT-001). Departments (ADMIN-001) and projects (CODE-001)
  * join these groupings when those clauses ship. */
-export const GROUPINGS = { employee: 'Employee', category: 'Category', merchant: 'Merchant', 'cost-centre': 'Cost centre', month: 'Month' } as const;
+export const GROUPINGS = { employee: 'Employee', category: 'Category', merchant: 'Merchant', 'cost-centre': 'Cost centre', month: 'Month', card: 'Card' } as const;
 type By = keyof typeof GROUPINGS;
 const isBy = (v: unknown): v is By => typeof v === 'string' && Object.hasOwn(GROUPINGS, v);
 
@@ -18,21 +18,7 @@ function scope(actor: Actor) {
   return { sql: ' AND c.employee_email IN (SELECT email FROM c_members WHERE approver_email=?)', params: [actor.email] };
 }
 
-/** One line per category split of each expense on the current revision of every submitted, approved, batched or
- * reimbursed claim, plus its sales tax as its own line, so every grouping adds up to the same total. */
-export async function spendLines(db: D1Database, from: string, to: string, s: { sql: string; params: unknown[] } = { sql: '', params: [] }) {
-  const { results } = await db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,r.snapshot,m.name AS employee_name FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_members m ON m.email=c.employee_email WHERE c.status IN ('submitted','approved','batched','reimbursed')${s.sql} ORDER BY c.number`).bind(...s.params).all<Data>();
-  const out: Data[] = [];
-  for (const c of results) for (const item of JSON.parse(c.snapshot).items as Data[]) {
-    if (item.spent_on < from || item.spent_on > to) continue;
-    const base = { claim: c.id, number: claimNumber(c.number), employee: c.employee_email, employeeName: c.employee_name ?? c.employee_email, status: c.status === 'submitted' ? 'pending' : 'approved', item: item.id, date: item.spent_on, merchant: item.merchant, receipt: item.receipt?.id ?? null };
-    for (const part of item.allocations as Data[]) out.push({ ...base, category: part.category_id, categoryName: part.category_name, costCentre: part.cost_centre ?? '', amountMinor: part.amount_minor });
-    if (item.sales_tax_minor) out.push({ ...base, category: 'sales-tax', categoryName: 'Sales tax', costCentre: '', amountMinor: item.sales_tax_minor });
-  }
-  return out;
-}
-
-const keyOf = (by: By, l: Data): [string, string] => by === 'employee' ? [l.employee, l.employeeName] : by === 'category' ? [l.category, l.categoryName] : by === 'merchant' ? [l.merchant.trim().toLowerCase(), l.merchant.trim()] : by === 'cost-centre' ? [l.costCentre, l.costCentre || 'No cost centre'] : [l.date.slice(0, 7), l.date.slice(0, 7)];
+const keyOf = (by: By, l: Data): [string, string] => by === 'card' ? [l.card ?? '', l.cardLabel ?? 'Out of pocket'] : by === 'employee' ? [l.employee, l.employeeName] : by === 'category' ? [l.category, l.categoryName] : by === 'merchant' ? [l.merchant.trim().toLowerCase(), l.merchant.trim()] : by === 'cost-centre' ? [l.costCentre, l.costCentre || 'No cost centre'] : [l.date.slice(0, 7), l.date.slice(0, 7)];
 
 /** Spend for expense dates in the period (both ends inclusive), grouped one way, approved and pending apart; with `key`,
  * the lines of that one group, each with its receipt to open. A saved view (`view`) reopens its own query. */

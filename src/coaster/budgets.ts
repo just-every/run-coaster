@@ -1,7 +1,7 @@
 import { all, authority, commit } from './session';
 import { event, ruleEvent } from './events';
 import { business, requireBusiness } from './settings';
-import { spendLines } from './spend';
+import { spendLines } from './spend-lines';
 import { localDate } from './reports';
 import { parseCsv } from './imports/csv';
 import { operatorMail } from '../mail.server.mjs';
@@ -9,8 +9,7 @@ import type { Bindings } from '../auth.server';
 import { money, type ClaimItem, type PolicyException } from './exceptions';
 import { amount, email, now, requireThat, text, uid, type Actor, type Data } from './types';
 
-/** Budgets with threshold alerts (REPORT-004). Departments (ADMIN-001), projects and tags (CODE-001) and card charges
- * (FEED-004) become budget scopes when those clauses ship. */
+/** Budgets with threshold alerts (REPORT-004). Departments (ADMIN-001), projects and tags (CODE-001) become budget scopes when those clauses ship. */
 export type Budget = { id: string; version: number; name: string; scope: 'entity' | 'category' | 'cost-centre'; scope_key: string; per_member: number; period: 'monthly' | 'quarterly' | 'yearly'; amount_minor: number; owner_email: string; thresholds: number[]; policy_rule: number; alert_amounts: number; set_by: string; set_at: string };
 const SCOPES = ['entity', 'category', 'cost-centre'], PERIODS = ['monthly', 'quarterly', 'yearly'];
 
@@ -31,7 +30,7 @@ export async function budgets(db: D1Database): Promise<Budget[]> {
 
 const inScope = (b: Budget, l: Data) => b.scope === 'entity' || (b.scope === 'category' ? l.category === b.scope_key : l.costCentre === b.scope_key);
 
-/** A budget's actual for one period: submitted (pending) and approved spend by expense date, per member when it is per member. */
+/** A budget's actual for one period: submitted (pending), approved and posted company-card spend by expense date, per member when it is per member. */
 export async function actual(db: D1Database, b: Budget, day: string) {
   const p = periodOf(day, b.period), lines = (await spendLines(db, p.from, p.to)).filter(l => inScope(b, l));
   const sum = (ls: Data[]) => ({ approvedMinor: ls.filter(l => l.status === 'approved').reduce((n, l) => n + l.amountMinor, 0), pendingMinor: ls.filter(l => l.status === 'pending').reduce((n, l) => n + l.amountMinor, 0) });

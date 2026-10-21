@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { apiHref, call, money, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 
-const GROUPINGS = [['employee', 'Employee'], ['category', 'Category'], ['merchant', 'Merchant'], ['cost-centre', 'Cost centre'], ['month', 'Month']].map(([value, label]) => ({ value, label }));
+const GROUPINGS = [['employee', 'Employee'], ['category', 'Category'], ['merchant', 'Merchant'], ['cost-centre', 'Cost centre'], ['month', 'Month'], ['card', 'Card']].map(([value, label]) => ({ value, label }));
 
 /** Spend grouped by employee, category, merchant, cost centre or month, drilled to each expense and its receipt, with saved views (REPORT-001). */
 export function SpendAnalytics({ currency }: { currency: string }) {
   const [result, setResult] = useState<D>(), [drill, setDrill] = useState<D>(), [views, setViews] = useState<D[]>();
   const run = async (q: Record<string, string>) => { const r = await call(`spend?${new URLSearchParams(q)}`); setResult(r); setViews(r.views); setDrill(undefined); };
   return <Section title="Spend">
-    <p className="muted">Submitted and approved spend by expense date. Managers see the people they approve for; finance, auditors and the owner see everyone.</p>
+    <p className="muted">Submitted and approved spend, plus company-card charges from posting, by expense date. Managers see the people they approve for; finance, auditors and the owner see everyone.</p>
     <Form label="Show spend" onSubmit={v => run({ by: v.by, from: v.from, to: v.to })}>
       <Field label="Group by" name="by" options={GROUPINGS} defaultValue="category" />
       <Field label="Spent from" name="from" type="date" />

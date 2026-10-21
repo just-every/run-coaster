@@ -185,3 +185,64 @@ test('AGENT-003 finance previews tightening, approval effort and reimbursement e
     await h.post(`claims/${item.id}/submit`,{version:item.version},t.sam,409)
   }finally{await h.close()}
 })
+
+test('FEED-004 AGENT-003 card spend replays tightening and relaxation without becoming reimbursement or changing posted evidence', async () => {
+  const h = await harness()
+  try {
+    const t = await agency(h)
+    await h.post('settings/business', { name:'Harbour & Finch Studio', currency:'AUD', timezone:'Australia/Sydney', receiptThreshold:'200.00' })
+    await h.post('settings/categories', { id:t.c.meals, name:'Meals', accountCode:'6300', taxCode:'GST' })
+    await h.post('policy', { rules:[{kind:'per-expense-limit',category:t.c.meals,limit:'30.00'}] }, t.morgan)
+    const today = new Intl.DateTimeFormat('en-CA', {timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+    const day = today.replaceAll('-', '')
+    const input = { format:'ofx', name:'replay.ofx', issuer:'Synthetic Replay Card', category:t.c.meals,
+      content:`OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\n\n<OFX><CREDITCARDMSGSRSV1><CCSTMTTRNRS><CCSTMTRS><CURDEF>AUD<CCACCTFROM><ACCTID>1111</CCACCTFROM><BANKTRANLIST><DTSTART>${day}<DTEND>${day}${[48.20,120,23.45].map((amount,i)=>`<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>${day}<TRNAMT>-${amount.toFixed(2)}<FITID>REPLAY-${i}<NAME>Replay merchant ${i}</STMTTRN>`).join('')}</BANKTRANLIST></CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>` }
+    await h.post('statements/cards', {issuer:input.issuer,last4:'1111',employee:'sam@harbourfinch.example'})
+    const preview = await h.post('statements/preview', input, t.morgan)
+    const posted = await h.post('statements/commit', {...input,fingerprint:preview.fingerprint}, t.morgan)
+    const cardClaim = posted.claims[0]
+    for (const item of (await h.get(`claims/${cardClaim}`,t.sam)).items) {
+      const c = (await h.get(`claims/${cardClaim}`,t.sam)).claim
+      await h.post(`claims/${cardClaim}/items`,{version:c.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),category:t.c.meals,explanation:'Company card business purchase'},t.sam)
+    }
+    // A mixed report must keep its cash reimbursement while excluding every card amount.
+    await h.post('expenses', {kind:'receipt',date:today,merchant:'Cash taxi',amount:'10.00',category:t.c.meals,explanation:'Paid personally'}, t.sam)
+    const approve = async id => {
+      let c = (await h.get(`claims/${id}`,t.sam)).claim
+      c = await h.post(`claims/${id}/submit`,{version:c.version},t.sam)
+      return h.post(`claims/${id}/decision`,{version:c.version,revision:c.revision,decision:'approved',acknowledge:true},t.priya)
+    }
+    await approve(cardClaim)
+    let paid = await h.post('claims',{title:'Paid cash meal'},t.sam)
+    paid = await h.post(`claims/${paid.id}/items`,{version:paid.version,kind:'receipt',date:today,merchant:'Cash meal',amount:'40.00',category:t.c.meals,explanation:'Client meal'},t.sam)
+    paid = await approve(paid.id)
+    let batch = await h.post('batches',{claims:[paid.id]},t.morgan)
+    batch = await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:4000},t.morgan)
+    await h.paid(batch.id,batch.version,{reference:'Replay cash payment',paidOn:today},t.morgan)
+    const ids = [cardClaim,paid.id]
+    const before = await Promise.all(ids.map(id=>h.get(`claims/${id}`,t.sam)))
+    const charges = (await h.get('statements',t.morgan)).charges
+    const cardItems = before[0].items.filter(i=>i.card_charge_id)
+    const request = proposedRules=>h.post('policy/advice',{minutesPerException:4,proposedRules},t.morgan)
+    const tight = (await request([{kind:'per-expense-limit',category:t.c.meals,limit:'20.00',hard:true}])).preview
+    assert.deepEqual([tight.before,tight.after],[3,4])
+    assert.deepEqual(tight.reimbursement,{eligibleBeforeMinor:5000,eligibleAfterMinor:0,recordedReimbursedMinor:4000,awaitingReimbursementMinor:1000,estimate:true})
+    const changed = tight.affected.find(c=>c.id===cardClaim)
+    assert.equal(changed.amountMinor,20165)
+    assert.deepEqual(changed.expenses.map(i=>i.id).sort(),cardItems.map(i=>i.id).sort())
+    for (const item of cardItems) {
+      const effect = changed.expenses.find(i=>i.id===item.id)
+      assert.equal(effect.before.length,item.amount_minor>3000?1:0)
+      assert.equal(effect.after.length,1)
+      assert.ok(effect.after[0].hard)
+      assert.equal(effect.amountMinor,item.amount_minor)
+    }
+    const relaxed = (await request([])).preview
+    assert.deepEqual([relaxed.before,relaxed.after],[3,0])
+    assert.deepEqual(relaxed.reimbursement,{eligibleBeforeMinor:5000,eligibleAfterMinor:5000,recordedReimbursedMinor:4000,awaitingReimbursementMinor:1000,estimate:true})
+    assert.deepEqual(relaxed.affected.find(c=>c.id===cardClaim).expenses.map(i=>i.id).sort(),cardItems.filter(i=>i.amount_minor>3000).map(i=>i.id).sort())
+    assert.ok(relaxed.affected.flatMap(c=>c.expenses).every(i=>i.before.length===1 && i.after.length===0))
+    assert.deepEqual((await h.get('statements',t.morgan)).charges,charges)
+    assert.deepEqual(await Promise.all(ids.map(id=>h.get(`claims/${id}`,t.sam))),before,'both previews preserve charges, revisions, decisions and recorded payment')
+  } finally { await h.close() }
+})

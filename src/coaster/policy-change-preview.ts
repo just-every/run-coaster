@@ -3,6 +3,7 @@ import { captureConfiguration, policyStill } from './policy-configuration';
 import { evaluateRules } from './policy-rules';
 import { parseRule, type Rule } from './policy';
 import { event } from './events';
+import { reimbursableMinor } from './card-expenses';
 import { perPersonShares, type ClaimItem, type PolicyException } from './exceptions';
 import type { Business } from './settings';
 import type { adviceInputs, History } from './policy-advice';
@@ -67,14 +68,15 @@ export async function changePreview(db: D1Database, input: Input, proposed: unkn
     const owner = ownerChecks(input, claim), a = [...owner, ...await rulesFor(db, input, claim, input.current.rules)], b = [...owner, ...await rulesFor(db, input, claim, rules)];
     before += a.length; after += b.length;
     const total = itemsOf(claim).filter(i => inWindow(i, input)).reduce((n, i) => n + i.amount_minor, 0);
-    if (!blocked(a)) eligibleBeforeMinor += total;
-    if (!blocked(b)) eligibleAfterMinor += total;
+    const reimbursement = reimbursableMinor(itemsOf(claim).filter(i => inWindow(i, input)));
+    if (!blocked(a)) eligibleBeforeMinor += reimbursement;
+    if (!blocked(b)) eligibleAfterMinor += reimbursement;
     const left = a.map(signature).sort(), right = b.map(signature).sort();
     if (JSON.stringify(left) === JSON.stringify(right)) continue;
     const approvalHours = claim.decided_at ? Math.max(0, (Date.parse(claim.decided_at) - Date.parse(claim.submitted_at)) / 3_600_000) : null;
     observedApprovalHours += approvalHours ?? 0;
-    if (claim.status === 'reimbursed') recordedReimbursedMinor += total;
-    else if (['approved', 'batched'].includes(claim.status)) awaitingReimbursementMinor += total;
+    if (claim.status === 'reimbursed') recordedReimbursedMinor += reimbursement;
+    else if (['approved', 'batched'].includes(claim.status)) awaitingReimbursementMinor += reimbursement;
     const changedItems = itemsOf(claim).filter(i => inWindow(i, input) && JSON.stringify(a.filter(e => e.item === i.id).map(signature).sort()) !== JSON.stringify(b.filter(e => e.item === i.id).map(signature).sort()));
     affected.push({ id: claim.id, number: `CL-${String(claim.number).padStart(4, '0')}`, title: snapshot(claim).title, revision: claim.revision, employee: claim.employee_email, status: claim.status,
       before: a.length, after: b.length, blockedBefore: blocked(a), blockedAfter: blocked(b), amountMinor: total, observedApprovalHours: approvalHours,
