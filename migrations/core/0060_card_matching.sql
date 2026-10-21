@@ -82,9 +82,9 @@ CREATE TABLE c_card_match_rules (
  version INTEGER PRIMARY KEY, enabled INTEGER NOT NULL CHECK(enabled IN (0,1)),
  window_days INTEGER NOT NULL CHECK(window_days BETWEEN 0 AND 14),
  tip_percent INTEGER NOT NULL CHECK(tip_percent BETWEEN 0 AND 30), fx_percent INTEGER NOT NULL CHECK(fx_percent BETWEEN 0 AND 10),
- set_by TEXT NOT NULL, set_at TEXT NOT NULL
+ set_by TEXT NOT NULL, set_at TEXT
 );
-INSERT INTO c_card_match_rules VALUES(1,1,7,20,5,'installation',strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+INSERT INTO c_card_match_rules VALUES(1,1,7,20,5,'installation',NULL);
 CREATE TRIGGER c_card_match_rules_keep BEFORE UPDATE ON c_card_match_rules WHEN NOT EXISTS(SELECT 1 FROM c_erasing)
  BEGIN SELECT RAISE(ABORT,'matching rule versions are permanent'); END;
 CREATE TRIGGER c_card_match_rules_no_delete BEFORE DELETE ON c_card_match_rules BEGIN SELECT RAISE(ABORT,'matching rule versions are permanent'); END;

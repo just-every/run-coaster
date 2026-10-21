@@ -33,6 +33,7 @@ export async function validateCaptureArchive(read, manifest) {
     const collapsed=value.replace(/(?:Former member |former-member-)([0-9a-f]{8})/g,(token,hex)=>subjects.has('former-member-'+hex)?'x':token);
     return collapsed.length<=200;
   };
+  const rules=(await read('c_card_match_rules')).sort((a,b)=>a.version-b.version);
   const ordered = [...lifecycle].sort((a,b) => a.receipt_id.localeCompare(b.receipt_id) || a.sequence-b.sequence);
   const latest = new Map(), associations = new Map();
   for (const event of ordered) {
@@ -62,6 +63,7 @@ export async function validateCaptureArchive(read, manifest) {
         const charges=await read('c_card_charges');
         const charge=charges.find(c=>c.item_id===event.item_id);
         let data;try{data=JSON.parse(event.match_data);}catch{check(false,'match_basis');}
+        check(rules.some(r=>r.version===data?.ruleVersion),'match_basis');
         check(data && Number.isSafeInteger(data.ruleVersion)&&['exact','tip','fx'].includes(data.basis)&&data.enteredTotalMinor>0,'match_basis');
         check(charge && charge.employee_email===receipt.owner_email,'match_basis');
         const matchingAliases=aliases.filter(a=>a.capture_receipt_id===receipt.id&&a.claim_id===event.claim_id&&a.card_match_basis===event.match_data);
@@ -113,7 +115,6 @@ export async function validateCaptureArchive(read, manifest) {
   const rejections=await read('c_card_match_rejections');
   for(const pair of rejections) check(lifecycle.some(e=>e.receipt_id===pair.receipt_id&&e.sequence===pair.sequence&&['match-rejected','detached'].includes(e.kind)),'match_rejection');
   check(new Set(rejections.map(p=>p.receipt_id+'|'+p.charge_id)).size===rejections.length,'match_rejection');
-  const rules=(await read('c_card_match_rules')).sort((a,b)=>a.version-b.version);
   check(rules.length>0&&rules.every((r,i)=>r.version===i+1&&[0,1].includes(r.enabled)&&Number.isInteger(r.window_days)&&r.window_days>=0&&r.window_days<=14&&Number.isInteger(r.tip_percent)&&r.tip_percent>=0&&r.tip_percent<=30&&Number.isInteger(r.fx_percent)&&r.fx_percent>=0&&r.fx_percent<=10),'match_rule');
   check(byKey.size === objects.length && byId.size === receipts.length, 'objects');
   const history = new Map();

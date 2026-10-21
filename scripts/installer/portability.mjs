@@ -59,13 +59,15 @@ export async function validateCoasterArchive(read, manifest) {
   return true;
 }
 
+// Match evaluation epochs/generations/checks are derived caches. Restore rebuilds them; consent, rejections,
+// rule versions, original bytes, aliases and private lifecycle evidence are all portable.
 // People and sessions stay with each installation (operator-auth tables are
 // excluded by default); Coaster roles are keyed by email, so restored people
 // sign in again natively and keep their roles.
 export default {
   product: 'just-every/coaster',
   buckets: { COASTER_RECEIPTS: { prefix: 'receipt-inbox/', objectReferences: { table: 'c_capture_receipts', keyColumn: 'object_key' } } },
-  excludeTables: ['rer_dependency_keys', 'rer_dependency_pending', 'rer_dependency_codes', 'c_agent_keys', 'c_guard'],
+  excludeTables: ['rer_dependency_keys', 'rer_dependency_pending', 'rer_dependency_codes', 'c_agent_keys', 'c_guard', 'c_card_match_epoch', 'c_card_match_generations', 'c_card_match_checks'],
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   validateStaged: async ({ read, manifest }) => validateCoasterArchive(read, manifest),
 };
