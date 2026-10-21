@@ -4,21 +4,24 @@ import { business } from './settings';
 import { spendLines } from './spend-lines';
 import { budgetReport } from './budgets';
 import { isoDate, now, requireThat, text, uid, type Actor, type Data } from './types';
+import { can } from './permissions';
+import { inScope, scopeParams } from './departments';
 
 /** Spend analytics (REPORT-001). Departments (ADMIN-001) and projects (CODE-001)
  * join these groupings when those clauses ship. */
-export const GROUPINGS = { employee: 'Employee', category: 'Category', merchant: 'Merchant', 'cost-centre': 'Cost centre', month: 'Month', card: 'Card' } as const;
+export const GROUPINGS = { employee: 'Employee', category: 'Category', merchant: 'Merchant', 'cost-centre': 'Cost centre', department: 'Department', month: 'Month', card: 'Card' } as const;
 type By = keyof typeof GROUPINGS;
 const isBy = (v: unknown): v is By => typeof v === 'string' && Object.hasOwn(GROUPINGS, v);
 
-/** Finance, auditors and the owner see everyone's spend; a manager sees only the people whose approving manager they are. */
+/** Whoever reads every record (ADMIN-001 matrix) sees everyone's spend; a manager sees the people below them in the manager hierarchy
+ * and every member of a department they head. */
 function scope(actor: Actor) {
-  if (actor.roles.finance || actor.roles.auditor || actor.roles.owner) return { sql: '', params: [] as unknown[] };
-  requireThat(actor.roles.manager, 'Finance, auditor, owner or manager access required', 403);
-  return { sql: ' AND c.employee_email IN (SELECT email FROM c_members WHERE approver_email=?)', params: [actor.email] };
+  if (can(actor, 'readAll')) return { sql: '', params: [] as unknown[] };
+  requireThat(actor.roles.manager, 'Finance, auditor, owner, admin, bookkeeper or manager access required', 403);
+  return { sql: ` AND ${inScope('c.employee_email')}`, params: scopeParams(actor.email) };
 }
 
-const keyOf = (by: By, l: Data): [string, string] => by === 'card' ? [l.card ?? '', l.cardLabel ?? 'Out of pocket'] : by === 'employee' ? [l.employee, l.employeeName] : by === 'category' ? [l.category, l.categoryName] : by === 'merchant' ? [l.merchant.trim().toLowerCase(), l.merchant.trim()] : by === 'cost-centre' ? [l.costCentre, l.costCentre || 'No cost centre'] : [l.date.slice(0, 7), l.date.slice(0, 7)];
+const keyOf = (by: By, l: Data): [string, string] => by === 'card' ? [l.card ?? '', l.cardLabel ?? 'Out of pocket'] : by === 'employee' ? [l.employee, l.employeeName] : by === 'category' ? [l.category, l.categoryName] : by === 'merchant' ? [l.merchant.trim().toLowerCase(), l.merchant.trim()] : by === 'cost-centre' ? [l.costCentre, l.costCentre || 'No cost centre'] : by === 'department' ? [l.department ?? '', l.departmentName || 'No department'] : [l.date.slice(0, 7), l.date.slice(0, 7)];
 
 /** Spend for expense dates in the period (both ends inclusive), grouped one way, approved and pending apart; with `key`,
  * the lines of that one group, each with its receipt to open. A saved view (`view`) reopens its own query. */
@@ -48,7 +51,7 @@ export async function spend(db: D1Database, actor: Actor, query: Record<string, 
   }
   const rows = [...groups.values()].map(g => ({ ...g, expenses: g.expenses.size }) as Data).sort((a, b) => by === 'month' ? a.key.localeCompare(b.key) : b.totalMinor - a.totalMinor || a.label.localeCompare(b.label));
   // Budget against actual for the budget period holding the last day shown (REPORT-004), for those who read budgets.
-  const budgetsShown = actor.roles.finance || actor.roles.auditor || actor.roles.owner ? await budgetReport(db, actor, to) : [];
+  const budgetsShown = can(actor, 'readAll') ? await budgetReport(db, actor, to) : [];
   return { by, from, to, currency: settings.currency, groups: rows, totalMinor: all.reduce((n, l) => n + l.amountMinor, 0), budgets: budgetsShown, views: await spendViews(db, actor) };
 }
 

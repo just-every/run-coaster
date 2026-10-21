@@ -1,4 +1,5 @@
-import { all, authority, commit, need } from './session';
+import { all, authority, commit } from './session';
+import { needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { localDay } from './delegation';
 import { captureConfiguration, type Configuration } from './policy-configuration';
@@ -50,14 +51,14 @@ export function parseRule(r: Data, known: Category[]): Rule {
 
 /** Finance (or the owner) publishes the next version, in effect from today or a later day. */
 export async function publishPolicy(db: D1Database, actor: Actor, b: Data, known: Category[], timezone: string) {
-  need(actor, 'finance');
+  needRow(actor, 'policy');
   const today = localDay(timezone), from = b.effectiveFrom ? isoDate(b.effectiveFrom, 'Effective from') : today;
   requireThat(from >= today, 'A new version takes effect today or on a later day');
   requireThat(Array.isArray(b.rules) && b.rules.length <= 50, 'Publish at most 50 rules');
   const rules = (b.rules as Data[]).map(r => parseRule(r, known));
   requireThat(rules.filter(r => r.kind === 'deadline').length <= 1, 'Set one submission deadline');
   const latest = (await db.prepare('SELECT MAX(version) AS v FROM c_policies').first<{ v: number | null }>())?.v ?? 0, version = latest + 1;
-  await commit(db, all(authority(actor, 'finance'), { sql: 'NOT EXISTS(SELECT 1 FROM c_policies WHERE version>=?)', params: [version] }), [
+  await commit(db, all(rowAuthority(actor, 'policy'), { sql: 'NOT EXISTS(SELECT 1 FROM c_policies WHERE version>=?)', params: [version] }), [
     db.prepare('INSERT INTO c_policies(version,effective_from,rules,published_by,published_at) VALUES(?,?,?,?,?)').bind(version, from, JSON.stringify(rules), actor.delegate?.email ?? actor.email, now()),
     captureConfiguration(db, version),
     event(db, actor, 'policy-published', {}, { version, effectiveFrom: from, rules: rules.length }),

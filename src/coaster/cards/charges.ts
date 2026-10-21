@@ -1,4 +1,5 @@
 import { all, authority, commit, need, type Sql } from '../session';
+import { can, needRow, rowAuthority } from '../permissions';
 import { event } from '../events';
 import { claimState, claimTotal, insertClaim, insertItem } from '../claims';
 import type { ItemInput } from '../items';
@@ -10,7 +11,7 @@ const person = (actor: Actor) => requireThat(actor.kind === 'person', 'Only a pe
 /** The owner assigns a card (issuer label and last four) to an active employee. Assignment is prospective: charges already
  * imported keep their cardholder (S5). */
 export async function assignCard(db: D1Database, actor: Actor, b: Data) {
-  need(actor, 'owner');
+  needRow(actor, 'cards');
   person(actor);
   requireThat(typeof b.issuer === 'string' && b.issuer.trim() && b.issuer.length <= 60, 'Name the card issuer');
   requireThat(typeof b.last4 === 'string' && /^\d{4}$/.test(b.last4), 'Give the last four digits of the card, and never the full number');
@@ -18,7 +19,7 @@ export async function assignCard(db: D1Database, actor: Actor, b: Data) {
   requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_employee=1').bind(holder).first(), 'The cardholder must be an active employee', 409);
   const known = await db.prepare('SELECT id,employee_email FROM c_cards WHERE lower(issuer)=? AND last4=?').bind(issuer.toLowerCase(), b.last4).first<{ id: string; employee_email: string }>();
   const id = known?.id ?? uid(), at = now();
-  await commit(db, all(authority(actor, 'owner'), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_employee=1)', params: [holder] }), [
+  await commit(db, all(rowAuthority(actor, 'cards'), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_employee=1)', params: [holder] }), [
     known ? db.prepare('UPDATE c_cards SET employee_email=?,assigned_by=?,assigned_at=? WHERE id=?').bind(holder, actor.email, at, id) : db.prepare('INSERT INTO c_cards(id,issuer,last4,employee_email,assigned_by,assigned_at) VALUES(?,?,?,?,?,?)').bind(id, issuer, b.last4, holder, actor.email, at),
     event(db, actor, 'card-assigned', {}, { card: id, issuer, last4: b.last4, employee: holder, previous: known?.employee_email ?? null }),
   ]);
@@ -120,7 +121,7 @@ export async function undoStatement(db: D1Database, actor: Actor, id: string) {
 
 /** Cards, statement files and charges for the roles that read card spend (owner, finance, auditors). */
 export async function statementState(db: D1Database, actor: Actor) {
-  requireThat(actor.kind === 'person' && (actor.roles.owner || actor.roles.finance || actor.roles.auditor), 'Owner, finance or auditor access required', 403);
+  requireThat(actor.kind === 'person' && (can(actor, 'readAll') || actor.roles.cardAdmin), 'Owner, finance, admin, bookkeeper, auditor or card admin access required', 403);
   const [cards, files, charges] = await db.batch([
     db.prepare('SELECT id,issuer,last4,employee_email,assigned_by,assigned_at FROM c_cards ORDER BY issuer,last4'),
     db.prepare("SELECT id,name,format,issuer,fingerprint,sha256,size,'card numbers masked' AS label,period_start,period_end,charges,total_minor,imported_by,imported_at,undone_at,undone_by FROM c_statement_files ORDER BY imported_at DESC,id"),
@@ -131,7 +132,7 @@ export async function statementState(db: D1Database, actor: Actor) {
 
 /** The masked original of an import, as retained. */
 export async function statementFile(db: D1Database, actor: Actor, id: string) {
-  requireThat(actor.kind === 'person' && (actor.roles.owner || actor.roles.finance || actor.roles.auditor), 'Owner, finance or auditor access required', 403);
+  requireThat(actor.kind === 'person' && (can(actor, 'readAll') || actor.roles.cardAdmin), 'Owner, finance, admin, bookkeeper, auditor or card admin access required', 403);
   const file = await db.prepare('SELECT name,bytes FROM c_statement_files WHERE id=?').bind(id).first<{ name: string; bytes: ArrayBuffer }>();
   requireThat(file, 'Statement import not found', 404);
   return new Response(Uint8Array.from(file.bytes as unknown as ArrayLike<number>), { headers: { 'content-type': 'text/plain; charset=utf-8', 'content-disposition': `attachment; filename="${file.name.replace(/[^\w.-]/g, '_')}.card-numbers-masked.txt"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });

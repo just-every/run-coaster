@@ -1,4 +1,5 @@
 import { authority, commit, need } from './session';
+import { needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { batchLines, batchNumber, csv, loadBatch, type Batch } from './batches';
 import { business } from './settings';
@@ -18,7 +19,7 @@ export const FIELDS: Record<Kind, string[]> = {
 /** Fields kept in minor units and written as money. */
 const MONEY = new Set(['amount', 'taxable_amount', 'original_amount']);
 const defaultColumns = (kind: Kind): Column[] => FIELDS[kind].map(field => ({ field, header: field }));
-const exportReader = (actor: Actor) => requireThat(actor.roles.finance || actor.roles.auditor, 'Finance or auditor access required', 403);
+const exportReader = (actor: Actor) => needRow(actor, 'exportFiles');
 
 export async function exportTemplates(db: D1Database) {
   const { results } = await db.prepare('SELECT id,name,kind,columns,created_by,created_at FROM c_export_templates ORDER BY name').all<Data>();
@@ -111,7 +112,7 @@ export async function batchFile(db: D1Database, actor: Actor, id: string, kind: 
   requireThat(batch.status !== 'draft', 'Review the batch before exporting it', 409);
   requireThat(kind === 'accounting' || kind === 'reimbursements', 'Unknown export', 404);
   const file = await render(db, [batch], kind, format, template, origin), name = batchNumber(batch.number);
-  await commit(db, authority(actor, actor.roles.finance ? 'finance' : 'auditor'), [event(db, actor, 'batch-exported', { batch: id }, { file: kind, format, template: template ?? null, rows: file.rows, totalMinor: batch.total_minor })]);
+  await commit(db, rowAuthority(actor, 'exportFiles'), [event(db, actor, 'batch-exported', { batch: id }, { file: kind, format, template: template ?? null, rows: file.rows, totalMinor: batch.total_minor })]);
   return download(file.body, file.type, `${name}-${kind}.${format}`);
 }
 
@@ -125,6 +126,6 @@ export async function periodFile(db: D1Database, actor: Actor, kind: string, for
   requireThat(to >= from, 'The period must end on or after it starts');
   const { results } = await db.prepare("SELECT * FROM c_batches WHERE status<>'draft' AND reviewed_at>=? AND reviewed_at<? ORDER BY number").bind(startOf(from, settings.timezone), startOf(nextDay(to), settings.timezone)).all<Batch>();
   const file = await render(db, results, kind, format, q.template || undefined, origin);
-  await commit(db, authority(actor, actor.roles.finance ? 'finance' : 'auditor'), [event(db, actor, 'period-exported', {}, { file: kind, format, template: q.template || null, from, to, batches: results.length, rows: file.rows, totalMinor: results.reduce((n, b) => n + b.total_minor, 0) })]);
+  await commit(db, rowAuthority(actor, 'exportFiles'), [event(db, actor, 'period-exported', {}, { file: kind, format, template: q.template || null, from, to, batches: results.length, rows: file.rows, totalMinor: results.reduce((n, b) => n + b.total_minor, 0) })]);
   return download(file.body, file.type, `coaster-${kind}-${from}-to-${to}.${format}`);
 }

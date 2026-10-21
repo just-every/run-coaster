@@ -2,14 +2,24 @@ import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server';
 import { Fault, requireThat, type Actor, type Roles } from './types';
 
 export type Sql = { sql: string; params: unknown[]; after?: Sql };
-type Role = 'employee' | 'manager' | 'finance' | 'owner' | 'auditor';
+export type Role = 'employee' | 'manager' | 'finance' | 'owner' | 'auditor' | 'admin' | 'cardAdmin' | 'bookkeeper';
 
-const memberColumn: Record<Exclude<Role, 'owner'>, string> = { employee: 'is_employee', manager: 'is_manager', finance: 'is_finance', auditor: 'is_auditor' };
+/** The member columns that give a role. The employee row of the permission matrix (ADMIN-001) lets every role that submits
+ * its own expenses (owner, admin, finance, card admin, approver) do so, so any of them is employee-capable. */
+const memberColumns: Record<Exclude<Role, 'owner'>, string[]> = { employee: ['is_employee', 'is_admin', 'is_finance', 'is_card_admin', 'is_manager'], manager: ['is_manager'], finance: ['is_finance'], auditor: ['is_auditor'], admin: ['is_admin'], cardAdmin: ['is_card_admin'], bookkeeper: ['is_bookkeeper'] };
+/** SQL true while the member row `alias` holds the role. */
+export const holds = (role: Exclude<Role, 'owner'>, alias: string) => `(${memberColumns[role].map(c => `${alias}.${c}=1`).join(' OR ')})`;
 
+export type MemberFlags = { is_employee?: number; is_manager?: number; is_finance?: number; is_auditor?: number; is_admin?: number; is_card_admin?: number; is_bookkeeper?: number };
+/** Roles from a member row. A delegate's Submit-only access (`full` false) keeps only the employee row (ADMIN-005). */
+export function rolesFrom(m: MemberFlags | null | undefined, owner: boolean, full = true): Roles {
+  const has = (v: number | undefined) => owner || v === 1, own = (v: number | undefined) => full && has(v);
+  const admin = own(m?.is_admin), finance = own(m?.is_finance), cardAdmin = own(m?.is_card_admin), manager = own(m?.is_manager);
+  return { owner: full && owner, employee: owner || m?.is_employee === 1 || m?.is_admin === 1 || m?.is_finance === 1 || m?.is_card_admin === 1 || m?.is_manager === 1, manager, finance, auditor: full && !owner && m?.is_auditor === 1, admin, cardAdmin, bookkeeper: own(m?.is_bookkeeper) };
+}
 async function memberRoles(db: D1Database, address: string, owner: boolean): Promise<{ roles: Roles; name?: string }> {
-  const member = await db.prepare('SELECT name,is_employee,is_manager,is_finance,is_auditor FROM c_members WHERE email=? AND active=1').bind(address).first<{ name: string; is_employee: number; is_manager: number; is_finance: number; is_auditor: number }>();
-  if (owner) return { roles: { owner: true, employee: true, manager: true, finance: true, auditor: false }, name: member?.name };
-  return { roles: { owner: false, employee: member?.is_employee === 1, manager: member?.is_manager === 1, finance: member?.is_finance === 1, auditor: member?.is_auditor === 1 }, name: member?.name };
+  const member = await db.prepare('SELECT name,is_employee,is_manager,is_finance,is_auditor,is_admin,is_card_admin,is_bookkeeper FROM c_members WHERE email=? AND active=1').bind(address).first<MemberFlags & { name: string }>();
+  return { roles: rolesFrom(member, owner), name: member?.name };
 }
 
 /** The signed-in person, from the native session only. Writes also need a same-origin request. */
@@ -22,7 +32,7 @@ export async function person(request: Request, original: Bindings): Promise<Acto
   requireThat(session, 'Sign in required', 401);
   const address = session.operator.email.toLowerCase(), owner = session.operator.role === 'owner';
   const { roles, name } = await memberRoles(env.DB, address, owner);
-  requireThat(roles.owner || roles.employee || roles.manager || roles.finance || roles.auditor, 'Ask the owner to add you to Coaster', 403);
+  requireThat(Object.values(roles).some(Boolean), 'Ask the owner to add you to Coaster', 403);
   return { kind: 'person', email: address, name: name ?? session.operator.displayName, roles, operatorId: session.operator.id, session: session.id };
 }
 
@@ -42,10 +52,12 @@ export async function agent(request: Request, original: Bindings): Promise<Actor
   return { kind: 'agent', email: key.member_email, name: key.name, roles: { ...roles, owner: false }, keyId: key.id, agentLabel: key.label };
 }
 
-/** SQL that is true only while this actor's authority (and the role, if named) still holds. */
-export function authority(actor: Actor, role?: Role): Sql {
+/** SQL that is true only while this actor's authority (and one of the roles, if named) still holds; the owner holds every role. */
+export function authority(actor: Actor, role?: Role | Role[]): Sql {
+  const roles = role === undefined ? [] : Array.isArray(role) ? role : [role], others = roles.filter((r): r is Exclude<Role, 'owner'> => r !== 'owner');
+  const ownerOnly = roles.length > 0 && !others.length, orMember = (alias: string) => others.map(r => holds(r, alias)).join(' OR ');
   if (actor.kind === 'agent') {
-    const roleCheck = role && role !== 'owner' ? ` AND m.${memberColumn[role]}=1` : role === 'owner' ? ' AND 0' : '';
+    const roleCheck = roles.length ? (ownerOnly ? ' AND 0' : ` AND (${orMember('m')})`) : '';
     return { sql: `EXISTS(SELECT 1 FROM c_agent_keys k JOIN c_members m ON m.email=k.member_email AND m.active=1 WHERE k.id=? AND k.revoked_at IS NULL AND ${activeAccount}${roleCheck})`, params: [actor.keyId] };
   }
   const session = 'EXISTS(SELECT 1 FROM oa_sessions se JOIN oa_operators o ON o.id=se.operator_id WHERE se.id=? AND o.id=? AND o.version=se.operator_version AND o.status=\'active\' AND se.revoked_at IS NULL AND se.expires_at>unixepoch()*1000';
@@ -53,16 +65,20 @@ export function authority(actor: Actor, role?: Role): Sql {
     // The delegate's own session, their live grant with both people active, and the granting person's role at the grant's
     // level: Submit only covers their own expenses, Full their whole row (the owner's included).
     const owner = "EXISTS(SELECT 1 FROM oa_operators go WHERE lower(go.email)=g.grantor_email AND go.role='owner' AND go.status='active')";
-    const level = role === 'owner' ? ` AND g.level='full' AND ${owner}` : role === 'employee' ? ` AND (gm.is_employee=1 OR ${owner})` : role ? ` AND g.level='full' AND (gm.${memberColumn[role]}=1 OR ${owner})` : '';
+    const level = !roles.length ? '' : roles.length === 1 && roles[0] === 'employee' ? ` AND (${holds('employee', 'gm')} OR ${owner})` : ` AND g.level='full' AND (${[...(others.length ? [orMember('gm')] : []), owner].join(' OR ')})`;
     return { sql: `${session}) AND EXISTS(SELECT 1 FROM c_delegates g JOIN c_members gm ON gm.email=g.grantor_email AND gm.active=1 JOIN c_members dm ON dm.email=g.delegate_email AND dm.active=1 WHERE g.id=? AND g.revoked_at IS NULL${level})`, params: [actor.session, actor.operatorId, actor.delegate.grant] };
   }
-  if (!role) return { sql: session + ')', params: [actor.session, actor.operatorId] };
-  if (role === 'owner') return { sql: session + " AND o.role='owner')", params: [actor.session, actor.operatorId] };
-  return { sql: `${session} AND (o.role='owner' OR EXISTS(SELECT 1 FROM c_members m WHERE m.email=lower(o.email) AND m.active=1 AND m.${memberColumn[role]}=1)))`, params: [actor.session, actor.operatorId] };
+  if (!roles.length) return { sql: session + ')', params: [actor.session, actor.operatorId] };
+  if (ownerOnly) return { sql: session + " AND o.role='owner')", params: [actor.session, actor.operatorId] };
+  return { sql: `${session} AND (o.role='owner' OR EXISTS(SELECT 1 FROM c_members m WHERE m.email=lower(o.email) AND m.active=1 AND (${orMember('m')}))))`, params: [actor.session, actor.operatorId] };
 }
 
 export function need(actor: Actor, role: Role) {
   requireThat(actor.roles[role], `${role[0].toUpperCase()}${role.slice(1)} access required`, 403);
+}
+/** Any one of these roles, as the permission matrix names them (ADMIN-001). */
+export function needAny(actor: Actor, ...roles: Role[]) {
+  requireThat(roles.some(r => actor.roles[r]), `${roles.map(r => r.replace('cardAdmin', 'card admin')).join(', ')} access required`, 403);
 }
 
 /** Guard rows bracket a write batch: any false condition aborts every write in it. */

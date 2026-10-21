@@ -1,4 +1,5 @@
-import { authority, commit, need } from './session';
+import { commit } from './session';
+import { needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { isoDate, rate, requireThat, type Actor, type Data } from './types';
 
@@ -27,15 +28,15 @@ export const seedIrsRates = (db: D1Database) => IRS_MILEAGE_RATES.map(r => db.pr
 
 /** The owner adds a rate from a date, changes one, or removes one; expenses already entered keep the rate copied onto them. */
 export async function saveMileageRate(db: D1Database, actor: Actor, b: Data) {
-  need(actor, 'owner');
+  needRow(actor, 'settings');
   const from = isoDate(b.effectiveFrom, 'Effective from');
   if (b.remove === true || b.remove === 'true') {
     requireThat(await db.prepare('SELECT 1 FROM c_mileage_rates WHERE effective_from=?').bind(from).first(), 'No mileage rate takes effect on that date', 404);
-    await commit(db, authority(actor, 'owner'), [db.prepare('DELETE FROM c_mileage_rates WHERE effective_from=?').bind(from), event(db, actor, 'mileage-rate-removed', {}, { effectiveFrom: from })]);
+    await commit(db, rowAuthority(actor, 'settings'), [db.prepare('DELETE FROM c_mileage_rates WHERE effective_from=?').bind(from), event(db, actor, 'mileage-rate-removed', {}, { effectiveFrom: from })]);
   } else {
     const thousandths = rate(b.rate, 'Mileage rate per mile');
     requireThat(thousandths > 0, 'Mileage rate per mile must be more than zero');
-    await commit(db, authority(actor, 'owner'), [
+    await commit(db, rowAuthority(actor, 'settings'), [
       db.prepare('INSERT INTO c_mileage_rates(effective_from,rate_thousandths) VALUES(?,?) ON CONFLICT(effective_from) DO UPDATE SET rate_thousandths=excluded.rate_thousandths').bind(from, thousandths),
       event(db, actor, 'mileage-rate-saved', {}, { effectiveFrom: from, rateThousandths: thousandths }),
     ]);

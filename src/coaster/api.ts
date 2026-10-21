@@ -51,6 +51,9 @@ import { cardMatchQuestion, chooseCardMatch, matchRule, rejectMatchQuestion, sav
 import { planStatement } from './cards/plan';
 import { closeReconciliation, openReconciliation, reconciliation, reconciliations, resolveDifference } from './cards/reconcile';
 import { Fault, requireThat, type Actor, type Data } from './types';
+import { needRow } from './permissions';
+import { saveDepartment } from './departments';
+import { saveEscalationChain } from './escalation-chains';
 
 type C = Context<{ Bindings: Bindings }>;
 export const api = new Hono<{ Bindings: Bindings }>();
@@ -135,12 +138,25 @@ api.get('/api/coaster/receipts/:id', as(async (a, c) => receiptFile(db(c), a, pa
 api.post('/api/coaster/settings/business', as(async (a, c) => saveBusiness(db(c), a, await body(c))));
 api.post('/api/coaster/settings/mileage-rates', as(async (a, c) => saveMileageRate(db(c), a, await body(c))));
 api.post('/api/coaster/settings/categories', as(async (a, c) => saveCategory(db(c), a, await body(c))));
-api.post('/api/coaster/settings/members', as(async (a, c) => saveMember(db(c), a, await body(c))));
+api.post('/api/coaster/settings/departments', as(async (a, c) => saveDepartment(db(c), a, await body(c))));
+api.post('/api/coaster/settings/escalation-chains', as(async (a, c) => saveEscalationChain(db(c), a, await body(c))));
+/** A Coaster admin signs in as a Base `admin` operator, which is what lets them send sign-in invitations (never to another admin);
+ * only the owner moves that role, so it follows the admin flag when the owner saves a person who already has an account. */
+api.post('/api/coaster/settings/members', as(async (a, c) => {
+  const saved = await saveMember(db(c), a, await body(c)) as Data | null;
+  if (saved && a.roles.owner && !a.delegate) {
+    const account = await db(c).prepare("SELECT id,role FROM oa_operators WHERE lower(email)=? AND status='active'").bind(saved.email).first<{ id: string; role: string }>();
+    const want = saved.is_admin === 1 && saved.active === 1 ? 'admin' : 'member';
+    if (account && account.role !== 'owner' && account.role !== want) await operatorAuth(runtimeBindings(c.env)).setRole(c.req.raw, account.id, want);
+  }
+  return saved;
+}));
 api.post('/api/coaster/settings/members/invite', as(async (a, c) => {
-  need(a, 'owner');
-  const b = await body(c), member = await db(c).prepare('SELECT email,name FROM c_members WHERE email=? AND active=1').bind(String(b.email ?? '').toLowerCase()).first<{ email: string; name: string }>();
+  needRow(a, 'people');
+  const b = await body(c), member = await db(c).prepare('SELECT email,name,is_admin FROM c_members WHERE email=? AND active=1').bind(String(b.email ?? '').toLowerCase()).first<{ email: string; name: string; is_admin: number }>();
   requireThat(member, 'Save the member before inviting them', 404);
-  const sent = await operatorAuth(runtimeBindings(c.env)).invite(c.req.raw, { email: member.email, displayName: member.name, role: 'member', returnTo: '/app' });
+  requireThat(a.roles.owner || !member.is_admin, 'Only the owner invites another admin', 403);
+  const sent = await operatorAuth(runtimeBindings(c.env)).invite(c.req.raw, { email: member.email, displayName: member.name, role: member.is_admin ? 'admin' : 'member', returnTo: '/app' });
   // Recorded only once the sign-in link was handed to the mail provider; a refused invitation adds nothing (AUDIT-001).
   await event(db(c), a, 'member-invited', {}, { email: member.email }).run();
   return sent;

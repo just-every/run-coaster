@@ -1,4 +1,5 @@
 import { ruleEvent } from './events';
+import { chainFor, stepRecipients } from './escalation-chains';
 import type { Business } from './settings';
 import type { Bindings } from '../auth.server';
 import type { MailSender } from '../modules/operator-auth/index.mjs';
@@ -19,15 +20,17 @@ export async function escalate(env: Bindings, settings: Business, mail: MailSend
   const db = env.DB, due = escalationDays(settings, item.key).filter(d => d <= age).length;
   if (!due) return;
   const manager = (await db.prepare('SELECT m.approver_email AS email FROM c_members m JOIN c_members a ON a.email=m.approver_email AND a.active=1 WHERE m.email=?').bind(item.person).first<{ email: string }>())?.email;
-  const level = manager ? due : 1;
+  // Finance's chain for the person's department (or the default chain) replaces the approving manager then finance.
+  const chain = await chainFor(db, item.person), level = chain ? Math.min(due, chain.steps.length) : manager ? due : 1;
   const done = (await db.prepare('SELECT MAX(level) AS n FROM c_escalations WHERE key=?').bind(item.key).first<{ n: number | null }>())?.n ?? 0;
   if (done >= level) return;
   const finance = (await db.prepare('SELECT email FROM c_members WHERE active=1 AND is_finance=1 AND email<>? ORDER BY email').bind(item.person).all<{ email: string }>()).results.map(r => r.email);
-  const to = level === 1 && manager ? [manager] : finance;
+  const step = chain?.steps[level - 1], named = step ? await stepRecipients(db, item.person, step) : [];
+  const to = chain ? (named.length ? named : finance) : level === 1 && manager ? [manager] : finance;
   const claimed = await db.prepare('INSERT INTO c_escalations(key,level,recipients,sent_at) VALUES(?,?,?,?) ON CONFLICT DO NOTHING RETURNING key').bind(item.key, level, JSON.stringify(to), at.toISOString()).first();
   if (!claimed) return;
   const link = `${env.AUTH_ORIGIN}/app#/claims/${item.claim}`;
   const words = `${item.person} has not done this for ${age} business days: ${item.action} “${item.title}”. Open it in Coaster: ${link}`;
   const sent = to.length && mail ? await mail.send({ deliveryId: `escalation-${item.key}-${level}`, from: env.MAIL_FROM ?? '', to, subject: `Escalated: ${item.action}`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
-  await ruleEvent(db, 'escalation', 'escalated', { claim: item.claim }, { item: item.key, level, to, owedBy: item.person, businessDays: age, mail: !to.length ? 'nobody to escalate to' : sent?.status ?? 'mail not set up' }).run();
+  await ruleEvent(db, 'escalation', 'escalated', { claim: item.claim }, { item: item.key, level, to, ...(chain ? { chain: { department: chain.department_id || null, version: chain.version, step: step!.kind } } : {}), owedBy: item.person, businessDays: age, mail: !to.length ? 'nobody to escalate to' : sent?.status ?? 'mail not set up' }).run();
 }

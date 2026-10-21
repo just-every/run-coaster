@@ -1,4 +1,5 @@
 import { authority, commit } from './session';
+import { needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { business } from './settings';
 import { claimNumber } from './claims';
@@ -9,7 +10,8 @@ import { isoDate, optionalText, requireThat, type Actor, type Data } from './typ
 
 /** The owner, finance and auditors read the full history and export audit packs (ADMIN-001 matrix). */
 function needAuditAccess(actor: Actor) {
-  requireThat(actor.kind === 'person' && (actor.roles.owner || actor.roles.finance || actor.roles.auditor), 'Owner, finance or auditor access required', 403);
+  requireThat(actor.kind === 'person', 'Owner, admin, finance or auditor access required', 403);
+  needRow(actor, 'history');
 }
 
 /** The UTC instant a calendar day starts in the business's time zone. */
@@ -110,6 +112,6 @@ export async function auditPack(db: D1Database, actor: Actor, from?: string, to?
   const history = csv([['seq', 'at', 'actor', 'channel', 'agent', 'action', 'claim', 'batch', 'detail'], ...(events.results as Data[]).map(line).map(l => [l.seq, l.at, l.actor_email, l.channel, l.agent ?? '', l.action, l.claim?.number ? claimNumber(l.claim.number) : '', l.batch?.number ? batchNumber(l.batch.number) : '', JSON.stringify(l.detail)])]);
   const text = (s: string) => new TextEncoder().encode(s);
   const archive = zip([{ name: 'manifest.json', bytes: text(JSON.stringify(manifest, null, 2)) }, { name: 'history.csv', bytes: text(history) }, ...files], new Date(manifest.generatedAt));
-  await commit(db, authority(actor, actor.roles.finance ? 'finance' : 'auditor'), [event(db, actor, 'audit-pack-exported', {}, { from: first, to: last, claims: manifest.claims.length, receipts: files.length, historyLines: events.results.length })]);
+  await commit(db, rowAuthority(actor, 'auditPack'), [event(db, actor, 'audit-pack-exported', {}, { from: first, to: last, claims: manifest.claims.length, receipts: files.length, historyLines: events.results.length })]);
   return new Response(archive, { headers: { 'content-type': 'application/zip', 'content-disposition': `attachment; filename="coaster-audit-pack-${first}-to-${last}.zip"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
 }

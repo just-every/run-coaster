@@ -141,7 +141,8 @@ test('CAPTURE-004 / AUDIT-001 private terminal discard preserves originals and r
     for (const [address, roles] of [['finance-only', { finance: true }], ['approver-only', { manager: true }], ['auditor-only', { auditor: true }]]) {
       const cookie = await h.person(`${address}@harbourfinch.example`, roles)
       await h.post(discardPath(first.id), discardBody(), cookie, 403)
-      await download(h, cookie, first.id, 403)
+      // Finance and approver hold the submit row of the ADMIN-001 matrix, so another person's original is simply not theirs (404); an auditor holds no such row (403).
+      await download(h, cookie, first.id, address === 'auditor-only' ? 403 : 404)
     }
     await h.post(discardPath(first.id), discardBody(), h.owner, 403)
     await h.post(discardPath(first.id), discardBody(), '', 401)

@@ -1,4 +1,4 @@
-import { all, authority, commit } from './session';
+import { all, authority, commit, rolesFrom } from './session';
 import { event } from './events';
 import { canSee, claimNumber, loadClaim, visible, type Claim } from './claims';
 import { operatorMail } from '../mail.server.mjs';
@@ -10,10 +10,10 @@ const author = (actor: Actor) => actor.delegate?.email ?? actor.email;
 
 /** Whether this address could open the claim itself: the same rule as canSee, read from the member record. */
 async function seesClaim(db: D1Database, address: string, claim: Claim) {
-  const m = await db.prepare("SELECT m.name,m.is_employee,m.is_manager,m.is_finance,m.is_auditor,EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=m.email AND o.role='owner' AND o.status='active') AS is_owner FROM c_members m WHERE m.email=? AND m.active=1").bind(address).first<Data>();
+  const m = await db.prepare("SELECT m.name,m.is_employee,m.is_manager,m.is_finance,m.is_auditor,m.is_admin,m.is_card_admin,m.is_bookkeeper,EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=m.email AND o.role='owner' AND o.status='active') AS is_owner FROM c_members m WHERE m.email=? AND m.active=1").bind(address).first<Data>();
   if (!m) return null;
   const owner = m.is_owner === 1;
-  const roles = { owner, employee: owner || m.is_employee === 1, manager: owner || m.is_manager === 1, finance: owner || m.is_finance === 1, auditor: m.is_auditor === 1 };
+  const roles = rolesFrom(m, owner);
   return canSee({ kind: 'person', email: address, name: m.name, roles }, claim) ? m.name as string : null;
 }
 

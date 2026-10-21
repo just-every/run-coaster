@@ -12,6 +12,7 @@ export async function spendLines(db: D1Database, from: string, to: string, scope
       WHERE 1=1${scope.sql} ORDER BY ch.id`).bind(...scope.params),
   ]);
   const cards = new Map((charges.results as Data[]).map(ch => [ch.id, ch]));
+  const department = new Map((await db.prepare('SELECT m.email,d.id,d.name FROM c_members m JOIN c_departments d ON d.id=m.department_id').all<{ email: string; id: string; name: string }>()).results.map(m => [m.email, m]));
   const counted = new Set<string>(), out: Data[] = [];
   const append = (c: Data, item: Data, charge?: Data) => {
     if (item.spent_on < from || item.spent_on > to) return;
@@ -19,7 +20,7 @@ export async function spendLines(db: D1Database, from: string, to: string, scope
     const base = { claim: c.id, number: claimNumber(c.number), employee: c.employee_email, employeeName: c.employee_name ?? c.employee_email,
       status: ['approved', 'batched', 'reimbursed'].includes(c.status) ? 'approved' : 'pending', item: item.id, date: item.spent_on,
       merchant: item.merchant, receipt: item.receipt?.id ?? null, card: charge?.card_id ?? null,
-      cardLabel: charge ? `${charge.issuer} ····${charge.last4}` : null, cardCharge: charge?.id ?? null };
+      cardLabel: charge ? `${charge.issuer} ····${charge.last4}` : null, cardCharge: charge?.id ?? null, department: department.get(c.employee_email)?.id ?? '', departmentName: department.get(c.employee_email)?.name ?? '' };
     for (const part of item.allocations as Data[]) out.push({ ...base, category: part.category_id, categoryName: part.category_name, costCentre: part.cost_centre ?? '', amountMinor: part.amount_minor });
     if (item.sales_tax_minor) out.push({ ...base, category: 'sales-tax', categoryName: 'Sales tax', costCentre: '', amountMinor: item.sales_tax_minor });
   };

@@ -1,4 +1,5 @@
 import { business, type Business } from './settings';
+import { needRow } from './permissions';
 import { nextDay, startOf } from './audit';
 import { csv } from './batches';
 import { claimNumber } from './claims';
@@ -111,7 +112,7 @@ export function runReport(db: D1Database, settings: Business, name: Name, from: 
 
 /** One report for the period (by default this month to today), as JSON or CSV. */
 export async function report(db: D1Database, actor: Actor, name: string, query: Record<string, string>) {
-  requireThat(actor.roles.finance || actor.roles.auditor || actor.roles.owner, 'Finance, auditor or owner access required', 403);
+  needRow(actor, 'exportFiles');
   requireThat(isReport(name), 'Report not found', 404);
   const settings = await business(db);
   requireThat(settings, 'The owner has not set up the business yet', 409);

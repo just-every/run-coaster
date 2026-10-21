@@ -1,4 +1,5 @@
 import { all, authority, commit, type Sql } from './session';
+import { can } from './permissions';
 import { event } from './events';
 import { claimState, loadClaim } from './claims';
 import { loadBatch } from './batches';
@@ -38,12 +39,12 @@ export async function unapproveClaim(db: D1Database, actor: Actor, id: string, b
   const approval = await db.prepare("SELECT actor_email,on_behalf_of FROM c_decisions WHERE claim_id=? AND revision=? AND decision='approved' AND workflow_final=1 ORDER BY decision_step DESC LIMIT 1").bind(claim.id, claim.revision).first<{ actor_email: string; on_behalf_of: string | null }>();
   requireThat(approval, 'Approval missing', 409);
   const own = actor.roles.manager && (approval.actor_email === actor.email || approval.on_behalf_of === actor.email);
-  requireThat(actor.roles.finance || actor.roles.owner || own, 'Only the approver who approved, finance or the owner can unapprove a claim', 403);
+  requireThat(can(actor, 'unapprove') || own, 'Only the approver who approved, finance, an admin or the owner can unapprove a claim', 403);
   requireThat(b.version === claim.version, 'The claim changed since you opened it; reload and try again', 409);
   requireThat(b.to === 'approver' || b.to === 'employee', 'Choose who the claim goes back to: the approver or the employee');
   const reason = optionalText(b.reason, 'Reason', 1000);
   requireThat(reason, 'Say why you are unapproving');
-  const at = now(), role = actor.roles.finance ? 'finance' : 'manager';
+  const at = now(), role = actor.roles.finance ? 'finance' : actor.roles.admin ? 'admin' : 'manager';
   const state: Sql[] = [claimState(claim.id, claim.version, [claim.status])];
   const chain = await claimChain(db, claim.id, claim.revision);
   state.push(chainState(chain, claim.id, claim.revision));

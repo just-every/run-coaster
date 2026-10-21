@@ -1,4 +1,5 @@
 import { all, authority, commit, need, type Sql } from '../session';
+import { can } from '../permissions';
 import { event } from '../events';
 import { claimTotal } from '../claims';
 import { amount, now, optionalText, requireThat, uid, type Actor, type Data } from '../types';
@@ -10,7 +11,7 @@ import { chargeDate } from './statement';
 
 const COLUMNS = 'id,file_id,card_id,period_start,period_end,opening_minor,statement_minor,opened_by,opened_at,closed_by,closed_at';
 const finance = (actor: Actor) => { need(actor, 'finance'); requireThat(actor.kind === 'person', 'Only a person reconciles card statements', 403); };
-const readers = (actor: Actor) => requireThat(actor.kind === 'person' && (actor.roles.owner || actor.roles.finance || actor.roles.auditor), 'Owner, finance or auditor access required', 403);
+const readers = (actor: Actor) => requireThat(actor.kind === 'person' && can(actor, 'readAll'), 'Owner, finance, admin, bookkeeper or auditor access required', 403);
 const isOpen = (id: string): Sql => ({ sql: 'EXISTS(SELECT 1 FROM c_card_statements WHERE id=? AND closed_at IS NULL)', params: [id] });
 
 /** A balance as the card owes it: "1234.50", or "-20.00" when the card is in credit. */

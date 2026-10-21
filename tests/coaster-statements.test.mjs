@@ -725,3 +725,51 @@ test('FEED-005 a missing charge is added as a card expense on its statement repo
   const next = await h.post(`statements/${csv.id}/reconcile`, { last4: CARD, statementBalance: '35.65', openingBalance: '999.00' }, t.morgan, 400)
   assert.match(next.error, /opening balance must equal/)
 }))
+
+test('ADMIN-001 deactivating an approver or a cardholder hands approvals, reports and unsubmitted card charges to a named successor; an attached private original is detached and stays with the departed person', () => withAgency(async (h, t) => {
+  const PRIYA = 'priya@harbourfinch.example', JORDAN = 'jordan@harbourfinch.example', MORGAN = 'morgan@harbourfinch.example'
+  const png = text => ({ name: `${text}.png`, source: 'upload', base64: Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from(text)]).toString('base64') })
+  const filed = async (cookie, title) => {
+    const c = await h.post('claims', { title }, cookie), up = await h.post(`claims/${c.id}/receipts`, { version: c.version, ...png(title) }, cookie)
+    const item = await h.post(`claims/${c.id}/items`, { version: up.claim.version, kind: 'receipt', date: '2026-06-10', merchant: title, amount: '20.00', receipt: up.receipt, allocations: [{ category: t.c.office }], explanation: 'Client work' }, cookie)
+    return h.post(`claims/${c.id}/submit`, { version: item.version }, cookie)
+  }
+  const member = (email, over = {}) => h.post('settings/members', { email, name: email.split('@')[0], employee: true, ...over })
+  // Approver: Alex's claim waits on Priya. Deactivation needs a named successor who can take the work.
+  const waiting = await filed(t.alex, 'Waiting on Priya')
+  assert.equal(waiting.approver_email, PRIYA)
+  const priya = { manager: true }
+  await member(PRIYA, { ...priya, active: false }, ) .then(() => assert.fail('no successor'), e => assert.match(e.message, /successor[\s\S]*409/))
+  await member(PRIYA, { ...priya, active: false, successor: MORGAN }).then(() => assert.fail('finance only'), e => assert.match(e.message, /approver[\s\S]*409/))
+  assert.equal((await h.get(`claims/${waiting.id}`, t.priya)).claim.approver_email, PRIYA, 'refused deactivation moved nothing')
+  await member(PRIYA, { ...priya, active: false, successor: JORDAN })
+  await h.get('state', t.priya, 403)
+  const moved = await h.get(`claims/${waiting.id}`, t.jordan)
+  assert.equal(moved.claim.approver_email, JORDAN); assert.ok(moved.events.some(e => e.action === 'workflow-review-reassigned' || e.action === 'claim-reassigned'))
+  assert.equal((await h.get('state')).members.find(m => m.email === ALEX).approver_email, JORDAN, 'her reports follow the successor')
+  await h.post(`claims/${waiting.id}/decision`, { revision: waiting.revision, version: moved.claim.version, decision: 'approved', acknowledge: true }, t.jordan)
+  // Cardholder: Sam's posted charge carries an opted-in original attached automatically.
+  const r = await original(h, t.sam)
+  await choose(h, t, r)
+  const job = await statement(h, t, [{}])
+  await tick(h)
+  assert.ok((await inbox(h, t, r.id)).attachment, 'attached automatically')
+  const charge = (await h.get('statements')).charges[0]
+  await member(SAM, { approver: undefined, active: false }).then(() => assert.fail('no successor'), e => assert.match(e.message, /successor[\s\S]*409/))
+  assert.equal((await h.get(`claims/${job.claims[0]}`, t.sam)).claim.employee_email, SAM)
+  await member(SAM, { approver: undefined, active: false, successor: ALEX })
+  await h.get('state', t.sam, 403)
+  // The charge reached Alex's own statement report without the receipt; the original is still the departed person's, detached on their lifecycle.
+  const handed = (await h.get('statements')).charges.find(c => c.id === charge.id)
+  assert.equal(handed.employee_email, ALEX); assert.notEqual(handed.claim_id, job.claims[0])
+  const alexReport = await h.get(`claims/${handed.claim_id}`, t.alex)
+  assert.equal(alexReport.claim.employee_email, ALEX); assert.equal(alexReport.items.length, 1); assert.equal(alexReport.items[0].receipt_id, null); assert.equal(alexReport.items[0].card_charge_id, charge.id)
+  assert.equal((await h.get('receipt-inbox', t.alex)).receipts.some(x => x.id === r.id), false, 'the successor never sees the original')
+  const lines = (await h.db.prepare('SELECT kind,actor_email,channel FROM c_capture_lifecycle WHERE receipt_id=? ORDER BY sequence').bind(r.id).all()).results
+  assert.deepEqual(lines.slice(-2).map(l => l.kind), ['detached', 'match-withdrawn']); assert.equal((await h.db.prepare('SELECT owner_email FROM c_capture_receipts WHERE id=?').bind(r.id).first()).owner_email, SAM)
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_card_handoffs').first()).n, 1)
+  const history = JSON.stringify((await h.get('history?q=card-charge-handed-off')).lines)
+  assert.ok(history.includes('card-charge-handed-off') && !history.includes(r.id) && !history.includes(r.name) && !history.includes(r.sha256), 'the history line names no original')
+  await assert.rejects(h.db.prepare('UPDATE c_card_charges SET amount_minor=1').run(), /immutable/)
+  await assert.rejects(h.db.prepare("UPDATE c_card_charges SET employee_email='x@y.example'").run(), /immutable/)
+}))

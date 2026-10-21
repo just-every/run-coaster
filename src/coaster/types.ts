@@ -8,7 +8,7 @@ export function requireThat(value: unknown, message: string, status = 400): asse
   if (!value) throw new Fault(status, message);
 }
 
-export type Roles = { employee: boolean; manager: boolean; finance: boolean; owner: boolean; auditor: boolean };
+export type Roles = { employee: boolean; manager: boolean; finance: boolean; owner: boolean; auditor: boolean; admin: boolean; cardAdmin: boolean; bookkeeper: boolean };
 
 /** A person signed in with a native session, or an agent key acting for one person. */
 export type Actor = {

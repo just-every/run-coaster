@@ -8,26 +8,27 @@ import { money } from './exceptions';
 import type { ItemInput } from './items';
 import type { Bindings } from '../auth.server';
 import { amount, email, isoDate, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
+import { can, needRow, rowAuthority } from './permissions';
 
 /** Recurring expenses and stipends (CLAIM-009). Finance sets allowances for one person or everyone: a fixed stipend the
  * hourly run pays each period without a receipt, or a cap expenses are claimed against with receipts. Employees set
- * their own recurring expenses, which open a draft each period asking for the receipt. Departments become an allowance
- * scope with ADMIN-001. */
-export type Allowance = { id: string; name: string; type: 'stipend' | 'cap'; member_email: string | null; category_id: string | null; period: Period; amount_minor: number; tax: 'accountable' | 'taxable' | null; starts_on: string; set_by: string; set_at: string; stopped_by: string | null; stopped_at: string | null };
+ * their own recurring expenses, which open a draft each period asking for the receipt. An allowance can be set for one
+ * person, one department (ADMIN-001) or everyone. */
+export type Allowance = { id: string; name: string; type: 'stipend' | 'cap'; member_email: string | null; department_id: string | null; category_id: string | null; period: Period; amount_minor: number; tax: 'accountable' | 'taxable' | null; starts_on: string; set_by: string; set_at: string; stopped_by: string | null; stopped_at: string | null };
 type Period = 'monthly' | 'quarterly' | 'yearly';
 const PERIODS = ['monthly', 'quarterly', 'yearly'];
 /** Whoever the hourly run writes as: stipend and recurring claims are created and submitted under this name. */
 export const SCHEDULE = 'allowance';
 
 const today = async (db: D1Database) => localDate(new Date().toISOString(), (await requireBusiness(db)).timezone);
-const setter = (actor: Actor) => { requireThat(actor.roles.finance || actor.roles.owner, 'Finance or owner access required', 403); requireThat(actor.kind === 'person', 'Only a person sets allowances', 403); return authority(actor, actor.roles.owner ? 'owner' : 'finance'); };
+const setter = (actor: Actor) => { needRow(actor, 'policy'); requireThat(actor.kind === 'person', 'Only a person sets allowances', 403); return rowAuthority(actor, 'policy'); };
 const period = (v: unknown) => { requireThat(PERIODS.includes(String(v)), 'An allowance is monthly, quarterly or yearly'); return String(v) as Period; };
 async function activeCategory(db: D1Database, id: unknown) {
   requireThat(typeof id === 'string' && await db.prepare('SELECT 1 FROM c_categories WHERE id=? AND active=1').bind(id).first(), 'Choose an active category');
   return id as string;
 }
 
-/** Finance or the owner sets a stipend or a cap for one employee, or for every employee when no one is named. */
+/** Finance or the owner sets a stipend or a cap for one employee, one department, or every employee when none is named. */
 export async function saveAllowance(db: D1Database, actor: Actor, b: Data) {
   const guard = setter(actor);
   const type = String(b.type);
@@ -37,12 +38,18 @@ export async function saveAllowance(db: D1Database, actor: Actor, b: Data) {
     member = email(b.member, 'Employee');
     requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_employee=1').bind(member).first(), 'The employee must be an active member with the employee role');
   }
+  let department: string | null = null;
+  if (b.department) {
+    requireThat(!member, 'Set an allowance for one person or for a department, not both');
+    department = text(b.department, 'Department', 64);
+    requireThat(await db.prepare('SELECT 1 FROM c_departments WHERE id=? AND active=1').bind(department).first(), 'Choose an active department');
+  }
   const tax = type === 'stipend' ? String(b.tax ?? '') : null;
   requireThat(tax === null || tax === 'accountable' || tax === 'taxable', 'A stipend is paid under an accountable plan or as taxable pay');
-  const v = { name: text(b.name, 'Allowance name', 100), type, member, category: type === 'stipend' || b.category ? await activeCategory(db, b.category) : null, period: period(b.period), amountMinor: amount(b.amount, 'Amount'), tax, startsOn: b.startsOn ? isoDate(b.startsOn, 'Starts on') : await today(db) };
+  const v = { name: text(b.name, 'Allowance name', 100), type, member, department, category: type === 'stipend' || b.category ? await activeCategory(db, b.category) : null, period: period(b.period), amountMinor: amount(b.amount, 'Amount'), tax, startsOn: b.startsOn ? isoDate(b.startsOn, 'Starts on') : await today(db) };
   const id = uid();
   await commit(db, guard, [
-    db.prepare('INSERT INTO c_allowances(id,name,type,member_email,category_id,period,amount_minor,tax,starts_on,set_by,set_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(id, v.name, v.type, v.member, v.category, v.period, v.amountMinor, v.tax, v.startsOn, actor.delegate?.email ?? actor.email, now()),
+    db.prepare('INSERT INTO c_allowances(id,name,type,member_email,department_id,category_id,period,amount_minor,tax,starts_on,set_by,set_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(id, v.name, v.type, v.member, v.department, v.category, v.period, v.amountMinor, v.tax, v.startsOn, actor.delegate?.email ?? actor.email, now()),
     event(db, actor, 'allowance-set', {}, { allowance: id, ...v }),
   ]);
   return allowancesFor(db, actor);
@@ -93,7 +100,7 @@ async function claimedAgainst(db: D1Database, allowance: string, employee: strin
 export async function capToAllowance(db: D1Database, employee: string, item: ItemInput, allowanceId: unknown, itemId: string | null): Promise<ItemInput> {
   requireThat(item.kind === 'receipt', 'Only a purchase with its receipt is claimed against an allowance');
   requireThat(typeof allowanceId === 'string', 'Allowance not found', 404);
-  const cap = await db.prepare("SELECT * FROM c_allowances WHERE id=? AND type='cap' AND stopped_at IS NULL AND (member_email IS NULL OR member_email=?)").bind(allowanceId, employee).first<Allowance>();
+  const cap = await db.prepare("SELECT * FROM c_allowances WHERE id=?1 AND type='cap' AND stopped_at IS NULL AND (member_email IS NULL OR member_email=?2) AND (department_id IS NULL OR department_id=(SELECT department_id FROM c_members WHERE email=?2))").bind(allowanceId, employee).first<Allowance>();
   requireThat(cap, 'That allowance does not apply to you', 404);
   requireThat(item.spent_on >= cap.starts_on, `${cap.name} starts on ${cap.starts_on}`);
   const p = periodOf(item.spent_on, cap.period), left = cap.amount_minor - await claimedAgainst(db, cap.id, employee, p.from, p.to, itemId);
@@ -121,15 +128,15 @@ export async function allowancesFor(db: D1Database, actor: Actor, on?: string) {
   if (!settings) return { mine: [], all: [], recurring: [] };
   const day = on ? isoDate(on, 'Day') : localDate(new Date().toISOString(), settings.timezone);
   const { results } = await db.prepare('SELECT a.*, c.name AS category_name FROM c_allowances a LEFT JOIN c_categories c ON c.id=a.category_id ORDER BY a.stopped_at IS NOT NULL, a.name').all<Allowance & { category_name: string | null }>();
-  const employee = actor.roles.employee && !!await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_employee=1').bind(actor.email).first();
-  const mine = await Promise.all(results.filter(a => employee && !a.stopped_at && (a.member_email === null || a.member_email === actor.email)).map(async a => {
+  const person = actor.roles.employee ? await db.prepare('SELECT department_id FROM c_members WHERE email=? AND active=1 AND is_employee=1').bind(actor.email).first<{ department_id: string | null }>() : null, employee = !!person;
+  const mine = await Promise.all(results.filter(a => employee && !a.stopped_at && (a.member_email === null || a.member_email === actor.email) && (a.department_id === null || a.department_id === person!.department_id)).map(async a => {
     const p = periodOf(day, a.period);
     if (a.type === 'stipend') return { ...a, period_key: p.key, paid_this_period: !!await db.prepare('SELECT 1 FROM c_allowance_runs WHERE source_id=? AND member_email=? AND period=?').bind(a.id, actor.email, p.key).first() };
     const used = await claimedAgainst(db, a.id, actor.email, p.from, p.to, null);
     return { ...a, period_key: p.key, claimed_minor: used, remaining_minor: Math.max(0, a.amount_minor - used) };
   }));
   const recurring = (await db.prepare('SELECT r.*, c.name AS category_name FROM c_recurring r JOIN c_categories c ON c.id=r.category_id WHERE r.member_email=? ORDER BY r.stopped_at IS NOT NULL, r.merchant').bind(actor.email).all()).results;
-  return { mine, all: actor.roles.finance || actor.roles.auditor || actor.roles.owner ? results : [], recurring };
+  return { mine, all: can(actor, 'readAll') ? results : [], recurring };
 }
 
 /** Claim the period for one source and person and write its claim, all or nothing: a second run finds the period taken. */
@@ -162,7 +169,7 @@ export async function runAllowances(env: Bindings, at: Date) {
   const day = localDate(at.toISOString(), settings.timezone);
   const stipends = (await db.prepare("SELECT * FROM c_allowances WHERE type='stipend' AND stopped_at IS NULL AND starts_on<=?").bind(day).all<Allowance>()).results;
   for (const s of stipends) {
-    const p = periodOf(day, s.period), people = (await db.prepare('SELECT email FROM c_members WHERE active=1 AND is_employee=1 AND (?1 IS NULL OR email=?1) ORDER BY email').bind(s.member_email).all<{ email: string }>()).results;
+    const p = periodOf(day, s.period), people = (await db.prepare('SELECT email FROM c_members WHERE active=1 AND is_employee=1 AND (?1 IS NULL OR email=?1) AND (?2 IS NULL OR department_id=?2) ORDER BY email').bind(s.member_email, s.department_id).all<{ email: string }>()).results;
     for (const { email: member } of people) {
       const item: ItemInput = { kind: 'stipend', spent_on: later(p.from, s.starts_on), merchant: s.name, description: `${label(s.period)} stipend for ${p.key} · ${s.tax === 'taxable' ? 'taxable pay' : 'accountable plan'}`, amount_minor: s.amount_minor, distance_hundredths: null, days: null, rate_thousandths: null, explanation: `Stipend set by finance (${s.name})`, allocations: [{ category_id: s.category_id!, cost_centre: '', amount_minor: s.amount_minor }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', allowance_id: s.id };
       const claimId = await openPeriod(db, s.id, member, p.key, `${s.name} · ${p.key}`, settings.currency, item, ['stipend-created', { allowance: s.id, tax: s.tax }]);

@@ -10,21 +10,24 @@ export async function workflowPlan(db:D1Database,employee:string,total:number,it
  const workflow=await currentWorkflow(db);
  if(!workflow?.rules.length) return null;
  const configured=await configuredChain(db,employee);
+ const member=await db.prepare('SELECT m.approver_email,m.department_id,(SELECT a.approver_email FROM c_members a WHERE a.email=m.approver_email AND a.active=1) AS managers_manager,(SELECT d.head_email FROM c_departments d WHERE d.id=m.department_id AND d.active=1) AS department_head FROM c_members m WHERE m.email=? AND m.active=1').bind(employee).first<{approver_email:string;department_id:string|null;managers_manager:string|null;department_head:string|null}>();
  const stages:Reviewer[][]=configured.chain?configured.chain.steps.map(s=>[{kind:'named',email:s.email}]):[[{kind:'manager'}]];
  const matched:string[]=[];
  for(const rule of workflow.rules) {
   const c=rule.condition;
-  const match=c.kind==='always'||c.kind==='amount'&&total>amount(c.value,'Amount')||c.kind==='exception'&&exceptions.length>0||c.kind==='category'&&items.some(i=>i.allocations?.some((a:Data)=>a.category_id===c.value))||c.kind==='project'&&items.some(i=>i.project===c.value)||c.kind==='spend-request'&&(request||items.some(i=>i.request_id));
+  const match=c.kind==='always'||c.kind==='amount'&&total>amount(c.value,'Amount')||c.kind==='exception'&&exceptions.length>0||c.kind==='category'&&items.some(i=>i.allocations?.some((a:Data)=>a.category_id===c.value))||c.kind==='project'&&items.some(i=>i.project===c.value)||c.kind==='spend-request'&&(request||items.some(i=>i.request_id))||c.kind==='department'&&!!member?.department_id&&member.department_id===c.value;
   if(match){stages.push(...rule.stages);matched.push(rule.label);}
  }
  const guards:Sql[]=[workflowState(workflow.version),...configured.guards];
- const member=await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(employee).first<{approver_email:string}>();
  const frozen:Reviewer[][]=[];
  for(const stage of stages){
   const reviewers:Reviewer[]=[];
   for(const r of stage){
-   const address=r.kind==='manager'?member?.approver_email:r.email;
+   const address=r.kind==='manager'?member?.approver_email:r.kind==='department-head'?member?.department_head:r.kind==='managers-manager'?member?.managers_manager:r.email;
+   requireThat(address||!['department-head','managers-manager'].includes(r.kind),r.kind==='department-head'?'The employee\'s department has no active head; ask the owner to set one':'The employee\'s approving manager has no manager; ask the owner to correct the hierarchy',409);
    requireThat(address&&address!==employee,'Nobody approves their own claim or spend request; ask the owner to correct the workflow',409);
+   if(r.kind==='department-head') guards.push({sql:'EXISTS(SELECT 1 FROM c_members m JOIN c_departments d ON d.id=m.department_id AND d.active=1 WHERE m.email=? AND d.head_email=?)',params:[employee,address]});
+   if(r.kind==='managers-manager') guards.push({sql:'EXISTS(SELECT 1 FROM c_members m JOIN c_members a ON a.email=m.approver_email AND a.active=1 WHERE m.email=? AND a.approver_email=?)',params:[employee,address]});
    const role=r.kind==='finance'?'finance':'manager';
    const guard={sql:`EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_${role}=1)`,params:[address]};
    requireThat(await db.prepare(`SELECT 1 WHERE ${guard.sql}`).bind(...guard.params).first(),'Every workflow reviewer must be active with the matching role',409);
@@ -32,7 +35,7 @@ export async function workflowPlan(db:D1Database,employee:string,total:number,it
   }
   frozen.push(reviewers);
  }
- guards.push({sql:'EXISTS(SELECT 1 FROM c_members WHERE email=? AND approver_email=? AND active=1)',params:[employee,member?.approver_email]});
+ guards.push({sql:'EXISTS(SELECT 1 FROM c_members WHERE email=? AND approver_email IS ? AND department_id IS ? AND active=1)',params:[employee,member?.approver_email??null,member?.department_id??null]});
  return {plan:{version:workflow.version,stages:frozen,matched},guards};
 }
 export async function resolveStage(db:D1Database,reviewers:Reviewer[],employee:string,timezone:string) {

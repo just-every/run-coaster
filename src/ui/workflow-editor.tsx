@@ -2,8 +2,9 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { call, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 
-type Condition = { kind: 'always' | 'amount' | 'category' | 'project' | 'exception' | 'spend-request'; value: string };
-type Reviewer = { kind: 'manager' | 'named' | 'finance'; email?: string };
+type Condition = { kind: 'always' | 'amount' | 'category' | 'project' | 'exception' | 'spend-request' | 'department'; value: string };
+type Reviewer = { kind: 'manager' | 'named' | 'finance' | 'department-head' | 'managers-manager'; email?: string };
+const NAMED = ['named', 'finance'];
 type Rule = { label: string; condition: Condition; stages: Reviewer[][] };
 type SelectChange = ChangeEvent<HTMLSelectElement>;
 type InputChange = ChangeEvent<HTMLInputElement>;
@@ -15,9 +16,12 @@ const CONDITIONS = [
   { value: 'project', label: 'Includes project' },
   { value: 'exception', label: 'Has a policy exception' },
   { value: 'spend-request', label: 'Spend request or linked expense' },
+  { value: 'department', label: 'Employee is in department' },
 ];
 const REVIEWERS = [
   { value: 'manager', label: 'Employee’s approving manager' },
+  { value: 'managers-manager', label: 'Employee’s manager’s manager' },
+  { value: 'department-head', label: 'Employee’s department head' },
   { value: 'named', label: 'Named manager' },
   { value: 'finance', label: 'Named finance reviewer' },
 ];
@@ -35,8 +39,8 @@ function ReviewerEditor({ reviewer, members, label, onChange, onRemove, disabled
   const options = people.map(m => ({ value: m.email, label: `${m.name} (${m.email})` }));
   const unavailable = reviewer.email && !people.some(m => m.email === reviewer.email);
   return <div className="record-form field-wide">
-    <Field label={`${label} type`} name={`${label}-kind`} options={REVIEWERS} value={reviewer.kind} onChange={(e: SelectChange) => onChange({ kind: e.target.value as Reviewer['kind'], ...(e.target.value === 'manager' ? {} : { email: '' }) })} />
-    {reviewer.kind !== 'manager' && <Field label={`${label} person`} name={`${label}-email`} options={[...options, ...(unavailable ? [{ value: reviewer.email!, label: `${reviewer.email} (unavailable; choose an active reviewer)` }] : [])]} value={reviewer.email ?? ''} onChange={(e: SelectChange) => onChange({ ...reviewer, email: e.target.value })} />}
+    <Field label={`${label} type`} name={`${label}-kind`} options={REVIEWERS} value={reviewer.kind} onChange={(e: SelectChange) => onChange({ kind: e.target.value as Reviewer['kind'], ...(NAMED.includes(e.target.value) ? { email: '' } : {}) })} />
+    {NAMED.includes(reviewer.kind) && <Field label={`${label} person`} name={`${label}-email`} options={[...options, ...(unavailable ? [{ value: reviewer.email!, label: `${reviewer.email} (unavailable; choose an active reviewer)` }] : [])]} value={reviewer.email ?? ''} onChange={(e: SelectChange) => onChange({ ...reviewer, email: e.target.value })} />}
     <div className="form-end"><button type="button" className="button small" disabled={disabled} onClick={onRemove}>Remove {label.toLowerCase()}</button></div>
   </div>;
 }
@@ -50,7 +54,7 @@ export function WorkflowEditor({ state, reload }: { state: D; reload: () => Prom
   const members: D[] = state.members.filter((m: D) => m.active);
   const categories = state.categories.filter((c: D) => c.active).map((c: D) => ({ value: c.id, label: c.name }));
   const changeRule = (index: number, next: Rule) => { setNotice(''); setRules(current => current.map((rule, i) => i === index ? next : rule)); };
-  if (!state.actor.roles.owner) return null;
+  if (!state.actor.roles.owner && !state.actor.roles.admin) return null;
 
   return <Section title="Approval workflows">
     <p className="muted">Rules are matched when a claim or spend request is submitted. Matching rules add their stages in the order below, after the employee’s manager or imported approval chain. Stages run in sequence; every parallel reviewer in a stage must approve before the next stage opens. Existing submissions keep their recorded workflow.</p>
@@ -58,7 +62,7 @@ export function WorkflowEditor({ state, reload }: { state: D; reload: () => Prom
       setSaving(true); setNotice('');
       try {
         for (const rule of rules) for (const stage of rule.stages) for (const reviewer of stage) {
-          if (reviewer.kind !== 'manager' && !members.some(m => m.email === reviewer.email && (reviewer.kind === 'finance' ? m.is_finance : m.is_manager))) throw new Error('Choose an active person with the required role for every named reviewer.');
+          if (NAMED.includes(reviewer.kind) && !members.some(m => m.email === reviewer.email && (reviewer.kind === 'finance' ? m.is_finance : m.is_manager))) throw new Error('Choose an active person with the required role for every named reviewer.');
         }
         await call('settings/approval-workflow', { version: configuration?.version ?? 0, rules });
         await reload();
@@ -74,6 +78,7 @@ export function WorkflowEditor({ state, reload }: { state: D; reload: () => Prom
             <Field label="Condition" name={`rule-${index}-condition`} options={CONDITIONS} value={rule.condition.kind} onChange={(e: SelectChange) => changeRule(index, { ...rule, condition: { kind: e.target.value as Condition['kind'], value: '' } })} />
             {rule.condition.kind === 'amount' && <Field label={`Amount (${state.business.currency})`} name={`rule-${index}-amount`} inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" value={rule.condition.value} hint="Enter major currency units, such as 1000.00. An amount equal to this does not match; it must be strictly above." onChange={(e: InputChange) => changeRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })} />}
             {rule.condition.kind === 'category' && <Field label="Category" name={`rule-${index}-category`} options={categories} value={rule.condition.value} onChange={(e: SelectChange) => changeRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })} />}
+            {rule.condition.kind === 'department' && <Field label="Department" name={`rule-${index}-department`} options={state.departments.filter((d: D) => d.active).map((d: D) => ({ value: d.id, label: d.name }))} value={rule.condition.value} onChange={(e: SelectChange) => changeRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })} />}
             {rule.condition.kind === 'project' && <Field label="Project" name={`rule-${index}-project`} value={rule.condition.value} onChange={(e: InputChange) => changeRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })} />}
             <div className="form-end">
               <button type="button" className="button small" disabled={index === 0} onClick={() => setRules(move(rules, index, -1))} aria-label={`Move rule ${index + 1} up`}>Move up</button>

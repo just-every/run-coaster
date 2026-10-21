@@ -1,4 +1,4 @@
-import { authority, commit } from './session';
+import { authority, commit, rolesFrom } from './session';
 import { event } from './events';
 import { operatorMail } from '../mail.server.mjs';
 import type { Bindings } from '../auth.server';
@@ -60,9 +60,9 @@ export async function delegateGrants(db: D1Database, actor: Actor) {
 export async function actingAs(db: D1Database, person: Actor, value: string): Promise<Actor> {
   requireThat(person.kind === 'person', 'Only a person acts as a delegate', 403);
   const grantor = email(value, 'Acting for');
-  const grant = await db.prepare("SELECT g.id,g.level,m.name,m.is_employee,m.is_manager,m.is_finance,m.is_auditor,EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=g.grantor_email AND o.role='owner' AND o.status='active') AS is_owner FROM c_delegates g JOIN c_members m ON m.email=g.grantor_email AND m.active=1 JOIN c_members d ON d.email=g.delegate_email AND d.active=1 WHERE g.grantor_email=? AND g.delegate_email=? AND g.revoked_at IS NULL").bind(grantor, person.email).first<Data>();
+  const grant = await db.prepare("SELECT g.id,g.level,m.name,m.is_employee,m.is_manager,m.is_finance,m.is_auditor,m.is_admin,m.is_card_admin,m.is_bookkeeper,EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=g.grantor_email AND o.role='owner' AND o.status='active') AS is_owner FROM c_delegates g JOIN c_members m ON m.email=g.grantor_email AND m.active=1 JOIN c_members d ON d.email=g.delegate_email AND d.active=1 WHERE g.grantor_email=? AND g.delegate_email=? AND g.revoked_at IS NULL").bind(grantor, person.email).first<Data>();
   requireThat(grant, 'You are not a delegate for that person, or the access has ended', 403);
   const full = grant.level === 'full', owner = grant.is_owner === 1;
-  return { ...person, email: grantor, name: grant.name, roles: { owner: full && owner, employee: owner || grant.is_employee === 1, manager: full && (owner || grant.is_manager === 1), finance: full && (owner || grant.is_finance === 1), auditor: full && grant.is_auditor === 1 },
+  return { ...person, email: grantor, name: grant.name, roles: rolesFrom(grant, owner, full),
     delegate: { email: person.email, name: person.name, level: grant.level, grant: grant.id } };
 }

@@ -1,4 +1,5 @@
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
+import { can } from './permissions';
 import { event, ruleEvent } from './events';
 import { categories, pricedItem, type Allocation, type ItemInput } from './items';
 import { findExceptions, missingFields, repeatedInClaim, type ClaimItem } from './exceptions';
@@ -32,7 +33,7 @@ export async function loadClaim(db: D1Database, id: unknown): Promise<Claim> {
 export function canSee(actor: Actor, claim: Claim) {
   if (claim.employee_email === actor.email) return true;
   if (claim.status === 'draft') return false;
-  return (claim.workflow_readers?.includes(actor.email) ?? false) || (actor.roles.manager && (claim.approver_email === actor.email || claim.on_behalf_of === actor.email)) || actor.roles.finance || actor.roles.auditor || actor.roles.owner;
+  return (claim.workflow_readers?.includes(actor.email) ?? false) || (actor.roles.manager && (claim.approver_email === actor.email || claim.on_behalf_of === actor.email)) || can(actor, 'readAll');
 }
 export function visible(actor: Actor, claim: Claim) {
   requireThat(canSee(actor, claim), 'This claim is outside your access', 403);

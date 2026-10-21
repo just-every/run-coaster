@@ -1,5 +1,6 @@
 import { policyConfiguration } from './policy-configuration';
 import { all, authority, commit, need } from './session';
+import { needRow, rowAuthority } from './permissions';
 import { event, ruleEvent } from './events';
 import { business, requireBusiness, type Business } from './settings';
 import { localDate } from './reports';
@@ -22,12 +23,12 @@ const SUBMIT_HOUR = 9;
 
 /** The owner sets how often automatic reports submit, or turns it off. */
 export async function saveAutoSubmit(db: D1Database, actor: Actor, b: Data) {
-  need(actor, 'owner');
+  needRow(actor, 'settings');
   requireThat(actor.kind === 'person', 'Only a person changes scheduled submission', 403);
   await requireBusiness(db);
   const schedule = b.schedule === undefined || b.schedule === null || b.schedule === '' ? null : String(b.schedule);
   requireThat(schedule === null || SCHEDULES.includes(schedule), 'Submit daily, weekly, twice monthly or monthly, or turn it off');
-  await commit(db, authority(actor, 'owner'), [db.prepare('UPDATE c_business SET auto_submit=?,updated_at=? WHERE id=1').bind(schedule, now()), event(db, actor, 'auto-submit-set', {}, { schedule })]);
+  await commit(db, rowAuthority(actor, 'settings'), [db.prepare('UPDATE c_business SET auto_submit=?,updated_at=? WHERE id=1').bind(schedule, now()), event(db, actor, 'auto-submit-set', {}, { schedule })]);
   return { schedule };
 }
 

@@ -1,7 +1,8 @@
-import { authority, commit, need } from './session';
+import { all, authority, commit, need } from './session';
+import { needRow, rowAuthority } from './permissions';
+import { handOver, openWork } from './handoff';
 import { event } from './events';
 import { mileageRates, seedIrsRates, type MileageRate } from './mileage';
-import { queueMoves } from './delegation';
 import { categories } from './items';
 import { ownerPolicyVersion } from './policy-configuration';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
@@ -22,7 +23,7 @@ export async function requireBusiness(db: D1Database) {
 }
 
 export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
-  need(actor, 'owner');
+  needRow(actor, 'settings');
   const currency = (b.currency === undefined ? 'USD' : text(b.currency, 'Currency', 3)).toUpperCase();
   requireThat(/^[A-Z]{3}$/.test(currency), 'Currency must be a three-letter code such as USD');
   const current = await business(db);
@@ -40,7 +41,7 @@ export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
   const values = [text(b.name, 'Business name', 200), currency, timezone, optionalAmount(b.perDiem, 'Per diem') ?? 0, threshold, optionalText(b.salesTaxAccount, 'Sales tax account', 40), optionalText(b.salesTaxCode, 'Sales tax code', 40), preapproval, now()] as const;
   // A new US business starts from the IRS mileage table; any other currency adds its own rates.
   const seed = !current && currency === 'USD' && !(await mileageRates(db)).length;
-  await commit(db, authority(actor, 'owner'), [
+  await commit(db, rowAuthority(actor, 'settings'), [
     db.prepare('INSERT INTO c_business(id,name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,sales_tax_account=excluded.sales_tax_account,sales_tax_code=excluded.sales_tax_code,preapproval_threshold_minor=excluded.preapproval_threshold_minor,updated_at=excluded.updated_at').bind(...values),
     db.prepare('UPDATE c_business SET fx_enabled=? WHERE id=1').bind(fxEnabled),
     ...(seed ? seedIrsRates(db) : []),
@@ -74,7 +75,7 @@ const flag = (v: unknown) => v === true || v === 'true' || v === 'on' ? 1 : 0;
 const LODGING = /\b(lodging|hotels?|motels?)\b/i;
 
 export async function saveCategory(db: D1Database, actor: Actor, b: Data) {
-  need(actor, 'owner');
+  needRow(actor, 'settings');
   const id = typeof b.id === 'string' && b.id ? b.id : uid();
   if (b.id) requireThat(await db.prepare('SELECT 1 FROM c_categories WHERE id=?').bind(id).first(), 'Category not found', 404);
   const name = text(b.name, 'Category name', 100);
@@ -84,7 +85,7 @@ export async function saveCategory(db: D1Database, actor: Actor, b: Data) {
   const receiptAlways = LODGING.test(name) ? 1 : flag(b.receiptAlways);
   const required = requiredFields(b.requiredFields);
   const values = [id, name, text(b.accountCode, 'Account code', 40), text(b.taxCode, 'Tax code', 40), optionalAmount(b.limit, 'Limit per expense'), b.active === false || b.active === 'false' ? 0 : 1, receiptAlways, optionalAmount(b.perPersonLimit, 'Limit per person'), JSON.stringify(required)];
-  await commit(db, authority(actor, 'owner'), [
+  await commit(db, rowAuthority(actor, 'settings'), [
     db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always,per_person_limit_minor,required_fields) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,account_code=excluded.account_code,tax_code=excluded.tax_code,limit_minor=excluded.limit_minor,active=excluded.active,receipt_always=excluded.receipt_always,per_person_limit_minor=excluded.per_person_limit_minor,required_fields=excluded.required_fields').bind(...values),
     ...ownerPolicyVersion(db, actor.delegate?.email ?? actor.email, (await requireBusiness(db)).timezone, now()),
     event(db, actor, 'category-saved', {}, { id, name, accountCode: values[2], taxCode: values[3], limitMinor: values[4], active: values[5] === 1, receiptAlways: values[6] === 1, perPersonLimitMinor: values[7], requiredFields: required }),
@@ -102,10 +103,13 @@ function requiredFields(value: unknown): string[] {
 
 
 export async function saveMember(db: D1Database, actor: Actor, b: Data) {
-  need(actor, 'owner');
+  needRow(actor, 'people');
   const address = email(b.email);
-  const roles = { employee: flag(b.employee), manager: flag(b.manager), finance: flag(b.finance), auditor: flag(b.auditor) };
-  requireThat(roles.employee || roles.manager || roles.finance || roles.auditor, 'Choose at least one role');
+  const roles = { employee: flag(b.employee), manager: flag(b.manager), finance: flag(b.finance), auditor: flag(b.auditor), admin: flag(b.admin), cardAdmin: flag(b.cardAdmin), bookkeeper: flag(b.bookkeeper) };
+  requireThat(Object.values(roles).some(Boolean), 'Choose at least one role');
+  // The owner account is the owner's alone: an admin assigns every other person's roles, never the owner's (ADMIN-001).
+  const ownerAccount = !!await db.prepare("SELECT 1 FROM oa_operators WHERE lower(email)=? AND role='owner'").bind(address).first();
+  requireThat(actor.roles.owner || !ownerAccount, 'Only the owner changes the owner\'s own record', 403);
   // The release grant (PAY-004) is the owner's to give, and only to finance.
   const release = flag(b.release), contractor = flag(b.contractor);
   // A contractor claims as a non-employee (CLAIM-008): their reimbursements are flagged for 1099 review.
@@ -118,16 +122,37 @@ export async function saveMember(db: D1Database, actor: Actor, b: Data) {
     const manager = await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_manager=1').bind(approver).first();
     requireThat(manager, 'The approving manager must be an active member with the manager role');
   }
+  let department: string | null = null;
+  if (b.department) {
+    department = text(b.department, 'Department', 64);
+    requireThat(await db.prepare('SELECT 1 FROM c_departments WHERE id=? AND active=1').bind(department).first(), 'Choose an active department', 400);
+  }
   const active = b.active === false || b.active === 'false' ? 0 : 1;
   const name = text(b.name, 'Name', 120);
-  // Deactivating an approver moves their waiting claims to their own manager.
   const was = await db.prepare('SELECT active,may_release FROM c_members WHERE email=?').bind(address).first<{ active: number; may_release: number }>();
-  const moves = was?.active === 1 && !active ? await queueMoves(db, actor, address, approver) : [];
-  await commit(db, authority(actor, 'owner'), [
-    db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,is_auditor,approver_email,active,may_release,is_contractor,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,is_auditor=excluded.is_auditor,approver_email=excluded.approver_email,active=excluded.active,may_release=excluded.may_release,is_contractor=excluded.is_contractor,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, roles.auditor, approver, active, release, contractor, now()),
-    event(db, actor, 'member-saved', {}, { email: address, roles, approver, active: active === 1, contractor: contractor === 1 }),
+  requireThat(actor.roles.owner || release === (was?.may_release ?? 0), 'Only the owner gives or takes away release access', 403);
+  // Deactivating hands everything open to a named successor in the same transaction: approvals, reports, a department
+  // headed, and unsubmitted card charges. Without a named successor the person's own approving manager takes them.
+  let handover: Awaited<ReturnType<typeof handOver>> | null = null, successor: string | null = null;
+  if (was?.active === 1 && !active) {
+    const open = await openWork(db, address);
+    successor = b.successor ? email(b.successor, 'Successor') : approver;
+    if (open.manager || open.finance || open.cards || b.successor) {
+      requireThat(successor && successor !== address, 'Name an active successor to take over this person\'s open approvals and card charges', 409);
+      const holds = await db.prepare('SELECT is_manager,is_finance,is_employee FROM c_members WHERE email=? AND active=1').bind(successor).first<{ is_manager: number; is_finance: number; is_employee: number }>();
+      requireThat(holds, 'The successor must be an active member', 409);
+      // A named successor must be able to take everything; the person's own manager, used when none is named, takes what its roles allow and the rest waits for the owner to reassign.
+      requireThat(!b.successor || !open.manager || holds.is_manager, 'The successor must be an approver to take over open approvals', 409);
+      requireThat(!b.successor || !open.finance || holds.is_finance, 'The successor must hold finance to take over finance reviews', 409);
+      requireThat(!open.cards || holds.is_employee, 'The successor must be an employee to take over card charges', 409);
+      handover = await handOver(db, actor, address, successor!);
+    }
+  }
+  await commit(db, all(rowAuthority(actor, 'people'), ...(handover?.guards ?? [])), [
+    ...(handover?.statements ?? []),
+    db.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,is_auditor,is_admin,is_card_admin,is_bookkeeper,department_id,approver_email,active,may_release,is_contractor,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,is_employee=excluded.is_employee,is_manager=excluded.is_manager,is_finance=excluded.is_finance,is_auditor=excluded.is_auditor,is_admin=excluded.is_admin,is_card_admin=excluded.is_card_admin,is_bookkeeper=excluded.is_bookkeeper,department_id=excluded.department_id,approver_email=excluded.approver_email,active=excluded.active,may_release=excluded.may_release,is_contractor=excluded.is_contractor,updated_at=excluded.updated_at').bind(address, name, roles.employee, roles.manager, roles.finance, roles.auditor, roles.admin, roles.cardAdmin, roles.bookkeeper, department, approver, active, release, contractor, now()),
+    event(db, actor, 'member-saved', {}, { email: address, roles, approver, department, active: active === 1, contractor: contractor === 1, ...(successor && handover ? { successor, cardCharges: handover.charges } : {}) }),
     ...(release !== (was?.may_release ?? 0) ? [event(db, actor, release ? 'release-granted' : 'release-revoked', {}, { email: address })] : []),
-    ...moves,
   ]);
   return db.prepare('SELECT * FROM c_members WHERE email=?').bind(address).first();
 }

@@ -10,7 +10,7 @@ export function Allowances({ state, reload, onNotice }: { state: D; reload: () =
   const { mine, all, recurring } = state.allowances, currency = state.business.currency, roles = state.actor.roles;
   const setter = roles.finance || roles.owner, categories = state.categories.filter((c: D) => c.active === 1).map((c: D) => ({ value: c.id, label: c.name }));
   const act = async (path: string, body: D, words: string) => { await call(path, body); onNotice(words); await reload(); };
-  const who = (a: D) => a.member_email ? state.names[a.member_email] ?? a.member_email : 'Every employee';
+  const who = (a: D) => a.member_email ? state.names[a.member_email] ?? a.member_email : a.department_id ? `${state.departments.find((d: D) => d.id === a.department_id)?.name ?? 'Department'} department` : 'Every employee';
   const terms = (a: D) => a.type === 'stipend' ? `${money(a.amount_minor, currency)} ${a.period} stipend · ${a.tax === 'taxable' ? 'taxable pay' : 'accountable plan'}` : `${money(a.amount_minor, currency)} ${a.period} cap`;
   return <Section title="Allowances">
     <p className="muted">A stipend is paid each period as its own claim, without a receipt, through your approver. A cap is claimed against with receipts; anything over what is left is not reimbursed.</p>
@@ -37,6 +37,7 @@ export function Allowances({ state, reload, onNotice }: { state: D; reload: () =
         <Field label="Amount" name="amount" inputMode="decimal" defaultValue={amountText(7500)} hint={currency} />
         <Field label="Every" name="period" options={PERIODS} defaultValue="monthly" />
         <Field label="Employee" name="member" required={false} options={Object.entries(state.names).map(([value, label]) => ({ value, label: String(label) }))} hint="Leave empty for every employee" />
+        <Field label="Department" name="department" required={false} options={state.departments.filter((d: D) => d.active).map((d: D) => ({ value: d.id, label: d.name }))} hint="Instead of one employee: everyone in the department" />
         <Field label="Category" name="category" required={false} options={categories} hint="Where a stipend is coded" />
         <Field label="Tax treatment" name="tax" required={false} options={TAX} hint="For stipends" />
         <Field label="Starts on" name="startsOn" type="date" required={false} />

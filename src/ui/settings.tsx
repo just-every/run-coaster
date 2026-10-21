@@ -13,6 +13,8 @@ import { Allowances } from './allowances';
 import { Retention } from './retention';
 import { PolicyAdvice } from './policy-advice';
 import { PolicyRules } from './policy';
+import { Departments } from './departments';
+import { EscalationChains } from './escalation-chains';
 import type { ViewProps } from './claims';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -21,7 +23,7 @@ const US_ZONES = [['America/New_York', 'Eastern'], ['America/Chicago', 'Central'
 
 /** Business policy, mileage rates, categories and people for the owner; everyone manages their own agent keys here. */
 export function Settings({ state, reload }: ViewProps) {
-  const roles = state.actor.roles, owner = roles.owner, b = state.business;
+  const roles = state.actor.roles, owner = roles.owner, admin = owner || roles.admin, reader = admin || roles.finance || roles.auditor || roles.bookkeeper, b = state.business;
   const auditorOnly = roles.auditor && !roles.employee && !roles.manager && !roles.finance && !owner;
   const [category, setCategory] = useState<D | null>(null), [member, setMember] = useState<D | null>(null), [notice, setNotice] = useState(''), [token, setToken] = useState<D>();
   const saved = async (message: string) => { setNotice(message); await reload(); };
@@ -33,7 +35,7 @@ export function Settings({ state, reload }: ViewProps) {
     <p className="notice" role="status" aria-live="polite">{notice}</p>
     <div className="cards">
     <div className="cards-2">
-    {owner && <Section title="Business" className="business">
+    {admin && <Section title="Business" className="business">
       <Form label="Save business" onSubmit={async v => { await call('settings/business', v); await saved('Business saved.'); }}>
         <Field label="Business name" name="name" defaultValue={b?.name} />
         <Field label="Currency" name="currency" defaultValue={b?.currency ?? 'USD'} maxLength={3} hint="Fixed once claims exist" />
@@ -69,11 +71,11 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Escalate after (business days)" name="escalateAfter" inputMode="numeric" required={false} defaultValue={b.escalation_days == null ? '' : String(b.escalation_days)} hint="After the last reminder, to the person's manager, then the same again to finance; empty turns escalation off" />
       </Form>
     </Section>}
-    {b && (owner || roles.finance || roles.auditor || roles.manager) && <SpendAnalytics currency={b.currency} />}
-    {b && (owner || roles.finance || roles.auditor) && <Budgets state={state} canSet={owner || roles.finance} />}
-    {(owner || roles.finance || roles.auditor) && <Reports owner={owner} schedules={owner || roles.finance} />}
-    {(owner || roles.finance || roles.auditor) && <AuditRecords state={state} />}
-    {owner && b && <WorkflowEditor state={state} reload={reload} />}
+    {b && (reader || roles.manager) && <SpendAnalytics currency={b.currency} />}
+    {b && reader && <Budgets state={state} canSet={admin || roles.finance} />}
+    {reader && <Reports owner={owner} schedules={owner || roles.finance} />}
+    {(admin || roles.finance || roles.auditor) && <AuditRecords state={state} />}
+    {admin && b && <WorkflowEditor state={state} reload={reload} />}
     {owner && b && <Section title="Approval by rule">
       <p className="muted">{state.approvalRule?.enabled ? `Rule v${state.approvalRule.version}: a claim approves itself when every expense is under ${money(state.approvalRule.limit_minor, b.currency)}, has its receipt attached and raises no policy exception. Every other claim goes to its approver.` : 'Off: every claim goes to its approver.'} Rule approvals are recorded with the rule's version and audit-sampled like any approval.</p>
       <Form key={state.approvalRule?.version ?? 0} label="Save approval rule" onSubmit={async v => { await call('settings/approval-rule', v); await saved('Approval rule saved.'); }}>
@@ -89,16 +91,18 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Cash advance account" name="advanceAccount" required={false} defaultValue={b.advance_account ?? ''} hint="The ledger account an advance a claim draws down posts to, as a negative line" />
       </Form>
     </Section>}
-    {owner && b && <Section title="Scheduled submission">
+    {admin && b && <Section title="Scheduled submission">
       <p className="muted">Expenses added without choosing a claim collect in a report for their month or trip. On this schedule, at 9:00 ({b.timezone}), each such report submits its complete expenses to the approver; anything missing a receipt, explanation or required field stays behind and keeps being reminded. Claims built by hand are never submitted for anyone.</p>
       <Form key={b.auto_submit ?? 'off'} label="Save schedule" onSubmit={async v => { await call('settings/auto-submit', v); await saved('Schedule saved.'); }}>
         <Field label="Submit automatic reports" name="schedule" required={false} defaultValue={b.auto_submit ?? ''} options={[{ value: 'daily', label: 'Each business day' }, { value: 'weekly', label: 'Weekly (first business day)' }, { value: 'twice-monthly', label: 'Twice a month (1st and 16th)' }, { value: 'monthly', label: 'Monthly (first business day)' }]} hint="Choose… turns it off" />
       </Form>
     </Section>}
-    {(owner || roles.finance) && b && <PolicyRules state={state} onNotice={setNotice} onChanged={reload} />}
-    {(owner || roles.finance) && b && <PolicyAdvice state={state} onNotice={setNotice} onChanged={reload} />}
+    {admin && b && <Departments state={state} reload={reload} onNotice={setNotice} />}
+    {(admin || roles.finance) && b && <EscalationChains state={state} reload={reload} onNotice={setNotice} />}
+    {(admin || roles.finance) && b && <PolicyRules state={state} onNotice={setNotice} onChanged={reload} />}
+    {(admin || roles.finance) && b && <PolicyAdvice state={state} onNotice={setNotice} onChanged={reload} />}
     {owner && b && <Retention state={state} onNotice={setNotice} />}
-    {owner && b && <Section title="Mileage rates">
+    {admin && b && <Section title="Mileage rates">
       <p className="muted">Each trip is priced at the rate in force on its date. {b.currency === 'USD' ? 'Seeded with the IRS standard business mileage rates; add next year\'s rate when the IRS announces it.' : 'Add the rate per mile your business pays from the day it applies.'}</p>
       {b.mileage_rates.length ? <table className="plain"><thead><tr><th>From</th><th className="figure">Rate per mile</th><th><span className="visually-hidden">Remove</span></th></tr></thead><tbody>
         {[...b.mileage_rates].reverse().map((r: D) => <tr key={r.effective_from}><td>{day(r.effective_from)}{r === mileageNow ? ' (in force today)' : ''}</td><td className="figure">{rate(r.rate_thousandths, b.currency)}</td><td><button className="button small" onClick={async () => { try { await call('settings/mileage-rates', { effectiveFrom: r.effective_from, remove: true }); await saved('Mileage rate removed.'); } catch (e) { setNotice((e as Error).message); } }}>Remove</button></td></tr>)}
@@ -108,7 +112,7 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Rate per mile" name="rate" inputMode="decimal" placeholder="0.725" hint="In tenths of a cent, as the IRS sets it" />
       </Form></div>
     </Section>}
-    {owner && b && <Section title="Expense categories">
+    {admin && b && <Section title="Expense categories">
       {state.categories.length ? <table className="plain"><thead><tr><th>Category</th><th>Account</th><th>Tax code</th><th className="figure">Limit per expense</th><th>Receipt</th><th>Status</th><th><span className="visually-hidden">Change</span></th></tr></thead><tbody>
         {state.categories.map((c: D) => <tr key={c.id}><td>{c.name}{c.required_fields.length > 0 && <small className="muted"> · needs {c.required_fields.join(', ')}</small>}</td><td><span className="mobile-label">Account </span>{c.account_code}</td><td><span className="mobile-label">Tax </span>{c.tax_code}</td><td className="figure">{c.limit_minor == null ? 'No limit' : money(c.limit_minor, b.currency)}{c.per_person_limit_minor != null ? ` · ${money(c.per_person_limit_minor, b.currency)} a person` : ''}</td><td>{c.receipt_always ? 'Always' : 'Over the threshold'}</td><td>{c.active ? 'In use' : 'Retired'}</td><td><button className="button small" onClick={() => setCategory(c)}>Change</button></td></tr>)}
       </tbody></table> : <Empty title="No categories yet">Add the categories your accountant expects, with their account and tax codes.</Empty>}
@@ -123,9 +127,9 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="In use" name="active" type="checkbox" defaultValue={category ? category.active === 1 : true} />
       </Form></div>
     </Section>}
-    {owner && b && <Section title="People">
+    {admin && b && <Section title="People">
       {state.members.length ? <table className="plain"><thead><tr><th>Name</th><th>Email</th><th>Roles</th><th>Approver</th><th><span className="visually-hidden">Actions</span></th></tr></thead><tbody>
-        {state.members.map((m: D) => <tr key={m.email}><td>{m.name}{!m.active && ' (inactive)'}</td><td>{m.email}</td><td>{[m.is_employee && 'Employee', m.is_manager && 'Manager', m.is_finance && 'Finance', m.is_auditor && 'Auditor', m.may_release && 'Releases payments', m.is_contractor && 'Contractor'].filter(Boolean).join(', ')}</td><td><span className="mobile-label">Approver </span>{state.members.find((x: D) => x.email === m.approver_email)?.name ?? '—'}</td><td className="row-actions"><button className="button small" onClick={() => setMember(m)}>Change</button><button className="button small" onClick={async () => { try { await call('settings/members/invite', { email: m.email }); setNotice(`Invitation sent to ${m.email}.`); } catch (e) { setNotice((e as Error).message); } }}>Invite</button>{!m.active && m.email.includes('@') && <button className="button small" onClick={async () => { if (!window.confirm(`Erase ${m.name}'s personal data? Their name, email, sign-in, agent keys, delegations and own comments are removed for good; their claims, receipts and history stay under an anonymous label.`)) return; try { const r = await call('settings/members/erase', { email: m.email }); await saved(`${m.name} is now ${r.label}; the erasure receipt is under Retention.`); } catch (e) { setNotice((e as Error).message); } }}>Erase</button>}</td></tr>)}
+        {state.members.map((m: D) => <tr key={m.email}><td>{m.name}{!m.active && ' (inactive)'}</td><td>{m.email}</td><td>{[m.is_employee && 'Employee', m.is_manager && 'Manager', m.is_finance && 'Finance', m.is_auditor && 'Auditor', m.is_admin && 'Admin', m.is_card_admin && 'Card admin', m.is_bookkeeper && 'Bookkeeper', m.department_id && state.departments.find((d: D) => d.id === m.department_id)?.name, m.may_release && 'Releases payments', m.is_contractor && 'Contractor'].filter(Boolean).join(', ')}</td><td><span className="mobile-label">Approver </span>{state.members.find((x: D) => x.email === m.approver_email)?.name ?? '—'}</td><td className="row-actions"><button className="button small" onClick={() => setMember(m)}>Change</button><button className="button small" onClick={async () => { try { await call('settings/members/invite', { email: m.email }); setNotice(`Invitation sent to ${m.email}.`); } catch (e) { setNotice((e as Error).message); } }}>Invite</button>{!m.active && m.email.includes('@') && <button className="button small" onClick={async () => { if (!window.confirm(`Erase ${m.name}'s personal data? Their name, email, sign-in, agent keys, delegations and own comments are removed for good; their claims, receipts and history stay under an anonymous label.`)) return; try { const r = await call('settings/members/erase', { email: m.email }); await saved(`${m.name} is now ${r.label}; the erasure receipt is under Retention.`); } catch (e) { setNotice((e as Error).message); } }}>Erase</button>}</td></tr>)}
       </tbody></table> : <Empty title="Nobody added yet">Add yourself and your team. Each employee needs an approving manager.</Empty>}
       <div className="sub-form"><h3>{member ? `Change ${member.name}` : 'Add a person'}</h3><Form key={member?.email ?? 'new'} label={member ? 'Save person' : 'Add person'} onSubmit={async v => { await call('settings/members', v); setMember(null); await saved('Person saved.'); }} secondary={member ? <button type="button" className="button" onClick={() => setMember(null)}>Cancel</button> : undefined}>
         <Field label="Name" name="name" defaultValue={member?.name} />
@@ -135,9 +139,14 @@ export function Settings({ state, reload }: ViewProps) {
           <Field label="Manager" name="manager" type="checkbox" defaultValue={member?.is_manager} />
           <Field label="Finance" name="finance" type="checkbox" defaultValue={member?.is_finance} />
           <Field label="Auditor (reads everything, changes nothing)" name="auditor" type="checkbox" defaultValue={member?.is_auditor} />
+          <Field label="Admin (people, settings and workflows; not payments)" name="admin" type="checkbox" defaultValue={member?.is_admin} />
+          <Field label="Card admin (assigns and freezes cards)" name="cardAdmin" type="checkbox" defaultValue={member?.is_card_admin} />
+          <Field label="Bookkeeper (external; exports and ledger fixes)" name="bookkeeper" type="checkbox" defaultValue={member?.is_bookkeeper} />
           <Field label="May release payments (finance only)" name="release" type="checkbox" defaultValue={member?.may_release} />
           <Field label="Contractor (claims as a non-employee; flagged for 1099 review)" name="contractor" type="checkbox" defaultValue={member?.is_contractor} />
         </fieldset>
+        <Field label="Department" name="department" required={false} defaultValue={member?.department_id ?? ''} options={state.departments.filter((d: D) => d.active).map((d: D) => ({ value: d.id, label: d.name }))} />
+        <Field label="Successor if deactivated" name="successor" required={false} options={state.members.filter((m: D) => m.active && m.email !== member?.email).map((m: D) => ({ value: m.email, label: m.name }))} hint="Takes over open approvals, their reports and unsubmitted card charges when you untick Active" />
         <Field label="Approving manager" name="approver" required={false} defaultValue={member?.approver_email ?? ''} options={managers.filter((m: D) => m.email !== member?.email).map((m: D) => ({ value: m.email, label: m.name }))} />
         <Field label="Active" name="active" type="checkbox" defaultValue={member ? member.active === 1 : true} />
       </Form></div>
