@@ -494,7 +494,7 @@ test('CAPTURE-004 cash window defaults off, confirms only finance-visible counts
   } finally { await h.close() }
 })
 
-test('CAPTURE-004 attaches and detaches one R2 original on editable purchases, preserves revisions and proves delegate and authority boundaries', async () => {
+test('CAPTURE-004 attaches and detaches one R2 original on editable purchases, preserves revisions and proves delegate and authority boundaries plus ERASURE-001 alias provenance', async () => {
   const h=await harness()
   try {
     const t=await agency(h), png=await readFile('tests/fixtures/receipts/bistro.png')
@@ -552,6 +552,20 @@ test('CAPTURE-004 attaches and detaches one R2 original on editable purchases, p
     d=await h.get(`claims/${c.id}`,t.sam)
     assert.equal(d.revisions[0].snapshot.items[0].receipt.id,submittedAlias)
     assert.equal((await h.mf.dispatchFetch(`${h.origin}/api/coaster/receipts/${submittedAlias}`,{headers:{cookie:t.morgan}})).status,200,'submitted evidence stays visible')
+    // ERASURE-001: erasing an upload/attachment delegate updates both alias and original provenance consistently.
+    const erasingGrant=await h.post('delegates',{delegate:'jordan@harbourfinch.example',level:'submit'},t.sam)
+    const delegateOriginal=await upload(h,t.jordan,'delegate-original.png',png,{headers:{'x-coaster-acting-for':SAM}})
+    const delegatedAttach=await h.send(`/api/coaster/receipt-inbox/${delegateOriginal.id}/attach`,{expectedSequence:0,claimId:c.id,itemId:item.id,version:c.version},t.jordan,{'x-coaster-acting-for':SAM})
+    assert.equal(delegatedAttach.status,200);c=delegatedAttach.value.claim
+    const delegateAlias=(await h.get(`claims/${c.id}`,t.sam)).items[0].receipt_id
+    await h.post(`delegates/${erasingGrant.id}/revoke`,{},t.sam)
+    await h.post('settings/members',{email:'jordan@harbourfinch.example',name:'jordan',employee:true,manager:true,finance:true,active:false})
+    const erased=await h.post('settings/members/erase',{email:'jordan@harbourfinch.example'})
+    const afterErase=(await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===delegateOriginal.id)
+    assert.equal(afterErase.uploadedBy,erased.retained.subject)
+    assert.equal(afterErase.lifecycle[0].actorEmail,erased.retained.subject)
+    const erasedFile=await h.mf.dispatchFetch(`${h.origin}/api/coaster/receipts/${delegateAlias}`,{headers:{cookie:t.sam}})
+    assert.equal(erasedFile.status,200);assert.deepEqual(Buffer.from(await erasedFile.arrayBuffer()),png)
     // Receipt consumers use the one R2 original, including an inbox PDF above the legacy BLOB limit.
     const folio=await captureFolio(8_000_000), large=await upload(h,t.sam,'large-folio.pdf',folio)
     let largeClaim=await h.post('claims',{title:'Hotel folio'},t.sam)
@@ -571,10 +585,10 @@ test('CAPTURE-004 attaches and detaches one R2 original on editable purchases, p
     await h.post('settings/cash-draft-window',window,t.morgan)
     await (await h.mf.getWorker()).scheduled({scheduledTime:Date.parse(large.uploadedAt)+86400000,cron:'17 * * * *'})
     assert.equal(await h.db.prepare('SELECT COUNT(*) n FROM c_capture_cash_drafts WHERE receipt_id=?').bind(large.id).first('n'),0)
-    const bucket=await h.mf.getR2Bucket('COASTER_RECEIPTS');assert.equal((await bucket.list()).objects.length,2)
+    const bucket=await h.mf.getR2Bucket('COASTER_RECEIPTS');assert.equal((await bucket.list()).objects.length,3)
     // Existing automatic reports can use an inbox original too; their scheduler resolves R2 when freezing a revision.
-    let automatic=await h.post('expenses',{kind:'receipt',date:'2026-10-18',merchant:'Airport cafe',amount:'16.00',category:t.c.meals},t.alex)
-    const autoOriginal=await upload(h,t.alex,'automatic.png',png),autoDetail=await h.get(`claims/${automatic.id}`,t.alex)
+    let automatic=await h.post('expenses',{kind:'receipt',date:'2026-10-18',merchant:'Office supplies',amount:'16.00',category:t.c.office},t.alex)
+    const autoOriginal=await upload(h,t.alex,'automatic.png',await readFile('tests/fixtures/receipts/officeworks.png')),autoDetail=await h.get(`claims/${automatic.id}`,t.alex)
     automatic=(await h.post(`receipt-inbox/${autoOriginal.id}/attach`,{expectedSequence:0,claimId:automatic.id,itemId:autoDetail.items[0].id,version:automatic.version},t.alex)).claim
     await h.post('settings/auto-submit',{schedule:'daily'})
     await (await h.mf.getWorker()).scheduled({scheduledTime:Date.parse('2026-10-22T04:00:00Z'),cron:'17 * * * *'})
