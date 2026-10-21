@@ -183,8 +183,17 @@ export async function ownerScreens(owner, origin, width, evidence, shots, import
   await page.getByRole('cell', { name: 'Melbourne pitch' }).waitFor()
   await noOverflow(page, width)
   await shot(page, evidence, 'move-in', width, shots)
+  // ADMIN-001: departments, the new roles and the escalation chain sit beside People on the same screen.
+  if (importNow) {
+    const sales = await api(owner.context, origin, 'settings/departments', { name: 'Sales', head: PEOPLE.manager })
+    await api(owner.context, origin, 'settings/escalation-chains', { department: sales.id, steps: [{ kind: 'department-head' }, { kind: 'finance', email: PEOPLE.finance }] })
+  }
   await nav(page, 'Settings')
   await page.getByRole('heading', { name: 'People', exact: true }).waitFor()
+  await page.getByRole('heading', { name: 'Departments', exact: true }).waitFor()
+  await page.getByRole('heading', { name: 'Escalation chains', exact: true }).waitFor()
+  await page.getByRole('cell', { name: 'Sales', exact: true }).waitFor()
+  for (const role of ['Admin (people, settings and workflows; not payments)', 'Card admin (assigns and freezes cards)', 'Bookkeeper (external; exports and ledger fixes)']) await page.getByLabel(role, { exact: true }).waitFor()
   await noOverflow(page, width)
   await shot(page, evidence, 'settings', width, shots)
 }
