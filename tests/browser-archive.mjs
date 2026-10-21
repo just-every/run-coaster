@@ -30,11 +30,11 @@ export async function rejectInconsistentArchives(root, archive) {
     claim_total: ['c_claims', row => { row.total_minor += 1 }],
     receipt_bytes: ['c_receipts', row => { const bytes = Buffer.from(row.bytes.blob, 'base64'); bytes[bytes.length - 1] ^= 1; row.bytes.blob = bytes.toString('base64') }],
     capture_bytes: ['c_capture_receipts', row => { row.size += 1 }],
-    capture_reason: ['c_capture_lifecycle', row => { row.reason = 'x'.repeat(1001) }],
+    capture_reason: ['c_capture_lifecycle', row => { row.reason = 'x'.repeat(1001) }, row => row.kind === 'discarded'],
     decision_revision: ['c_decisions', row => { row.revision += 7 }],
   }
-  for (const [code, [table, change]] of Object.entries(cases)) {
-    await writeFile(join(root, `exports/${code}.rer`), await tampered(archive, table, change), { mode: 0o600 })
+  for (const [code, [table, change, pick]] of Object.entries(cases)) {
+    await writeFile(join(root, `exports/${code}.rer`), await tampered(archive, table, change, pick), { mode: 0o600 })
     const log = await command(root, ['import', '--input', `exports/${code}.rer`, '--yes'], { expected: 4 })
     assert.match(log, new RegExp('coaster_' + code), `restore refused ${code}`)
     await command(root, ['export', '--output', `exports/empty-after-${code}.rer`])
