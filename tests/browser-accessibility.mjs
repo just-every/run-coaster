@@ -7,6 +7,8 @@ import { api, session } from './browser-journey.mjs'
 import { keyboardReceipt } from './fixtures/keyboard-receipt.mjs'
 
 async function tabTo(page, target) {
+  // A person acts in the foreground tab; Chromium can suppress native file choosers in a background tab.
+  await page.bringToFront()
   await target.waitFor({ state: 'visible' })
   for (let count = 0; count < 160; count++) {
     if (await target.evaluate(el => el === document.activeElement)) {
