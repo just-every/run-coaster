@@ -109,6 +109,15 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
       layout.text(`Exchange rate: 1 ${item.original_currency} = ${item.fx_rate} ${claim.currency} | Rate date: ${item.fx_date} | Source: ${item.fx_source}`);
       if (item.fx_source === 'ECB reference rates') layout.text('ECB reference rate, not your card’s rate.');
     }
+    if (item.card_match_basis) {
+      const basis = JSON.parse(item.card_match_basis);
+      layout.text(`Matched receipt: ${money(basis.enteredTotalMinor, basis.enteredCurrency)} on ${basis.enteredDate} | Match rule v${basis.ruleVersion} | ${basis.basis}`);
+      if (basis.fxRate) {
+        layout.text(`Reference conversion: ${money(item.amount_minor - basis.differenceMinor, basis.differenceCurrency)} | Posted card amount: ${money(item.amount_minor, claim.currency)}`);
+        layout.text(`Exchange rate: 1 ${basis.enteredCurrency} = ${basis.fxRate} ${basis.differenceCurrency} | Rate date: ${basis.fxDate} | Source: ${basis.fxSource}`);
+        if (basis.fxSource === 'ECB reference rates') layout.text('ECB reference rate, not your card’s rate.');
+      }
+    }
     if (item.description) layout.text(`Purpose: ${item.description}`);
     if (item.kind === 'mileage') layout.text(`${item.distance_hundredths / 100} miles at ${item.rate_thousandths / 1000} ${claim.currency} per mile`);
     if (item.per_diem) {

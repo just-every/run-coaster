@@ -3,10 +3,26 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { crc32 } from 'node:zlib'
+import { PDFDocument, PDFName, PDFDict, PDFArray, PDFRawStream, decodePDFRawStream } from 'pdf-lib'
 import { agency, harness } from './harness.mjs'
 
 const NOTICE = "When this receipt matches one of your card charges, Coaster attaches it automatically. Approvers and finance can see the receipt, its file name and the total, currency and date you entered once that expense is submitted — by you, your delegate or the owner's scheduled submission."
 const tick = async h => (await h.mf.getWorker()).scheduled({scheduledTime:Date.now(),cron:'17 * * * *'})
+
+const decode = stream => Buffer.from(decodePDFRawStream(stream).decode()).toString('utf8')
+function pageText(document, page) {
+  const fonts = page.node.Resources().lookup(PDFName.of('Font'), PDFDict), characters = new Map()
+  for (const name of fonts.keys()) {
+    const font = fonts.lookup(name, PDFDict), map = font.lookup(PDFName.of('ToUnicode'))
+    if (!(map instanceof PDFRawStream)) continue
+    for (const [, glyph, codes] of decode(map).matchAll(/<([a-f\d]{4})>\s*<([a-f\d]+)>/gi)) {
+      const bytes = Buffer.from(codes, 'hex')
+      characters.set(glyph.toUpperCase(), Array.from({ length: bytes.length / 2 }, (_, i) => String.fromCharCode(bytes.readUInt16BE(i * 2))).join(''))
+    }
+  }
+  const contents = page.node.Contents(), streams = contents instanceof PDFArray ? contents.asArray().map(ref => document.context.lookup(ref)) : [contents]
+  return streams.filter(s => s instanceof PDFRawStream).flatMap(s => [...decode(s).matchAll(/<([a-f\d]+)>\s*Tj/gi)].map(([, text]) => (text.match(/.{4}/g) || []).map(code => characters.get(code.toUpperCase()) || '').join(''))).join('\n')
+}
 
 function auditFiles(bytes) {
   const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.length),files={};let end=bytes.length-22
@@ -95,5 +111,10 @@ test('FEED-004 twenty posted USD charges and opted-in originals yield eighteen a
     assert.deepEqual(exported.cardMatchBasis,fxBasis)
     const provenance=manifest.receipts.find(r=>r.id===fxItem.receipt_id)
     assert.deepEqual(files[provenance.file],originals[17].bytes,'export keeps the original EUR receipt bytes')
+    const pdfResponse=await h.mf.dispatchFetch(h.origin+`/api/coaster/claims/${detail.claim.id}/pdf`,{headers:{cookie:t.morgan}})
+    assert.equal(pdfResponse.status,200)
+    const pdf=await PDFDocument.load(await pdfResponse.arrayBuffer()),visible=pdf.getPages().map(p=>pageText(pdf,p)).join('\n')
+    for(const value of ['Matched receipt: EUR 80.00','Reference conversion: $88.00','Posted card amount: $90.00','Exchange rate: 1 EUR = 1.1 USD','Rate date: 2026-10-02','Source: ECB reference rates']) assert.ok(visible.includes(value),value)
+
   } finally {await h.close()}
 })

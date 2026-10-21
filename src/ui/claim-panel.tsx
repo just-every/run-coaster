@@ -33,7 +33,8 @@ const conversion = (item: D, currency: string) => item.original_minor == null ||
 function matchBasis(item: D) {
   if(!item.card_match_basis) return null;
   const basis=typeof item.card_match_basis==='string'?JSON.parse(item.card_match_basis):item.card_match_basis;
-  return `Attached automatically to this card charge · rule v${basis.ruleVersion} · ${basis.basis} · entered ${money(basis.enteredTotalMinor,basis.enteredCurrency)} on ${basis.enteredDate} · difference ${money(basis.differenceMinor,basis.differenceCurrency)}`;
+  const conversion = basis.fxRate ? ` · reference ${money(item.amount_minor - basis.differenceMinor,basis.differenceCurrency)} · 1 ${basis.enteredCurrency} = ${basis.fxRate} ${basis.differenceCurrency} · rate ${day(basis.fxDate)} · ${basis.fxSource === 'ECB reference rates' ? 'ECB reference rate, not your card’s rate' : basis.fxSource}` : '';
+  return `Attached automatically to this card charge · rule v${basis.ruleVersion} · ${basis.basis} · entered ${money(basis.enteredTotalMinor,basis.enteredCurrency)} on ${basis.enteredDate} · difference ${money(basis.differenceMinor,basis.differenceCurrency)}${conversion}`;
 }
 
 function merchantLine(item: D, currency: string) {
