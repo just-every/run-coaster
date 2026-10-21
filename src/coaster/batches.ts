@@ -115,6 +115,7 @@ export async function removeFromBatch(db: D1Database, actor: Actor, id: string, 
   need(actor, 'finance');
   const batch = await loadBatch(db, id);
   requireThat(batch.status === 'draft' && b.version === batch.version, 'Only an unreviewed draft batch can change; reload', 409);
+  requireThat(typeof b.claim === 'string' && b.claim, 'Choose the claim to take out of the batch');
   const row = await db.prepare('SELECT claim_id,amount_minor FROM c_batch_claims WHERE batch_id=? AND claim_id=?').bind(id, b.claim).first<{ claim_id: string; amount_minor: number }>();
   requireThat(row, 'That claim is not in this batch', 404);
   const at = now();

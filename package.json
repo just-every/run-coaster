@@ -31,7 +31,7 @@
     "check": "rer check",
     "deps": "rer install",
     "rer": "rer",
-    "test:coaster": "node --test --test-concurrency=1 tests/coaster*.test.mjs",
+    "test:coaster": "node tests/coaster-suite.mjs",
     "test:browser": "node tests/browser.mjs",
     "test:site": "node --test tests/site/*.test.mjs"
   },

@@ -1,4 +1,5 @@
-import { authority, commit, rolesFrom } from './session';
+import { all, authority, commit, rolesFrom, type Sql } from './session';
+import { can, needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { operatorMail } from '../mail.server.mjs';
 import type { Bindings } from '../auth.server';
@@ -8,11 +9,20 @@ const levelWords = { submit: 'Submit only', full: 'Full' } as const;
 const activeMember = (db: D1Database, address: string) => db.prepare('SELECT name FROM c_members WHERE email=? AND active=1').bind(address).first<{ name: string }>();
 const escape = (s: string) => s.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
-/** A member grants another member delegate access to their own expenses; the owner grants and revokes for anyone. */
+const ownerGrant = (address: unknown) => "EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=" + address + " AND o.role='owner')";
+/** Managing someone else's delegates is the people row of the matrix (ADMIN-001): the owner for anyone, an admin for anyone
+ * but the owner, whose row only the owner hands out (ADMIN-005). Returns the guard that keeps it so at commit. */
+async function forSomeoneElse(db: D1Database, actor: Actor, grantor: string): Promise<Sql> {
+  needRow(actor, 'people', 'Only the owner or an admin manages delegates for someone else');
+  requireThat(actor.roles.owner || !await db.prepare("SELECT 1 FROM oa_operators WHERE lower(email)=? AND role='owner'").bind(grantor).first(), 'Only the owner manages the owner\'s delegates', 403);
+  return all(rowAuthority(actor, 'people'), actor.roles.owner ? { sql: '1', params: [] } : { sql: `NOT ${ownerGrant('?')}`, params: [grantor] });
+}
+
+/** A member grants another member delegate access to their own expenses; the owner, or an admin for anyone but the owner, grants and revokes for others. */
 export async function grantDelegate(db: D1Database, env: Bindings, actor: Actor, b: Data) {
-  requireThat(actor.kind === 'person' && !actor.delegate, 'Only the person themselves or the owner grants delegate access', 403);
+  requireThat(actor.kind === 'person' && !actor.delegate, 'Only the person themselves, an admin or the owner grants delegate access', 403);
   const grantor = b.grantor ? email(b.grantor, 'Person') : actor.email;
-  requireThat(grantor === actor.email || actor.roles.owner, 'Only the owner grants delegates for someone else', 403);
+  const guard = grantor === actor.email ? authority(actor) : await forSomeoneElse(db, actor, grantor);
   const delegate = email(b.delegate, 'Delegate');
   requireThat(delegate !== grantor, 'Choose someone else as the delegate');
   requireThat(b.level === 'submit' || b.level === 'full', 'Choose Submit only or Full access');
@@ -21,7 +31,7 @@ export async function grantDelegate(db: D1Database, env: Bindings, actor: Actor,
   requireThat(to, 'The delegate must be an active member');
   const live = await db.prepare('SELECT id FROM c_delegates WHERE grantor_email=? AND delegate_email=? AND revoked_at IS NULL').bind(grantor, delegate).first<{ id: string }>();
   const id = uid(), at = now();
-  await commit(db, authority(actor, grantor === actor.email ? undefined : 'owner'), [
+  await commit(db, guard, [
     ...(live ? [db.prepare('UPDATE c_delegates SET revoked_by=?,revoked_at=? WHERE id=?').bind(actor.email, at, live.id)] : []),
     db.prepare('INSERT INTO c_delegates(id,grantor_email,delegate_email,level,created_by,created_at) VALUES(?,?,?,?,?,?)').bind(id, grantor, delegate, level, actor.email, at),
     event(db, actor, 'delegate-granted', {}, { id, grantor, delegate, level, replaced: live?.id ?? null }),
@@ -33,25 +43,25 @@ export async function grantDelegate(db: D1Database, env: Bindings, actor: Actor,
   return { id, grantor, delegate, level, notified: sent?.status ?? 'mail not set up' };
 }
 
-/** The granting person, the delegate or the owner ends a grant; the delegate's next request is refused. */
+/** The granting person, the delegate, the owner or (for anyone but the owner) an admin ends a grant; the delegate's next request is refused. */
 export async function revokeDelegate(db: D1Database, actor: Actor, id: string) {
   requireThat(actor.kind === 'person' && !actor.delegate, 'A delegate cannot change delegate access', 403);
   const grant = await db.prepare('SELECT * FROM c_delegates WHERE id=? AND revoked_at IS NULL').bind(id).first<Data>();
   requireThat(grant, 'Delegate access not found', 404);
   const own = [grant.grantor_email, grant.delegate_email].includes(actor.email);
-  requireThat(own || actor.roles.owner, 'Only the person, their delegate or the owner ends delegate access', 403);
-  await commit(db, authority(actor, own ? undefined : 'owner'), [
+  const guard = own ? authority(actor) : await forSomeoneElse(db, actor, grant.grantor_email);
+  await commit(db, guard, [
     db.prepare('UPDATE c_delegates SET revoked_by=?,revoked_at=? WHERE id=? AND revoked_at IS NULL').bind(actor.email, now(), id),
     event(db, actor, 'delegate-revoked', {}, { id, grantor: grant.grantor_email, delegate: grant.delegate_email, level: grant.level }),
   ]);
   return { ok: true };
 }
 
-/** Live grants the signed-in person gave or holds; the owner sees everyone's. */
+/** Live grants the signed-in person gave or holds; the owner sees everyone's, an admin everyone's but the owner's. */
 export async function delegateGrants(db: D1Database, actor: Actor) {
-  const me = actor.delegate?.email ?? actor.email, everyone = actor.roles.owner && !actor.delegate;
-  const rows = await db.prepare('SELECT id,grantor_email,delegate_email,level,created_by,created_at FROM c_delegates WHERE revoked_at IS NULL ORDER BY created_at DESC').all<Data>();
-  return rows.results.filter(g => everyone || g.grantor_email === me || g.delegate_email === me);
+  const me = actor.delegate?.email ?? actor.email, manager = can(actor, 'people') && !actor.delegate;
+  const rows = await db.prepare(`SELECT id,grantor_email,delegate_email,level,created_by,created_at,${ownerGrant('g.grantor_email')} AS owner_grant FROM c_delegates g WHERE revoked_at IS NULL ORDER BY created_at DESC`).all<Data>();
+  return rows.results.filter(g => (manager && (actor.roles.owner || !g.owner_grant)) || g.grantor_email === me || g.delegate_email === me).map(({ owner_grant: _, ...g }) => g);
 }
 
 /** The signed-in person acting as a delegate: the actor becomes the granting person, with roles narrowed by the

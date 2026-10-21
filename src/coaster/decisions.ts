@@ -1,6 +1,7 @@
 import { tasksFor } from './workflow-routing';
 import { decideWorkflowClaim } from './workflow-decisions';
 import { all, authority, commit, need } from './session';
+import { needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { claimState, loadClaim } from './claims';
 import { approveWithHold } from './holds';
@@ -50,9 +51,9 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data) 
   return loadClaim(db, id);
 }
 
-/** The owner moves a stuck claim to another active manager; the move is a history line and COA-006 still holds for the new approver. */
+/** The owner or an admin moves a stuck claim to another active manager; the move is a history line and COA-006 still holds for the new approver. */
 export async function reassign(db: D1Database, actor: Actor, id: string, b: Data) {
-  need(actor, 'owner');
+  needRow(actor, 'settings');
   const claim = await loadClaim(db, id);
   requireThat(claim.status === 'submitted', 'Only a claim waiting for a decision can be reassigned', 409);
   requireThat(b.version === claim.version, 'The claim changed since you opened it; reload and try again', 409);
@@ -66,7 +67,7 @@ export async function reassign(db: D1Database, actor: Actor, id: string, b: Data
   requireThat(to !== (task?.email??claim.approver_email), 'The claim is already waiting for that person');
   requireThat(await db.prepare(`SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_${role}=1`).bind(to).first(), 'The new approver must be an active member with the manager role');
   const reason = optionalText(b.reason, 'Reason', 500);
-  await commit(db, all(authority(actor, 'owner'), claimState(claim.id, claim.version, ['submitted'])), [
+  await commit(db, all(rowAuthority(actor, 'settings'), claimState(claim.id, claim.version, ['submitted'])), [
     ...(task ? [db.prepare("UPDATE c_workflow_tasks SET email=?,on_behalf_of=NULL WHERE kind='claim' AND record_id=? AND revision=? AND slot=?").bind(to,id,claim.revision,task.slot)] : []),
     db.prepare('UPDATE c_claims SET approver_email=?,on_behalf_of=NULL,version=version+1,updated_at=? WHERE id=?').bind(to, now(), claim.id),
     event(db, actor, 'claim-reassigned', { claim: claim.id }, { from: task?.email??claim.approver_email, to, reason, slot:task?.slot }),

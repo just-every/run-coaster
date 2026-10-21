@@ -1,4 +1,5 @@
-import { all, authority, commit, need, type Sql } from './session';
+import { all, commit, type Sql } from './session';
+import { needRow, rowAuthority } from './permissions';
 import { ruleEvent, event } from './events';
 import { auditSample } from './audit-queue';
 import { requireBusiness } from './settings';
@@ -11,16 +12,17 @@ export const currentRule = (db: D1Database) => db.prepare('SELECT * FROM c_appro
 /** How a rule approval is recorded wherever an approver's name would be. */
 export const ruleLabel = (version: number) => `rule v${version}`;
 
-/** The owner turns the rule on with the amount every expense must be under, or off; each save is the next version. */
+/** The owner or an admin (ADMIN-001's business settings and approval workflows row) turns the rule on with the amount every
+ * expense must be under, or off; each save is the next version. */
 export async function saveApprovalRule(db: D1Database, actor: Actor, b: Data) {
-  need(actor, 'owner');
+  needRow(actor, 'settings');
   requireThat(actor.kind === 'person', 'Only a person changes the approval rule', 403);
   await requireBusiness(db);
   const enabled = b.enabled === true || b.enabled === 'true' || b.enabled === 'on';
   const limit = optionalAmount(b.limit, 'Every expense under');
   requireThat(!enabled || (limit !== null && limit > 0), 'Set the amount every expense must be under to approve by rule');
   const version = ((await currentRule(db))?.version ?? 0) + 1;
-  await commit(db, all(authority(actor, 'owner'), { sql: 'NOT EXISTS(SELECT 1 FROM c_approval_rules WHERE version>=?)', params: [version] }), [
+  await commit(db, all(rowAuthority(actor, 'settings'), { sql: 'NOT EXISTS(SELECT 1 FROM c_approval_rules WHERE version>=?)', params: [version] }), [
     db.prepare('INSERT INTO c_approval_rules(version,enabled,limit_minor,set_by,set_at) VALUES(?,?,?,?,?)').bind(version, enabled ? 1 : 0, enabled ? limit : null, actor.delegate?.email ?? actor.email, now()),
     event(db, actor, 'approval-rule-set', {}, { version, enabled, limitMinor: enabled ? limit : null }),
   ]);

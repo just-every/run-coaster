@@ -8,7 +8,7 @@ const TAX = [{ value: 'accountable', label: 'Accountable plan (not taxed)' }, { 
  * own recurring expenses; finance and the owner set and stop allowances for one employee or everyone. */
 export function Allowances({ state, reload, onNotice }: { state: D; reload: () => Promise<D>; onNotice: (words: string) => void }) {
   const { mine, all, recurring } = state.allowances, currency = state.business.currency, roles = state.actor.roles;
-  const setter = roles.finance || roles.owner, categories = state.categories.filter((c: D) => c.active === 1).map((c: D) => ({ value: c.id, label: c.name }));
+  const setter = roles.finance || roles.owner || roles.admin, categories = state.categories.filter((c: D) => c.active === 1).map((c: D) => ({ value: c.id, label: c.name }));
   const act = async (path: string, body: D, words: string) => { await call(path, body); onNotice(words); await reload(); };
   const who = (a: D) => a.member_email ? state.names[a.member_email] ?? a.member_email : a.department_id ? `${state.departments.find((d: D) => d.id === a.department_id)?.name ?? 'Department'} department` : 'Every employee';
   const terms = (a: D) => a.type === 'stipend' ? `${money(a.amount_minor, currency)} ${a.period} stipend · ${a.tax === 'taxable' ? 'taxable pay' : 'accountable plan'}` : `${money(a.amount_minor, currency)} ${a.period} cap`;

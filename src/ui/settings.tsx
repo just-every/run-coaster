@@ -76,7 +76,7 @@ export function Settings({ state, reload }: ViewProps) {
     {reader && <Reports owner={owner} schedules={owner || roles.finance} />}
     {(admin || roles.finance || roles.auditor) && <AuditRecords state={state} />}
     {admin && b && <WorkflowEditor state={state} reload={reload} />}
-    {owner && b && <Section title="Approval by rule">
+    {admin && b && <Section title="Approval by rule">
       <p className="muted">{state.approvalRule?.enabled ? `Rule v${state.approvalRule.version}: a claim approves itself when every expense is under ${money(state.approvalRule.limit_minor, b.currency)}, has its receipt attached and raises no policy exception. Every other claim goes to its approver.` : 'Off: every claim goes to its approver.'} Rule approvals are recorded with the rule's version and audit-sampled like any approval.</p>
       <Form key={state.approvalRule?.version ?? 0} label="Save approval rule" onSubmit={async v => { await call('settings/approval-rule', v); await saved('Approval rule saved.'); }}>
         <Field label="Approve qualifying claims by rule" name="enabled" type="checkbox" defaultValue={state.approvalRule?.enabled === 1} />

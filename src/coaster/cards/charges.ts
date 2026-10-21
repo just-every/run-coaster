@@ -1,4 +1,4 @@
-import { all, authority, commit, need, type Sql } from '../session';
+import { all, commit, type Sql } from '../session';
 import { can, needRow, rowAuthority } from '../permissions';
 import { event } from '../events';
 import { claimState, claimTotal, insertClaim, insertItem } from '../claims';
@@ -67,7 +67,7 @@ export function chargeStatements(db: D1Database, actor: Actor, c: { file: string
 
 /** Commit applies exactly the previewed bytes and mapping: each importable purchase becomes one company-card expense. */
 export async function commitStatement(db: D1Database, actor: Actor, b: Data) {
-  need(actor, 'finance');
+  needRow(actor, 'connections');
   person(actor);
   const plan = await planStatement(db, b), { review } = plan, category = await categoryFor(db, plan.category);
   requireThat(b.fingerprint === plan.fingerprint, 'The file or its choices changed since the preview; preview again', 409);
@@ -87,13 +87,13 @@ export async function commitStatement(db: D1Database, actor: Actor, b: Data) {
   }
   for (const c of place.claims.keys()) statements.push(claimTotal(db, c));
   statements.push(event(db, actor, 'import-statement-committed', {}, { file: id, name: plan.statement.name, format: plan.statement.format, issuer, sha256: plan.sha, charges: plan.importable.length, totalMinor: review.totalMinor, period: plan.statement.period, excludedCards: plan.exclude, includedRows: plan.include, duplicates: review.duplicates.length, excludedRows: review.excluded.length, masked: true }));
-  await commit(db, all(authority(actor, 'finance'), ...place.guards, ...cardGuards, { sql: 'NOT EXISTS(SELECT 1 FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL)', params: [plan.fingerprint] }), statements);
+  await commit(db, all(rowAuthority(actor, 'connections'), ...place.guards, ...cardGuards, { sql: 'NOT EXISTS(SELECT 1 FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL)', params: [plan.fingerprint] }), statements);
   return { ...review, file: id, claims: [...place.claims.keys()] };
 }
 
 /** An undo removes only charges still exactly as imported: on a draft report, with no receipt and no edit. It lists the rest. */
 export async function undoStatement(db: D1Database, actor: Actor, id: string) {
-  need(actor, 'finance');
+  needRow(actor, 'connections');
   person(actor);
   const file = await db.prepare('SELECT id,name,mapping,undone_at FROM c_statement_files WHERE id=?').bind(id).first<{ id: string; name: string; mapping: string; undone_at: string | null }>();
   requireThat(file, 'Statement import not found', 404);
@@ -107,7 +107,7 @@ export async function undoStatement(db: D1Database, actor: Actor, id: string) {
   const removable = rows.filter(r => !reason(r)), kept = rows.filter(r => reason(r)).map(r => ({ charge: r.charge, merchant: r.descriptor, amountMinor: r.amount_minor, reason: reason(r) }));
   const claims = new Map(removable.map(r => [r.claim_id as string, r.version as number]));
   const at = now();
-  await commit(db, all(authority(actor, 'finance'), { sql: 'EXISTS(SELECT 1 FROM c_statement_files WHERE id=? AND undone_at IS NULL)', params: [id] }, { sql: 'NOT EXISTS(SELECT 1 FROM c_card_statements WHERE file_id=? AND closed_at IS NOT NULL)', params: [id] }, ...[...claims].map(([claim, version]) => claimState(claim, version, ['draft']))), [
+  await commit(db, all(rowAuthority(actor, 'connections'), { sql: 'EXISTS(SELECT 1 FROM c_statement_files WHERE id=? AND undone_at IS NULL)', params: [id] }, { sql: 'NOT EXISTS(SELECT 1 FROM c_card_statements WHERE file_id=? AND closed_at IS NOT NULL)', params: [id] }, ...[...claims].map(([claim, version]) => claimState(claim, version, ['draft']))), [
     db.prepare('UPDATE c_statement_files SET undone_at=?,undone_by=? WHERE id=? AND undone_at IS NULL').bind(at, actor.email, id),
     ...removable.flatMap(r => [
       db.prepare('DELETE FROM c_allocations WHERE item_id=?').bind(r.item_id), db.prepare('DELETE FROM c_items WHERE id=?').bind(r.item_id), db.prepare('DELETE FROM c_card_charges WHERE id=?').bind(r.charge),

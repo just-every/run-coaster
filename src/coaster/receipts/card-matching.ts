@@ -1,4 +1,5 @@
-import { all, authority, commit, need, type Sql } from '../session';
+import { all, authority, commit, type Sql } from '../session';
+import { needRow, rowAuthority } from '../permissions';
 import { claimState, claimTotal } from '../claims';
 import { event, ruleEvent } from '../events';
 import { createFx, type FxResolver } from '../fx';
@@ -31,13 +32,13 @@ export const privateMatchLine = (db: D1Database, id: string, sequence: number, k
   db.prepare("INSERT INTO c_capture_lifecycle(receipt_id,sequence,kind,reason,at,actor_email,on_behalf_of,channel,match_data) VALUES(?,?,?,'',?,?,?,'app',?)").bind(id,sequence,kind,now(),by,behalf,data===null?null:JSON.stringify(data));
 
 export async function saveMatchRule(db: D1Database, actor: Actor, b: Data) {
-  need(actor,'finance'); requireThat(actor.kind==='person','A native owner or finance sign-in is required',403);
+  needRow(actor,'policy'); requireThat(actor.kind==='person','A native owner, admin or finance sign-in is required',403);
   requireThat(Object.keys(b).every(k=>['version','enabled','windowDays','tipPercent','fxPercent'].includes(k)),'Only matching rule settings are accepted');
   requireThat(typeof b.enabled==='boolean','Choose matching on or off');
   for (const [key,max] of [['windowDays',14],['tipPercent',30],['fxPercent',10]] as const)
     requireThat(Number.isInteger(b[key])&&b[key]>=0&&b[key]<=max,`${key} must be an integer from 0 to ${max}`);
   const current = (await matchRule(db))!; requireThat(b.version===current.version,'Reload the current matching rule',409);
-  await commit(db,all(authority(actor,'finance'),{sql:'NOT EXISTS(SELECT 1 FROM c_card_match_rules WHERE version>?)',params:[current.version]}),[
+  await commit(db,all(rowAuthority(actor,'policy'),{sql:'NOT EXISTS(SELECT 1 FROM c_card_match_rules WHERE version>?)',params:[current.version]}),[
     db.prepare('INSERT INTO c_card_match_rules(version,enabled,window_days,tip_percent,fx_percent,set_by,set_at) VALUES(?,?,?,?,?,?,?)').bind(current.version+1,b.enabled?1:0,b.windowDays,b.tipPercent,b.fxPercent,actor.delegate?.email??actor.email,now()),
     event(db,actor,'card-match-rule-set',{}, {version:current.version+1,enabled:b.enabled,windowDays:b.windowDays,tipPercent:b.tipPercent,fxPercent:b.fxPercent}),
   ]); return matchRule(db);

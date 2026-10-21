@@ -163,7 +163,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         <Field label="Reason" name="reason" placeholder="For example, the client will pay this directly" />
       </Form>
     </section>}
-    {state.actor.roles.owner && claim.status === 'submitted' && <section className="panel-block" aria-label="Reassign">
+    {(state.actor.roles.owner || state.actor.roles.admin) && claim.status === 'submitted' && <section className="panel-block" aria-label="Reassign">
       <h3>Reassign</h3>
       <Form label="Reassign claim" onSubmit={async v => { await call(`claims/${claim.id}/reassign`, { version: claim.version, approver: v.approver, reason: v.reason }); await done(); }}>
         <Field label="New approver" name="approver" options={state.members.filter((m: D) => m[reassignmentRole === 'finance' ? 'is_finance' : 'is_manager'] && m.active && m.email !== claim.employee_email && !claim.assigned_emails?.includes(m.email) && m.email !== claim.approver_email).map((m: D) => ({ value: m.email, label: m.name }))} />

@@ -1,5 +1,6 @@
 import { workflowPlan, resolveStage, insertTasks, nextWorkflow, workflowAccess } from './workflow-routing';
 import { all, authority, commit, need } from './session';
+import { needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { requireBusiness } from './settings';
 import { localDay, routeFor } from './delegation';
@@ -107,7 +108,7 @@ async function decideWorkflowRequest(db:D1Database,actor:Actor,r:SpendRequest,b:
 
 /** Owner moves an active spend-request task without changing the frozen later stages. */
 export async function reassignRequest(db:D1Database,actor:Actor,id:string,b:Data) {
- need(actor,'owner');
+ needRow(actor,'settings');
  const r=await loadRequest(db,id),to=email(b.approver,'New approver');
  requireThat(r.status==='submitted'&&r.version===b.version,'The request changed; reload before reassigning',409);
  requireThat(to!==r.employee_email,'Nobody approves their own spend request');
@@ -117,7 +118,7 @@ export async function reassignRequest(db:D1Database,actor:Actor,id:string,b:Data
  requireThat(!tasks?.some(t=>t.status==='waiting'&&t.slot!==task?.slot&&t.email===to),'That person already has a parallel review task');
  const role=task?.role??'manager';
  requireThat(await db.prepare(`SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_${role}=1`).bind(to).first(),'Choose an active reviewer with the matching role');
- await commit(db,all(authority(actor,'owner'),{sql:"EXISTS(SELECT 1 FROM c_requests WHERE id=? AND version=? AND status='submitted')",params:[id,r.version]}),[
+ await commit(db,all(rowAuthority(actor,'settings'),{sql:"EXISTS(SELECT 1 FROM c_requests WHERE id=? AND version=? AND status='submitted')",params:[id,r.version]}),[
  ...(task?[db.prepare("UPDATE c_workflow_tasks SET email=?,on_behalf_of=NULL WHERE kind='request' AND record_id=? AND revision=1 AND slot=?").bind(to,id,task.slot)]:[]),
  db.prepare('UPDATE c_requests SET approver_email=?,on_behalf_of=NULL,version=version+1,updated_at=? WHERE id=?').bind(to,now(),id),
  event(db,actor,'request-reassigned',{}, {request:id,from:task?.email??r.approver_email,to,reason:optionalText(b.reason,'Reason',500)}),

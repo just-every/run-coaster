@@ -31,7 +31,7 @@ function NewClaim({ reload, onClose }: { reload: () => Promise<D>; onClose: () =
 /** The main screen (owner pick J): the claims this person can see, counted in three tiles, what agents prepared for
     them, the dense table, and the selected claim in the panel at the right. */
 export function Claims({ state, reload, id, query, creating, onCreating, onNewClaim }: ViewProps & { creating: boolean; onCreating: (open: boolean) => void; onNewClaim?: () => void }) {
-  const wide = state.actor.roles.finance || state.actor.roles.owner;
+  const roles = state.actor.roles, wide = roles.owner || roles.admin || roles.finance || roles.auditor || roles.bookkeeper;
   const [scope, setScope] = useState(wide ? 'all' : 'mine');
   const scoped = state.claims.filter((c: D) => scope === 'all' || c.employee_email === state.actor.email);
   const shown = scoped.filter((c: D) => matches(c, query));

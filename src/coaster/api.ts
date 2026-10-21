@@ -51,7 +51,7 @@ import { cardMatchQuestion, chooseCardMatch, matchRule, rejectMatchQuestion, sav
 import { planStatement } from './cards/plan';
 import { closeReconciliation, openReconciliation, reconciliation, reconciliations, resolveDifference } from './cards/reconcile';
 import { Fault, requireThat, type Actor, type Data } from './types';
-import { needRow } from './permissions';
+import { can, needRow } from './permissions';
 import { saveDepartment } from './departments';
 import { saveEscalationChain } from './escalation-chains';
 
@@ -88,7 +88,7 @@ api.get('/api/coaster/settings/cash-draft-window', as(async (a, c) => cashWindow
 api.post('/api/coaster/settings/cash-draft-window/preview', as(async (a, c) => previewCashWindow(db(c), a, await body(c))));
 api.post('/api/coaster/settings/cash-draft-window', as(async (a, c) => saveCashWindow(db(c), a, await body(c))));
 
-api.get('/api/coaster/settings/card-matching', as(async (a, c) => { need(a, 'finance'); return matchRule(db(c)); }));
+api.get('/api/coaster/settings/card-matching', as(async (a, c) => { needRow(a, 'policy'); return matchRule(db(c)); }));
 api.post('/api/coaster/settings/card-matching', as(async (a, c) => saveMatchRule(db(c), a, await body(c))));
 api.post('/api/coaster/receipt-inbox/:id/card-match', as(async (a, c) => chooseCardMatch(db(c), a, param(c, 'id'), await body(c))));
 api.get('/api/coaster/receipt-inbox/:id/card-match-question', as(async (a, c) => cardMatchQuestion(db(c), a, param(c, 'id'))));
@@ -198,7 +198,7 @@ api.post('/api/coaster/settings/payment-controls', as(async (a, c) => savePaymen
 api.post('/api/coaster/settings/auto-submit', as(async (a, c) => saveAutoSubmit(db(c), a, await body(c))));
 api.post('/api/coaster/settings/retention', as(async (a, c) => saveRetention(db(c), a, await body(c))));
 api.get('/api/coaster/retention', as(async (a, c) => ({ ...await retention(db(c), a), erasures: await erasures(db(c)) })));
-api.get('/api/coaster/policy', as(async (a, c) => { requireThat(a.roles.finance || a.roles.owner || a.roles.auditor, 'Finance, auditor or owner access required', 403); return { versions: await policies(db(c)) }; }));
+api.get('/api/coaster/policy', as(async (a, c) => { requireThat(can(a, 'policy') || a.roles.auditor, 'Owner, admin, finance or auditor access required', 403); return { versions: await policies(db(c)) }; }));
 api.post('/api/coaster/policy', as(async (a, c) => { const settings = await business(db(c)); requireThat(settings, 'The owner has not set up the business yet', 409); return { versions: await publishPolicy(db(c), a, await body(c), await categories(db(c)), settings.timezone) }; }));
 api.post('/api/coaster/policy/advice', as(async (a, c) => advice(db(c), a, await body(c))));
 api.post('/api/coaster/policy/advice/adopt', as(async (a, c) => adoptAdvice(db(c), a, await body(c))));
@@ -230,7 +230,7 @@ api.get('/api/coaster/audit-pack', as(async (a, c) => auditPack(db(c), a, c.req.
 api.get('/api/coaster/statements', as(async (a, c) => statementState(db(c), a)));
 api.get('/api/coaster/statements/:id/file', as(async (a, c) => statementFile(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/statements/cards', as(async (a, c) => assignCard(db(c), a, await body(c))));
-api.post('/api/coaster/statements/preview', as(async (a, c) => { need(a, 'finance'); requireThat(a.kind === 'person', 'Only a person imports statements', 403); return (await planStatement(db(c), await body(c, 2_500_000))).review; }));
+api.post('/api/coaster/statements/preview', as(async (a, c) => { needRow(a, 'connections'); requireThat(a.kind === 'person', 'Only a person imports statements', 403); return (await planStatement(db(c), await body(c, 2_500_000))).review; }));
 api.post('/api/coaster/statements/commit', as(async (a, c) => commitStatement(db(c), a, await body(c, 2_500_000))));
 api.post('/api/coaster/statements/:id/undo', as(async (a, c) => undoStatement(db(c), a, param(c, 'id'))));
 // FEED-005 statement reconciliation: finance opens a card's statement period, settles each listed difference, and closes it into the card ledger.
