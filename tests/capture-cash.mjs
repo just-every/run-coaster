@@ -40,6 +40,7 @@ try {
   await browser.close();browser=undefined;await server.close();server=undefined;
   await command(cash,['export','--output','exports/cash.rer']);
   const prepared=join(cash,'exports/cash.rer');
+  await copyFile(prepared,join(evidence,'cash.rer'));
   restoredCash=await fresh();await command(restoredCash,['install']);const restorePort=await freePort();
   await command(restoredCash,['setup','--owner-email','owner@harbourfinch.example','--port',String(restorePort)]);
   await mkdir(join(restoredCash,'exports'),{recursive:true});
@@ -48,8 +49,8 @@ try {
   for(const [code,table,mutate] of [['cash_window','c_capture_window',row=>{row.days=91}],['cash_draft','c_capture_cash_drafts',row=>{row.expense_date='2000-01-01'}]]){
     await writeFile(join(restoredCash,`exports/${code}.rer`),await tampered(prepared,table,mutate),{mode:0o600});
     assert.match(await command(restoredCash,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4}),new RegExp('coaster_capture_'+code));
-    await command(restoredCash,['export','--output','exports/unchanged.rer']);
-    assert.deepEqual(rows(await records(join(restoredCash,'exports/unchanged.rer'))),cashEmpty,'refused cash archive writes nothing');
+    await command(restoredCash,['export','--output',`exports/unchanged-${code}.rer`]);
+    assert.deepEqual(rows(await records(join(restoredCash,`exports/unchanged-${code}.rer`))),cashEmpty,'refused cash archive writes nothing');
   }
   await copyFile(prepared,join(restoredCash,'exports/cash.rer'));
   await command(restoredCash,['import','--input','exports/cash.rer','--yes']);
