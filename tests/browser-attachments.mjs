@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { api, session } from './browser-journey.mjs'
 
 /** CAPTURE-004: use the inbox controls after manually completing the dated cash draft. */
-export async function attachmentJourney(browser,root,origin,evidence,shots) {
+export async function attachmentJourney(browser,root,origin,evidence,shots,siteOrigin) {
   for(const width of [1440,390]) {
     const employee=await session(browser,root,origin,'employee',width)
     try {
@@ -51,7 +51,7 @@ export async function attachmentJourney(browser,root,origin,evidence,shots) {
         await card.getByText(/^Attached to/).waitFor()
       }
       assert.equal(await employee.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
-      await employee.page.goto(origin+'/docs/claims')
+      await employee.page.goto(siteOrigin+'/docs/claims')
       await employee.page.getByText('Inbox originals keep their 10 MB limit and are stored once.',{exact:false}).waitFor()
       const docPath=join(evidence,`attachment-help-${width}.png`);await employee.page.screenshot({path:docPath,fullPage:true});shots.push({path:docPath,width})
     } finally {await employee.context.close()}

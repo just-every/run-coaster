@@ -38,7 +38,7 @@ try {
   await command(cash,['import','--input','exports/aged.rer','--yes']);
   server=await start(cash,cashPort);browser=await launch();
   await cashWindowJourney(browser,cash,server.origin,evidence,shots,()=>server.scheduled());
-  await attachmentJourney(browser,cash,server.origin,evidence,shots);
+  await attachmentJourney(browser,cash,server.origin,evidence,shots,server.siteOrigin);
   await browser.close();browser=undefined;await server.close();server=undefined;
   await command(cash,['export','--output','exports/cash.rer']);
   const prepared=join(cash,'exports/cash.rer');
