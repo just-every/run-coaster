@@ -7,7 +7,7 @@ export function CaptureWindow() {
   const [settings, setSettings] = useState<D>(), [preview, setPreview] = useState<D>(), [error, setError] = useState('');
   const reload = () => call('settings/cash-draft-window').then(setSettings);
   useEffect(() => { reload().catch(e => setError(e.message)); }, []);
-  return <Section title="Cash receipt draft window">
+  return <Section title="Cash receipt draft window" label="Cash receipt draft window">
     <p className="muted">Off by default. After 1–90 elapsed days, an unmatched original can open a private draft claim with no amount. The employee must enter its details. Originals remain in their inbox; automatic attachment is not available. Nothing is submitted automatically. Up to 25 drafts open per hourly run.</p>
     {error && <p role="alert">{error}</p>}
     {settings && <><p role="status">Current window: {settings.days === null ? 'Off' : `${settings.days} days`}</p>
