@@ -1,7 +1,9 @@
 import { call, type D } from './api';
 import { Field, Form } from './parts';
 
-/** The reviewer reads actual metadata, never an authenticity verdict. */
+const names: Record<string, string> = { 'editing-software': 'Software', 'image-date-mismatch': 'Image date', 'same-receipt': 'Shared receipt', 'near-duplicate-image': 'Similar image', 'image-content-change': 'Image change', 'compression-grid': 'Compression artifact', 'split-charge': 'Split purchase', 'round-amount-pattern': 'Round amount', 'weekend-pattern': 'Weekend spend', 'card-disagreement': 'Card difference' };
+
+/** The reviewer sees observations and comparisons, never an authenticity verdict. */
 export function ReceiptSignals({ revision, events, mayReview, claimId, done }: { revision?: D; events: D[]; mayReview: boolean; claimId: string; done: () => Promise<void> }) {
   const results = revision?.snapshot.receiptSignals;
   if (!results?.length) return null;
@@ -13,8 +15,9 @@ export function ReceiptSignals({ revision, events, mayReview, claimId, done }: {
       <p>{r.signals.length ? 'possible, needs review' : r.status === 'no metadata to check' ? 'no metadata to check' : r.status === 'unsupported' ? 'Metadata is not checked for this receipt type' : 'No signal raised'}</p>
       {r.status === 'no metadata to check' && r.signals.length > 0 && <p className="muted">no metadata to check</p>}
       {r.signals.length > 0 && <ul>{r.signals.map((signal: D) => {
+        const name = names[signal.code] ?? 'Receipt';
         const review = events.find(e => e.action === 'receipt-signal-reviewed' && e.detail.revision === revision!.revision && e.detail.item === r.item && e.detail.code === signal.code);
-        return <li key={signal.code}>{signal.reason}{signal.evidence && <details className="disclosure"><summary>Comparison measurements</summary><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{JSON.stringify(signal.evidence, null, 2)}</pre></details>}{review ? <p>Reviewed by {review.actor_email}: {review.detail.note}</p> : mayReview ? <Form label={signal.code === 'editing-software' ? 'Record software review' : signal.code === 'image-date-mismatch' ? 'Record date review' : `Review ${signal.code}`} onSubmit={async values => { await call(`claims/${claimId}/receipt-signals/review`, { revision: revision!.revision, item: r.item, code: signal.code, note: values.note }); await done(); }}><Field label={signal.code === 'editing-software' ? 'Software review note' : signal.code === 'image-date-mismatch' ? 'Image date review note' : `Review note for ${signal.code}`} name="note" /></Form> : null}</li>;
+        return <li key={signal.code}>{signal.reason}{signal.evidence && <details className="disclosure"><summary>Comparison measurements</summary><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{JSON.stringify(signal.evidence, null, 2)}</pre></details>}{review ? <p>Reviewed by {review.actor_email}: {review.detail.note}</p> : mayReview ? <Form label={signal.code === 'image-date-mismatch' ? 'Record date review' : `Record ${name.toLowerCase()} review`} onSubmit={async values => { await call(`claims/${claimId}/receipt-signals/review`, { revision: revision!.revision, item: r.item, code: signal.code, note: values.note }); await done(); }}><Field label={`${name} review note`} name="note" /></Form> : null}</li>;
       })}</ul>}
       <details className="disclosure"><summary>Signal evidence</summary>
         <p>Metadata: {r.status}. Image inspection: {r.image?.status ?? 'not checked'}{r.image?.reason ? ` · ${r.image.reason}` : ''}</p>

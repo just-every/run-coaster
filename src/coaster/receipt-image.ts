@@ -70,7 +70,14 @@ function grayRaster(image: Pixels): Raster {
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
     let total = 0; for (const dy of [0.25, 0.75]) for (const dx of [0.25, 0.75]) total += at(Math.floor((x + dx) / scale), Math.floor((y + dy) / scale)); gray[y * width + x] = total / 4;
   }
-  return { width, height, gray };
+  // A half-pixel paper/camera resampling change should not become a glyph edit.
+  const smooth = new Uint8Array(gray.length), weights = [1, 6, 1];
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    let total = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) total += gray[Math.max(0, Math.min(height - 1, y + dy)) * width + Math.max(0, Math.min(width - 1, x + dx))] * weights[dy + 1] * weights[dx + 1];
+    smooth[y * width + x] = Math.round(total / 64);
+  }
+  return { width, height, gray: smooth };
 }
 /** Local pixel observations only. No image-only algorithm can establish generation or authenticity. */
 export async function inspectReceiptImage(bytes: Uint8Array, media: string): Promise<ReceiptImageInspection> {
@@ -94,12 +101,12 @@ export async function inspectReceiptImage(bytes: Uint8Array, media: string): Pro
   } catch (error) { return { status: error instanceof InspectionLimit ? 'limited' : 'corrupt', observations: [], reason: error instanceof InspectionLimit ? error.message : `Image bytes could not be decoded for local content inspection: ${error instanceof Error ? error.message : 'decoder refused'}` }; }
 }
 function measure(a: Uint8Array, b: Uint8Array, t: Transform, shifts: RowShift[] = []) {
-  const offsets = new Float32Array(SIDE);
-  for (const shift of shifts) offsets.fill(shift.dx, shift.top, shift.bottom + 1);
+  const offsets = new Float32Array(SIDE), vertical = new Float32Array(SIDE);
+  for (const shift of shifts) { offsets.fill(shift.dx, shift.top, shift.bottom + 1); vertical.fill(shift.dy, shift.top, shift.bottom + 1); }
   let shared = 0, union = 0, available = 0, total = 0, changed = 0;
   const tiles = new Float64Array(24 * 24), masses = new Float64Array(24 * 24);
   for (let y = 1; y < SIDE - 1; y++) for (let x = 1; x < SIDE - 1; x++) {
-    const v = a[y * SIDE + x], bx = t[0] * x + t[1] * y + t[2] + offsets[y], by = t[3] * x + t[4] * y + t[5]; total += v;
+    const v = a[y * SIDE + x], bx = t[0] * x + t[1] * y + t[2] + offsets[y], by = t[3] * x + t[4] * y + t[5] + vertical[y]; total += v;
     if (bx < 1 || by < 1 || bx >= SIDE - 1 || by >= SIDE - 1) continue;
     available += v; const w = sample(b, bx, by), difference = Math.abs(v - w), mass = Math.max(v, w), tile = Math.floor(y / (SIDE / 24)) * 24 + Math.floor(x / (SIDE / 24));
     shared += Math.min(v, w); union += mass; masses[tile] += mass;

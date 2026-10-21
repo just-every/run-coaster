@@ -47,8 +47,8 @@ try {
   assert.ok((await region.innerText()).includes(card.signal.reason))
   await screenshot('card-receipt-disagreement')
   await openClaim(patterns.claim.title)
-  await page.getByLabel('Review note for split-charge',{exact:true}).first().fill('Legitimate separate purchases; supplier evidence checked.')
-  await page.getByRole('button',{name:'Review split-charge',exact:true}).first().click()
+  await page.getByLabel('Split purchase review note',{exact:true}).first().fill('Legitimate separate purchases; supplier evidence checked.')
+  await page.getByRole('button',{name:'Record split purchase review',exact:true}).first().click()
   await region.getByText(/Reviewed by.*Legitimate separate purchases/).waitFor()
   await screenshot('signals-reviewed')
   const c=patterns.claim
