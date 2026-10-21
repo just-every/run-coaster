@@ -66,7 +66,7 @@ try {
   for (const row of erasedRows.filter(row => ['c_capture_receipts', 'c_capture_receipt_events', 'c_capture_lifecycle'].includes(row.table)))
     assert.ok(!JSON.stringify(row).includes(PEOPLE.employee), 'erasure removes employee identity from inbox provenance/history')
   const dispositions = erasedRows.filter(row => row.table === 'c_capture_lifecycle')
-  assert.equal(dispositions.length, 5)
+  assert.equal(dispositions.length, 7, 'three discards, two merges and two expanded-reason discards')
   for (const { row } of dispositions.filter(item => item.row.reason.includes('kept this duplicate'))) {
     assert.ok(row.reason.includes(erased.label) && row.reason.includes(erased.retained.subject))
     assert.ok(!/Sam Taylor|employee@dev\.localhost/i.test(row.reason))

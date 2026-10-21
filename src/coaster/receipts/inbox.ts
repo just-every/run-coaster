@@ -9,7 +9,7 @@ type InboxReceipt = StoredReceipt & {
   state: 'received' | 'reading' | 'read' | 'needs-attention'; reason: string;
 };
 type InboxEvent = { receipt_id: string; sequence: number; state: InboxReceipt['state']; reason: string; at: string; actor_email: string; on_behalf_of: string | null; channel: 'app' };
-type Lifecycle = Omit<InboxEvent, 'state'> & { kind: 'discarded' };
+type Lifecycle = Omit<InboxEvent, 'state'> & { kind: 'discarded' | 'merged'; survivor_id: string | null };
 const ATTENTION = 'Automatic receipt reading is not available. Enter the expense details manually using this original.';
 const SELECT = `SELECT r.*,e.state,e.reason FROM c_capture_receipts r JOIN c_capture_receipt_events e ON e.receipt_id=r.id
   AND e.sequence=(SELECT MAX(latest.sequence) FROM c_capture_receipt_events latest WHERE latest.receipt_id=r.id)`;
@@ -24,8 +24,8 @@ const summary = (r: InboxReceipt, history: InboxEvent[], lifecycle: Lifecycle[] 
   source: r.source, uploadedBy: r.uploaded_by, uploadedAt: r.uploaded_at,
   state: r.state, attentionReason: r.reason,
   history: history.map(e => ({ sequence: e.sequence, state: e.state, reason: e.reason, at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
-  disposition: lifecycle.length ? 'discarded' : 'active', lifecycleSequence: lifecycle.at(-1)?.sequence ?? 0,
-  lifecycle: lifecycle.map(e => ({ sequence: e.sequence, kind: e.kind, reason: e.reason, at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
+  disposition: lifecycle.at(-1)?.kind ?? 'active', lifecycleSequence: lifecycle.at(-1)?.sequence ?? 0,
+  lifecycle: lifecycle.map(e => ({ sequence: e.sequence, kind: e.kind, reason: e.reason, ...(e.survivor_id ? { survivorId: e.survivor_id } : {}), at: e.at, actorEmail: e.actor_email, onBehalfOf: e.on_behalf_of, channel: e.channel })),
   downloadUrl: `/api/coaster/receipt-inbox/${r.id}`,
 });
 

@@ -10,9 +10,9 @@ export const records = async path => (await readFile(path, 'utf8')).trim().split
 export const rows = archive => archive.filter(r => r.kind === 'part').flatMap(r => r.items)
 
 /** Rewrite one row and re-seal the archive's hashes, so only Coaster's own staged validation can catch it. */
-export async function tampered(archive, table, change) {
+export async function tampered(archive, table, change, pick = () => true) {
   const input = await records(archive)
-  const item = rows(input).find(r => r.table === table)
+  const item = rows(input).find(r => r.table === table && pick(r.row))
   assert.ok(item, `archive holds ${table}`)
   change(item.row, input)
   input[0].partCount = input.length - 2
@@ -48,7 +48,7 @@ export async function rejectCaptureLifecycleArchives(root, archive, { part = 0, 
   const source = rows(await records(archive)).filter(item => item.table === 'c_capture_lifecycle');
   const expanded = source.find(item => item.row.reason.length > 1000);
   assert.ok(expanded, 'the archive holds the worst-case expanded reason');
-  assert.ok(source.length >= 2, 'the public inbox journey discarded two originals');
+  assert.ok(source.length >= 2 && source.some(item => item.row.kind === 'merged') && source.some(item => item.row.kind === 'discarded'), 'the public inbox journey discarded and merged originals');
   await command(root, ['export', '--output', 'exports/lifecycle-before.rer']);
   const before = rows(await records(join(root, 'exports/lifecycle-before.rer')));
   const cases = {
@@ -73,6 +73,11 @@ export async function rejectCaptureLifecycleArchives(root, archive, { part = 0, 
       if (at < 0) at = input.length - 1;
       input.splice(at, 0, { index: at - 1, items: [{ index: 0, kind: 'row', table: 'c_capture_erasing', row: { email: 'unfinished-erasure@example.test' } }] });
     },
+    // CAPTURE-004 merge lines name another open original of the same employee and state a reason unless the files are identical.
+    merge_unknown_survivor: row => { row.survivor_id = 'unknown-receipt' },
+    merge_self: row => { row.survivor_id = row.receipt_id },
+    merge_reasonless: row => { row.reason = '' },
+    discard_names_survivor: row => { row.survivor_id = source.find(item => item.row.kind === 'merged').row.survivor_id },
     bad_time: row => { row.at = 'not-a-time' },
     early_time: row => { row.at = '1970-01-01T00:00:00.000Z' },
     channel: row => { row.channel = 'agent' },
@@ -80,9 +85,10 @@ export async function rejectCaptureLifecycleArchives(root, archive, { part = 0, 
     duplicate: row => { Object.assign(row, source[1].row) },
   };
   for (const [name, change] of Object.entries(cases).filter((_, index) => index % of === part)) {
-    await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change), { mode: 0o600 });
+    const kind = name.startsWith('merge_') ? 'merged' : name.startsWith('discard_') ? 'discarded' : undefined;
+    await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change, row => !kind || row.kind === kind), { mode: 0o600 });
     const log = await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: name === 'forged_marker' ? 1 : 4 });
-    assert.match(log, name === 'forged_marker' ? /column_inventory/ : /coaster_capture_(history|reason|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
+    assert.match(log, name === 'forged_marker' ? /column_inventory/ : /coaster_capture_(history|reason|merge|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
     assert.ok(!log.includes('finance@dev.localhost') && !log.includes('Sam Taylor'), 'refusal never echoes identity or reason text');
   }
   await command(root, ['export', '--output', 'exports/lifecycle-after.rer']);

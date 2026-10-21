@@ -91,6 +91,29 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
     assert.equal(hash(await (await context.request.get(origin + kept.downloadUrl)).body()), target.sha256)
     await discarded.scrollIntoViewIfNeeded()
     await photograph('discarded')
+    // CAPTURE-004: merging a duplicate retires it into another original, which is left exactly as it was.
+    const listing = (await api(context, origin, 'receipt-inbox')).receipts
+    const open = listing.filter(receipt => receipt.disposition === 'active' && receipt.id !== saved[1]?.id)
+    const [duplicate, keeper] = open, mergeReason = 'Sam Taylor (EMPLOYEE@DEV.LOCALHOST) merged this scan; kept this duplicate for the records.'
+    assert.notEqual(duplicate.sha256, keeper.sha256, 'a merge of different files states its reason')
+    const duplicateRow = active.locator('.receipt-inbox-list > li').filter({ has: page.getByRole('link', { name: duplicate.name, exact: true }) })
+    await duplicateRow.locator('summary').filter({ hasText: `Merge ${duplicate.name} into another receipt` }).click()
+    await duplicateRow.getByLabel('Receipt to keep', { exact: true }).selectOption(keeper.id)
+    await duplicateRow.getByRole('button', { name: 'Merge receipt', exact: true }).click()
+    await duplicateRow.getByRole('alert').getByText(/Reason is required unless both receipts are identical/).waitFor()
+    await duplicateRow.getByLabel('Reason', { exact: true }).fill(mergeReason)
+    await duplicateRow.getByRole('button', { name: 'Merge receipt', exact: true }).click()
+    const mergedRegion = inbox.getByRole('region', { name: 'Merged receipts', exact: true })
+    await mergedRegion.getByRole('link', { name: duplicate.name, exact: true }).waitFor()
+    assert.equal(await active.getByRole('link', { name: duplicate.name, exact: true }).count(), 0)
+    await mergedRegion.getByRole('region', { name: `Disposition of ${duplicate.name}`, exact: true }).getByText(mergeReason, { exact: true }).waitFor()
+    const after = (await api(context, origin, 'receipt-inbox')).receipts
+    const gone = after.find(receipt => receipt.id === duplicate.id)
+    assert.deepEqual([gone.disposition, gone.lifecycleSequence, gone.lifecycle[0].kind, gone.lifecycle[0].survivorId, gone.lifecycle[0].reason], ['merged', 1, 'merged', keeper.id, mergeReason])
+    assert.deepEqual(after.find(receipt => receipt.id === keeper.id), keeper, 'the surviving original is untouched')
+    assert.equal(hash(await (await context.request.get(origin + gone.downloadUrl)).body()), duplicate.sha256)
+    await mergedRegion.scrollIntoViewIfNeeded()
+    await photograph('merged')
     if (width === 1440) {
       // Retain a real delegated disposition in the CLI restore fixture too.
       const grant = await api(context, origin, 'delegates', { delegate: PEOPLE.manager, level: 'full' })

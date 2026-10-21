@@ -286,3 +286,128 @@ test('ERASURE-001 / CAPTURE-004 preserves discarded originals and reasons with e
     assert.equal(reloaded.removed.discardReasons, 2)
   } finally { resume?.(); await h.close() }
 })
+
+const mergeBody = (survivorId, reason, expectedSequence = 0) => ({ survivorId, ...(reason === undefined ? {} : { reason }), expectedSequence })
+const mergePath = id => `receipt-inbox/${id}/merge`
+
+test('CAPTURE-004 / AUDIT-001 merging a duplicate is a private terminal disposition that leaves the survivor untouched; a reason is needed unless the files are identical', async () => {
+  const h = await harness()
+  try {
+    const t = await agency(h), png = await readFile('tests/fixtures/receipts/bistro.png')
+    const survivor = await upload(h, t.sam, 'kept-original.png', png), same = await upload(h, t.sam, 'same-file.png', png)
+    const different = await upload(h, t.sam, 'different-file.png', Buffer.concat([png, Buffer.alloc(1)]))
+    const foreign = await upload(h, t.alex, 'alex-original.png', png)
+    const before = await h.get('receipt-inbox', t.sam)
+    // Refused shapes, ownership and authority write nothing.
+    for (const reason of [5, {}, 'x'.repeat(1001)]) await h.post(mergePath(different.id), mergeBody(survivor.id, reason), t.sam, 400)
+    await h.post(mergePath(different.id), mergeBody(survivor.id), t.sam, 400)
+    await h.post(mergePath(different.id), mergeBody(survivor.id, '  '), t.sam, 400)
+    await h.post(mergePath(different.id), { ...mergeBody(survivor.id, 'Same receipt'), owner: SAM }, t.sam, 400)
+    await h.post(mergePath(same.id), { reason: 'No survivor', expectedSequence: 0 }, t.sam, 400)
+    await h.post(mergePath(same.id), { survivorId: same.id, expectedSequence: 0 }, t.sam, 400)
+    await h.post(mergePath(same.id), mergeBody(survivor.id, undefined, 1), t.sam, 409)
+    await h.post(mergePath(same.id), mergeBody('unknown-receipt'), t.sam, 404)
+    await h.post(mergePath(same.id), mergeBody(foreign.id), t.sam, 404)
+    await h.post(mergePath(same.id), mergeBody(survivor.id), t.alex, 404)
+    for (const [address, roles] of [['finance-only', { finance: true }], ['approver-only', { manager: true }], ['auditor-only', { auditor: true }]])
+      await h.post(mergePath(same.id), mergeBody(survivor.id), await h.person(`${address}@harbourfinch.example`, roles), 403)
+    await h.post(mergePath(same.id), mergeBody(survivor.id), h.owner, 403)
+    await h.post(mergePath(same.id), mergeBody(survivor.id), '', 401)
+    assert.equal((await h.send(`/api/coaster/${mergePath(same.id)}`, mergeBody(survivor.id), t.sam, { origin: 'https://elsewhere.example' })).status, 403)
+    const key = await h.post('agent-keys', { label: 'Capture only' }, t.sam)
+    assert.equal((await h.send(`/api/coaster/${mergePath(same.id)}`, mergeBody(survivor.id), '', { authorization: `Bearer ${key.token}` })).status, 401)
+    assert.deepEqual(await h.get('receipt-inbox', t.sam), before, 'every refusal leaves all receipt evidence unchanged')
+    // The refused reasonless merge of a different file, then the stated reason.
+    await h.post(mergePath(different.id), mergeBody(survivor.id, ''), t.sam, 400)
+    const hold = (await h.post('legal-holds', { scope: 'person', member: SAM, reason: 'Records review' })).holds[0]
+    const reasoned = (await h.post(mergePath(different.id), mergeBody(survivor.id, '  Scan of the same receipt  '), t.sam)).receipt
+    assert.deepEqual([reasoned.disposition, reasoned.lifecycleSequence], ['merged', 1])
+    assert.deepEqual(reasoned.lifecycle.map(e => [e.sequence, e.kind, e.reason, e.survivorId, e.actorEmail, e.onBehalfOf, e.channel]), [[1, 'merged', 'Scan of the same receipt', survivor.id, SAM, null, 'app']])
+    assert.deepEqual(reasoned.history, different.history, 'processing state stays separate from disposition')
+    const merged = (await h.post(mergePath(same.id), mergeBody(survivor.id), t.sam)).receipt
+    assert.deepEqual([merged.disposition, merged.lifecycle[0].reason, merged.lifecycle[0].survivorId], ['merged', '', survivor.id])
+    const after = (await h.get('receipt-inbox', t.sam)).receipts
+    assert.deepEqual(after.find(r => r.id === survivor.id), before.receipts.find(r => r.id === survivor.id), 'the survivor original is untouched')
+    assert.equal(await h.db.prepare('SELECT COUNT(*) AS n FROM c_capture_lifecycle WHERE receipt_id=?').bind(survivor.id).first('n'), 0)
+    assert.deepEqual((await download(h, t.sam, same.id)).bytes, png)
+    // Terminal for both dispositions, in either order; no replay.
+    await h.post(mergePath(same.id), mergeBody(survivor.id), t.sam, 409)
+    await h.post(mergePath(same.id), mergeBody(survivor.id, 'Replay', 1), t.sam, 409)
+    await h.post(discardPath(same.id), discardBody('Too late', 1), t.sam, 409)
+    await h.post(discardPath(same.id), discardBody('Too late', 0), t.sam, 409)
+    const gone = (await h.post(discardPath(foreign.id), discardBody('Not mine'), t.alex)).receipt
+    assert.equal(gone.disposition, 'discarded')
+    const mine = await upload(h, t.sam, 'into-discarded.png', png), into = await upload(h, t.sam, 'to-discard.png', png)
+    await h.post(discardPath(into.id), discardBody('Discarded survivor'), t.sam)
+    await h.post(mergePath(mine.id), mergeBody(into.id), t.sam, 409)
+    await h.post(mergePath(into.id), mergeBody(survivor.id), t.sam, 409)
+    await h.post(mergePath(mine.id), mergeBody(same.id), t.sam, 409)
+    for (const method of ['PUT', 'PATCH', 'DELETE']) {
+      const r = await h.mf.dispatchFetch(`${h.origin}/api/coaster/${mergePath(same.id)}`, { method, headers: { cookie: t.sam, origin: h.origin, 'content-type': 'application/json' }, body: JSON.stringify(mergeBody(survivor.id)) })
+      assert.ok(r.status >= 400)
+    }
+    for (const sql of ["UPDATE c_capture_lifecycle SET reason='changed' WHERE receipt_id=?", "UPDATE c_capture_lifecycle SET survivor_id=NULL WHERE receipt_id=?", 'DELETE FROM c_capture_lifecycle WHERE receipt_id=?'])
+      await assert.rejects(h.db.prepare(sql).bind(same.id).run(), /permanent|CHECK/)
+    // The database itself refuses a merge without a reason for different files, a foreign or closed survivor.
+    const insert = (id, survivorId, reason) => h.db.prepare("INSERT INTO c_capture_lifecycle(receipt_id,sequence,kind,reason,survivor_id,at,actor_email,on_behalf_of,channel) VALUES(?,1,'merged',?,?,?,?,NULL,'app')").bind(id, reason, survivorId, new Date().toISOString(), SAM).run()
+    const spare = await upload(h, t.sam, 'spare.png', Buffer.concat([png, Buffer.alloc(2)]))
+    await assert.rejects(insert(spare.id, survivor.id, ''), /survivor/)
+    await assert.rejects(insert(spare.id, foreign.id, 'Foreign'), /survivor/)
+    await assert.rejects(insert(spare.id, into.id, 'Closed'), /survivor/)
+    await h.post(`legal-holds/${hold.id}/release`, {})
+    // Concurrent merges: one wins; opposite directions cannot both win.
+    const [a, b, c] = await Promise.all(['a', 'b', 'c'].map(n => upload(h, t.sam, `race-${n}.png`, png)))
+    const twice = await Promise.all([b, c].map(survivorOf => h.send(`/api/coaster/${mergePath(a.id)}`, mergeBody(survivorOf.id), t.sam)))
+    assert.deepEqual(twice.map(r => r.status).sort(), [200, 409])
+    const crossed = await Promise.all([[b, c], [c, b]].map(([from, to]) => h.send(`/api/coaster/${mergePath(from.id)}`, mergeBody(to.id), t.sam)))
+    assert.ok(crossed.filter(r => r.status === 200).length <= 1 && crossed.every(r => [200, 409].includes(r.status)))
+    // Live Submit-only and Full delegates act for the employee on that employee's originals; revoked ones cannot.
+    for (const level of ['submit', 'full']) {
+      const grant = await h.post('delegates', { delegate: 'alex@harbourfinch.example', level }, t.sam)
+      const headers = { 'x-coaster-acting-for': SAM }
+      const [dup, keep] = [await upload(h, t.sam, `${level}-dup.png`, png), await upload(h, t.sam, `${level}-keep.png`, png)]
+      const r = await h.send(`/api/coaster/${mergePath(dup.id)}`, mergeBody(keep.id), t.alex, headers)
+      assert.equal(r.status, 200)
+      assert.deepEqual([r.value.receipt.lifecycle[0].actorEmail, r.value.receipt.lifecycle[0].onBehalfOf, r.value.receipt.lifecycle[0].survivorId], ['alex@harbourfinch.example', SAM, keep.id])
+      assert.deepEqual((await download(h, t.alex, dup.id, 200, headers)).bytes, png)
+      const spare2 = await upload(h, t.sam, `${level}-spare.png`, png)
+      await h.post(`delegates/${grant.id}/revoke`, {}, t.sam)
+      assert.equal((await h.send(`/api/coaster/${mergePath(spare2.id)}`, mergeBody(keep.id), t.alex, headers)).status, 403)
+    }
+    // Nothing joins global history, audit packs, retention or claim data; the survivor of a foreign employee is never offered.
+    const history = JSON.stringify(await h.get('history'))
+    assert.ok(!history.includes('Scan of the same receipt') && !history.includes('different-file.png') && !history.includes('same-file.png'))
+    const pack = await h.mf.dispatchFetch(`${h.origin}/api/coaster/audit-pack?from=2026-01-01&to=2026-12-31`, { headers: { cookie: h.owner } })
+    assert.ok(!Buffer.from(await pack.arrayBuffer()).includes(Buffer.from('Scan of the same receipt')))
+    assert.deepEqual((await h.get('receipt-inbox', h.owner)).receipts, [])
+    assert.deepEqual((await h.get('state', t.sam)).claims, [])
+    assert.ok(!JSON.stringify(await h.get('retention')).includes(same.id), 'merge starts no expiry proposal')
+  } finally { await h.close() }
+})
+
+test('ERASURE-001 / CAPTURE-004 merged duplicates keep their originals; names and addresses in the merge reason are replaced and a reasonless identical merge is left alone', async () => {
+  const h = await harness()
+  try {
+    const t = await agency(h), png = await readFile('tests/fixtures/receipts/bistro.png')
+    await h.post('settings/members', { email: SAM, name: 'Sam Taylor', employee: true })
+    const survivor = await upload(h, t.sam, 'survivor.png', png), identical = await upload(h, t.sam, 'identical.png', png), scan = await upload(h, t.sam, 'scan.png', Buffer.concat([png, Buffer.alloc(1)]))
+    await h.post(mergePath(identical.id), mergeBody(survivor.id), t.sam)
+    await h.post(mergePath(scan.id), mergeBody(survivor.id, 'Sam Taylor (SAM@HARBOURFINCH.EXAMPLE) scanned this twice.'), t.sam)
+    await h.post('settings/members', { email: SAM, name: 'Sam Taylor', employee: true, active: false })
+    const sam = await h.post('settings/members/erase', { email: SAM })
+    assert.equal(sam.removed.discardReasons, 1)
+    const rows = (await h.db.prepare('SELECT * FROM c_capture_lifecycle ORDER BY receipt_id').all()).results
+    assert.equal(rows.length, 2)
+    const reasoned = rows.find(r => r.receipt_id === scan.id), reasonless = rows.find(r => r.receipt_id === identical.id)
+    assert.ok(reasoned.reason.includes(sam.label) && reasoned.reason.includes(sam.retained.subject) && reasoned.reason.includes('scanned this twice'))
+    assert.equal(reasonless.reason, '')
+    assert.deepEqual([reasoned.survivor_id, reasonless.survivor_id], [survivor.id, survivor.id])
+    assert.ok(!/Sam Taylor|sam@harbourfinch\.example/i.test(JSON.stringify(rows)))
+    assert.deepEqual(sam.retained.receiptSha256, [...new Set([sha(png), sha(Buffer.concat([png, Buffer.alloc(1)]))])].sort())
+    const bucket = await h.mf.getR2Bucket('COASTER_RECEIPTS')
+    for (const id of [identical.id, scan.id]) {
+      const original = await h.db.prepare('SELECT * FROM c_capture_receipts WHERE id=?').bind(id).first()
+      assert.equal(sha(Buffer.from(await (await bucket.get(original.object_key)).arrayBuffer())), original.sha256)
+    }
+  } finally { await h.close() }
+})
