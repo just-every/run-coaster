@@ -11,10 +11,19 @@ export async function attachmentJourney(browser,root,origin,evidence,shots) {
       let detail=await api(employee.context,origin,`claims/${receipt.cashDraft.claim_id}`)
       const state=await api(employee.context,origin,'state')
       if(!detail.items.length) {
-        await api(employee.context,origin,`claims/${detail.claim.id}/items`,{version:detail.claim.version,kind:'receipt',date:receipt.cashDraft.expense_date,merchant:'Harbour Hotel folio',amount:'64.50',category:state.categories.find(c=>c.active===1).id})
+        await employee.page.goto(origin+`/app#/claims/${detail.claim.id}`)
+        await employee.page.getByRole('button',{name:'Add expense',exact:true}).click()
+        const form=employee.page.locator('form.item-form')
+        await form.getByLabel('Date',{exact:true}).fill(receipt.cashDraft.expense_date)
+        await form.getByLabel('Merchant',{exact:true}).fill('Harbour Hotel folio')
+        await form.getByLabel('Amount',{exact:true}).fill('64.50')
+        await form.getByLabel('Category',{exact:true}).selectOption(state.categories.find(c=>c.active===1).id)
+        await form.getByRole('button',{name:'Add expense',exact:true}).click()
+        await form.waitFor({state:'detached'})
         detail=await api(employee.context,origin,`claims/${detail.claim.id}`)
-      }
-      await employee.page.goto(origin+'/app#/claims')
+        // Returning to the inbox keeps the same app and proves the claim choices update after editing.
+        await employee.page.getByRole('link',{name:'Back to claims',exact:true}).click()
+      } else await employee.page.goto(origin+'/app#/claims')
       const card=employee.page.getByRole('region',{name:'Receipt inbox',exact:true}).locator('.receipt-inbox-list > li').filter({has:employee.page.getByRole('link',{name:receipt.name,exact:true})})
       await card.getByText(`Attach ${receipt.name} to an expense`,{exact:true}).click()
       await card.getByLabel('Claim',{exact:true}).selectOption(detail.claim.id)

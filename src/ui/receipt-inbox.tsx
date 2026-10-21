@@ -16,13 +16,13 @@ function ReceiptLifecycle({ receipt, receipts }: { receipt: D; receipts: D[] }) 
 }
 
 /** Independent per-file uploads keep successful receipts when another file is refused. */
-export function ReceiptInbox() {
+export function ReceiptInbox({ state, onChanged }: { state: D; onChanged: () => Promise<D> }) {
   const [receipts, setReceipts] = useState<D[]>([]), [error, setError] = useState('');
   const [busy, setBusy] = useState(false), [progress, setProgress] = useState(''), [failures, setFailures] = useState<string[]>([]);
   const working = useRef(false), [over, setOver] = useState(false);
-  const [workspace, setWorkspace] = useState<D | null>(null);
-  const reload = async () => { const [data, state] = await Promise.all([call('receipt-inbox'), call('state')]); setReceipts(data.receipts); setWorkspace(state); };
-  useEffect(() => { reload().catch(e => setError(e.message)); }, []);
+  const readInbox = async () => { const data = await call('receipt-inbox'); setReceipts(data.receipts); };
+  const reload = async () => { await Promise.all([readInbox(), onChanged()]); };
+  useEffect(() => { readInbox().catch(e => setError(e.message)); }, [state.claims]);
   async function upload(files: File[], source = 'upload') {
     if (working.current || !files.length) return;
     working.current = true; setBusy(true); setError(''); setFailures([]);
@@ -46,7 +46,7 @@ export function ReceiptInbox() {
       <p className="muted">{receipt.attentionReason}</p>
       {receipt.cashDraft && <p>Cash draft · {receipt.cashDraft.needs_details ? 'needs details' : receipt.cashDraft.claim_status ?? 'claim expired'} · expense date {receipt.cashDraft.expense_date} (UTC upload date). {receipt.cashDraft.claim_status && <a href={`#/claims/${receipt.cashDraft.claim_id}`}>Open draft claim</a>} No amount was inferred; this original remains in your inbox{receipt.attachment ? ' and is attached to an expense.' : ' and has not been attached.'}</p>}
       <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
-      {receipt.disposition === 'active' && workspace && <ReceiptAttachment key={`${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} claims={workspace.claims} employee={workspace.actor.email} reload={reload} />}
+      {receipt.disposition === 'active' && <ReceiptAttachment key={`${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} claims={state.claims} employee={state.actor.email} reload={reload} />}
       {receipt.disposition === 'active' && receipt.lifecycle.length > 0 && <Details label="Private receipt history"><ReceiptLifecycle receipt={receipt} receipts={receipts} /></Details>}
       {receipt.disposition === 'active' ? !receipt.attachment && <>
         <Details label={`Discard ${receipt.name}`}><p>The original and your reason stay in your private history. This cannot be undone.</p><Form label="Discard receipt" onSubmit={async values => { await call(`receipt-inbox/${receipt.id}/discard`, { reason: values.reason, expectedSequence: receipt.lifecycleSequence }); await reload(); }}><Field label="Reason" name="reason" type="textarea" maxLength={1000} /></Form></Details>

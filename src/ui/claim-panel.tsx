@@ -44,7 +44,7 @@ function merchantLine(item: D, currency: string) {
 export function ClaimPanel({ id, state, reload, back, closable = true }: { id: string; state: D; reload: () => Promise<D>; back: string; closable?: boolean }) {
   const [detail, setDetail] = useState<D>(), [error, setError] = useState(''), [editing, setEditing] = useState<string | null>(null);
   const load = useCallback(async () => { try { setDetail(await call(`claims/${id}`)); setError(''); } catch (e) { setError((e as Error).message); } }, [id]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, state.claims.find((claim: D) => claim.id === id)?.version]);
   // Show the saved claim (and its new version) before closing the form, so the next action never uses a stale version.
   const done = async () => { await Promise.all([load(), reload()]); setEditing(null); };
   // The claim a screen opens on by itself has nothing to close back to.
