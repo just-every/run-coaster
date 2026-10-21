@@ -423,6 +423,9 @@ test('CAPTURE-004 cash window defaults off, confirms only finance-visible counts
       await h.get('settings/cash-draft-window',cookie,403)
       await h.post('settings/cash-draft-window/preview',{days:1},cookie,403)
     }
+    assert.equal((await h.post('settings/cash-draft-window/preview',{days:90},t.morgan)).days,90)
+    const key=await h.post('agent-keys',{label:'Draft preparer'},t.morgan)
+    assert.equal((await h.send('/api/coaster/settings/cash-draft-window/preview',{days:1},'',{authorization:'Bearer '+key.token})).status,401,'an agent key never substitutes for native finance sign-in')
     for (const days of [0,91,1.5,'1']) await h.post('settings/cash-draft-window/preview',{days},t.morgan,400)
     await h.post('settings/cash-draft-window/preview',{days:1,extra:true},t.morgan,400)
     const originals=[]
@@ -430,6 +433,8 @@ test('CAPTURE-004 cash window defaults off, confirms only finance-visible counts
     const discarded=originals[0],merged=originals[1]
     await h.post(`receipt-inbox/${discarded.id}/discard`,{reason:'not a business expense',expectedSequence:0},t.sam)
     await h.post(`receipt-inbox/${merged.id}/merge`,{survivorId:originals[2].id,expectedSequence:0},t.sam)
+    await upload(h,t.alex,'inactive-employee.png',png)
+    await h.post('settings/members',{email:'alex@harbourfinch.example',name:'alex',employee:true,active:false})
     const before=(await h.db.prepare('SELECT * FROM c_capture_receipts ORDER BY id').all()).results
     const future=Date.parse(originals.at(-1).uploadedAt)+86400000
     await tick(future)
@@ -476,7 +481,7 @@ test('CAPTURE-004 cash window defaults off, confirms only finance-visible counts
     assert.deepEqual((await h.db.prepare('SELECT * FROM c_capture_receipts ORDER BY id').all()).results,before,'original evidence never changes')
     assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_receipts').first()).n,0,'no duplicate BLOB copy')
     const bucket=await h.mf.getR2Bucket('COASTER_RECEIPTS')
-    assert.equal((await bucket.list()).objects.length,29,'R2 stores each original once')
+    assert.equal((await bucket.list()).objects.length,30,'R2 stores each original once; the inactive employee original was skipped')
     const inbox=await h.get('receipt-inbox',t.sam)
     assert.equal(inbox.receipts.filter(r=>r.cashDraft).length,27)
     assert.deepEqual((await download(h,t.sam,originals[2].id)).bytes,png)
