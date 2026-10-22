@@ -1,7 +1,7 @@
 import { prepareTarget } from '../coding/automatic/storage';
 import { all, commit, type Sql } from '../session';
 import { can, needRow, rowAuthority } from '../permissions';
-import { event } from '../events';
+import { event, ruleEvent } from '../events';
 import { claimState, claimTotal, insertClaim, insertItem } from '../claims';
 import type { ItemInput } from '../items';
 import { email, now, requireThat, uid, type Actor, type Data } from '../types';
@@ -56,7 +56,7 @@ export async function placements(db: D1Database, held: Held[], issuer: string, p
 }
 
 /** The charge, its native card expense on the placed report and the history line for one statement purchase. */
-export async function chargeStatements(db: D1Database, actor: Actor, c: { file: string; issuer: string; category: Awaited<ReturnType<typeof categoryFor>>; costCentre: string; held: Held; claim: string; position: number; at: string }) {
+export async function chargeStatements(db: D1Database, actor: Actor | { system: string }, c: { file: string; issuer: string; category: Awaited<ReturnType<typeof categoryFor>>; costCentre: string; held: Held; claim: string; position: number; at: string; feed?: string }) {
   const { held: h, issuer } = c, chargeId = uid(), itemId = uid(), r = h.row;
   const item: ItemInput = { kind: 'receipt', spent_on: h.date, merchant: r.descriptor.slice(0, 200), description: r.memo, amount_minor: r.amountMinor!, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: c.category.id, cost_centre: c.costCentre, amount_minor: r.amountMinor! }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: '', project: '', card_charge_id: chargeId };
   const automatic=await prepareTarget(db,{kind:'item',id:itemId,employee:h.employee,claim:c.claim,merchant:item.merchant,mcc:r.mcc},{},{memo:r.memo||undefined},[],true);
@@ -66,7 +66,7 @@ export async function chargeStatements(db: D1Database, actor: Actor, c: { file: 
   return { charge: chargeId, guard:automatic.guard, statements: [
     db.prepare('INSERT INTO c_card_charges(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(chargeId, c.file, h.cardId, h.employee, `card:${issuer.toLowerCase()}|${r.last4}:${r.key}`, r.postedOn, r.transactionOn, item.merchant, r.memo, r.amountMinor, r.currency, r.originalMinor, r.originalCurrency, itemId, c.category.id, c.at, c.claim),
     ...insertItem(db, c.claim, itemId, c.position, item, null),...automatic.writes,
-    event(db, actor, 'import-card-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false }),
+    ...('system' in actor ? [ruleEvent(db, actor.system, 'program-feed-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, feed: c.feed, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false, channel: 'feed' })] : [event(db, actor, 'import-card-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false })]),
   ] };
 }
 
