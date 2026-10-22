@@ -4,7 +4,7 @@ import { CodingFields } from './coding';
 import { Empty, Field, Form, Section } from './parts';
 
 const boundary = 'coding/automatic';
-const sources: Record<string,string> = { 'merchant-rule': 'Finance merchant rule', 'personal-rule': 'Personal merchant rule', 'learned-person': 'Your previous coding', 'learned-department': 'Department coding history', 'learned-company': 'Company coding history', 'merchant-category': 'Merchant category', 'receipt-entry': 'Coding entered on your receipt', receipt: 'Receipt reading' };
+const sources: Record<string,string> = { 'merchant-rule': 'Finance merchant rule', 'personal-rule': 'Personal merchant rule', 'learned-person': 'Your previous coding', 'learned-department': 'Department coding history', 'learned-company': 'Company coding history', 'merchant-category': 'Merchant category', 'receipt-entry': 'Coding entered on your receipt', 'receipt-reading': 'Receipt reading' };
 export const codingSource = (source: string) => sources[source] ?? source;
 
 /** Merchant rules use the existing settings controls and current native authority. */
