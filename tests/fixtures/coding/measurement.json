@@ -1,25 +1,1827 @@
 {
-  "fixture": {"charges":120,"receiptOriginals":120,"priorNativeExpenses":120,"historyMonths":12},
+  "fixture": {
+    "charges": 120,
+    "receiptOriginals": 120,
+    "priorNativeExpenses": 120,
+    "historyMonths": 12
+  },
   "method": "Expected labels are committed before evaluation. Actual PNG originals contain the fixture merchant/date/amount. Receipt merchant metadata is entered, not OCR. Ingestion has no receipt MCC. The second phase uses per-original native matching consent and real private charge questions; where tip-tolerant matching is ambiguous, the employee confirms the single exact-total charge through the existing attachment door. The actual linked card MCC fills only still-empty suggestion fields. No label is supplied to the application.",
   "ingestion": {
-    "financeRule":{"matched":48,"total":48,"percent":100},
-    "fullRepeatCategory":{"matched":186,"total":216,"percent":86.11111111111111},
-    "eligibleRepeatCategory":{"matched":186,"total":204,"percent":91.17647058823529},
-    "category":{"matched":192,"total":216,"percent":88.88888888888889},
-    "class":{"matched":168,"total":168,"percent":100},
-    "project":{"matched":168,"total":168,"percent":100},
-    "categoryAbstentions":48,
-    "chargeSources":{"merchant-rule":24,"personal-rule":12,"learned-person":24,"learned-department":12,"learned-company":12,"merchant-category":24}
+    "financeRule": {
+      "matched": 48,
+      "total": 48,
+      "percent": 100
+    },
+    "fullRepeatCategory": {
+      "matched": 186,
+      "total": 216,
+      "percent": 86.11111111111111
+    },
+    "eligibleRepeatCategory": {
+      "matched": 186,
+      "total": 204,
+      "percent": 91.17647058823529
+    },
+    "category": {
+      "matched": 192,
+      "total": 216,
+      "percent": 88.88888888888889
+    },
+    "class": {
+      "matched": 168,
+      "total": 168,
+      "percent": 100
+    },
+    "project": {
+      "matched": 168,
+      "total": 168,
+      "percent": 100
+    },
+    "categoryAbstentions": 48,
+    "chargeSources": {
+      "merchant-rule": 24,
+      "personal-rule": 12,
+      "learned-person": 24,
+      "learned-department": 12,
+      "learned-company": 12,
+      "merchant-category": 24
+    }
   },
   "afterConfirmedActualChargeLink": {
-    "financeRule":{"matched":48,"total":48,"percent":100},
-    "fullRepeatCategory":{"matched":204,"total":216,"percent":94.44444444444444},
-    "eligibleRepeatCategory":{"matched":204,"total":204,"percent":100},
-    "category":{"matched":216,"total":216,"percent":100},
-    "class":{"matched":168,"total":168,"percent":100},
-    "project":{"matched":168,"total":168,"percent":100},
-    "categoryAbstentions":24
+    "financeRule": {
+      "matched": 48,
+      "total": 48,
+      "percent": 100
+    },
+    "fullRepeatCategory": {
+      "matched": 204,
+      "total": 216,
+      "percent": 94.44444444444444
+    },
+    "eligibleRepeatCategory": {
+      "matched": 204,
+      "total": 204,
+      "percent": 100
+    },
+    "category": {
+      "matched": 216,
+      "total": 216,
+      "percent": 100
+    },
+    "class": {
+      "matched": 168,
+      "total": 168,
+      "percent": 100
+    },
+    "project": {
+      "matched": 168,
+      "total": 168,
+      "percent": 100
+    },
+    "categoryAbstentions": 24
   },
   "denominators": "Full repeat counts every repeat charge and original, including archived-account and unknown-label abstentions as nonmatches. Eligible repeat separately counts repeat records with an active expected category. Overall category/class/project count all non-null business labels, with missing suggestions counted as nonmatches. The 24 final category abstentions are 12 unknown-merchant and 12 retired-account records.",
-  "limitations":["Statement files are not a live issuer feed.","Receipt merchant metadata is entered by the employee; CAPTURE-003 reading remains unavailable.","Unlinked receipt ingestion alone does not meet the full repeat-category bar."]
+  "limitations": [
+    "This original typed-metadata measurement is not OCR evidence.",
+    "Actual SSH/SFTP program transport is now implemented, but issuer onboarding and commercial program formats remain open.",
+    "Unlinked intake and later native matching are measured separately; post-link results do not replace intake."
+  ],
+  "actualProviderDefaultMatching": {
+    "gitSHA": "a8015fbef7762b492a59b37d5c3e89a667ad387c",
+    "model": "gpt-6.1-sol",
+    "startedAt": "2026-10-22T04:16:44.843Z",
+    "finishedAt": "2026-10-22T04:33:25.943Z",
+    "method": "Frozen full corpora; native catalog and twelve-month history; actual scheduled SFTP; PNG upload without typed merchant; employee self-only standing matching consent with the native notice; one explicit read and one separately consented coding request when verified merchant exists; four concurrent originals. Intake is saved before native hourly matching. Every original remains in both denominators; no correction, retries, forced attachment or direct database writes.",
+    "limitations": [
+      "Synthetic actual SSH/SFTP issuer transport is not issuer onboarding proof.",
+      "Matching preserves native tolerances and ambiguity decisions; unmatched originals stay in the full denominator.",
+      "Intake and post-attachment scores are distinct observations; neither replaces prior unlinked measurements.",
+      "Hourly stabilization is bounded and reported; no claim of attachment is made for remaining private originals."
+    ],
+    "corpora": {
+      "old": {
+        "intake": {
+          "charges": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "project": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "categoryAbstentions": 12,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 108,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 24
+            }
+          },
+          "unlinkedReceipts": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 84,
+              "total": 108,
+              "percent": 77.77777777777777
+            },
+            "eligibleRepeatCategory": {
+              "matched": 84,
+              "total": 102,
+              "percent": 82.3529411764706
+            },
+            "category": {
+              "matched": 84,
+              "total": 108,
+              "percent": 77.77777777777777
+            },
+            "class": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "project": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "categoryAbstentions": 36,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12
+            }
+          },
+          "combined": {
+            "records": 240,
+            "financeRule": {
+              "matched": 48,
+              "total": 48,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 186,
+              "total": 216,
+              "percent": 86.11111111111111
+            },
+            "eligibleRepeatCategory": {
+              "matched": 186,
+              "total": 204,
+              "percent": 91.17647058823529
+            },
+            "category": {
+              "matched": 192,
+              "total": 216,
+              "percent": 88.88888888888889
+            },
+            "class": {
+              "matched": 168,
+              "total": 168,
+              "percent": 100
+            },
+            "project": {
+              "matched": 168,
+              "total": 168,
+              "percent": 100
+            },
+            "categoryAbstentions": 48,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 192,
+                "total": 192,
+                "percent": 100
+              },
+              "class": {
+                "matched": 168,
+                "total": 168,
+                "percent": 100
+              },
+              "project": {
+                "matched": 168,
+                "total": 168,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 48,
+              "personal-rule": 24,
+              "learned-person": 48,
+              "learned-department": 24,
+              "learned-company": 24,
+              "merchant-category": 24
+            }
+          }
+        },
+        "afterNativeAttachment": {
+          "receipts": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 84,
+              "total": 108,
+              "percent": 77.77777777777777
+            },
+            "eligibleRepeatCategory": {
+              "matched": 84,
+              "total": 102,
+              "percent": 82.3529411764706
+            },
+            "category": {
+              "matched": 84,
+              "total": 108,
+              "percent": 77.77777777777777
+            },
+            "class": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "project": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "categoryAbstentions": 36,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12
+            }
+          },
+          "counts": {
+            "total": 120,
+            "uploaded": 120,
+            "attached": 0,
+            "unmatched": 120,
+            "matchingChoices": 120,
+            "receiptsWithNativeMcc": 0,
+            "readingHttpFailures": 0,
+            "readingNeedsAttention": 120,
+            "codingHttpFailures": 0,
+            "archived": 0
+          },
+          "settled": true,
+          "ticks": [
+            {
+              "tick": 1,
+              "at": "2026-10-22T04:24:01.437Z",
+              "attached": 0,
+              "matchingChoices": 120,
+              "stablePasses": 0
+            },
+            {
+              "tick": 2,
+              "at": "2026-10-22T04:24:01.511Z",
+              "attached": 0,
+              "matchingChoices": 120,
+              "stablePasses": 1
+            },
+            {
+              "tick": 3,
+              "at": "2026-10-22T04:24:01.526Z",
+              "attached": 0,
+              "matchingChoices": 120,
+              "stablePasses": 2
+            }
+          ]
+        }
+      },
+      "semantic": {
+        "intake": {
+          "charges": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 90,
+              "total": 108,
+              "percent": 83.33333333333333
+            },
+            "eligibleRepeatCategory": {
+              "matched": 90,
+              "total": 102,
+              "percent": 88.23529411764706
+            },
+            "category": {
+              "matched": 96,
+              "total": 108,
+              "percent": 88.88888888888889
+            },
+            "class": {
+              "matched": 84,
+              "total": 86,
+              "percent": 97.67441860465117
+            },
+            "project": {
+              "matched": 84,
+              "total": 86,
+              "percent": 97.67441860465117
+            },
+            "categoryAbstentions": 24,
+            "customer": {
+              "matched": 0,
+              "total": 2,
+              "percent": 0
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 96,
+                "total": 96,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 12
+            }
+          },
+          "unlinkedReceipts": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 86,
+              "total": 86,
+              "percent": 100
+            },
+            "project": {
+              "matched": 86,
+              "total": 86,
+              "percent": 100
+            },
+            "categoryAbstentions": 12,
+            "customer": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 108,
+                "percent": 100
+              },
+              "class": {
+                "matched": 86,
+                "total": 86,
+                "percent": 100
+              },
+              "project": {
+                "matched": 86,
+                "total": 86,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "receipt-reading": 103,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12
+            }
+          },
+          "combined": {
+            "records": 240,
+            "financeRule": {
+              "matched": 48,
+              "total": 48,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 192,
+              "total": 216,
+              "percent": 88.88888888888889
+            },
+            "eligibleRepeatCategory": {
+              "matched": 192,
+              "total": 204,
+              "percent": 94.11764705882354
+            },
+            "category": {
+              "matched": 204,
+              "total": 216,
+              "percent": 94.44444444444444
+            },
+            "class": {
+              "matched": 170,
+              "total": 172,
+              "percent": 98.83720930232558
+            },
+            "project": {
+              "matched": 170,
+              "total": 172,
+              "percent": 98.83720930232558
+            },
+            "categoryAbstentions": 36,
+            "customer": {
+              "matched": 2,
+              "total": 4,
+              "percent": 50
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 204,
+                "total": 204,
+                "percent": 100
+              },
+              "class": {
+                "matched": 170,
+                "total": 170,
+                "percent": 100
+              },
+              "project": {
+                "matched": 170,
+                "total": 170,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 48,
+              "personal-rule": 24,
+              "learned-person": 48,
+              "learned-department": 24,
+              "learned-company": 24,
+              "merchant-category": 12,
+              "receipt-reading": 103
+            }
+          }
+        },
+        "afterNativeAttachment": {
+          "receipts": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 86,
+              "total": 86,
+              "percent": 100
+            },
+            "project": {
+              "matched": 86,
+              "total": 86,
+              "percent": 100
+            },
+            "categoryAbstentions": 12,
+            "customer": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 108,
+                "percent": 100
+              },
+              "class": {
+                "matched": 86,
+                "total": 86,
+                "percent": 100
+              },
+              "project": {
+                "matched": 86,
+                "total": 86,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "receipt-reading": 103,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12
+            }
+          },
+          "counts": {
+            "total": 120,
+            "uploaded": 120,
+            "attached": 0,
+            "unmatched": 120,
+            "matchingChoices": 120,
+            "receiptsWithNativeMcc": 0,
+            "readingHttpFailures": 0,
+            "readingNeedsAttention": 0,
+            "codingHttpFailures": 0,
+            "archived": 0
+          },
+          "settled": true,
+          "ticks": [
+            {
+              "tick": 1,
+              "at": "2026-10-22T04:33:24.980Z",
+              "attached": 0,
+              "matchingChoices": 120,
+              "stablePasses": 0
+            },
+            {
+              "tick": 2,
+              "at": "2026-10-22T04:33:25.118Z",
+              "attached": 0,
+              "matchingChoices": 120,
+              "stablePasses": 1
+            },
+            {
+              "tick": 3,
+              "at": "2026-10-22T04:33:25.134Z",
+              "attached": 0,
+              "matchingChoices": 120,
+              "stablePasses": 2
+            }
+          ]
+        }
+      }
+    }
+  },
+  "actualProviderExplicitExactMatchingBeforeReadingTransfer": {
+    "gitSHA": "a9a9fa242c2c0e0b7ff04d3f7ca14a2843ddb858",
+    "model": "gpt-6.1-sol",
+    "matchingPolicy": "explicit-global-zero-tip-and-fx-tolerances",
+    "startedAt": "2026-10-22T04:30:09.962Z",
+    "finishedAt": "2026-10-22T04:48:01.574Z",
+    "method": "Frozen full corpora; native catalog and twelve-month history; actual scheduled SFTP; PNG upload without typed merchant; employee self-only standing matching consent with the native notice; one explicit read and one separately consented coding request when verified merchant exists; four concurrent originals. Intake is saved before native hourly matching. Final native charges and expense advice are read back through public ledger and claim routes after hourly matching. Every charge and original remains in its denominator; no correction, retries, forced attachment, extra model requests or direct database writes. Separate explicit scenario: finance settings globally choose zero tip and FX tolerances while preserving the installation date window.",
+    "limitations": [
+      "Synthetic actual SSH/SFTP issuer transport is not issuer onboarding proof.",
+      "Matching preserves native tolerances and ambiguity decisions; unmatched originals stay in the full denominator.",
+      "Intake and post-attachment scores are distinct observations; neither replaces prior unlinked measurements.",
+      "Hourly stabilization is bounded and reported; no claim of attachment is made for remaining private originals."
+    ],
+    "corpora": {
+      "old": {
+        "intake": {
+          "charges": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "project": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "categoryAbstentions": 12,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 108,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 24
+            }
+          },
+          "unlinkedReceipts": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 84,
+              "total": 108,
+              "percent": 77.77777777777777
+            },
+            "eligibleRepeatCategory": {
+              "matched": 84,
+              "total": 102,
+              "percent": 82.3529411764706
+            },
+            "category": {
+              "matched": 84,
+              "total": 108,
+              "percent": 77.77777777777777
+            },
+            "class": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "project": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "categoryAbstentions": 36,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12
+            }
+          },
+          "combined": {
+            "records": 240,
+            "financeRule": {
+              "matched": 48,
+              "total": 48,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 186,
+              "total": 216,
+              "percent": 86.11111111111111
+            },
+            "eligibleRepeatCategory": {
+              "matched": 186,
+              "total": 204,
+              "percent": 91.17647058823529
+            },
+            "category": {
+              "matched": 192,
+              "total": 216,
+              "percent": 88.88888888888889
+            },
+            "class": {
+              "matched": 168,
+              "total": 168,
+              "percent": 100
+            },
+            "project": {
+              "matched": 168,
+              "total": 168,
+              "percent": 100
+            },
+            "categoryAbstentions": 48,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 192,
+                "total": 192,
+                "percent": 100
+              },
+              "class": {
+                "matched": 168,
+                "total": 168,
+                "percent": 100
+              },
+              "project": {
+                "matched": 168,
+                "total": 168,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 48,
+              "personal-rule": 24,
+              "learned-person": 48,
+              "learned-department": 24,
+              "learned-company": 24,
+              "merchant-category": 24
+            }
+          }
+        },
+        "afterNativeAttachment": {
+          "receipts": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "project": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "categoryAbstentions": 12,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 108,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 24
+            }
+          },
+          "charges": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "project": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "categoryAbstentions": 12,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 108,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 24
+            }
+          },
+          "combined": {
+            "records": 240,
+            "financeRule": {
+              "matched": 48,
+              "total": 48,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 204,
+              "total": 216,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 204,
+              "total": 204,
+              "percent": 100
+            },
+            "category": {
+              "matched": 216,
+              "total": 216,
+              "percent": 100
+            },
+            "class": {
+              "matched": 168,
+              "total": 168,
+              "percent": 100
+            },
+            "project": {
+              "matched": 168,
+              "total": 168,
+              "percent": 100
+            },
+            "categoryAbstentions": 24,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 216,
+                "total": 216,
+                "percent": 100
+              },
+              "class": {
+                "matched": 168,
+                "total": 168,
+                "percent": 100
+              },
+              "project": {
+                "matched": 168,
+                "total": 168,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 48,
+              "personal-rule": 24,
+              "learned-person": 48,
+              "learned-department": 24,
+              "learned-company": 24,
+              "merchant-category": 48
+            }
+          },
+          "chargeExpenses": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "project": {
+              "matched": 84,
+              "total": 84,
+              "percent": 100
+            },
+            "categoryAbstentions": 0,
+            "customer": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 120,
+                "percent": 90
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 24
+            }
+          },
+          "chargeMeasurement": "Suggestion scores require source evidence whose value survives in the current native expense. Raw allocation/catalog coding, including unadvised importer defaults, is reported separately as chargeExpenses.",
+          "counts": {
+            "total": 120,
+            "uploaded": 120,
+            "attached": 120,
+            "unmatched": 0,
+            "matchingChoices": 120,
+            "receiptsWithNativeMcc": 24,
+            "chargeExpensesRead": 120,
+            "chargeReadFailures": 0,
+            "readingHttpFailures": 0,
+            "readingNeedsAttention": 120,
+            "codingHttpFailures": 0,
+            "archived": 0
+          },
+          "settled": true,
+          "ticks": [
+            {
+              "tick": 1,
+              "at": "2026-10-22T04:37:49.436Z",
+              "attached": 100,
+              "matchingChoices": 120,
+              "stablePasses": 0
+            },
+            {
+              "tick": 2,
+              "at": "2026-10-22T04:37:49.856Z",
+              "attached": 120,
+              "matchingChoices": 120,
+              "stablePasses": 0
+            },
+            {
+              "tick": 3,
+              "at": "2026-10-22T04:37:49.891Z",
+              "attached": 120,
+              "matchingChoices": 120,
+              "stablePasses": 1
+            },
+            {
+              "tick": 4,
+              "at": "2026-10-22T04:37:49.930Z",
+              "attached": 120,
+              "matchingChoices": 120,
+              "stablePasses": 2
+            }
+          ]
+        }
+      },
+      "semantic": {
+        "intake": {
+          "charges": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 90,
+              "total": 108,
+              "percent": 83.33333333333333
+            },
+            "eligibleRepeatCategory": {
+              "matched": 90,
+              "total": 102,
+              "percent": 88.23529411764706
+            },
+            "category": {
+              "matched": 96,
+              "total": 108,
+              "percent": 88.88888888888889
+            },
+            "class": {
+              "matched": 84,
+              "total": 86,
+              "percent": 97.67441860465117
+            },
+            "project": {
+              "matched": 84,
+              "total": 86,
+              "percent": 97.67441860465117
+            },
+            "categoryAbstentions": 24,
+            "customer": {
+              "matched": 0,
+              "total": 2,
+              "percent": 0
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 96,
+                "total": 96,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 12
+            }
+          },
+          "unlinkedReceipts": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 86,
+              "total": 86,
+              "percent": 100
+            },
+            "project": {
+              "matched": 86,
+              "total": 86,
+              "percent": 100
+            },
+            "categoryAbstentions": 12,
+            "customer": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 108,
+                "percent": 100
+              },
+              "class": {
+                "matched": 86,
+                "total": 86,
+                "percent": 100
+              },
+              "project": {
+                "matched": 86,
+                "total": 86,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "receipt-reading": 111,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12
+            }
+          },
+          "combined": {
+            "records": 240,
+            "financeRule": {
+              "matched": 48,
+              "total": 48,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 192,
+              "total": 216,
+              "percent": 88.88888888888889
+            },
+            "eligibleRepeatCategory": {
+              "matched": 192,
+              "total": 204,
+              "percent": 94.11764705882354
+            },
+            "category": {
+              "matched": 204,
+              "total": 216,
+              "percent": 94.44444444444444
+            },
+            "class": {
+              "matched": 170,
+              "total": 172,
+              "percent": 98.83720930232558
+            },
+            "project": {
+              "matched": 170,
+              "total": 172,
+              "percent": 98.83720930232558
+            },
+            "categoryAbstentions": 36,
+            "customer": {
+              "matched": 2,
+              "total": 4,
+              "percent": 50
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 204,
+                "total": 204,
+                "percent": 100
+              },
+              "class": {
+                "matched": 170,
+                "total": 170,
+                "percent": 100
+              },
+              "project": {
+                "matched": 170,
+                "total": 170,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 48,
+              "personal-rule": 24,
+              "learned-person": 48,
+              "learned-department": 24,
+              "learned-company": 24,
+              "merchant-category": 12,
+              "receipt-reading": 111
+            }
+          }
+        },
+        "afterNativeAttachment": {
+          "receipts": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "eligibleRepeatCategory": {
+              "matched": 102,
+              "total": 102,
+              "percent": 100
+            },
+            "category": {
+              "matched": 108,
+              "total": 108,
+              "percent": 100
+            },
+            "class": {
+              "matched": 86,
+              "total": 86,
+              "percent": 100
+            },
+            "project": {
+              "matched": 86,
+              "total": 86,
+              "percent": 100
+            },
+            "categoryAbstentions": 12,
+            "customer": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 108,
+                "total": 108,
+                "percent": 100
+              },
+              "class": {
+                "matched": 86,
+                "total": 86,
+                "percent": 100
+              },
+              "project": {
+                "matched": 86,
+                "total": 86,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "receipt-reading": 111,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12
+            }
+          },
+          "charges": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 90,
+              "total": 108,
+              "percent": 83.33333333333333
+            },
+            "eligibleRepeatCategory": {
+              "matched": 90,
+              "total": 102,
+              "percent": 88.23529411764706
+            },
+            "category": {
+              "matched": 96,
+              "total": 108,
+              "percent": 88.88888888888889
+            },
+            "class": {
+              "matched": 84,
+              "total": 86,
+              "percent": 97.67441860465117
+            },
+            "project": {
+              "matched": 84,
+              "total": 86,
+              "percent": 97.67441860465117
+            },
+            "categoryAbstentions": 24,
+            "customer": {
+              "matched": 0,
+              "total": 2,
+              "percent": 0
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 96,
+                "total": 96,
+                "percent": 100
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 12
+            }
+          },
+          "combined": {
+            "records": 240,
+            "financeRule": {
+              "matched": 48,
+              "total": 48,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 192,
+              "total": 216,
+              "percent": 88.88888888888889
+            },
+            "eligibleRepeatCategory": {
+              "matched": 192,
+              "total": 204,
+              "percent": 94.11764705882354
+            },
+            "category": {
+              "matched": 204,
+              "total": 216,
+              "percent": 94.44444444444444
+            },
+            "class": {
+              "matched": 170,
+              "total": 172,
+              "percent": 98.83720930232558
+            },
+            "project": {
+              "matched": 170,
+              "total": 172,
+              "percent": 98.83720930232558
+            },
+            "categoryAbstentions": 36,
+            "customer": {
+              "matched": 2,
+              "total": 4,
+              "percent": 50
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 2,
+              "total": 2,
+              "percent": 100
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 204,
+                "total": 204,
+                "percent": 100
+              },
+              "class": {
+                "matched": 170,
+                "total": 170,
+                "percent": 100
+              },
+              "project": {
+                "matched": 170,
+                "total": 170,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 48,
+              "personal-rule": 24,
+              "learned-person": 48,
+              "learned-department": 24,
+              "learned-company": 24,
+              "merchant-category": 12,
+              "receipt-reading": 111
+            }
+          },
+          "chargeExpenses": {
+            "records": 120,
+            "financeRule": {
+              "matched": 24,
+              "total": 24,
+              "percent": 100
+            },
+            "fullRepeatCategory": {
+              "matched": 96,
+              "total": 108,
+              "percent": 88.88888888888889
+            },
+            "eligibleRepeatCategory": {
+              "matched": 96,
+              "total": 102,
+              "percent": 94.11764705882354
+            },
+            "category": {
+              "matched": 102,
+              "total": 108,
+              "percent": 94.44444444444444
+            },
+            "class": {
+              "matched": 84,
+              "total": 86,
+              "percent": 97.67441860465117
+            },
+            "project": {
+              "matched": 84,
+              "total": 86,
+              "percent": 97.67441860465117
+            },
+            "categoryAbstentions": 0,
+            "customer": {
+              "matched": 0,
+              "total": 2,
+              "percent": 0
+            },
+            "suggestedCustomerAgreement": {
+              "matched": 0,
+              "total": 0,
+              "percent": null
+            },
+            "suggestedAgreement": {
+              "category": {
+                "matched": 102,
+                "total": 120,
+                "percent": 85
+              },
+              "class": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              },
+              "project": {
+                "matched": 84,
+                "total": 84,
+                "percent": 100
+              }
+            },
+            "sources": {
+              "merchant-rule": 24,
+              "personal-rule": 12,
+              "learned-person": 24,
+              "learned-department": 12,
+              "learned-company": 12,
+              "merchant-category": 12
+            }
+          },
+          "chargeMeasurement": "Suggestion scores require source evidence whose value survives in the current native expense. Raw allocation/catalog coding, including unadvised importer defaults, is reported separately as chargeExpenses.",
+          "counts": {
+            "total": 120,
+            "uploaded": 120,
+            "attached": 43,
+            "unmatched": 77,
+            "matchingChoices": 120,
+            "receiptsWithNativeMcc": 0,
+            "chargeExpensesRead": 120,
+            "chargeReadFailures": 0,
+            "readingHttpFailures": 0,
+            "readingNeedsAttention": 0,
+            "codingHttpFailures": 0,
+            "archived": 0
+          },
+          "settled": true,
+          "ticks": [
+            {
+              "tick": 1,
+              "at": "2026-10-22T04:47:37.656Z",
+              "attached": 26,
+              "matchingChoices": 120,
+              "stablePasses": 0
+            },
+            {
+              "tick": 2,
+              "at": "2026-10-22T04:47:49.825Z",
+              "attached": 43,
+              "matchingChoices": 120,
+              "stablePasses": 0
+            },
+            {
+              "tick": 3,
+              "at": "2026-10-22T04:47:49.974Z",
+              "attached": 43,
+              "matchingChoices": 120,
+              "stablePasses": 1
+            },
+            {
+              "tick": 4,
+              "at": "2026-10-22T04:47:50.075Z",
+              "attached": 43,
+              "matchingChoices": 120,
+              "stablePasses": 2
+            }
+          ]
+        }
+      }
+    }
+  },
+  "actualProviderStatus": "These are complete original measurements, including every charge/original and all abstentions. The final current-candidate post-transfer run uses tests/coding-attachment-quality.mjs --corpus both --exact-matching --assert-after-attachment; ct consent/learning and evaluation-stage ratification remain open."
 }
