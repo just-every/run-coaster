@@ -18,6 +18,7 @@ import { EscalationChains } from './escalation-chains';
 import { CardReconciliation } from './card-reconciliation';
 import { CodingSettings, CategoryAccountField } from './coding';
 import { QuickBooks } from './quickbooks';
+import { AutomaticCoding } from './automatic-coding';
 import type { ViewProps } from './claims';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -76,6 +77,7 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <QuickBooks state={state} />}
     {b && admin && <CodingSettings state={state} reload={reload} />}
+    {b && !auditorOnly && !state.actor.delegate && <AutomaticCoding state={state} />}
     {b && (reader || roles.cardAdmin) && <CardReconciliation state={state} />}
     {b && (reader || roles.manager) && <SpendAnalytics currency={b.currency} />}
     {b && reader && <Budgets state={state} canSet={admin || roles.finance} />}

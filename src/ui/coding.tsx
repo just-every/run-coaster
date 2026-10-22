@@ -21,7 +21,7 @@ function orderedDimensions(catalog: D): D[] {
   return result;
 }
 /** Each choice belongs to its selected parent; changing a level clears its dependent selections. */
-export function CodingFields({ catalog, value, categories, onChange }: { catalog: D; value: Record<string,string>; categories: string[]; onChange: (next: Record<string,string>) => void }) {
+export function CodingFields({ catalog, value, categories, onChange, enforceRequired = true }: { catalog: D; value: Record<string,string>; categories: string[]; onChange: (next: Record<string,string>) => void; enforceRequired?: boolean }) {
   function select(dimension: string, id: string) {
     const next = { ...value }, cleared = new Set([dimension]);
     delete next[dimension]; if (id) next[dimension] = id;
@@ -29,7 +29,7 @@ export function CodingFields({ catalog, value, categories, onChange }: { catalog
     onChange(next);
   }
   return <>{orderedDimensions(catalog).map(d => {
-    const required = !!d.required || catalog.requirements.some((r: D) => categories.includes(r.category_id) && r.dimension_id === d.id && r.required);
+    const required = enforceRequired && (!!d.required || catalog.requirements.some((r: D) => categories.includes(r.category_id) && r.dimension_id === d.id && r.required));
     const choices = catalog.values.filter((v: D) => v.dimension_id === d.id && offered(catalog,v) && (!d.parent_id || v.parent_value_id === value[d.parent_id]));
     const unavailable = value[d.id] && !choices.some((v: D) => v.id === value[d.id]);
     const parent = catalog.dimensions.find((p: D) => p.id === d.parent_id);
