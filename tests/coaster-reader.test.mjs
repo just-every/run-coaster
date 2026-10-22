@@ -15,8 +15,8 @@ async function enable(h,cookie=h.owner) {return h.post('settings/receipt-reading
 const read=(h,id,cookie,reading=0,life=0,extra={})=>h.post(`receipt-inbox/${id}/reading`,{expectedSequence:life,expectedReadingSequence:reading,consent:true,...extra},cookie)
 
 test('Receipt reading requires both consents, keeps exact private evidence and returns only verified prefill',async()=>{
- const label=await load(1001),requests=[]
- const h=await harness({bindings:aiBindings,aiEdge:async request=>{const b=await request.json();requests.push(b);assert.equal(new URL(request.url).pathname,'/v1/responses');assert.equal(b.store,false);assert.ok(b.input[1].content.some(c=>c.type==='input_image'&&c.image_url.startsWith('data:image/png;base64,')));return response(raw(label))}})
+ const label=await load(1001),requests=[];let activeLabel=label
+ const h=await harness({bindings:aiBindings,aiEdge:async request=>{const b=await request.json();requests.push(b);assert.equal(new URL(request.url).pathname,'/v1/responses');assert.equal(b.store,false);assert.ok(b.input[1].content.some(c=>activeLabel.file.endsWith('.pdf')?c.type==='input_file'&&c.file_data.startsWith('data:application/pdf;base64,'):c.type==='input_image'&&c.image_url.startsWith('data:image/png;base64,')));return response(raw(activeLabel))}})
  try {
   const t=await agency(h),receipt=await upload(h,t.sam)
   assert.equal(requests.length,0,'upload does not send anything for reading')
@@ -36,6 +36,10 @@ test('Receipt reading requires both consents, keeps exact private evidence and r
   await h.get(`receipt-inbox/${receipt.id}/reading`,h.owner,404);await h.get(`receipt-inbox/${receipt.id}/reading`,t.alex,404)
   assert.equal(requests.length,1)
   const stale=await h.send(`/api/coaster/receipt-inbox/${receipt.id}/reading`,{expectedSequence:0,expectedReadingSequence:0,consent:true},t.sam);assert.equal(stale.status,409);assert.equal(requests.length,1)
+  activeLabel=await load(2041);const heic=await upload(h,t.sam,2041),heicReading=await read(h,heic.id,t.sam)
+  assert.equal(heicReading.prefill.amount,activeLabel.values.total,'HEIC is decoded to actual PNG pixels before the Base AI call');assert.equal(requests.length,2)
+  activeLabel=await load(2031);const pdf=await upload(h,t.sam,2031),pdfReading=await read(h,pdf.id,t.sam)
+  assert.equal(pdfReading.prefill.amount,activeLabel.values.total,'The complete multipage original is passed to Base AI');assert.equal(pdfReading.history.at(-1).usage.pages,2)
   const bytes=await h.mf.dispatchFetch(h.origin+`/api/coaster/receipt-inbox/${receipt.id}`,{headers:{cookie:t.sam}});assert.deepEqual(Buffer.from(await bytes.arrayBuffer()),await readFile(folder+label.file))
  }finally{await h.close()}
 })
