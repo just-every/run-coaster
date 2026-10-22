@@ -175,6 +175,7 @@ test('Verified receipt understanding uses consented BaseAI line items after nati
     assert.ok(!('last4'in prompt.receipt)&&!('date'in prompt.receipt)&&!('total'in prompt.receipt),'payment metadata is not coding evidence')
     assert.ok(prompt.catalog.categories.every(c=>c.id&&c.name));assert.ok(prompt.catalog.dimensions.every(d=>!('owner_email'in d)))
     if(mode==='paused'){entered();await new Promise(resolve=>release=resolve)}
+    if(mode==='unavailable')return Response.json({error:{message:'private upstream detail'}},{status:503})
     const score=mode==='low'?.2:.99
     return response({category:{id:mode==='invalid'?n(9501):t.cats[0].id,confidence:score,reason:'The verified purchased items support this category'},dimensions:[{dimension:t.dimensions.class,id:t.values.class[0],confidence:score,reason:'The line items support this active class'},{dimension:t.dimensions.project,id:t.values.project[0],confidence:score,reason:'The line items name this catalog project'}],memo:{text:null,confidence:0,reason:'No additional memo is needed'}})
   }})
@@ -204,6 +205,14 @@ test('Verified receipt understanding uses consented BaseAI line items after nati
     mode='valid';await t.rule(label.values.merchant,t.fields(2));await t.rule(label.values.merchant,t.fields(1),'personal',t.sam)
     const ruled=await original(),ruledResult=await h.post(`receipt-inbox/${ruled.id}/reading/coding`,ruled.body,t.sam)
     assert.deepEqual(simplified(ruledResult.values,t),{category:2,class:2,project:2});assert.ok(ruledResult.codingSuggestions.at(-1).evidence.every(e=>e.source==='merchant-rule'),'finance rule wins over the model and personal rule')
+    for(const failure of ['unavailable','invalid']){
+      mode=failure;const failed=await original(),failedResult=await h.post(`receipt-inbox/${failed.id}/reading/coding`,failed.body,t.sam)
+      assert.equal(failedResult.status,'review','uncertain source-five work stays visible for review')
+      assert.deepEqual(simplified(failedResult.values,t),{category:2,class:2,project:2},'a later AI failure never discards earlier finance-rule coding')
+      assert.ok(failedResult.codingSuggestions.at(-1).evidence.every(e=>e.source==='merchant-rule'))
+      assert.ok(!JSON.stringify(failedResult).includes('private upstream detail'))
+    }
+    mode='valid'
     const rules=await h.get(`${path}/rules`,t.finance);for(const rule of rules.rules)await h.post(`${path}/rules`,{version:(await h.get(`${path}/rules`,t.finance)).version,id:rule.id,scope:rule.scope,merchant:rule.merchant,coding:rule.fields,active:false},t.finance)
     const own=await h.get(`${path}/rules`,t.sam);for(const rule of own.rules)await h.post(`${path}/rules`,{version:(await h.get(`${path}/rules`,t.sam)).version,id:rule.id,scope:'personal',merchant:rule.merchant,coding:rule.fields,active:false},t.sam)
     const race=await original(),paused=new Promise(resolve=>entered=resolve);mode='paused'

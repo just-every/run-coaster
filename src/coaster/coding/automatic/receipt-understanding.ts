@@ -45,24 +45,31 @@ const responseSchema={type:'object',additionalProperties:false,required:['catego
  * Returns a write plan only. The reader commits it atomically with its existing native authority/read/consent guards.
  * Unavailable service, invalid IDs, ambiguous/low-confidence output all stop for review; no retry, repair or fallback. */
 export async function understandReceiptCoding(db:D1Database,env:Parameters<typeof aiConfig>[0],read:VerifiedCodingRead,consent:ReceiptCodingConsent,options:ReceiptUnderstandingOptions={}):Promise<ReceiptUnderstanding> {
-  const stop=(status:ReceiptUnderstanding['status'],why:string,reviewFields:string[]=[]):ReceiptUnderstanding=>({status,reason:why,proposal:null,reviewFields,model:null});
+  let nativeProposal:Proposal|null=null,selectedModel:string|null=null;
+  const stop=(status:ReceiptUnderstanding['status'],why:string,reviewFields:string[]=[]):ReceiptUnderstanding=>({status,reason:why,proposal:status==='review'?nativeProposal:null,reviewFields,model:selectedModel});
   if(!consent.enabled||!consent.employeeConsented)return stop('disabled','Receipt understanding needs owner enablement and this employee’s explicit reading and coding consent');
-  if(!confidence(consent.minimumConfidence))return stop('review','Receipt coding confidence policy is unavailable');
-  if(!read.receiptId||!read.employee||typeof read.merchant!=='string'||read.merchant.length>200||!Array.isArray(read.lineItems)||read.lineItems.length>100||!read.lineItems.every(i=>typeof i.description==='string'&&i.description.trim().length>0&&i.description.length<=500&&(i.amount===undefined||typeof i.amount==='string'&&/^\d{1,10}(\.\d{1,2})?$/.test(i.amount))&&(i.quantity===undefined||typeof i.quantity==='number'&&Number.isFinite(i.quantity)&&i.quantity>0||typeof i.quantity==='string'&&/^\d{1,6}(\.\d{1,3})?$/.test(i.quantity)&&Number(i.quantity)>0)))return stop('review','Verified receipt merchant and line items are unavailable');
-  if(!read.merchant.trim()&&!read.lineItems.length)return stop('review','Receipt reading contains no merchant or line items to interpret');
+  if(!read.receiptId||!read.employee||typeof read.merchant!=='string'||!read.merchant.trim()||read.merchant.length>200)return stop('review','Verified receipt merchant is unavailable');
   if(!read.guard?.sql||!consent.guard?.sql)return stop('review','Receipt reading and coding consent guards are required');
-  // Higher-priority sources are never exposed as history to the model. Their exact state remains guarded while it runs.
-  const input={merchant:read.merchant||read.lineItems[0].description,mcc:options.mcc,values:options.values??{},protectedFields:options.protectedFields??[]};
+  // Phase one stands independently of source five. Later AI review cannot erase valid earlier sources.
+  // Higher-priority sources are never exposed as history to the model; their exact state remains guarded while it runs.
+  const input={merchant:read.merchant,mcc:options.mcc,values:options.values??{},protectedFields:options.protectedFields??[]};
   const higher=await proposeCoding(db,read.employee,input);
-  if(higher.flags.length)return {status:'review',reason:'Finance must repair an unavailable higher-priority coding rule',proposal:{...higher,guard:all(read.guard,consent.guard,higher.guard)},reviewFields:[],model:null};
+  nativeProposal={...higher,guard:all(read.guard,consent.guard,higher.guard)};
+  if(higher.flags.length)return stop('review','Finance must repair an unavailable higher-priority coding rule');
+  if(!confidence(consent.minimumConfidence))return stop('review','Receipt coding confidence policy is unavailable');
+  if(!Array.isArray(read.lineItems)||read.lineItems.length>100||!read.lineItems.every(i=>typeof i.description==='string'&&i.description.trim().length>0&&i.description.length<=500&&(i.amount===undefined||typeof i.amount==='string'&&/^\d{1,10}(\.\d{1,2})?$/.test(i.amount))&&(i.quantity===undefined||typeof i.quantity==='number'&&Number.isFinite(i.quantity)&&i.quantity>0||typeof i.quantity==='string'&&/^\d{1,6}(\.\d{1,3})?$/.test(i.quantity)&&Number(i.quantity)>0)))return stop('review','Verified receipt line items are unavailable');
   const [catalog,known]=await Promise.all([codingCatalog(db),categories(db)]);
   const activeCategories=known.filter(c=>c.active&&(!c.ledger_account_id||c.ledger_account_available));
   const activeValues=catalog.values.filter(v=>offeredValue(catalog,v));
   const choices={categories:activeCategories.map(c=>({id:c.id,name:c.name})),dimensions:catalog.dimensions.filter(d=>d.active&&d.kind!=='account').map(d=>({id:d.id,name:d.name,kind:d.kind,parent:d.parent_id,choices:activeValues.filter(v=>v.dimension_id===d.id).map(v=>({id:v.id,name:v.name,parent:v.parent_value_id}))}))};
   const protectedFields=new Set([...(options.protectedFields??[]),...Object.keys(flatten(options.values??{})),...Object.keys(flatten(higher.fields))]);
+  const existing={...flatten(options.values??{}),...flatten(higher.fields)};
+  const eligibleFields=[...(choices.categories.length?['category']:[]),...choices.dimensions.filter(d=>d.choices.length&&!(['project','customer'].includes(d.kind)&&existing[d.kind])).map(d=>`dimension:${d.id}`),'memo'].filter(field=>!protectedFields.has(field));
+  if(!eligibleFields.length)return {status:'suggested',reason:'All available coding fields are already supplied by the person or earlier sources',proposal:nativeProposal,reviewFields:[],model:null};
   const prompt={receipt:{merchant:read.merchant,lineItems:read.lineItems.map(i=>({description:i.description,...(i.amount!==undefined?{amount:i.amount}:{}),...(i.quantity!==undefined?{quantity:i.quantity}:{})}))},catalog:choices,protectedFields:[...protectedFields]};
   if(JSON.stringify(prompt).length>120000)return stop('review','The active coding catalog is too large for this receipt understanding request');
   const config=aiConfig(env),model=typeof config.model==='string'?config.model:'';
+  selectedModel=model||null;
   const permission=all(read.guard,consent.guard);
   const allowed=await db.prepare(`SELECT CASE WHEN (${permission.sql}) THEN 1 ELSE 0 END AS allowed`).bind(...permission.params).first<{allowed:number}>();
   if(!allowed?.allowed)return stop('disabled','Receipt reading or coding consent changed; reload before requesting understanding');
@@ -100,7 +107,7 @@ export async function understandReceiptCoding(db:D1Database,env:Parameters<typeo
   const candidate:ReceiptCodingCandidate={fields:selected,confidence:scores,reason:`Verified receipt merchant and line-item understanding: ${reasons.join('; ').slice(0,1500)}`,model,receipt:read.receiptId};
   const proposal=await proposeCoding(db,read.employee,input,candidate);
   proposal.guard=all(read.guard,consent.guard,higher.guard,catalogState(catalog.version),proposal.guard);
-  return {status:proposal.appliedFields.length?'suggested':'review',reason:Object.keys(fields).length?'Receipt evidence supports active catalog choices':reviewFields.length?'Receipt coding is below the configured confidence; review it':'Receipt evidence does not identify an unfilled catalog choice',proposal,reviewFields,model};
+  return {status:reviewFields.length?'review':proposal.appliedFields.length?'suggested':'review',reason:reviewFields.length?'Receipt coding is below the configured confidence; review the flagged fields':Object.keys(fields).length?'Receipt evidence supports active catalog choices':'Receipt evidence does not identify an unfilled catalog choice',proposal,reviewFields,model};
 }
 
 /** Native explicit second consent door. CAPTURE-003 supplies only its own verified reading/settings guards.

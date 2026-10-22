@@ -111,6 +111,7 @@ export async function runLiveCodingQuality({key,model,output}={}) {
       const fields=item.codingSuggestions.reduce((a,s)=>({...a,...s.fields,dimensions:{...a.dimensions,...s.fields.dimensions}}),{})
       return {id:row.id,door:'scheduled-sftp-program-feed',actual:simplified(fields,t),sources:[...new Set(item.codingSuggestions.flatMap(s=>s.evidence.map(e=>e.source)))]}
     })
+    const fieldSummary=fields=>Object.fromEntries(Object.entries(fields??{}).map(([name,field])=>[name,{value:Array.isArray(field.value)?field.value.map(({description,amount,quantity})=>({description,amount,quantity})):field.value,confidence:field.confidence,review:field.review,reasons:field.reasons,source:field.source}]))
     let next=0
     await Promise.all(Array.from({length:4},async()=>{
       for(;;){
@@ -121,7 +122,7 @@ export async function runLiveCodingQuality({key,model,output}={}) {
         let coding={status:0,value:{status:'review',values:{},codingSuggestions:[]}}
         if(read.status===200&&typeof read.value.prefill?.merchant==='string')coding=await h.send(base+'/coding',{expectedSequence:read.value.lifecycleSequence,expectedReadingSequence:read.value.sequence,contextVersion:0,consent:true},t.sam)
         const suggestions=coding.value?.codingSuggestions??[]
-        records.push({id:row.id,door:'actual-unlinked-image-reading',actual:simplified(coding.value?.values??{},t),sources:[...new Set(suggestions.flatMap(s=>s.evidence.map(e=>e.source)))],reading:{http:read.status,state:read.value?.state??'unavailable',merchantVerified:typeof read.value?.prefill?.merchant==='string'},understanding:{http:coding.status,status:coding.value?.status??'review',reviewFields:coding.value?.reviewFields??[]}})
+        records.push({id:row.id,door:'actual-unlinked-image-reading',actual:simplified(coding.value?.values??{},t),sources:[...new Set(suggestions.flatMap(s=>s.evidence.map(e=>e.source)))],reading:{http:read.status,state:read.value?.state??'unavailable',merchant:read.value?.prefill?.merchant??null,merchantVerified:typeof read.value?.prefill?.merchant==='string',fields:fieldSummary(read.value?.fields)},understanding:{http:coding.status,status:coding.value?.status??'review',reason:coding.value?.reason??coding.value?.error??null,model:coding.value?.model??null,reviewFields:coding.value?.reviewFields??[]}})
       }
     }))
     const measure=rows=>{
