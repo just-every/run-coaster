@@ -77,7 +77,7 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <QuickBooks state={state} />}
     {b && admin && <CodingSettings state={state} reload={reload} />}
-    {b && !auditorOnly && !state.actor.delegate && <AutomaticCoding state={state} />}
+    {b && !auditorOnly && <AutomaticCoding state={state} />}
     {b && (reader || roles.cardAdmin) && <CardReconciliation state={state} />}
     {b && (reader || roles.manager) && <SpendAnalytics currency={b.currency} />}
     {b && reader && <Budgets state={state} canSet={admin || roles.finance} />}

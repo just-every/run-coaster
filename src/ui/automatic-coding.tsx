@@ -10,7 +10,7 @@ export const codingSource = (source: string) => sources[source] ?? source;
 /** Merchant rules use the existing settings controls and current native authority. */
 export function AutomaticCoding({ state }: { state: D }) {
   const finance = !!(state.actor.roles.owner || state.actor.roles.admin || state.actor.roles.finance);
-  const allowed = !state.actor.delegate && (finance || !!state.actor.roles.employee);
+  const allowed = finance || !!(state.actor.roles.employee || state.actor.roles.cardAdmin || state.actor.roles.manager);
   const [data, setData] = useState<D>(), [rates, setRates] = useState<D>(), [editing, setEditing] = useState<D>(), [error, setError] = useState(''), [notice, setNotice] = useState('');
   async function load() {
     const next = await call(`${boundary}/rules`);
