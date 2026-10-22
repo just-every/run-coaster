@@ -1,0 +1,1735 @@
+{
+  "model": "gpt-6.1-sol",
+  "commit": "a8015fbef7762b492a59b37d5c3e89a667ad387c",
+  "at": "2026-10-22T04:16:50.938Z",
+  "providerResponses": [
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "reasoning",
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "reasoning",
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "reasoning",
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "reasoning",
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "reasoning",
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "reasoning",
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    }
+  ],
+  "corpusCount": 46,
+  "evaluated": 46,
+  "complete": true,
+  "confidentWrong": 0,
+  "unflaggedDifferent": 0,
+  "missingConfidentPrefill": 0,
+  "rates": {
+    "merchant": {
+      "correctWithoutReview": 46,
+      "denominator": 46,
+      "rate": 1
+    },
+    "date": {
+      "correctWithoutReview": 46,
+      "denominator": 46,
+      "rate": 1
+    },
+    "total": {
+      "correctWithoutReview": 45,
+      "denominator": 46,
+      "rate": 0.9782608695652174
+    },
+    "subtotal": {
+      "correctWithoutReview": 46,
+      "denominator": 46,
+      "rate": 1
+    },
+    "salesTax": {
+      "correctWithoutReview": 46,
+      "denominator": 46,
+      "rate": 1
+    },
+    "tip": {
+      "correctWithoutReview": 45,
+      "denominator": 46,
+      "rate": 0.9782608695652174
+    },
+    "currency": {
+      "correctWithoutReview": 46,
+      "denominator": 46,
+      "rate": 1
+    },
+    "last4": {
+      "correctWithoutReview": 46,
+      "denominator": 46,
+      "rate": 1
+    },
+    "lineItems": {
+      "correctWithoutReview": 46,
+      "denominator": 46,
+      "rate": 1
+    }
+  },
+  "usage": {
+    "input_tokens": 125956,
+    "output_tokens": 40320,
+    "total_tokens": 166276
+  },
+  "receipts": [
+    {
+      "id": "synthetic-coaster-1001",
+      "sha256": "c95f548f6c382f023dbbe95665a4f395daf3aa4344bed02021546e03a179cc95",
+      "model": "gpt-6.1-sol",
+      "state": "needs-attention",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "subtotal",
+        "salesTax",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1002",
+      "sha256": "4eaee88f966ff442195523bbdead0a37a05a9cd550cd542b7c1f72a886e053e0",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1003",
+      "sha256": "7cb2d2842c842041cdd224d0c871a00118c086f0b415eb6ba545999351b80d4f",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1004",
+      "sha256": "173279b4589c51f6da68e6b371346ab76cc3d12118ed3306398c696daf57eef0",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1005",
+      "sha256": "f4c8e900e8920bc17fe8d88caa0114537f191381d8749d50cb8a7082dec43801",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1006",
+      "sha256": "1032258412248b0e5b5bdc9147adbc436b4978ab2e67aa2f1978f8c6de61e359",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1007",
+      "sha256": "8f6ad71a3111fa8f1d35f63ceb288a1c5298ea4362358bc735c27d41c39f3d0c",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1008",
+      "sha256": "b174934055c385c96c95a6aae5c632853689685852e12199a0c2c11871df685d",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1009",
+      "sha256": "9fa6c79d5a403bb8c492d456f3608988bc24e44bd2484daf6b70aaefae3fdf82",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1010",
+      "sha256": "91633e8eddf524eb750d3e89f25593cc2eb1a2daf3d014bc03909d55711db3d9",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1011",
+      "sha256": "c7b8cc7e6775a01f12eb2f14a5e1b20852a8a1fdcb4d4b6acec3e95744730c59",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1012",
+      "sha256": "c015b433fea7efe80e3f343672df0c54ed92181c4a253078072663b387bcb10d",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1013",
+      "sha256": "ece6f72b917b82485cf3a58fb9d038b712886b4dea2fca4ff8657632ffaf2911",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1014",
+      "sha256": "c820f7fbf5fce106f13ab858587287290976345fddeb86d4349e9722816de92e",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1015",
+      "sha256": "db16ff5c42a8ba470ed92b5ba07512811a395332166c1bf4b410e9f5695b346e",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1016",
+      "sha256": "d2ec1ef818114147c7b379d29bd890ea09c2acc92f3626337616ed8272da3ede",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1017",
+      "sha256": "87a0debfbbfc7d5a0edd7a47602c648ca70fd9ec4d174fcce43086c99af04734",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1018",
+      "sha256": "689b2d8996aefecb7d73390eb20f3f96ba523f7bb85d0713a9ac0494d13b539f",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1019",
+      "sha256": "9c19741224d32ed0dd0e21acf63eb6ac95a3ba7d18892aee3a7809a7f5cbade6",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1020",
+      "sha256": "af57458eff36713142b2e8a4f750799ee9e8059cf45ab5f5f4568d74021fcacd",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1021",
+      "sha256": "1008c34c11cb0c2df2804a5388820a7f1536c665e654c2a53bfd37391751bf37",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1022",
+      "sha256": "85efdd3c28d77ac1912168912da26b416871346c8b9db8437bb5594782ff1b77",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1023",
+      "sha256": "f5d53bfd04f84e707e3692385cb9658ea2239879ffb29c6b325fcfa3f9a21691",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1024",
+      "sha256": "0dbe8bee2c130153f1f3b89f3da2cb0d5d8c86869c3572db0b313326f8a1fc2d",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1025",
+      "sha256": "590d4b07bf218c91f06d8f1268000fd7aba4ef76b9aeaf0c3b064fba6bb56585",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1026",
+      "sha256": "ddc516b111572894f7a91b187d8786687239b1d738dbce5973c44295428b2c7e",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1027",
+      "sha256": "a0326738d8a0b3aaf2e0ca3a698f3e2a226b319319f87185043494b8a92b6e50",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1028",
+      "sha256": "de4e2158eb85876f072160b178f9730c3e8195709f37ad616fb339a815e24d5a",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1029",
+      "sha256": "df204c15642e6d03550e2b428e294a6f4c984c0ddd1ab1c86b7f887eea4621a6",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1030",
+      "sha256": "6f6d0356c457a02eddea5fa7a3c44a5a965a2270a557b0614f4830a613696493",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1031",
+      "sha256": "0b86856973283d4c2a6556ed40d910b7409629979e53c91b3761c9f46adaded2",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-2031",
+      "sha256": "0e4c7e9fdb659458333a053bc28a877627dfc7a996d999f4df58c0b0c05f680e",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1032",
+      "sha256": "fd597f5276d4b85d04d8645d91bbaf165b426a76c40a689130c348d1705c5fa6",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-2032",
+      "sha256": "3a8703d36b91b3abc53097ddd3a6463104ab480438327f813b744d19839ea689",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1033",
+      "sha256": "802e87234edc29c44f983f6b27fa9fa3362594cbc4b042f0aa6af40fb008a932",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-2033",
+      "sha256": "3105af1a9cf3b47782eb08d62214892d660a88a1c2f8f0745f1f5e0403d5880f",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1034",
+      "sha256": "1334bbc0a993a8d4172041a4d5eecec68cbb40684149dd656f7234118fdaf2c2",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-2034",
+      "sha256": "1e07f7367fef42c09648eaccc9d68091b7b819269763d0cfdd343d3ff532fff6",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1035",
+      "sha256": "db815f3a11472de47e3cdc43441cf8d15fbd652688ea172a572d1919857bde7b",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-2035",
+      "sha256": "b889438480150c85f745a542aa132e0d0788044d1421001fcd37f4745a3e0a64",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1036",
+      "sha256": "1256c4de7b38250e6536e2fc108efcd61654f88a1f10bfe88b742c2456d38848",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1037",
+      "sha256": "ef32be49003a526def0cfb7884819c1a0b8161db2e578fb3c40842841c08fb6a",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1038",
+      "sha256": "0c3bd837417a9cd432b6fb8d7b48987efcb39ee1d8691d8203ff44eb53318aee",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1039",
+      "sha256": "4fb044077a5f06621303c3c5ba189dfd2ed2914ad137cfb968e4309cd3ad813c",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-1040",
+      "sha256": "04ca0629b3a457745f55b41d6d61de6f97465ebeb2dc5e41869d813516351b55",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    },
+    {
+      "id": "synthetic-coaster-2041",
+      "sha256": "d15f00135de86ba850305c76e8b6e0254eab01c79ce0d9a106ff7a5e8afaf153",
+      "model": "gpt-6.1-sol",
+      "state": "read",
+      "status": 200,
+      "correctWithoutReview": [
+        "merchant",
+        "date",
+        "total",
+        "subtotal",
+        "salesTax",
+        "tip",
+        "currency",
+        "last4",
+        "lineItems"
+      ],
+      "mismatches": [],
+      "errorCode": ""
+    }
+  ],
+  "passed": true,
+  "outboundPaths": [
+    "https://api.resend.com/emails",
+    "https://api.resend.com/emails",
+    "https://api.resend.com/emails",
+    "https://api.resend.com/emails",
+    "https://api.resend.com/emails",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses",
+    "https://api.openai.com/v1/responses"
+  ]
+}
