@@ -48,6 +48,7 @@ export async function codingScreens(browser, root, origin, evidence) {
       await workflow.getByText('Approval workflow saved. New submissions use these rules.', { exact: true }).waitFor()
       const claim = await api(employee.context, origin, 'claims', { title: `Sales site visit ${width}` })
       await employee.page.goto(origin + `/app#/claims/${claim.id}`)
+      await employee.page.reload()
       await employee.page.getByRole('button', { name: 'Add expense', exact: true }).click()
       const form = employee.page.locator('form.item-form')
       await form.getByLabel('Merchant', { exact: true }).fill(`Harbour taxi ${width}`)
