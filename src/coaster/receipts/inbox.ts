@@ -12,7 +12,7 @@ type InboxReceipt = StoredReceipt & {
 };
 type InboxEvent = { receipt_id: string; sequence: number; state: InboxReceipt['state']; reason: string; at: string; actor_email: string; on_behalf_of: string | null; channel: 'app' };
 type Lifecycle = Omit<InboxEvent, 'state'> & { kind: 'discarded' | 'merged' | 'attached' | 'detached' | 'match-details' | 'match-withdrawn' | 'match-rejected'; survivor_id: string | null; claim_id: string | null; item_id: string | null; match_data: string | null };
-const ATTENTION = 'Automatic receipt reading is not available. Enter the expense details manually using this original.';
+const ATTENTION = 'This original has not been read. Enter the expense details manually, or explicitly choose receipt reading when your business enables it.';
 const SELECT = `SELECT r.*,e.state,e.reason FROM c_capture_receipts r JOIN c_capture_receipt_events e ON e.receipt_id=r.id
   AND e.sequence=(SELECT MAX(latest.sequence) FROM c_capture_receipt_events latest WHERE latest.receipt_id=r.id)`;
 
