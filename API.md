@@ -248,3 +248,45 @@ refusal/resource reads, OAuth consent/redirect/PKCE/single use, and signed
 approval/payment notifications with retries and revocation at the outbound
 network edge. API-001 remains partial pending authority policy review, domain
 egress support, and any wider OAuth consent experience required by that policy.
+
+## Native automatic coding (CODE-002, partial)
+
+These routes require a current native session. The public REST keys and
+proposal-only agent keys cannot configure rules or decide suggestions.
+Paths below are relative to `/api/coaster/coding/automatic`.
+
+| Method and path | Input or result |
+| --- | --- |
+| `GET /rules` | `{version,rules,mccMappings,flags}`. Finance's policy row sees company rules; each employee sees their own personal rules. Rule versions retain `fields`, scope and actor. |
+| `POST /rules` | `{version,id?,scope:"finance"\|"personal",merchant,active,coding}`. Finance rules use the policy row; personal rules use the person's own submit row. A merchant matches its complete normalized name. |
+| `POST /mcc` | `{version,id?,mcc,category,active}`. Finance's policy row maps a four-digit merchant category code to an active category. |
+| `POST /preview` | `{merchant,mcc?,values?}` returns suggested `fields`, `appliedFields`, per-field source/reason, invalid-rule flags and catalog/context versions. This is read-only. |
+| `GET /suggestions?item=ID` | Current native claim scope; returns the expense's context and append-only suggestions/decisions. `GET claims/:id` also includes `codingSuggestions` on each expense. |
+| `GET /suggestions?receipt=ID` | Only the original's employee; returns `{context,contextVersion,values,merchant,suggestions}`. |
+| `POST /receipts/:id` | `{version,merchant,values?}` records typed merchant/coding in that private original's context and suggests currently empty fields. It does not read the image. |
+| `POST /suggestions/:id/decision` | `{action:"accept"\|"override",values?,claimVersion?\|contextVersion?}`. An override supplies corrected fields. The exact current expense/receipt context is guarded. Draft/returned owners apply coding; assigned approvers record feedback on submitted expenses without rewriting the frozen revision, and use the existing return workflow to request a correction. |
+| `GET /rates` | Finance's policy row receives counts by rule and source: accepted, overridden, pending and percentage accepted among decided suggestions. |
+
+Coding fields are `{category?,dimensions?:{dimensionId:choiceId},project?,customer?,memo?}`.
+The last three are free-text fields; catalog project and customer choices retain
+their stable accounting identities. Active catalog choices and ancestors are
+checked at suggestion and write time. Invalid merchant rules are flagged to
+finance and do not silently give way to learned coding.
+
+Precedence applies separately to each empty field: finance merchant rule,
+personal merchant rule, personal history, department history, company history,
+then a mapped MCC. Entered values are protected, including expense values that
+exist before an original is attached. Suggestions and human corrections keep
+their source and reason; previous predictions alone do not teach the learner.
+Two agreeing personal corrections take precedence over older personal history.
+Shared learning uses submitted coding choices without original text, memos or
+other people's identities in the explanation. Private drafts and inbox coding
+only teach their own employee. This conservative learning boundary awaits ct
+ratification; the clause remains partial.
+
+New statement-file charges use this service, and CSV statements may map an MCC
+column. An uploaded original may supply a typed `merchant` multipart field;
+otherwise its employee can enter the merchant in the private inbox. Manual and
+scheduled original attachment only fills empty expense coding. These are native
+statement-file and upload doors: no issuer-feed integration or CAPTURE-003
+image-reading result is claimed. Those forms retain their own obligations.

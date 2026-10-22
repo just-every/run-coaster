@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { call, type D } from './api';
-import { codingSource } from './automatic-coding';
+import { CodingReasons, codingWords } from './automatic-coding';
 import { Field, Form } from './parts';
 import { CodingFields } from './coding';
 
@@ -28,8 +28,9 @@ export function ReceiptCoding({ receipt, state, reload }: { receipt: D; state: D
         </Form>
         {data.suggestions.map((s: D) => <div className="sub-form" key={s.id}>
           <h4>{s.status === 'accept' ? 'Accepted coding' : s.status === 'override' ? 'Corrected coding' : 'Suggested coding'}</h4>
-          {(s.evidence ?? []).map((e: D, i: number) => <p className="muted" key={i}>{codingSource(e.source)} · {e.reason}</p>)}
-          <p>{[s.fields.category && state.categories.find((c: D) => c.id === s.fields.category)?.name, ...Object.values(s.fields.dimensions ?? {}).map(id => state.coding.values.find((v: D) => v.id === id)?.name), s.fields.project, s.fields.customer, s.fields.memo].filter(Boolean).join(' · ')}</p>
+          <CodingReasons evidence={s.evidence ?? []} state={state} />
+          <p>Suggested: {codingWords(s.fields, state)}</p>
+          {s.status === 'override' && <p>Saved correction: {codingWords(s.feedback.values, state)}</p>}
           {s.status === 'pending' && <>
             <button type="button" className="button" disabled={busy} onClick={() => decide(s, 'accept')}>Accept receipt coding</button>
             <ReceiptCodingCorrection state={state} suggestion={s} onSave={values => decide(s, 'override', values)} />

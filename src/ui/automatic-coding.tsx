@@ -4,7 +4,7 @@ import { CodingFields } from './coding';
 import { Empty, Field, Form, Section } from './parts';
 
 const boundary = 'coding/automatic';
-const sources: Record<string,string> = { 'merchant-rule': 'Finance merchant rule', 'personal-rule': 'Personal merchant rule', 'learned-person': 'Your previous coding', 'learned-department': 'Department coding history', 'learned-company': 'Company coding history', 'merchant-category': 'Merchant category', receipt: 'Receipt reading' };
+const sources: Record<string,string> = { 'merchant-rule': 'Finance merchant rule', 'personal-rule': 'Personal merchant rule', 'learned-person': 'Your previous coding', 'learned-department': 'Department coding history', 'learned-company': 'Company coding history', 'merchant-category': 'Merchant category', 'receipt-entry': 'Coding entered on your receipt', receipt: 'Receipt reading' };
 export const codingSource = (source: string) => sources[source] ?? source;
 
 /** Merchant rules use the existing settings controls and current native authority. */
@@ -65,9 +65,20 @@ function MerchantRuleForm({ state, finance, rule, onSave, onCancel }: { state: D
   </Form>;
 }
 
-function codingWords(coding: D, state: D) {
+export function codingWords(coding: D, state: D) {
   return [coding.category && state.categories.find((c: D) => c.id === coding.category)?.name,
     ...Object.values(coding.dimensions ?? {}).map(id => state.coding.values.find((v: D) => v.id === id)?.name ?? 'Unavailable accounting choice'), coding.project, coding.customer, coding.memo].filter(Boolean).join(' · ');
+}
+
+export function CodingReasons({ evidence, state }: { evidence: D[]; state: D }) {
+  const groups = new Map<string,D>();
+  for (const entry of evidence) {
+    const key = `${entry.source}:${entry.reason}`;
+    const label = entry.field.startsWith('dimension:') ? state.coding.dimensions.find((d: D) => d.id === entry.field.slice(10))?.name ?? 'Accounting choice' : entry.field[0].toUpperCase() + entry.field.slice(1);
+    if (!groups.has(key)) groups.set(key, { ...entry, labels: [] });
+    groups.get(key)!.labels.push(label);
+  }
+  return <>{[...groups.entries()].map(([key, e]) => <p className="muted" key={key}>{e.labels.join(', ')} · {codingSource(e.source)} · {e.reason}</p>)}</>;
 }
 
 function Rates({ rates }: { rates?: D }) {
@@ -91,8 +102,9 @@ export function CodingSuggestions({ claim, item, state, editable, onDone }: { cl
     <details className="disclosure"><summary>Coding suggestions and decisions</summary><div className="disclosure-body">
       <ul className="ruled-list">{suggestions.map((s: D) => <li key={s.id}>
         <strong>{s.status === 'accept' ? 'Accepted' : s.status === 'override' ? 'Overridden' : 'Suggested coding'}</strong>
-        <p>{codingWords(s.fields, state)}</p>
-        {(s.evidence ?? []).map((e: D, i: number) => <p className="muted" key={i}>{codingSource(e.source)} · {e.reason}</p>)}
+        <p>Suggested: {codingWords(s.fields, state)}</p>
+        {s.status === 'override' && <p>Saved correction: {codingWords(s.feedback.values, state)}</p>}
+        <CodingReasons evidence={s.evidence ?? []} state={state} />
         {editable && s.status === 'pending' && <button type="button" className="button small" disabled={busy} onClick={() => accept(s)}>Accept coding</button>}
       </li>)}</ul>
       {editable && <p className="muted">Use Change on this expense to correct its coding. The correction stays with the suggestion history.</p>}

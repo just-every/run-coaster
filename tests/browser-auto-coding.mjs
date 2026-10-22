@@ -30,6 +30,7 @@ export async function automaticCodingScreens(browser, root, origin, evidence) {
       const first = await charge(1)
       assert.equal(first.item.allocations[0].category_id, travel.id)
       await employee.page.goto(origin + `/app#/claims/${first.claim.id}`)
+      await employee.page.reload()
       let coding = employee.page.getByLabel(`Coding suggestions for ${merchant}`, { exact: true }).first()
       await coding.getByText('Coding suggestions and decisions', { exact: true }).click()
       await coding.getByText('Finance merchant rule', { exact: false }).first().waitFor()
@@ -64,9 +65,23 @@ export async function automaticCodingScreens(browser, root, origin, evidence) {
       await receipt.getByLabel('Merchant on this receipt', { exact: true }).fill(merchant)
       await receipt.getByRole('button', { name: 'Suggest receipt coding', exact: true }).click()
       await receipt.getByRole('button', { name: 'Accept receipt coding', exact: true }).waitFor()
-      await receipt.getByText('Suggested coding', { exact: true }).scrollIntoViewIfNeeded(); await shot(employee.page, evidence, 'automatic-coding-receipt', width)
+      await receipt.getByRole('button', { name: 'Accept receipt coding', exact: true }).scrollIntoViewIfNeeded(); await shot(employee.page, evidence, 'automatic-coding-receipt', width)
       await receipt.getByRole('button', { name: 'Accept receipt coding', exact: true }).click()
       await receipt.getByText('Accepted coding', { exact: true }).waitFor()
+      await receipt.getByText('Accepted coding', { exact: true }).scrollIntoViewIfNeeded(); await shot(employee.page, evidence, 'automatic-coding-receipt-accepted', width)
+      const correctedName = `synthetic-coaster-${width + 101}.png`
+      await inbox.getByLabel('Upload receipts', { exact: true }).setInputFiles({ name: correctedName, mimeType: 'image/png', buffer: await readFile('tests/fixtures/receipts/bistro.png') })
+      const corrected = inbox.locator('.receipt-inbox-list > li').filter({ has: employee.page.getByRole('link', { name: correctedName, exact: true }) })
+      await corrected.getByText(`Coding for ${correctedName}`, { exact: true }).click()
+      await corrected.getByLabel('Merchant on this receipt', { exact: true }).fill(merchant)
+      await corrected.getByRole('button', { name: 'Suggest receipt coding', exact: true }).click()
+      await corrected.getByText('Correct receipt coding', { exact: true }).click()
+      await corrected.getByLabel('Receipt category', { exact: true }).selectOption(office.id)
+      await corrected.getByRole('button', { name: 'Save corrected receipt coding', exact: true }).scrollIntoViewIfNeeded(); await shot(employee.page, evidence, 'automatic-coding-receipt-correction', width)
+      await corrected.getByRole('button', { name: 'Save corrected receipt coding', exact: true }).click()
+      await corrected.getByText('Corrected coding', { exact: true }).waitFor()
+      await corrected.getByText('Saved correction:', { exact: false }).waitFor()
+      await corrected.getByText('Corrected coding', { exact: true }).scrollIntoViewIfNeeded(); await shot(employee.page, evidence, 'automatic-coding-receipt-corrected', width)
     } finally { await owner.context.close(); await employee.context.close() }
   }
 }
