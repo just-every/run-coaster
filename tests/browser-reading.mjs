@@ -1,3 +1,4 @@
+import { assertAccessible } from './browser-accessibility.mjs'
 // The browser's paid network edge is synthetic. Actual model quality is proved separately by receipt-reading-quality.mjs.
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
@@ -93,6 +94,7 @@ export async function readingScreens(browser, root, origin, evidence, edge) {
   }
 }
 async function shot(page, target, evidence, name, width) {
+  await assertAccessible(page, `${name} at ${width}`)
   await target.scrollIntoViewIfNeeded()
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits ${width}`)
   await page.screenshot({ path: join(evidence, `${name}-${width}.png`), fullPage: true })

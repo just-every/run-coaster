@@ -1,3 +1,4 @@
+import { assertAccessible } from './browser-accessibility.mjs'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -87,6 +88,7 @@ export async function automaticCodingScreens(browser, root, origin, evidence) {
 }
 
 async function shot(page, evidence, name, width) {
+  await assertAccessible(page, `${name} at ${width}`)
   await page.screenshot({ path: join(evidence, `${name}-${width}.png`) })
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits ${width}px`)
 }

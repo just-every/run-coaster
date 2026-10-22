@@ -112,6 +112,14 @@ export async function keyboardJourney(browser, root, origin, width, evidence, sh
 
 const axeSource = await readFile(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
 
+/** Expanded states added by later clauses retain A11Y-001's complete default rule set. */
+export async function assertAccessible(page, state) {
+  if (!await page.evaluate(() => Boolean(window.axe))) await page.addScriptTag({ content: axeSource })
+  const violations = await page.evaluate(async () => (await window.axe.run(document)).violations.map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.map(n => n.target) })))
+  assert.deepEqual(violations, [], `A11Y-001 axe on ${state}`)
+}
+
+
 /** A11Y-001: axe-core's complete default rule set (WCAG 2.0-2.2 A/AA and best practices) reports no violation on
     any main screen each person opens at this width: every destination in their rail, plus claim and batch detail. */
 export async function axeJourney(browser, root, origin, width, people = ['owner', 'employee', 'manager', 'finance']) {
