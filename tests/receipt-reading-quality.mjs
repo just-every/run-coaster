@@ -12,7 +12,7 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),fieldNames=['m
 const comparable=(name,value)=>name==='lineItems'&&Array.isArray(value)?value.map(({description,quantity,amount})=>({description,quantity,amount})):value
 const providerResponses=[]
 const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-6002'},aiEdge:async request=>{
- const headers=new Headers(request.headers);headers.set('authorization','Bearer '+process.env.OPENAI_API_KEY)
+ const headers={'authorization':'Bearer '+process.env.OPENAI_API_KEY,'content-type':request.headers.get('content-type')??'application/json',accept:request.headers.get('accept')??'application/json'}
  providerResponses.push({stage:'sending',method:request.method,url:request.url})
  try {
   const response=await fetch(request.url,{method:request.method,headers,body:await request.arrayBuffer(),redirect:'manual'})
