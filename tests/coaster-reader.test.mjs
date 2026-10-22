@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises'
 import {agency,harness} from './harness.mjs'
 const folder='tests/fixtures/receipts/reader/',region=[{page:1,x:.1,y:.1,width:.5,height:.1}]
 const load=async n=>JSON.parse(await readFile(folder+`synthetic-coaster-${n}.json`,'utf8'))
-const raw=label=>Object.fromEntries(Object.entries(label.values).map(([name,value])=>[name,{value:name==='lineItems'?value.map(x=>({...x,confidence:.99,regions:region})):value,confidence:.99,regions:region}]))
+const raw=label=>Object.fromEntries(Object.entries(label.values).map(([name,value])=>[name,{value:name==='lineItems'?value.map(x=>({...x,description:`${x.description} × ${x.quantity}`,confidence:.99,regions:region})):value,confidence:.99,regions:region}]))
 const response=fields=>Response.json({status:'completed',model:'gpt-4.1-2025-04-14',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(fields)}]}],usage:{input_tokens:100,output_tokens:100,total_tokens:200}})
 const aiBindings={AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-5000'}
 async function upload(h,cookie,n=1001,headers={}) {

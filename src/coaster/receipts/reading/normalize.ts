@@ -19,11 +19,17 @@ export function scalar(name:FieldName,value:unknown):string {
   if(name==='last4'){requireThat(/^\d{4}$/.test(v),'Only card last four is retained',422);return v;}
   requireThat(v.length>0&&v.length<=200&&!/[\x00-\x1f]/.test(v),'Invalid receipt text',422);return clean(v);
 }
+function itemDescription(value:string,quantity:number) {
+  const original=clean(value),suffix=original.match(/^(.*?)\s*[×x]\s*(\d+(?:\.\d+)?)$/i),prefix=original.match(/^(\d+(?:\.\d+)?)\s*[×x]\s*(.+)$/i);
+  if(suffix&&suffix[1].trim()&&Number(suffix[2])===quantity)return {description:suffix[1].trim(),observedDescription:original};
+  if(prefix&&Number(prefix[1])===quantity)return {description:prefix[2].trim(),observedDescription:original};
+  return {description:original};
+}
 function lineItems(value:unknown,pages:number):LineItem[] {
   requireThat(Array.isArray(value)&&value.length>0&&value.length<=100,'Invalid receipt line items',422);
   return value.map(item=>{
     requireThat(object(item)&&typeof item.description==='string'&&item.description.trim().length>0&&item.description.length<=200&&typeof item.quantity==='number'&&Number.isFinite(item.quantity)&&item.quantity>0&&item.quantity<=10000&&typeof item.confidence==='number'&&item.confidence>=0&&item.confidence<=1,'Invalid receipt line item',422);
-    return {description:clean(item.description),amount:scalar('subtotal',item.amount),quantity:item.quantity,confidence:item.confidence,regions:regions(item.regions,pages)};
+    return {...itemDescription(item.description,item.quantity),amount:scalar('subtotal',item.amount),quantity:item.quantity,confidence:item.confidence,regions:regions(item.regions,pages)};
   });
 }
 export function flag(fields:Fields,names:FieldName[],reason:string) {for(const name of names){fields[name].review=true;if(!fields[name].reasons.includes(reason))fields[name].reasons.push(reason);}}
