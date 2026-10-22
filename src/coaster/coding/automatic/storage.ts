@@ -18,20 +18,24 @@ export function suggestionWrites(db:D1Database,target:Target,proposal:Proposal,v
     ...proposal.flags.map(f=>db.prepare('INSERT OR IGNORE INTO c_auto_coding_flags(rule_id,rule_version,catalog_version,reason,created_at) VALUES(?,?,?,?,?)').bind(f.rule,f.ruleVersion,proposal.catalogVersion,f.reason,now())),
   ];
 }
-export async function prepareTarget(db:D1Database,target:Target,human:Fields,base:Fields={},protectedFields:string[]=[]) {
+export async function prepareTarget(db:D1Database,target:Target,human:Fields,base:Fields={},protectedFields:string[]=[],fresh=false) {
   const context=await codingContext(db,target.kind,target.id),version=(context?.version??0)+1;
   const existing={...flatten(base),...flatten(human)};
   const proposal=await proposeCoding(db,target.employee,{merchant:target.merchant,mcc:target.mcc,values:unflatten(existing),protectedFields});
   const values=unflatten({...existing,...flatten(proposal.fields)}),humanFields=[...(context?.humanFields??[]),...Object.keys(flatten(human))];
-  return {proposal,values,version,guard:context?all(proposal.guard,contextState(target,version-1)):proposal.guard,writes:[contextWrite(db,target,version,values,humanFields),...suggestionWrites(db,target,proposal,version)]};
+  return {proposal,values,version,guard:fresh?proposal.guard:all(proposal.guard,contextState(target,version-1)),writes:[contextWrite(db,target,version,values,humanFields),...suggestionWrites(db,target,proposal,version)]};
 }
 export function humanObservation(db:D1Database,target:Target,fields:Fields,date:string) {
   if(!Object.keys(flatten(fields)).length)return [];
   return [db.prepare(`INSERT INTO c_auto_coding_observations(employee_email,department_id,merchant_key,fields,target_kind,target_id,spent_on,observed_at) VALUES(?,COALESCE((SELECT department_id FROM c_members WHERE email=?),''),?,?,?,?,?,?)`).bind(target.employee,target.employee,merchantKey(target.merchant),JSON.stringify(fields),target.kind,target.id,date,now()),advanceEpoch(db)];
 }
-export async function targetSuggestions(db:D1Database,kind:string,id:string):Promise<Data[]> {
-  const rows=(await db.prepare('SELECT s.*,f.action,f.values_json AS feedback_values,f.actor_email AS decided_by,f.at AS decided_at FROM c_auto_coding_suggestions s LEFT JOIN c_auto_coding_feedback f ON f.suggestion_id=s.id WHERE s.target_kind=? AND s.target_id=? ORDER BY s.created_at,s.rowid').bind(kind,id).all<Data>()).results;
+export const suggestionSelect = 'SELECT s.*,f.action,f.values_json AS feedback_values,f.actor_email AS decided_by,f.at AS decided_at FROM c_auto_coding_suggestions s LEFT JOIN c_auto_coding_feedback f ON f.suggestion_id=s.id';
+export function suggestionViews(rows:Data[]):Data[] {
   return rows.map(r=>({...r,fields:JSON.parse(r.fields),appliedFields:JSON.parse(r.applied_fields),evidence:JSON.parse(r.evidence),status:r.action??'pending',feedback:r.action?{action:r.action,values:JSON.parse(r.feedback_values),by:r.decided_by,at:r.decided_at}:null}));
+}
+export async function targetSuggestions(db:D1Database,kind:string,id:string):Promise<Data[]> {
+  const rows=(await db.prepare(suggestionSelect+' WHERE s.target_kind=? AND s.target_id=? ORDER BY s.created_at,s.rowid').bind(kind,id).all<Data>()).results;
+  return suggestionViews(rows);
 }
 /** Explicit normal expense edits also resolve pending advice and teach only this employee's private behavior. */
 export async function feedbackForEdit(db:D1Database,target:Target,item:Data,actor:string) {

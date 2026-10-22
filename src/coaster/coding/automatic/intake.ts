@@ -1,6 +1,6 @@
 import type { Data } from '../../types';
-import { flatten, itemFields, type Fields } from './model';
-import { codingContext, contextWrite, feedbackForEdit, humanObservation, prepareTarget, type Target } from './storage';
+import { type Fields } from './model';
+import { codingContext, prepareTarget, type Target } from './storage';
 
 /** Values sent through the normal editor are human input. Omitted fields can be suggested; explicit blank fields
  * and split category allocations remain protected. No client-supplied source label grants automatic authority. */
@@ -17,14 +17,6 @@ export function mergeRequest(b:Data,fields:Fields) {
 }
 export async function prepareItemInput(db:D1Database,employee:string,claim:string,id:string,b:Data) {
   const prior=await codingContext(db,'item',id),target:Target={kind:'item',id,claim,employee,merchant:b.merchant,mcc:prior?.mcc};
-  const prepared=await prepareTarget(db,target,requestFields(b),{},[...protectedRequestFields(b),...(prior?.humanFields??[])]);
+  const prepared=await prepareTarget(db,target,requestFields(b),{},[...protectedRequestFields(b),...(prior?.humanFields??[])],!b.item);
   return {...prepared,target,input:mergeRequest(b,prepared.proposal.fields)};
-}
-export async function itemLearningWrites(db:D1Database,target:Target,item:Data,actor:string,existing:boolean) {
-  const context=await codingContext(db,'item',target.id),fields=itemFields(item);
-  return [
-    ...(existing?await feedbackForEdit(db,target,item,actor):[]),
-    contextWrite(db,target,(context?.version??0)+1,fields,[...(context?.humanFields??[]),...Object.keys(flatten(fields))]),
-    ...humanObservation(db,target,fields,item.spent_on),
-  ];
 }

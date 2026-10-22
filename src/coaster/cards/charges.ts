@@ -59,7 +59,7 @@ export async function placements(db: D1Database, held: Held[], issuer: string, p
 export async function chargeStatements(db: D1Database, actor: Actor, c: { file: string; issuer: string; category: Awaited<ReturnType<typeof categoryFor>>; costCentre: string; held: Held; claim: string; position: number; at: string }) {
   const { held: h, issuer } = c, chargeId = uid(), itemId = uid(), r = h.row;
   const item: ItemInput = { kind: 'receipt', spent_on: h.date, merchant: r.descriptor.slice(0, 200), description: r.memo, amount_minor: r.amountMinor!, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: c.category.id, cost_centre: c.costCentre, amount_minor: r.amountMinor! }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: '', project: '', card_charge_id: chargeId };
-  const automatic=await prepareTarget(db,{kind:'item',id:itemId,employee:h.employee,claim:c.claim,merchant:item.merchant,mcc:r.mcc},{},{memo:r.memo||undefined});
+  const automatic=await prepareTarget(db,{kind:'item',id:itemId,employee:h.employee,claim:c.claim,merchant:item.merchant,mcc:r.mcc},{},{memo:r.memo||undefined},[],true);
   const fields=automatic.values;
   if(fields.category)item.allocations[0].category_id=fields.category;
   item.coding=fields.dimensions??{};item.project=fields.project??'';item.customer=fields.customer??'';item.description=fields.memo??item.description;
@@ -107,17 +107,24 @@ export async function undoStatement(db: D1Database, actor: Actor, id: string) {
   requireThat(!file.undone_at, 'This import was already undone', 409);
   requireThat(!await db.prepare('SELECT 1 FROM c_card_statements WHERE file_id=? AND closed_at IS NOT NULL').bind(id).first(), 'A closed card statement was reconciled from this import, so it can no longer be undone', 409);
   const coding = JSON.parse(file.mapping).coding as { category: string; costCentre: string };
-  const rows = (await db.prepare(`SELECT ch.id AS charge,ch.item_id,ch.descriptor,ch.amount_minor,ch.memo,i.claim_id,c.status,c.version,i.receipt_id,i.explanation,i.description,i.attendees,i.fields,i.request_id,i.billable,i.customer,i.project,i.sales_tax_minor,i.allowance_id,
+  const rows = (await db.prepare(`SELECT ch.id AS charge,ch.item_id,ch.descriptor,ch.amount_minor,ch.memo,i.claim_id,c.status,c.version,i.receipt_id,i.explanation,i.description,i.attendees,i.fields,i.request_id,i.billable,i.customer,i.project,i.sales_tax_minor,i.allowance_id,cx.human_fields AS automatic_human_fields,
       (SELECT COUNT(*) FROM c_allocations a WHERE a.item_id=i.id) AS parts,(SELECT COUNT(*) FROM c_allocations a WHERE a.item_id=i.id AND a.category_id=? AND a.cost_centre=? AND a.amount_minor=i.amount_minor AND a.description='') AS as_imported
-    FROM c_card_charges ch LEFT JOIN c_items i ON i.id=ch.item_id LEFT JOIN c_claims c ON c.id=i.claim_id WHERE ch.file_id=? ORDER BY ch.created_at,ch.id`).bind(coding.category, coding.costCentre, id).all<Data>()).results;
-  const reason = (r: Data) => !r.claim_id ? 'its expense is gone' : r.status !== 'draft' ? `its report is ${r.status}` : r.receipt_id ? 'it has a receipt' : (r.explanation || r.description !== r.memo || r.attendees !== '[]' || r.fields !== '{}' || r.request_id || r.billable || r.customer || r.project || r.sales_tax_minor || r.allowance_id || r.parts !== 1 || !r.as_imported) ? 'it was edited' : '';
+    FROM c_card_charges ch LEFT JOIN c_items i ON i.id=ch.item_id LEFT JOIN c_claims c ON c.id=i.claim_id LEFT JOIN c_auto_coding_contexts cx ON cx.target_kind='item' AND cx.target_id=i.id WHERE ch.file_id=? ORDER BY ch.created_at,ch.id`).bind(coding.category, coding.costCentre, id).all<Data>()).results;
+  const reason = (r: Data) => {
+    if (!r.claim_id) return 'its expense is gone';
+    if (r.status !== 'draft') return `its report is ${r.status}`;
+    if (r.receipt_id) return 'it has a receipt';
+    if (r.explanation || r.attendees !== '[]' || r.fields !== '{}' || r.request_id || r.billable || r.sales_tax_minor || r.allowance_id || r.parts !== 1) return 'it was edited';
+    if (r.automatic_human_fields) return JSON.parse(r.automatic_human_fields).length ? 'it was edited' : '';
+    return r.description !== r.memo || r.customer || r.project || !r.as_imported ? 'it was edited' : '';
+  };
   const removable = rows.filter(r => !reason(r)), kept = rows.filter(r => reason(r)).map(r => ({ charge: r.charge, merchant: r.descriptor, amountMinor: r.amount_minor, reason: reason(r) }));
   const claims = new Map(removable.map(r => [r.claim_id as string, r.version as number]));
   const at = now();
   await commit(db, all(rowAuthority(actor, 'connections'), { sql: 'EXISTS(SELECT 1 FROM c_statement_files WHERE id=? AND undone_at IS NULL)', params: [id] }, { sql: 'NOT EXISTS(SELECT 1 FROM c_card_statements WHERE file_id=? AND closed_at IS NOT NULL)', params: [id] }, ...[...claims].map(([claim, version]) => claimState(claim, version, ['draft']))), [
     db.prepare('UPDATE c_statement_files SET undone_at=?,undone_by=? WHERE id=? AND undone_at IS NULL').bind(at, actor.email, id),
     ...removable.flatMap(r => [
-      db.prepare('DELETE FROM c_allocations WHERE item_id=?').bind(r.item_id), db.prepare('DELETE FROM c_items WHERE id=?').bind(r.item_id), db.prepare('DELETE FROM c_card_charges WHERE id=?').bind(r.charge),
+      db.prepare("DELETE FROM c_auto_coding_contexts WHERE target_kind='item' AND target_id=?").bind(r.item_id), db.prepare('DELETE FROM c_allocations WHERE item_id=?').bind(r.item_id), db.prepare('DELETE FROM c_items WHERE id=?').bind(r.item_id), db.prepare('DELETE FROM c_card_charges WHERE id=?').bind(r.charge),
       event(db, actor, 'import-card-charge-removed', { claim: r.claim_id }, { charge: r.charge, file: id, merchant: r.descriptor, amountMinor: r.amount_minor }),
     ]),
     ...[...claims.keys()].map(claim => claimTotal(db, claim)),

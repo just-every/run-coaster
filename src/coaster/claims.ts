@@ -3,7 +3,7 @@ import { can } from './permissions';
 import { event, ruleEvent } from './events';
 import { categories, pricedItem, type Allocation, type ItemInput } from './items';
 import { prepareItemInput, requestFields } from './coding/automatic/intake';
-import { feedbackForEdit, humanObservation, contextWrite, codingContext, targetSuggestions } from './coding/automatic/storage';
+import { feedbackForEdit, humanObservation, suggestionSelect, suggestionViews } from './coding/automatic/storage';
 import { itemFields, flatten } from './coding/automatic/model';
 import { checkedCoding } from './coding/validation';
 import { findExceptions, missingFields, repeatedInClaim, type ClaimItem } from './exceptions';
@@ -144,7 +144,7 @@ export async function removeItem(db: D1Database, actor: Actor, id: string, b: Da
   requireThat(existing, 'Expense not found on this claim', 404);
   requireThat(!existing.card_charge_id, 'A company-card expense comes from its statement and cannot be removed; undo the statement import instead', 409);
   requireThat(!await db.prepare('SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND a.capture_receipt_id IS NOT NULL').bind(existing.id).first(), 'Detach the inbox receipt before removing this expense', 409);
-  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), [db.prepare('DELETE FROM c_items WHERE id=?').bind(existing.id), claimTotal(db, claim.id), event(db, actor, 'expense-removed', { claim: claim.id }, { item: existing.id, merchant: existing.merchant, amountMinor: existing.amount_minor })]);
+  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), [db.prepare("DELETE FROM c_auto_coding_contexts WHERE target_kind='item' AND target_id=?").bind(existing.id),db.prepare('DELETE FROM c_items WHERE id=?').bind(existing.id), claimTotal(db, claim.id), event(db, actor, 'expense-removed', { claim: claim.id }, { item: existing.id, merchant: existing.merchant, amountMinor: existing.amount_minor })]);
   return loadClaim(db, id);
 }
 
@@ -183,11 +183,13 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
 
 /** Current items with their allocations and receipt fingerprints. */
 export async function claimItems(db: D1Database, claimId: string): Promise<ClaimItem[]> {
-  const [items, parts] = await db.batch([
+  const [items, parts, advice] = await db.batch([
     db.prepare('SELECT i.*, r.sha256 AS receipt_sha256, r.name AS receipt_name, r.media_type AS receipt_media, r.size AS receipt_size, r.card_match_basis, ch.transaction_key AS card_transaction_key, cd.issuer AS card_issuer, cd.last4 AS card_last4 FROM c_items i LEFT JOIN c_receipts r ON r.id=i.receipt_id LEFT JOIN c_card_charges ch ON ch.id=i.card_charge_id LEFT JOIN c_cards cd ON cd.id=ch.card_id WHERE i.claim_id=? ORDER BY i.position').bind(claimId),
     db.prepare('SELECT a.*, c.name AS category_name, c.account_code, c.tax_code,c.ledger_account_id,c.ledger_account_snapshot FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_categories c ON c.id=a.category_id WHERE i.claim_id=? ORDER BY a.item_id, a.position').bind(claimId),
+    db.prepare(suggestionSelect+" WHERE s.target_kind='item' AND s.target_id IN (SELECT id FROM c_items WHERE claim_id=?) ORDER BY s.created_at,s.rowid").bind(claimId),
   ]);
-  return Promise.all((items.results as ClaimItem[]).map(async item => ({ ...item, codingSuggestions: await targetSuggestions(db,'item',item.id), coding: JSON.parse(String(item.coding ?? '{}')), per_diem: item.per_diem ? JSON.parse(item.per_diem) : null, attendees: JSON.parse(String(item.attendees)), fields: JSON.parse(String(item.fields)), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id).map(p => ({ ...p,ledger_account: p.ledger_account_id ? JSON.parse(p.ledger_account_snapshot) : null })) }) as ClaimItem));
+  const suggestions=suggestionViews(advice.results as Data[]);
+  return (items.results as ClaimItem[]).map(item => ({ ...item, codingSuggestions: suggestions.filter(s=>s.target_id===item.id), coding: JSON.parse(String(item.coding ?? '{}')), per_diem: item.per_diem ? JSON.parse(item.per_diem) : null, attendees: JSON.parse(String(item.attendees)), fields: JSON.parse(String(item.fields)), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id).map(p => ({ ...p,ledger_account: p.ledger_account_id ? JSON.parse(p.ledger_account_snapshot) : null })) }) as ClaimItem);
 }
 
 /** Submission freezes the exact claim as a new revision and routes it to the employee's manager, or approves it at

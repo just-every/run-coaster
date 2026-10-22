@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 import { validateCaptureArchive } from './capture-archive.mjs';
+import { validateAutomaticCodingArchive } from './automatic-coding-archive.mjs';
 import { validateCodingArchive } from './coding-archive.mjs';
 
 const refuse = code => { throw new PortabilityError('coaster_' + code, 409); };
@@ -73,6 +74,7 @@ export async function validateCoasterArchive(read, manifest) {
   }
   await validateCaptureArchive(read, manifest);
   await validateCodingArchive(read);
+  await validateAutomaticCodingArchive(read);
   return true;
 }
 

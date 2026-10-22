@@ -1,4 +1,4 @@
-import { receiptTransfer } from '../coding/automatic/transfer';
+import { receiptTransfer, chargeEvidenceForReceipt } from '../coding/automatic/transfer';
 import { codingContext, prepareTarget } from '../coding/automatic/storage';
 import { all, authority, commit, type Sql } from '../session';
 import { needRow, rowAuthority } from '../permissions';
@@ -62,7 +62,7 @@ export async function chooseCardMatch(db: D1Database, actor: Actor, id: string, 
     details = {merchant,date,totalMinor,currency,last4:b.last4||null};
   }
   const codingContextBefore=details?await codingContext(db,'receipt',id):null;
-  const coding=details?await prepareTarget(db,{kind:'receipt',id,employee:actor.email,merchant:details.merchant},{},codingContextBefore?.values??{}):null;
+  const coding=details&&(!codingContextBefore||codingContextBefore.merchant!==details.merchant)?await prepareTarget(db,{kind:'receipt',id,employee:actor.email,merchant:details.merchant},{},codingContextBefore?.values??{}):null;
   await commit(db,all(authority(actor,'employee'),...(coding?[coding.guard]:[]),openOriginal(actor,id,sequence,at),noAttachment(id),
     {sql:'EXISTS(SELECT 1 FROM c_business WHERE id=1 AND currency=?)',params:[business.currency]},
     {sql: b.enabled?'NOT EXISTS(SELECT 1 FROM c_capture_cash_drafts WHERE receipt_id=?)':'1',params:b.enabled?[id]:[]}),[
@@ -154,7 +154,7 @@ export async function runCardMatching(db:D1Database,at:Date) {
     if(unique) {
       const {charge,basis:match}=found[0],alias=uid();
       const item=(await claimItems(db,charge.claim_id)).find(i=>i.id===charge.item_id);
-      if(item){const coding=await receiptTransfer(db,item,original.id);statements.push(...coding.writes);codingGuards.push(...coding.guards);}
+      if(item){const evidence=await chargeEvidenceForReceipt(db,original.id,item.id);statements.push(...evidence.writes);codingGuards.push(...evidence.guards);const coding=await receiptTransfer(db,item,original.id,MATCH_ACTOR);statements.push(...coding.writes);codingGuards.push(...coding.guards);}
       statements.push(db.prepare(`INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id,card_match_basis)
         SELECT ?,?,owner_email,name,media_type,size,sha256,X'',source,uploaded_by,uploaded_at,id,? FROM c_capture_receipts WHERE id=?`).bind(alias,charge.claim_id,JSON.stringify(match),original.id),
         db.prepare('UPDATE c_items SET receipt_id=? WHERE id=? AND receipt_id IS NULL').bind(alias,charge.item_id),

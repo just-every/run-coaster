@@ -6,7 +6,7 @@ type Sample = { fields: Fields; person: string; department: string; order: numbe
  * submitted revisions, never another person's draft or inbox, and shares category/catalog choices without memos. */
 export async function learningSamples(db:D1Database,employee:string,key:string) {
   const [corrections,submitted,member] = await Promise.all([
-    db.prepare('SELECT * FROM c_auto_coding_observations WHERE employee_email=? AND merchant_key=? ORDER BY id DESC LIMIT 200').bind(employee,key).all<Data>(),
+    db.prepare(`SELECT * FROM c_auto_coding_observations WHERE employee_email=? AND merchant_key=? AND ((target_kind='item' AND EXISTS(SELECT 1 FROM c_items i WHERE i.id=target_id)) OR (target_kind='receipt' AND EXISTS(SELECT 1 FROM c_capture_receipts r WHERE r.id=target_id AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle l WHERE l.receipt_id=r.id AND l.kind IN ('discarded','merged'))))) ORDER BY id DESC LIMIT 200`).bind(employee,key).all<Data>(),
     db.prepare(`SELECT c.employee_email,m.department_id,r.snapshot FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_members m ON m.email=c.employee_email WHERE c.status IN ('submitted','approved','batched','reimbursed') ORDER BY r.submitted_at DESC,c.number DESC`).bind().all<Data>(),
     db.prepare('SELECT department_id FROM c_members WHERE email=? AND active=1').bind(employee).first<{department_id:string|null}>(),
   ]);

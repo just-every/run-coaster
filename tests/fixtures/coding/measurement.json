@@ -1,0 +1,25 @@
+{
+  "fixture": {"charges":120,"receiptOriginals":120,"priorNativeExpenses":120,"historyMonths":12},
+  "method": "Expected labels are committed before evaluation. Actual PNG originals contain the fixture merchant/date/amount. Receipt merchant metadata is entered, not OCR. Ingestion has no receipt MCC. The second phase uses per-original native matching consent and real private charge questions; where tip-tolerant matching is ambiguous, the employee confirms the single exact-total charge through the existing attachment door. The actual linked card MCC fills only still-empty suggestion fields. No label is supplied to the application.",
+  "ingestion": {
+    "financeRule":{"matched":48,"total":48,"percent":100},
+    "fullRepeatCategory":{"matched":186,"total":216,"percent":86.11111111111111},
+    "eligibleRepeatCategory":{"matched":186,"total":204,"percent":91.17647058823529},
+    "category":{"matched":192,"total":216,"percent":88.88888888888889},
+    "class":{"matched":168,"total":168,"percent":100},
+    "project":{"matched":168,"total":168,"percent":100},
+    "categoryAbstentions":48,
+    "chargeSources":{"merchant-rule":24,"personal-rule":12,"learned-person":24,"learned-department":12,"learned-company":12,"merchant-category":24}
+  },
+  "afterConfirmedActualChargeLink": {
+    "financeRule":{"matched":48,"total":48,"percent":100},
+    "fullRepeatCategory":{"matched":204,"total":216,"percent":94.44444444444444},
+    "eligibleRepeatCategory":{"matched":204,"total":204,"percent":100},
+    "category":{"matched":216,"total":216,"percent":100},
+    "class":{"matched":168,"total":168,"percent":100},
+    "project":{"matched":168,"total":168,"percent":100},
+    "categoryAbstentions":24
+  },
+  "denominators": "Full repeat counts every repeat charge and original, including archived-account and unknown-label abstentions as nonmatches. Eligible repeat separately counts repeat records with an active expected category. Overall category/class/project count all non-null business labels, with missing suggestions counted as nonmatches. The 24 final category abstentions are 12 unknown-merchant and 12 retired-account records.",
+  "limitations":["Statement files are not a live issuer feed.","Receipt merchant metadata is entered by the employee; CAPTURE-003 reading remains unavailable.","Unlinked receipt ingestion alone does not meet the full repeat-category bar."]
+}

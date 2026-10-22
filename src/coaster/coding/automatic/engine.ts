@@ -11,7 +11,8 @@ export type Proposal = { fields:Fields; appliedFields:string[]; evidence:Evidenc
  * falls through to learned coding that would bypass the rule. Receipt reading is deliberately absent until CAPTURE-003. */
 export async function proposeCoding(db:D1Database,employee:string,b:Data):Promise<Proposal> {
   const merchant=text(b.merchant,'Merchant',200),key=merchantKey(merchant),existing=flatten(fieldsInput(b.values??{})),protectedFields=new Set<string>(Array.isArray(b.protectedFields)?b.protectedFields:[]);
-  const [catalog,known,rules,version,learned]=await Promise.all([codingCatalog(db),categories(db),currentRules(db),epoch(db),learningSamples(db,employee,key)]);
+  const version=await epoch(db);
+  const [catalog,known,rules,learned]=await Promise.all([codingCatalog(db),categories(db),currentRules(db),learningSamples(db,employee,key)]);
   const candidates:{fields:Fields;source:string;reason:string;rule?:string;ruleVersion?:number}[]=[];
   const addRule=(scope:'finance'|'personal')=>{const rule=rules.find(r=>r.kind==='merchant'&&r.active&&r.scope===scope&&r.merchant_key===key&&(scope==='finance'||r.owner_email===employee));if(rule)candidates.push({fields:rule.fields,source:scope==='finance'?'merchant-rule':'personal-rule',reason:scope==='finance'?'Finance’s exact merchant rule takes precedence over personal rules and learned coding':'Your exact merchant rule takes precedence over learned coding',rule:rule.id,ruleVersion:rule.version});};
   addRule('finance');addRule('personal');
@@ -42,6 +43,8 @@ export async function proposeCoding(db:D1Database,employee:string,b:Data):Promis
     const dimension=catalog.dimensions.find(d=>d.id===field.slice(10)),value=catalog.values.find(v=>v.id===id);
     if(dimension?.parent_id&&(existing[`dimension:${dimension.parent_id}`]??picked[`dimension:${dimension.parent_id}`])!==value?.parent_value_id){delete picked[field];changed=true;}
   }}
-  return {fields:unflatten(picked),appliedFields:Object.keys(picked),evidence:evidence.filter(e=>picked[e.field]),flags,catalogVersion:catalog.version,contextVersion:version,guard:all(epochState(version),catalogState(catalog.version))};
+  const category=picked.category?known.find(c=>c.id===picked.category):null;
+  const categoryGuard=category?[{sql:'EXISTS(SELECT 1 FROM c_categories WHERE id=? AND active=1 AND ledger_account_id IS ? AND ledger_account_snapshot=?)',params:[category.id,category.ledger_account_id??null,category.ledger_account_snapshot??'{}']}]:[];
+  return {fields:unflatten(picked),appliedFields:Object.keys(picked),evidence:evidence.filter(e=>picked[e.field]),flags,catalogVersion:catalog.version,contextVersion:version,guard:all(epochState(version),catalogState(catalog.version),...categoryGuard)};
 }
 export const proposalView=({guard,...view}:Proposal)=>view;

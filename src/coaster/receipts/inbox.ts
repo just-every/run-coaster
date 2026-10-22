@@ -55,7 +55,7 @@ export async function receiveReceipt(db: D1Database, originalBucket: R2Bucket | 
     { receipt_id: id, sequence: 1, state: 'received', reason: '', at, actor_email: uploader, on_behalf_of: actor.delegate ? actor.email : null, channel: 'app' },
     { receipt_id: id, sequence: 2, state: 'needs-attention', reason: ATTENTION, at, actor_email: uploader, on_behalf_of: actor.delegate ? actor.email : null, channel: 'app' },
   ];
-  const coding=upload.merchant?await prepareTarget(db,{kind:'receipt',id,employee:actor.email,merchant:upload.merchant},{}):null;
+  const coding=upload.merchant?await prepareTarget(db,{kind:'receipt',id,employee:actor.email,merchant:upload.merchant},{},{},[],true):null;
   await storeReceipt(bucket, key, upload.bytes, upload.mediaType, hash);
   try {
     await commit(db, all(authority(actor, 'employee'),...(coding?[coding.guard]:[])), [

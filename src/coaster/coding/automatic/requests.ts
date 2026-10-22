@@ -6,7 +6,7 @@ import { categories } from '../../items';
 import { codingCatalog, catalogState } from '../model';
 import { now, requireThat, text, type Actor, type Data } from '../../types';
 import { proposeCoding, proposalView } from './engine';
-import { contextState, contextWrite, codingContext, humanObservation, prepareTarget, targetSuggestions, type Target } from './storage';
+import { contextState, contextWrite, codingContext, humanObservation, prepareTarget, targetSuggestions, feedbackForEdit, type Target } from './storage';
 import { fieldsInput, flatten, inactiveReason, itemFields, unflatten } from './model';
 
 function native(actor:Actor) {requireThat(actor.kind==='person','A native session is required',403);}
@@ -26,7 +26,7 @@ export async function receiptCoding(db:D1Database,actor:Actor,id:string,b:Data) 
   const prepared=await prepareTarget(db,target,human,context?.values??{});
   const catalog=await codingCatalog(db),known=await categories(db),invalid=inactiveReason(prepared.values,catalog,known);
   requireThat(!invalid,invalid??'Choose active coding');
-  await commit(db,all(authority(actor,'employee'),prepared.guard,catalogState(catalog.version),{sql:`EXISTS(SELECT 1 FROM c_capture_receipts WHERE id=? AND owner_email=?) AND (SELECT COALESCE(MAX(sequence),0) FROM c_capture_lifecycle WHERE receipt_id=?)=? AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND kind IN ('discarded','merged'))`,params:[id,actor.email,id,receipt.sequence,id]}),prepared.writes);
+  await commit(db,all(authority(actor,'employee'),prepared.guard,catalogState(catalog.version),{sql:`EXISTS(SELECT 1 FROM c_capture_receipts WHERE id=? AND owner_email=?) AND (SELECT COALESCE(MAX(sequence),0) FROM c_capture_lifecycle WHERE receipt_id=?)=? AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND kind IN ('discarded','merged'))`,params:[id,actor.email,id,receipt.sequence,id]}),[...prepared.writes,...(Object.keys(flatten(human)).length?[...await feedbackForEdit(db,target,{allocations:prepared.values.category?[{category_id:prepared.values.category}]:[],coding:prepared.values.dimensions,project:prepared.values.project,customer:prepared.values.customer,description:prepared.values.memo},actor.delegate?.email??actor.email),...humanObservation(db,target,human,new Date().toISOString().slice(0,10))]:[])]);
   return {version:prepared.version,values:prepared.values,codingSuggestions:await targetSuggestions(db,'receipt',id),flags:prepared.proposal.flags};
 }
 export async function suggestionsFor(db:D1Database,actor:Actor,query:Data) {
@@ -43,7 +43,8 @@ export async function decideSuggestion(db:D1Database,actor:Actor,id:string,b:Dat
   const suggestion=await db.prepare('SELECT * FROM c_auto_coding_suggestions WHERE id=?').bind(id).first<Data>();requireThat(suggestion,'Coding suggestion not found',404);
   const target:Target={kind:suggestion.target_kind,id:suggestion.target_id,employee:suggestion.employee_email,claim:suggestion.claim_id,merchant:''};
   const context=await codingContext(db,target.kind,target.id);requireThat(context,'Coding context not found',409);target.merchant=context.merchant;target.mcc=context.mcc;
-  requireThat(context.version===suggestion.context_version,'This suggestion was superseded; open the current expense coding',409);
+  const originalFields=flatten(JSON.parse(suggestion.fields)),currentFields=flatten(context.values);
+  requireThat(context.version===suggestion.context_version||JSON.parse(suggestion.applied_fields).every((field:string)=>currentFields[field]===originalFields[field]),'This suggestion was superseded; open the current expense coding',409);
   const guard={sql:'NOT EXISTS(SELECT 1 FROM c_auto_coding_feedback WHERE suggestion_id=?)',params:[id]};
   requireThat(!await db.prepare('SELECT 1 FROM c_auto_coding_feedback WHERE suggestion_id=?').bind(id).first(),'This suggestion was already decided',409);
   let fields=b.action==='accept'?context.values:unflatten({...flatten(context.values),...flatten(fieldsInput(b.values))});
@@ -58,7 +59,7 @@ export async function decideSuggestion(db:D1Database,actor:Actor,id:string,b:Dat
     guards.push({sql:'(SELECT COALESCE(MAX(sequence),0) FROM c_capture_lifecycle WHERE receipt_id=?)=?',params:[target.id,receipt.sequence]});
   } else {
     const row=await db.prepare('SELECT claim_id FROM c_items WHERE id=?').bind(target.id).first<{claim_id:string}>();requireThat(row,'Expense not found',404);
-    const claim=await loadClaim(db,row.claim_id);visible(actor,claim);
+    const claim=await loadClaim(db,row.claim_id);visible(actor,claim);target.employee=claim.employee_email;
     requireThat(b.claimVersion===claim.version,'The claim changed; reload before deciding',409);
     const own=claim.employee_email===actor.email&&['draft','returned'].includes(claim.status),reviewer=claim.status==='submitted'&&actor.roles.manager&&(claim.assigned_emails?.includes(actor.email)||claim.approver_email===actor.email);
     requireThat(own||reviewer,'Only the employee editing this expense or its assigned approver decides its coding advice',403);
@@ -67,7 +68,7 @@ export async function decideSuggestion(db:D1Database,actor:Actor,id:string,b:Dat
     const item=(await claimItems(db,claim.id)).find(i=>i.id===target.id)!;
     if(own) {
       requireThat(item.allocations.length===1||!fields.category,'Change split categories in the expense editor');
-      const revised={...item,description:fields.memo??item.description,project:fields.project??'',customer:fields.customer??'',coding:fields.dimensions??{},allocations:item.allocations.map(a=>({...a,...(fields.category?{category_id:fields.category}:{})}))};
+      const revised={...item,description:fields.memo??item.description,project:fields.project??'',customer:fields.customer??'',coding:fields.dimensions??{},allocations:item.allocations.map(a=>{const category=fields.category?known.find(c=>c.id===fields.category):null;return {...a,...(category?{category_id:category.id,category_name:category.name,account_code:category.account_code,tax_code:category.tax_code,ledger_account_id:category.ledger_account_id,ledger_account_snapshot:category.ledger_account_snapshot}:{})};})};
       const checked=await checkedCoding(db,[revised]),value=checked.items[0];guards.push(checked.guard);
       writes.push(db.prepare('UPDATE c_items SET description=?,project=?,customer=?,coding=? WHERE id=?').bind(value.description,value.project,value.customer,JSON.stringify(value.coding),target.id));
       if(fields.category)writes.push(db.prepare('UPDATE c_allocations SET category_id=? WHERE item_id=?').bind(fields.category,target.id));

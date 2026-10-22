@@ -19,7 +19,7 @@ export function fieldsInput(raw: unknown): Fields {
   if(value.category) fields.category=text(value.category,'Category',100);
   if(value.dimensions) fields.dimensions=codingInput(value.dimensions);
   for(const field of ['project','customer','memo'] as const) {
-    const v=optionalText(value[field],field==='memo'?'Memo':field,field==='memo'?500:500); if(v) fields[field]=v;
+    const v=optionalText(value[field],field==='memo'?'Memo':field,500); if(v) fields[field]=v;
   }
   return fields;
 }

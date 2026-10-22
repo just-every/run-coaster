@@ -58,6 +58,7 @@ export async function handOver(db: D1Database, actor: Actor, from: string, to: s
       db.prepare('INSERT INTO c_card_handoffs(charge_id,from_email,to_email,from_claim,to_claim,detached_original,at,by_email) VALUES(?,?,?,?,?,?,?,?)').bind(row.card_charge_id, from, to, row.claim_id, target.id, row.capture_receipt_id ?? null, at, by),
       ...moveItems(db, [item], row.claim_id, target.id),
       db.prepare('UPDATE c_items SET position=? WHERE id=?').bind(target.position, row.id),
+      db.prepare("UPDATE c_auto_coding_contexts SET employee_email=? WHERE target_kind='item' AND target_id=?").bind(to,row.id),
       db.prepare('UPDATE c_card_charges SET employee_email=?,claim_id=? WHERE id=?').bind(to, target.id, row.card_charge_id),
       event(db, actor, 'card-charge-handed-off', { claim: target.id }, { charge: row.card_charge_id, from, to, fromClaim: row.claim_id, detachedOriginal: !!row.capture_receipt_id }),
     );
