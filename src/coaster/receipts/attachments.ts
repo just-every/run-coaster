@@ -1,5 +1,6 @@
+import { receiptTransfer } from '../coding/automatic/transfer';
 import { all, authority, commit } from '../session';
-import { claimState, claimTotal, loadClaim } from '../claims';
+import { claimState, claimTotal, loadClaim, claimItems } from '../claims';
 import { requireThat, uid, type Actor, type Data } from '../types';
 import { openOriginal, terminal } from './lifecycle';
 import { ruleEvent } from '../events';
@@ -37,8 +38,11 @@ export async function changeAttachment(db: D1Database, actor: Actor, id: string,
       privateMatchLine(db,id,sequence+2,'match-withdrawn',actor.delegate?.email??actor.email,actor.delegate?actor.email:null),
     );
   }
+  const fullItem=!detach?(await claimItems(db,claim.id)).find(i=>i.id===item.id):null;
+  const coding=fullItem?await receiptTransfer(db,fullItem,id):{writes:[],guards:[]};
+  statements.push(...coding.writes);
   const association = detach ? {sql:`EXISTS(SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=? AND a.capture_receipt_id=?)`,params:[item.id,claim.id,id]}
     : {sql:`EXISTS(SELECT 1 FROM c_items WHERE id=? AND claim_id=? AND kind='receipt' AND receipt_id IS NULL) AND NOT EXISTS(${attachedSql})`,params:[item.id,claim.id,id]};
-  await commit(db,all(authority(actor,'employee'),openOriginal(actor,id,sequence,at),claimState(claim.id,claim.version,['draft','returned']),association),statements);
+  await commit(db,all(authority(actor,'employee'),openOriginal(actor,id,sequence,at),...coding.guards,claimState(claim.id,claim.version,['draft','returned']),association),statements);
   return {receipt:(await listInbox(db,actor)).receipts.find(r=>r.id===id),claim:await loadClaim(db,claim.id)};
 }

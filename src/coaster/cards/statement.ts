@@ -6,7 +6,7 @@ export type StatementRow = {
   line: number; last4: string; key: string; kind: 'purchase' | 'credit' | 'payment' | 'fee' | 'interest' | 'other';
   postedOn: string | null; transactionOn: string | null; descriptor: string; memo: string;
   amountMinor: number | null; signed: number | null; currency: string; originalCurrency: string; originalMinor: number | null;
-  pending: boolean; problems: string[];
+  pending: boolean; problems: string[]; mcc?:string;
 };
 export type StatementCard = { last4: string; label: string };
 /** The closing balance a statement file states for one card, as an amount owed (positive) or in credit (negative). */

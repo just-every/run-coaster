@@ -118,8 +118,8 @@ export async function resolveDifference(db: D1Database, actor: Actor, id: string
     requireThat(holder, 'The card is not assigned to an active employee; assign it before adding its charge', 409);
     const held = { row, id: `${row.last4}:${row.key}`, employee: holder.employee_email, cardId: s.card_id, date: chargeDate(row) };
     const place = await placements(db, [held], a.file.issuer, a.statement.period.end), [claim, position] = place.where.get(held.id)!.split('|');
-    const made = chargeStatements(db, actor, { file: s.file_id, issuer: a.file.issuer, category, costCentre: '', held, claim, position: Number(position), at });
-    await commit(db, all(authority(actor, 'finance'), ...guard, ...place.guards, { sql: 'EXISTS(SELECT 1 FROM c_cards c JOIN c_members m ON m.email=c.employee_email AND m.active=1 AND m.is_employee=1 WHERE c.id=? AND c.employee_email=?)', params: [s.card_id, holder.employee_email] }), [
+    const made = await chargeStatements(db, actor, { file: s.file_id, issuer: a.file.issuer, category, costCentre: '', held, claim, position: Number(position), at });
+    await commit(db, all(authority(actor, 'finance'), ...guard, ...place.guards, made.guard, { sql: 'EXISTS(SELECT 1 FROM c_cards c JOIN c_members m ON m.email=c.employee_email AND m.active=1 AND m.is_employee=1 WHERE c.id=? AND c.employee_email=?)', params: [s.card_id, holder.employee_email] }), [
       ...place.statements, ...made.statements, insert(made.charge), ...[...place.claims.keys()].map(c => claimTotal(db, c)),
       event(db, actor, 'card-statement-difference-resolved', { claim }, { ...base, charge: made.charge, note }),
     ]);

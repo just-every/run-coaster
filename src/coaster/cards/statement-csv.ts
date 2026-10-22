@@ -26,6 +26,7 @@ export function parseStatementCsv(raw: string, mapping: Data, currency: string) 
   const cardColumn = column(headers, mapping, 'card', false), txDate = column(headers, mapping, 'transactionDate', false), txId = column(headers, mapping, 'transactionId', false);
   const currencyColumn = column(headers, mapping, 'currency', false), statusColumn = column(headers, mapping, 'status', false), typeColumn = column(headers, mapping, 'type', false);
   column(headers, mapping, 'cardholder', false);
+  const mccColumn=column(headers,mapping,'mcc',false);
   const whole = typeof mapping.wholeFileLast4 === 'string' ? mapping.wholeFileLast4.trim() : '';
   requireThat(cardColumn || /^\d{4}$/.test(whole), 'Map the card column, or assign the whole file to one card by its last four digits');
   requireThat(!(cardColumn && whole), 'Use the card column or one card for the whole file, not both');
@@ -57,7 +58,8 @@ export function parseStatementCsv(raw: string, mapping: Data, currency: string) 
     if (postedOn && (!first || postedOn < first)) first = postedOn;
     if (postedOn && (!last || postedOn > last)) last = postedOn;
     const cur = (currencyColumn ? r[currencyColumn].trim().toUpperCase() : '') || currency;
-    rows.push({ line: index + 2, last4, key: id ? `id:${id}` : `row:${postedOn}|${signed}|${descriptor.toLowerCase()}|${n}`, kind, postedOn, transactionOn, descriptor, memo: '', amountMinor: signed === null ? null : Math.abs(signed), signed, currency: cur, originalCurrency: '', originalMinor: null, pending, problems });
+    const mcc=mccColumn?r[mccColumn].trim():'';if(mcc&&!/^\d{4}$/.test(mcc))problems.push('merchant category code must have four digits');
+    rows.push({ ...(mcc?{mcc}:{}), line: index + 2, last4, key: id ? `id:${id}` : `row:${postedOn}|${signed}|${descriptor.toLowerCase()}|${n}`, kind, postedOn, transactionOn, descriptor, memo: '', amountMinor: signed === null ? null : Math.abs(signed), signed, currency: cur, originalCurrency: '', originalMinor: null, pending, problems });
   }
   // The retained original is the masked file: each card-column value is reduced to its last four.
   let masked = raw;

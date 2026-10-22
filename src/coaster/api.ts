@@ -1,3 +1,6 @@
+import { automaticRules, saveAutomaticRule } from './coding/automatic/rules';
+import { automaticPreview, receiptCoding, suggestionsFor, decideSuggestion } from './coding/automatic/requests';
+import { codingRates } from './coding/automatic/rates';
 import { publicApi } from './public-api/routes';
 import { changeAttachment } from './receipts/attachments';
 import { Hono, type Context } from 'hono';
@@ -272,3 +275,12 @@ api.post('/api/coaster/accounting/qbo/schedule', as(async (a, c) => saveQboSched
 api.post('/api/coaster/accounting/qbo/disconnect', as(async (a, c) => disconnectQbo(runtimeBindings(c.env), a, await body(c))));
 
 api.route('/api/coaster/public-api', publicApi);
+
+api.get('/api/coaster/coding/automatic/rules', as(async (a,c)=>automaticRules(db(c),a)));
+api.post('/api/coaster/coding/automatic/rules', as(async (a,c)=>saveAutomaticRule(db(c),a,await body(c))));
+api.post('/api/coaster/coding/automatic/mcc', as(async (a,c)=>saveAutomaticRule(db(c),a,await body(c),'mcc')));
+api.post('/api/coaster/coding/automatic/preview', as(async (a,c)=>automaticPreview(db(c),a,await body(c))));
+api.get('/api/coaster/coding/automatic/suggestions', as(async (a,c)=>suggestionsFor(db(c),a,c.req.query())));
+api.post('/api/coaster/coding/automatic/suggestions/:id/decision', as(async (a,c)=>decideSuggestion(db(c),a,param(c,'id'),await body(c))));
+api.post('/api/coaster/coding/automatic/receipts/:id', as(async (a,c)=>receiptCoding(db(c),a,param(c,'id'),await body(c))));
+api.get('/api/coaster/coding/automatic/rates', as(async (a,c)=>codingRates(db(c),a)));

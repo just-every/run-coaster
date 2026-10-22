@@ -1,6 +1,8 @@
+import { receiptTransfer } from '../coding/automatic/transfer';
+import { codingContext, prepareTarget } from '../coding/automatic/storage';
 import { all, authority, commit, type Sql } from '../session';
 import { needRow, rowAuthority } from '../permissions';
-import { claimState, claimTotal } from '../claims';
+import { claimState, claimTotal, claimItems } from '../claims';
 import { event, ruleEvent } from '../events';
 import { createFx, type FxResolver } from '../fx';
 import { requireBusiness } from '../settings';
@@ -59,9 +61,12 @@ export async function chooseCardMatch(db: D1Database, actor: Actor, id: string, 
     requireThat(b.last4===undefined || b.last4==='' || typeof b.last4==='string' && /^\d{4}$/.test(b.last4),'Card last four must be four digits, or blank');
     details = {merchant,date,totalMinor,currency,last4:b.last4||null};
   }
-  await commit(db,all(authority(actor,'employee'),openOriginal(actor,id,sequence,at),noAttachment(id),
+  const codingContextBefore=details?await codingContext(db,'receipt',id):null;
+  const coding=details?await prepareTarget(db,{kind:'receipt',id,employee:actor.email,merchant:details.merchant},{},codingContextBefore?.values??{}):null;
+  await commit(db,all(authority(actor,'employee'),...(coding?[coding.guard]:[]),openOriginal(actor,id,sequence,at),noAttachment(id),
     {sql:'EXISTS(SELECT 1 FROM c_business WHERE id=1 AND currency=?)',params:[business.currency]},
     {sql: b.enabled?'NOT EXISTS(SELECT 1 FROM c_capture_cash_drafts WHERE receipt_id=?)':'1',params:b.enabled?[id]:[]}),[
+    ...(coding?.writes??[]),
     privateMatchLine(db,id,sequence+1,b.enabled?'match-details':'match-withdrawn',actor.delegate?.email??actor.email,actor.delegate?actor.email:null,details),
   ]);
   return {sequence:sequence+1,enabled:b.enabled,details,notice:MATCH_NOTICE};
@@ -145,9 +150,11 @@ export async function runCardMatching(db:D1Database,at:Date) {
       const others=(await db.prepare(originalSelect+eligible+' AND r.owner_email=? AND r.id<>?').bind(original.owner_email,original.id).all<Original>()).results;
       for(const other of others) if((await candidates(db,other,[found[0].charge],rule,business,fx)).length) {unique=false;break;}
     }
-    const statements:D1PreparedStatement[]=[];
+    const statements:D1PreparedStatement[]=[],codingGuards:Sql[]=[];
     if(unique) {
       const {charge,basis:match}=found[0],alias=uid();
+      const item=(await claimItems(db,charge.claim_id)).find(i=>i.id===charge.item_id);
+      if(item){const coding=await receiptTransfer(db,item,original.id);statements.push(...coding.writes);codingGuards.push(...coding.guards);}
       statements.push(db.prepare(`INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id,card_match_basis)
         SELECT ?,?,owner_email,name,media_type,size,sha256,X'',source,uploaded_by,uploaded_at,id,? FROM c_capture_receipts WHERE id=?`).bind(alias,charge.claim_id,JSON.stringify(match),original.id),
         db.prepare('UPDATE c_items SET receipt_id=? WHERE id=? AND receipt_id IS NULL').bind(alias,charge.item_id),
@@ -156,7 +163,7 @@ export async function runCardMatching(db:D1Database,at:Date) {
     }
     statements.push(db.prepare('INSERT INTO c_card_match_checks(receipt_id,generation,rule_version,evaluated_at) VALUES(?,?,?,?) ON CONFLICT(receipt_id) DO UPDATE SET generation=excluded.generation,rule_version=excluded.rule_version,evaluated_at=excluded.evaluated_at').bind(original.id,original.generation,rule.version,at.toISOString()));
     try {
-      const guards:Sql[]=[unchanged(e),{sql:'NOT EXISTS(SELECT 1 FROM c_card_match_rules WHERE version>?)',params:[rule.version]},noAttachment(original.id),
+      const guards:Sql[]=[...codingGuards,unchanged(e),{sql:'NOT EXISTS(SELECT 1 FROM c_card_match_rules WHERE version>?)',params:[rule.version]},noAttachment(original.id),
         {sql:`EXISTS(SELECT 1 ${eligible} AND r.id=? AND d.sequence=?) AND (SELECT MAX(sequence) FROM c_capture_lifecycle WHERE receipt_id=?)=?`,params:[original.id,original.details_sequence,original.id,original.sequence]}];
       if(unique) guards.push(claimState(found[0].charge.claim_id,found[0].charge.version,['draft','returned']));
       await commit(db,all(unlinked,...guards),statements);

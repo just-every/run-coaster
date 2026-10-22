@@ -1,4 +1,5 @@
-import { authority, commit, need, sha256Hex } from '../session';
+import { prepareTarget, targetSuggestions } from '../coding/automatic/storage';
+import { all, authority, commit, need, sha256Hex } from '../session';
 import { now, requireThat, uid, type Actor } from '../types';
 import { originalBytes, receiptBucket, storeReceipt, type StoredReceipt } from './storage';
 import { MATCH_NOTICE } from './match-notice';
@@ -54,11 +55,13 @@ export async function receiveReceipt(db: D1Database, originalBucket: R2Bucket | 
     { receipt_id: id, sequence: 1, state: 'received', reason: '', at, actor_email: uploader, on_behalf_of: actor.delegate ? actor.email : null, channel: 'app' },
     { receipt_id: id, sequence: 2, state: 'needs-attention', reason: ATTENTION, at, actor_email: uploader, on_behalf_of: actor.delegate ? actor.email : null, channel: 'app' },
   ];
+  const coding=upload.merchant?await prepareTarget(db,{kind:'receipt',id,employee:actor.email,merchant:upload.merchant},{}):null;
   await storeReceipt(bucket, key, upload.bytes, upload.mediaType, hash);
   try {
-    await commit(db, authority(actor, 'employee'), [
+    await commit(db, all(authority(actor, 'employee'),...(coding?[coding.guard]:[])), [
       db.prepare('INSERT INTO c_capture_receipts(id,owner_email,name,media_type,size,sha256,object_key,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
         .bind(id, actor.email, upload.name, upload.mediaType, upload.bytes.length, hash, key, upload.source, uploader, at),
+      ...(coding?.writes??[]),
       ...history.map(e => db.prepare('INSERT INTO c_capture_receipt_events(receipt_id,sequence,state,reason,at,actor_email,on_behalf_of,channel) VALUES(?,?,?,?,?,?,?,?)')
         .bind(id,e.sequence,e.state,e.reason,e.at,e.actor_email,e.on_behalf_of,e.channel)),
     ]);
@@ -66,7 +69,7 @@ export async function receiveReceipt(db: D1Database, originalBucket: R2Bucket | 
     await bucket.delete(key);
     throw error;
   }
-  return { receipt: summary({ id, owner_email: actor.email, name: upload.name, media_type: upload.mediaType,
+  return { ...(coding?{codingSuggestions:await targetSuggestions(db,'receipt',id),codingContext:{version:coding.version,merchant:upload.merchant,values:coding.values}}:{}),receipt: summary({ id, owner_email: actor.email, name: upload.name, media_type: upload.mediaType,
     size: upload.bytes.length, sha256: hash, object_key: key, source: upload.source as 'upload' | 'camera',
     uploaded_by: uploader, uploaded_at: at, state: 'needs-attention', reason: ATTENTION }, history) };
 }

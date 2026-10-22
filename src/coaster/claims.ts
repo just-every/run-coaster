@@ -2,6 +2,9 @@ import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { can } from './permissions';
 import { event, ruleEvent } from './events';
 import { categories, pricedItem, type Allocation, type ItemInput } from './items';
+import { prepareItemInput, requestFields } from './coding/automatic/intake';
+import { feedbackForEdit, humanObservation, contextWrite, codingContext, targetSuggestions } from './coding/automatic/storage';
+import { itemFields, flatten } from './coding/automatic/model';
 import { checkedCoding } from './coding/validation';
 import { findExceptions, missingFields, repeatedInClaim, type ClaimItem } from './exceptions';
 import { requireBusiness } from './settings';
@@ -94,14 +97,16 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
   const business = await requireBusiness(db), receiptId = await ownReceipt(db, claim, b.receipt, b.item);
-  let item: ItemInput = { ...await pricedItem(b, business, await categories(db)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
+  const proposedId=typeof b.item==='string'&&b.item?b.item:uid();
+  const automatic=b.kind==='receipt'?await prepareItemInput(db,claim.employee_email,claim.id,proposedId,b):null;
+  let item: ItemInput = { ...await pricedItem(automatic?.input??b, business, await categories(db)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
   const coding = await checkedCoding(db,[item]);
   item = coding.items[0];
   // A purchase claimed against a cap is reimbursed up to what is left of it (CLAIM-009).
   if (b.allowance) item = await capToAllowance(db, claim.employee_email, item, b.allowance, typeof b.item === 'string' ? b.item : null);
   for (const a of item.attendees ?? []) if (a.email) requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=?').bind(a.email).first(), `${a.name} is not a Coaster member; add them as a guest`);
   const statements: D1PreparedStatement[] = [];
-  let itemId: string = uid(), position: number;
+  let itemId: string = proposedId, position: number;
   if (b.item) {
     const existing = await db.prepare('SELECT i.id,i.position,i.receipt_id,i.card_charge_id,a.capture_receipt_id FROM c_items i LEFT JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=?').bind(b.item, claim.id).first<{ id: string; position: number; receipt_id: string | null; card_charge_id: string | null; capture_receipt_id: string | null }>();
     requireThat(existing, 'Expense not found on this claim', 404);
@@ -120,8 +125,15 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
     requireThat((count?.n ?? 0) < 100, 'A claim holds at most 100 expenses');
     position = (count?.last ?? -1) + 1;
   }
+  if(automatic) {
+    const fields=itemFields(item);
+    statements.push(...automatic.writes);
+    if(b.item)statements.push(...await feedbackForEdit(db,automatic.target,item,actor.delegate?.email??actor.email));
+    const human=requestFields(b);
+    if(Object.keys(flatten(human)).length)statements.push(...humanObservation(db,automatic.target,human,item.spent_on));
+  }
   statements.push(...insertItem(db, claim.id, itemId, position, item, receiptId), claimTotal(db, claim.id), event(db, actor, b.item ? 'expense-changed' : 'expense-added', { claim: claim.id }, { item: itemId, merchant: item.merchant, amountMinor: item.amount_minor, receipt: receiptId, request: item.request_id, allowance: item.allowance_id ?? null, claimedMinor: item.claimed_minor ?? null }));
-  await commit(db, all(authority(actor, 'employee'), coding.guard, claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
+  await commit(db, all(authority(actor, 'employee'), coding.guard, ...(automatic?[automatic.guard]:[]), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
   return loadClaim(db, id);
 }
 
@@ -175,7 +187,7 @@ export async function claimItems(db: D1Database, claimId: string): Promise<Claim
     db.prepare('SELECT i.*, r.sha256 AS receipt_sha256, r.name AS receipt_name, r.media_type AS receipt_media, r.size AS receipt_size, r.card_match_basis, ch.transaction_key AS card_transaction_key, cd.issuer AS card_issuer, cd.last4 AS card_last4 FROM c_items i LEFT JOIN c_receipts r ON r.id=i.receipt_id LEFT JOIN c_card_charges ch ON ch.id=i.card_charge_id LEFT JOIN c_cards cd ON cd.id=ch.card_id WHERE i.claim_id=? ORDER BY i.position').bind(claimId),
     db.prepare('SELECT a.*, c.name AS category_name, c.account_code, c.tax_code,c.ledger_account_id,c.ledger_account_snapshot FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_categories c ON c.id=a.category_id WHERE i.claim_id=? ORDER BY a.item_id, a.position').bind(claimId),
   ]);
-  return (items.results as ClaimItem[]).map(item => ({ ...item, coding: JSON.parse(String(item.coding ?? '{}')), per_diem: item.per_diem ? JSON.parse(item.per_diem) : null, attendees: JSON.parse(String(item.attendees)), fields: JSON.parse(String(item.fields)), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id).map(p => ({ ...p,ledger_account: p.ledger_account_id ? JSON.parse(p.ledger_account_snapshot) : null })) }) as ClaimItem);
+  return Promise.all((items.results as ClaimItem[]).map(async item => ({ ...item, codingSuggestions: await targetSuggestions(db,'item',item.id), coding: JSON.parse(String(item.coding ?? '{}')), per_diem: item.per_diem ? JSON.parse(item.per_diem) : null, attendees: JSON.parse(String(item.attendees)), fields: JSON.parse(String(item.fields)), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id).map(p => ({ ...p,ledger_account: p.ledger_account_id ? JSON.parse(p.ledger_account_snapshot) : null })) }) as ClaimItem));
 }
 
 /** Submission freezes the exact claim as a new revision and routes it to the employee's manager, or approves it at

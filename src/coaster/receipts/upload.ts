@@ -52,7 +52,7 @@ export function receiptMedia(bytes: Uint8Array): string {
 export async function receiptUpload(request: Request) {
   const form = await multipart(request), files = form.getAll('file');
   requireThat(files.length === 1 && typeof files[0] !== 'string', 'Choose exactly one receipt file per upload');
-  for (const [key] of form) requireThat(key === 'file' || key === 'source', 'Only a file and capture source may be supplied');
+  for (const [key] of form) requireThat(key === 'file' || key === 'source' || key === 'merchant', 'Only a file, capture source and optional entered merchant may be supplied');
   requireThat(form.getAll('source').length <= 1, 'Choose one capture source');
   const source = form.get('source') ?? 'upload';
   requireThat(source === 'upload' || source === 'camera', 'Capture source must be upload or camera');
@@ -62,5 +62,7 @@ export async function receiptUpload(request: Request) {
   const name = text(file.name, 'File name', 200);
   requireThat(!/[\u0000-\u001f\u007f]/.test(name), 'File names cannot contain control characters');
   const bytes = new Uint8Array(await file.arrayBuffer());
-  return { bytes, mediaType: receiptMedia(bytes), name, source };
+  requireThat(form.getAll('merchant').length<=1,'Enter one merchant');
+  const merchant=form.get('merchant');requireThat(merchant===null||typeof merchant==='string','Merchant must be entered text');
+  return { ...(merchant?{merchant:text(merchant,'Merchant',200)}:{}), bytes, mediaType: receiptMedia(bytes), name, source };
 }

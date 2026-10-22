@@ -1,3 +1,4 @@
+import { prepareTarget } from '../coding/automatic/storage';
 import { all, commit, type Sql } from '../session';
 import { can, needRow, rowAuthority } from '../permissions';
 import { event } from '../events';
@@ -55,12 +56,16 @@ export async function placements(db: D1Database, held: Held[], issuer: string, p
 }
 
 /** The charge, its native card expense on the placed report and the history line for one statement purchase. */
-export function chargeStatements(db: D1Database, actor: Actor, c: { file: string; issuer: string; category: Awaited<ReturnType<typeof categoryFor>>; costCentre: string; held: Held; claim: string; position: number; at: string }) {
+export async function chargeStatements(db: D1Database, actor: Actor, c: { file: string; issuer: string; category: Awaited<ReturnType<typeof categoryFor>>; costCentre: string; held: Held; claim: string; position: number; at: string }) {
   const { held: h, issuer } = c, chargeId = uid(), itemId = uid(), r = h.row;
   const item: ItemInput = { kind: 'receipt', spent_on: h.date, merchant: r.descriptor.slice(0, 200), description: r.memo, amount_minor: r.amountMinor!, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: c.category.id, cost_centre: c.costCentre, amount_minor: r.amountMinor! }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: '', project: '', card_charge_id: chargeId };
-  return { charge: chargeId, statements: [
+  const automatic=await prepareTarget(db,{kind:'item',id:itemId,employee:h.employee,claim:c.claim,merchant:item.merchant,mcc:r.mcc},{},{memo:r.memo||undefined});
+  const fields=automatic.values;
+  if(fields.category)item.allocations[0].category_id=fields.category;
+  item.coding=fields.dimensions??{};item.project=fields.project??'';item.customer=fields.customer??'';item.description=fields.memo??item.description;
+  return { charge: chargeId, guard:automatic.guard, statements: [
     db.prepare('INSERT INTO c_card_charges(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(chargeId, c.file, h.cardId, h.employee, `card:${issuer.toLowerCase()}|${r.last4}:${r.key}`, r.postedOn, r.transactionOn, item.merchant, r.memo, r.amountMinor, r.currency, r.originalMinor, r.originalCurrency, itemId, c.category.id, c.at, c.claim),
-    ...insertItem(db, c.claim, itemId, c.position, item, null),
+    ...insertItem(db, c.claim, itemId, c.position, item, null),...automatic.writes,
     event(db, actor, 'import-card-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false }),
   ] };
 }
@@ -81,13 +86,15 @@ export async function commitStatement(db: D1Database, actor: Actor, b: Data) {
     ...place.statements,
   ];
   const cardGuards: Sql[] = [...new Set(plan.importable.map(h => `${h.cardId}|${h.employee}`))].map(x => { const [card, holder] = x.split('|'); return { sql: 'EXISTS(SELECT 1 FROM c_cards c JOIN c_members m ON m.email=c.employee_email AND m.active=1 AND m.is_employee=1 WHERE c.id=? AND c.employee_email=?)', params: [card, holder] }; });
+  const automaticGuards:Sql[]=[];
   for (const h of plan.importable) {
     const [claim, position] = place.where.get(h.id)!.split('|');
-    statements.push(...chargeStatements(db, actor, { file: id, issuer, category, costCentre: plan.costCentre, held: h, claim, position: Number(position), at }).statements);
+    const made=await chargeStatements(db, actor, { file: id, issuer, category, costCentre: plan.costCentre, held: h, claim, position: Number(position), at });
+    statements.push(...made.statements);automaticGuards.push(made.guard);
   }
   for (const c of place.claims.keys()) statements.push(claimTotal(db, c));
   statements.push(event(db, actor, 'import-statement-committed', {}, { file: id, name: plan.statement.name, format: plan.statement.format, issuer, sha256: plan.sha, charges: plan.importable.length, totalMinor: review.totalMinor, period: plan.statement.period, excludedCards: plan.exclude, includedRows: plan.include, duplicates: review.duplicates.length, excludedRows: review.excluded.length, masked: true }));
-  await commit(db, all(rowAuthority(actor, 'connections'), ...place.guards, ...cardGuards, { sql: 'NOT EXISTS(SELECT 1 FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL)', params: [plan.fingerprint] }), statements);
+  await commit(db, all(rowAuthority(actor, 'connections'), ...place.guards, ...cardGuards, ...[...new Map(automaticGuards.map(g=>[JSON.stringify(g),g])).values()], { sql: 'NOT EXISTS(SELECT 1 FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL)', params: [plan.fingerprint] }), statements);
   return { ...review, file: id, claims: [...place.claims.keys()] };
 }
 

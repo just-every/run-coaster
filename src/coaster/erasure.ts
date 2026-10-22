@@ -14,6 +14,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
+  ['c_auto_coding_rules',['owner_email','set_by']], ['c_auto_coding_contexts',['employee_email']], ['c_auto_coding_suggestions',['employee_email']], ['c_auto_coding_feedback',['actor_email']], ['c_auto_coding_observations',['employee_email']],
   ['c_workflow_tasks', ['email','on_behalf_of']], ['c_approval_workflows',['created_by']],
   ['c_claims', ['employee_email', 'approver_email', 'prepared_by', 'on_behalf_of', 'held_by']],
   ['c_receipts', ['owner_email', 'uploaded_by']],
@@ -52,6 +53,7 @@ const ADDRESS: [string, string[]][] = [
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
+  ['c_auto_coding_rules',['fields']], ['c_auto_coding_contexts',['values_json']], ['c_auto_coding_suggestions',['fields','evidence']], ['c_auto_coding_feedback',['values_json']], ['c_auto_coding_observations',['fields']],
   ['c_approval_workflows',['rules']], ['c_requests',['workflow']],
   ['c_claim_chains', ['steps']], ['c_revisions', ['snapshot']], ['c_decisions', ['exceptions']], ['c_events', ['detail']], ['c_proposals', ['payload']],
   ['c_report_schedules', ['recipients']], ['c_report_deliveries', ['recipients']], ['c_escalations', ['recipients']], ['c_budget_alerts', ['recipients']],
@@ -132,6 +134,11 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     // Removed outright: their own comments (replies by others stay, as top-level comments), agent keys, delegations and reminders.
     sql('UPDATE c_comments SET parent_id=NULL WHERE parent_id IN (SELECT id FROM c_comments WHERE author_email=?)', address),
     sql('DELETE FROM c_comments WHERE author_email=?', address),
+    sql("DELETE FROM c_auto_coding_feedback WHERE suggestion_id IN (SELECT id FROM c_auto_coding_suggestions WHERE target_kind='receipt' AND employee_email=?)",address),
+    sql("DELETE FROM c_auto_coding_suggestions WHERE target_kind='receipt' AND employee_email=?",address),
+    sql("DELETE FROM c_auto_coding_contexts WHERE target_kind='receipt' AND employee_email=?",address),
+    sql("DELETE FROM c_auto_coding_observations WHERE target_kind='receipt' AND employee_email=?",address),
+    sql("DELETE FROM c_auto_coding_rules WHERE scope='personal' AND owner_email=?",address),
     sql('DELETE FROM c_agent_keys WHERE member_email=?', address),
     sql('DELETE FROM c_public_keys WHERE member_email=?', address),
     sql('DELETE FROM c_qbo_oauth_states WHERE actor_email=?', address),
