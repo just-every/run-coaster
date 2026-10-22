@@ -249,11 +249,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
       - run: bash scripts/ci/install-browser.sh
-      - name: Policy agent envelope and mixed card approvals at both widths
-        if: ${{ matrix.refusals == '0/3' }}
-        run: node tests/browser-policy-review.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/card-matching-proof/policy-agent
       - name: Card matching consent, questions, undo and archive replay
         run: node tests/card-matching.mjs
         env:
@@ -265,9 +260,40 @@ jobs:
           name: coaster-card-matching-proof-${{ strategy.job-index }}
           path: ${{ runner.temp }}/card-matching-proof
 
+  policy_review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - name: Check edition source lock freshness
+        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
+        run: node scripts/edition-authoring/cli.mjs check
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deps
+      - run: bash scripts/ci/install-browser.sh
+      - name: Policy envelopes, mixed approvals, agreement, revocation and archive authority
+        run: node tests/browser-policy-review.mjs
+        env:
+          COASTER_EVIDENCE: ${{ runner.temp }}/policy-review-proof
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: coaster-policy-review-proof
+          path: ${{ runner.temp }}/policy-review-proof
+
   verify:
     if: always()
-    needs: [app, coaster_flows, browser, capture, accessibility, cash_drafts, policy_signals, card_matching]
+    needs: [app, coaster_flows, browser, capture, accessibility, cash_drafts, policy_signals, card_matching, policy_review]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -280,5 +306,6 @@ jobs:
           ACCESSIBILITY_RESULT: ${{ needs.accessibility.result }}
           CASH_DRAFT_RESULT: ${{ needs.cash_drafts.result }}
           POLICY_SIGNALS_RESULT: ${{ needs.policy_signals.result }}
+          POLICY_REVIEW_RESULT: ${{ needs.policy_review.result }}
           CARD_MATCHING_RESULT: ${{ needs.card_matching.result }}
-        run: test "$APP_RESULT" = success && test "$COASTER_FLOWS_RESULT" = success && test "$BROWSER_RESULT" = success && test "$CAPTURE_RESULT" = success && test "$ACCESSIBILITY_RESULT" = success && test "$CASH_DRAFT_RESULT" = success && test "$POLICY_SIGNALS_RESULT" = success && test "$CARD_MATCHING_RESULT" = success
+        run: test "$APP_RESULT" = success && test "$COASTER_FLOWS_RESULT" = success && test "$BROWSER_RESULT" = success && test "$CAPTURE_RESULT" = success && test "$ACCESSIBILITY_RESULT" = success && test "$CASH_DRAFT_RESULT" = success && test "$POLICY_SIGNALS_RESULT" = success && test "$CARD_MATCHING_RESULT" = success && test "$POLICY_REVIEW_RESULT" = success

@@ -10,7 +10,7 @@ export function PolicyReview({ revision, claim, agreement, feedback=[],mayRecord
   return <section className="panel-block" aria-label="Policy review">
     <h3>Policy review · revision {revision!.revision}</h3>
     <p className="muted">Deterministic policy advice, recorded at submission under policy v{review.policyVersion}. {revision!.snapshot.expenseApprovals?.length?'Explicit envelope or rule approvals are recorded below. Other recommendations grant no approval.':'This advice grants no approval.'}</p>
-    {agreement&&<p>Your explicit agreement: {agreement.total ? `${agreement.agreed} of ${agreement.total} recommendations (${agreement.percent.toFixed(1)}%)` : 'No feedback recorded yet'}. Unanswered recommendations and automatic approvals do not count.</p>}
+    {agreement&&<p>Your explicit agreement: {agreement.total ? `${agreement.agreed} of ${agreement.total} recommendations (${agreement.percent.toFixed(1)}%)` : 'No feedback recorded yet'}. Unanswered recommendations and automatic decisions alone do not count.</p>}
     {error&&<p role="alert" className="form-error">{error}</p>}
     <ul className="ruled-list">{review.recommendations.map((r: D) => <li key={r.item}>
       <strong>{items.find((i: D) => i.id === r.item)?.merchant} · {money(r.evidence.amountMinor, revision!.snapshot.currency)}</strong>

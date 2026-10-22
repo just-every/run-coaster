@@ -116,6 +116,12 @@ test('AGENT-005 owner envelope approves the compliant $60 lunch with receipt/car
  const grant={version:0,enabled:true,limit:'100.00',consent:true};
  for(const cookie of [t.sam,t.morgan,t.priya,auditor,admin])await h.post('settings/approval-envelope',grant,cookie,403);
  await h.post('settings/approval-envelope',{...grant,consent:false},undefined,400);
+ await h.post('settings/members',{email:'owner@harbourfinch.example',name:'Synthetic Coaster owner',employee:true,approver:'priya@harbourfinch.example'});
+ const full=await h.post('delegates',{delegate:'morgan@harbourfinch.example',level:'full'});
+ assert.equal((await h.send('/api/coaster/settings/approval-envelope',grant,t.morgan,{'x-coaster-acting-for':'owner@harbourfinch.example'})).status,403,'Full delegation never grants the owner’s agent approval authority');
+ await h.post(`delegates/${full.id}/revoke`,{});
+ assert.equal((await h.send('/api/coaster/settings/approval-envelope',grant,h.owner,{origin:'https://unrelated.example'})).status,403);
+ assert.equal((await h.get('state')).approvalEnvelope,null,'refused consent and authority leave no envelope');
  const envelope=await h.post('settings/approval-envelope',grant);assert.equal(envelope.version,1);
  await h.post('settings/approval-envelope',grant,undefined,409);
  await h.post('settings/receipt-reading',{version:0,enabled:true,threshold:.95,model:'synthetic-coaster-6101',consent:true});

@@ -89,6 +89,29 @@ export async function policyAgentScreens(browser,root,server,evidence){
  }
 }
 
+/** Public CLI proof that restored approval authority has its exact frozen evidence. */
+export async function policyReviewArchive(root){
+ const {command,fresh,freePort}=await import('./browser-runtime.mjs'),{rows,records,tampered}=await import('./browser-archive.mjs'),{copyFile,mkdir,writeFile,rm}=await import('node:fs/promises');
+ let destination;
+ try{
+  await command(root,['export','--output','exports/policy-agent.rer']);
+  const archive=join(root,'exports/policy-agent.rer'),before=rows(await records(archive));
+  assert.ok(before.some(r=>r.table==='c_approval_envelopes'));
+  assert.ok(before.some(r=>r.table==='c_revisions'&&JSON.parse(r.row.snapshot).expenseApprovals?.length));
+  assert.ok(before.some(r=>r.table==='c_events'&&r.row.action==='policy-review-feedback'));
+  destination=await fresh();await command(destination,['install']);await command(destination,['setup','--owner-email','owner@harbourfinch.example','--port',String(await freePort())]);
+  await mkdir(join(destination,'exports'),{recursive:true});await copyFile(archive,join(destination,'exports/policy-agent.rer'));
+  await command(destination,['export','--output','exports/empty.rer']);const empty=rows(await records(join(destination,'exports/empty.rer')));
+  for(const kind of ['envelope','expense']){
+   await writeFile(join(destination,'exports/invalid.rer'),await tampered(archive,kind==='envelope'?'c_approval_envelopes':'c_revisions',row=>{if(kind==='envelope')row.limit_minor=-1;else{const snapshot=JSON.parse(row.snapshot);snapshot.expenseApprovals[0].version=999999;row.snapshot=JSON.stringify(snapshot)}},row=>kind==='envelope'?row.enabled===1:JSON.parse(row.snapshot).expenseApprovals?.length));
+   const log=await command(destination,['import','--input','exports/invalid.rer','--yes'],{expected:4});assert.match(log,/coaster_(approval_envelope|expense_approval)/);
+   await command(destination,['export','--output','exports/after-refusal.rer']);assert.deepEqual(rows(await records(join(destination,'exports/after-refusal.rer'))),empty,'malformed authority never writes a destination row');
+  }
+  await command(destination,['import','--input','exports/policy-agent.rer','--yes']);await command(destination,['export','--output','exports/roundtrip.rer']);
+  assert.deepEqual(rows(await records(join(destination,'exports/roundtrip.rer'))),before,'envelopes, approvals, samples, explicit feedback and revisions round-trip exactly');
+ }finally{if(destination)await rm(destination,{recursive:true,force:true})}
+}
+
 // The combined proof uses an independent US installation so it does not change
 // the existing AUD baseline journeys or their immutable financial fixtures.
 async function main(){
@@ -97,8 +120,11 @@ async function main(){
  try{
   await mkdir(evidence,{recursive:true});root=await fresh();await command(root,['install']);const port=await freePort();await command(root,['setup','--owner-email','owner@harbourfinch.example','--port',String(port)]);server=await start(root,port);browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
   const owner=await session(browser,root,server.origin,'owner',1440);await setUp(owner,server.origin);await api(owner.context,server.origin,'settings/business',{name:'Synthetic Coaster',currency:'USD',timezone:'America/New_York',receiptThreshold:''});await owner.context.close();
+  const {expensifyJourney}=await import('./browser-concur.mjs'),moveOwner=await session(browser,root,server.origin,'owner',1440);
+  for(const width of [1440,390])await expensifyJourney(moveOwner,server.origin,width,evidence,[]);await moveOwner.context.close();
   await policyAgentScreens(browser,root,server,evidence);
-  await writeFile(join(evidence,'result.json'),JSON.stringify({sha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),widths:[1440,390],clauses:['AGENT-005','FEED-004']},null,2)+'\n');console.log('AGENT-005 / FEED-004 envelope, citations, explicit agreement, revocation, mixed rule approval and samples passed at 1440/390');
+  await browser.close();browser=null;await server.close();server=null;await policyReviewArchive(root);
+  await writeFile(join(evidence,'result.json'),JSON.stringify({sha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),widths:[1440,390],archiveRoundtrip:true,malformedAuthorityRefused:2,clauses:['AGENT-005','FEED-004']},null,2)+'\n');console.log('AGENT-005 / FEED-004 envelope, citations, explicit agreement, revocation, mixed rule approval and samples passed at 1440/390');
  }finally{await browser?.close();await server?.close();if(root)await rm(root,{recursive:true,force:true});}
 }
 

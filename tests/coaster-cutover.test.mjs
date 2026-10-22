@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { agency, harness } from './harness.mjs'
+import { issuerServer } from './fixtures/feed/server.mjs'
 
 const input = async () => ({ csv: await readFile('tests/fixtures/expensify-cutover.csv','utf8'), filename:'september.csv', mapping:{date:'YYYY-MM-DD',statuses:{Open:'open',Submitted:'submitted',Approved:'approved',Reimbursed:'reimbursed'}} })
 
@@ -110,4 +111,27 @@ test('MOVE-005 carry excludes non-reimbursable card spend and refuses mileage wi
  await h.post('import/carry',{report:'MILE-1',categories:{'MILE-T1':t.c.office}},t.sam,409)
  assert.equal((await h.get('state',t.sam)).claims.length,1,'unsupported mileage carries no partial draft')
  }finally{await h.close()}
+})
+
+
+test('MOVE-005 a connected scheduled SFTP month excludes imported Expensify card history once while the cutover inventory retains every source record',async()=>{
+ const issuer=await issuerServer(),h=await harness({bindings:origin=>({RER_DEV_ORIGIN:origin})});
+ try{
+  const t=await agency(h),b=await input(),preview=await h.post('import/preview',b);
+  await h.post('import/commit',{...b,fingerprint:preview.fingerprint});
+  const inventory=await h.get('import/cutover');
+  await h.post('statements/cards',{issuer:'synthetic-coaster-7100',last4:'2222',employee:'alex@harbourfinch.example'});
+  issuer.files.set('synthetic-coaster-7101.csv','Date,Merchant,Amount,Card,Transaction,Sequence\n2026-09-22,Company card meal,35.00,2222,synthetic-coaster-7102,synthetic-coaster-7103\n2026-09-23,New card purchase,27.00,2222,synthetic-coaster-7104,synthetic-coaster-7103');
+  await h.post('feeds/program',{...issuer.credentials,issuer:'synthetic-coaster-7100',category:t.c.office,intervalMinutes:60,consent:true,mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',card:'Card',transactionId:'Transaction',sequence:'Sequence'}},t.morgan);
+  assert.equal(issuer.requests.length,0,'no uploading or connection test substitutes for scheduled file pickup');
+  const worker=await h.mf.getWorker();await worker.scheduled({scheduledTime:new Date('2026-10-22T12:17:00Z'),cron:'17 * * * *'});
+  const feed=await h.get('feeds/program',t.morgan);assert.equal(feed.feeds[0].error,null);assert.ok(feed.feeds[0].lastSuccessAt);assert.equal(feed.deliveries.length,1);assert.equal(feed.deliveries[0].charges,1);
+  const charges=(await h.db.prepare('SELECT * FROM c_card_charges').all()).results;assert.equal(charges.length,1);assert.equal(charges[0].descriptor,'New card purchase');assert.equal(charges[0].amount_minor,2700);
+  assert.equal((await h.db.prepare("SELECT COUNT(*) n FROM c_events WHERE action='program-feed-charge-created'").first()).n,1);
+  assert.deepEqual(await h.get('import/cutover'),inventory,'deduplicating card history never removes or double-counts an imported source record');
+  await worker.scheduled({scheduledTime:new Date('2026-10-22T13:17:00Z'),cron:'17 * * * *'});
+  assert.equal((await h.get('feeds/program',t.morgan)).deliveries.length,1);assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_card_charges').first()).n,1);
+  const events=(await h.get('history',t.morgan)).lines.filter(e=>e.action==='program-feed-delivery-received');assert.equal(events.length,1);assert.equal(events[0].detail.excluded,1);
+  assert.ok(issuer.requests.some(r=>r.operation==='read'));assert.ok(issuer.requests.filter(r=>r.operation==='open').every(r=>r.flags===1));
+ }finally{await h.close();await issuer.close()}
 })
