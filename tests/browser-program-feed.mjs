@@ -43,8 +43,8 @@ export async function programFeedScreens(browser, root, server, evidence) {
         for (const claim of claims) { const detail = await api(employee.context, server.origin, `claims/${claim.id}`); if (detail.items.some(item => item.merchant === merchant)) { found = detail; break } }
         assert.ok(found)
         await employee.page.goto(server.origin + `/app#/claims/${found.claim.id}`)
-        await employee.page.getByText(merchant, { exact: true }).first().waitFor()
-        await shot(employee.page, employee.page.getByText(merchant, { exact: true }).first(), evidence, 'program-feed-expense', width)
+        await employee.page.getByRole('button', { name: `Change ${merchant}`, exact: true }).waitFor()
+        await shot(employee.page, employee.page.getByRole('button', { name: `Change ${merchant}`, exact: true }), evidence, 'program-feed-expense', width)
         await panel.getByLabel('I confirm this feed must stop future connections and imports', { exact: true }).check()
         await panel.getByRole('button', { name: `Disconnect ${issuerName}`, exact: true }).click()
         await panel.getByRole('button', { name: `Disconnect ${issuerName}`, exact: true }).waitFor({ state: 'detached' })
