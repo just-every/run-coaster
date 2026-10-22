@@ -3,7 +3,7 @@ import { all, commit, authority } from '../../session';
 import { needRow, rowAuthority } from '../../permissions';
 import { event } from '../../events';
 import { now, requireThat, type Actor, type Data } from '../../types';
-export const DEFAULT_READER_MODEL='gpt-4.1-2025-04-14';
+export const DEFAULT_READER_MODEL='gpt-6.1-sol';
 export const READING_CONSENT='Send this receipt original to the installation AI provider to read its fields and prepare coding suggestions. The original stays private until its expense is submitted. Reading does not choose card matching.';
 export type ReadingSettings={version:number;enabled:number;threshold:number;model:string;set_by:string;set_at:string};
 export const currentSettings=(db:D1Database)=>db.prepare('SELECT * FROM c_receipt_reading_settings ORDER BY version DESC LIMIT 1').first<ReadingSettings>();

@@ -5,7 +5,7 @@ import {readFile,writeFile} from 'node:fs/promises'
 import {execFileSync} from 'node:child_process'
 import {agency,harness} from './harness.mjs'
 const directory='tests/fixtures/receipts/reader/',manifest=JSON.parse(await readFile(directory+'manifest.json','utf8'))
-const limit=Number(process.env.READING_QUALITY_LIMIT??manifest.receipts.length),model=process.env.READING_QUALITY_MODEL??'gpt-4.1-2025-04-14'
+const limit=Number(process.env.READING_QUALITY_LIMIT??manifest.receipts.length),model=process.env.READING_QUALITY_MODEL??'gpt-6.1-sol'
 assert.ok(process.env.OPENAI_API_KEY,'A provider key must be injected by the authorized helper; values are never printed')
 assert.ok(Number.isInteger(limit)&&limit>0&&limit<=manifest.receipts.length)
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),fieldNames=['merchant','date','total','subtotal','salesTax','tip','currency','last4','lineItems']
