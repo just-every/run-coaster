@@ -54,6 +54,15 @@ test('Receipt reading requires both consents, keeps exact private evidence and r
   assert.equal((await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===chosen.id).matchChoice.enabled,false,'later reading never resurrects a withdrawn original')
   low=true;const uncertain=await upload(h,t.sam,1003);await read(h,uncertain.id,t.sam)
   assert.equal((await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===uncertain.id).matchChoice.enabled,false,'low-confidence totals never opt an original in')
+  low=false
+  await h.post('delegates',{delegate:'alex@harbourfinch.example',level:'submit'},t.sam)
+  const delegated=await upload(h,t.sam,1004),headers={'x-coaster-acting-for':'sam@harbourfinch.example'}
+  assert.equal((await h.send('/api/coaster/settings/receipt-reading/matching',{version:1,enabled:true,consent:true,notice},t.alex,headers)).status,403,'a delegate cannot grant a standing choice')
+  const delegatedRead=await h.send(`/api/coaster/receipt-inbox/${delegated.id}/reading`,{expectedSequence:0,expectedReadingSequence:0,consent:true},t.alex,headers)
+  assert.equal(delegatedRead.status,200)
+  const delegatedInbox=(await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===delegated.id)
+  assert.equal(delegatedInbox.matchChoice.enabled,true,'the employee standing choice applies to their own safe original read by a live delegate')
+  assert.equal(delegatedInbox.lifecycle.at(-1).actorEmail,'alex@harbourfinch.example');assert.equal(delegatedInbox.lifecycle.at(-1).onBehalfOf,'sam@harbourfinch.example')
   await h.post('settings/receipt-reading/matching',{version:1,enabled:false,consent:false},t.sam)
  }finally{await h.close()}
 })

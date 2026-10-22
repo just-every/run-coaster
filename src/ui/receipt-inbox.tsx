@@ -51,7 +51,7 @@ export function ReceiptInbox({ state, onChanged }: { state: D; onChanged: () => 
       <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
       {receipt.disposition === 'active' && <ReceiptAttachment key={`${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} claims={state.claims} employee={state.actor.email} reload={reload} />}
       {receipt.disposition === 'active' && <ReceiptCardMatch key={`match:${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} currency={state.business?.currency??'USD'} reload={reload} />}
-      {receipt.disposition === 'active' && !state.actor.delegate && <ReceiptReading receipt={receipt} state={state} reload={reload} />}
+      {receipt.disposition === 'active' && <ReceiptReading receipt={receipt} state={state} reload={reload} />}
       {receipt.disposition === 'active' && <ReceiptCoding receipt={receipt} state={state} reload={reload} />}
       {receipt.disposition === 'active' && receipt.lifecycle.length > 0 && <Details label="Private receipt history"><ReceiptLifecycle receipt={receipt} receipts={receipts} /></Details>}
       {receipt.disposition === 'active' ? !receipt.attachment && <>

@@ -88,7 +88,7 @@ export async function readingScreens(browser, root, origin, evidence, edge) {
       await employee.page.waitForURL(/#\/claims\//)
       const detail = await api(employee.context, origin, `claims/${new URL(employee.page.url()).hash.split('/').at(-1)}`)
       assert.ok(detail.items.some(item => item.merchant === edge.label.values.merchant && item.original_minor === 5828 && item.original_currency === 'USD'))
-      await shot(employee.page, employee.page.getByRole('heading', { level: 1 }).first(), evidence, 'reading-expense-saved', width)
+      await shot(employee.page, employee.page.getByRole('button', { name: `Change ${edge.label.values.merchant}`, exact: true }).last().locator('..').locator('..').locator('..'), evidence, 'reading-expense-saved', width)
     } finally { edge.fail = false; await owner.context.close(); await employee.context.close() }
   }
 }
@@ -96,4 +96,6 @@ async function shot(page, target, evidence, name, width) {
   await target.scrollIntoViewIfNeeded()
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits ${width}`)
   await page.screenshot({ path: join(evidence, `${name}-${width}.png`), fullPage: true })
+  await page.screenshot({ path: join(evidence, `${name}-${width}-viewport.png`), fullPage: false })
+  await target.screenshot({ path: join(evidence, `${name}-${width}-detail.png`) })
 }

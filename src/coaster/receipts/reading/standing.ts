@@ -8,7 +8,6 @@ import type { Fields } from './model';
 
 /** A self-granted standing choice applies only to safe fields on a newly completed private reading. */
 export async function applyReadingMatchDefault(db: D1Database, actor: Actor, id: string) {
-  if (actor.delegate) return;
   const choice = await db.prepare('SELECT version,enabled FROM c_receipt_reading_match_defaults WHERE employee_email=? ORDER BY version DESC LIMIT 1').bind(actor.email).first<{ version: number; enabled: number }>();
   if (!choice?.enabled) return;
   const [receipt, latest, settings] = await Promise.all([ownOriginal(db, actor, id), latestReading(db, id), currentSettings(db)]);
