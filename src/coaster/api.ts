@@ -1,3 +1,4 @@
+import { readingSettings, saveReadingSettings, readReceipt, readingDetail, correctReading } from './receipts/reading';
 import { automaticRules, saveAutomaticRule } from './coding/automatic/rules';
 import { automaticPreview, receiptCoding, suggestionsFor, decideSuggestion } from './coding/automatic/requests';
 import { codingRates } from './coding/automatic/rates';
@@ -100,6 +101,12 @@ api.post('/api/coaster/settings/card-matching', as(async (a, c) => saveMatchRule
 api.post('/api/coaster/receipt-inbox/:id/card-match', as(async (a, c) => chooseCardMatch(db(c), a, param(c, 'id'), await body(c))));
 api.get('/api/coaster/receipt-inbox/:id/card-match-question', as(async (a, c) => cardMatchQuestion(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/receipt-inbox/:id/card-match-reject', as(async (a, c) => rejectMatchQuestion(db(c), a, param(c, 'id'), await body(c))));
+
+api.get('/api/coaster/settings/receipt-reading', as(async (a, c) => readingSettings(db(c), a)));
+api.post('/api/coaster/settings/receipt-reading', as(async (a, c) => saveReadingSettings(db(c), a, await body(c))));
+api.get('/api/coaster/receipt-inbox/:id/reading', as(async (a, c) => readingDetail(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/receipt-inbox/:id/reading', as(async (a, c) => readReceipt(runtimeBindings(c.env), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/receipt-inbox/:id/reading/corrections', as(async (a, c) => correctReading(db(c), a, param(c, 'id'), await body(c))));
 
 api.get('/api/coaster/receipt-inbox', as(async (a, c) => listInbox(db(c), a)));
 api.post('/api/coaster/receipt-inbox', as(async (a, c) => receiveReceipt(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, c.req.raw)));

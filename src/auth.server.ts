@@ -41,6 +41,13 @@ export interface Bindings {
  MAIL_FROM?: string
  MAIL_API_KEY?: string
  MAIL_ACCOUNT_ID?: string
+ /** Optional Base AI transport. Native receipt-reading consent is required in addition to these credentials. */
+ AI_ENABLED?: string
+ AI_MODEL?: string
+ AI_API_KEY?: string
+ AI_BASE_URL?: string
+ MODELS_SERVICE?: string
+ MODELS_KEY?: string
  /** Optional Intuit app; connecting a company still requires explicit native-session consent. */
  QBO_CLIENT_ID?: string
  QBO_CLIENT_SECRET?: string
