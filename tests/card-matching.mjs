@@ -193,11 +193,12 @@ try {
     ['coding_parent','c_coding_values',r=>r.parent_value_id,r=>{r.parent_value_id='synthetic-coaster-missing-parent'}],
     ['coding_item','c_items',r=>Object.keys(JSON.parse(r.coding)).length,r=>{r.coding=JSON.stringify({'synthetic-coaster-missing-level':'synthetic-coaster-missing-choice'})}],
     ['coding_category_account','c_categories',r=>r.ledger_account_id,r=>{const account=JSON.parse(r.ledger_account_snapshot);account.sourceId='synthetic-coaster-missing-account';r.ledger_account_snapshot=JSON.stringify(account)}],
+    ['automatic_coding_owner','c_auto_coding_contexts',r=>r.target_kind==='receipt',r=>{r.employee_email='synthetic-coaster-5000'}],
   ]
   for(const [code,table,pick,change] of cases.filter((_,index)=>index%of===part)) {
     await writeFile(join(restored,`exports/${code}.rer`),await tampered(archive,table,change,pick),{mode:0o600})
     const result=await command(restored,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4})
-    assert.match(result,new RegExp(code.startsWith('coding_')?'coaster_coding_catalog':code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('card_statement')?'coaster_card_statement':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
+    assert.match(result,new RegExp(code.startsWith('automatic_coding_')?'coaster_automatic_coding':code.startsWith('coding_')?'coaster_coding_catalog':code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('card_statement')?'coaster_card_statement':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
     await command(restored,['export','--output',`exports/unchanged-${code}.rer`])
     assert.deepEqual(rows(await records(join(restored,`exports/unchanged-${code}.rer`))),empty,'malformed match archive writes nothing')
   }
