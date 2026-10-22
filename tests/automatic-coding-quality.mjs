@@ -156,7 +156,7 @@ export async function runPolicyAgentCodingQuality({output}={}){
  const semantic=JSON.parse(await readFile('tests/fixtures/coding/semantic/labels.json','utf8'));
  const rules=JSON.parse(await readFile('tests/fixtures/coding/semantic/rules.json','utf8'));
  const history=JSON.parse(await readFile('tests/fixtures/coding/semantic/history.json','utf8')).rows;
- const h=await harness();
+ const gitSHA=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),h=await harness();
  try{
   const t=await setup(h),claims={},counts={},historyClaims=new Map();
   for(const person of ['sam','alex','bea']){claims[person]=await h.post('claims',{title:n(64000+historyClaims.size)},t[person]);counts[person]=0;historyClaims.set(claims[person].id,{claim:claims[person],person});}
@@ -204,12 +204,13 @@ export async function runPolicyAgentCodingQuality({output}={}){
     if(approval){assert.equal(approval.source,'agent');assert.deepEqual(actual,{category:label.category,class:label.class,project:label.project},label.id+' approved coding must equal its label');assert.equal(review.evidence.codingAssessment.reviewRequired,false);approved++;}
     else routed++;
     if(review.evidence.codingAssessment.reviewRequired){codingReview++;assert.equal(approval,undefined);assert.equal(submitted.status,'submitted');}
-    records.push({id:label.id,item:item.id,approved:!!approval,actual,label:{category:label.category,class:label.class,project:label.project},codingReview:review.evidence.codingAssessment.reviewRequired,method:review.evidence.codingAssessment.method});
+    records.push({id:label.id,item:item.id,approved:!!approval,actual,label:{category:label.category,class:label.class,project:label.project},codingReview:review.evidence.codingAssessment.reviewRequired,method:review.evidence.codingAssessment.method,receipt:review.evidence.receiptAssessment,eligible:review.evidence.agentEligible,exceptions:snapshot.exceptions.filter(e=>e.item===item.id)});
    }
   }
-  assert.equal(records.length,240);assert.ok(approved>0);assert.ok(codingReview>0);assert.equal(approved+routed,240);
-  const result={gitSHA:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),journey:'AGENT-005 full CODE-002 coding population',charges:240,originals:240,approved,routed,codingReview,approvedCodingAgreement:100,method:'Existing frozen old and semantic corpora, current native source rules and historical observations, all 240 posted charges and 240 uploaded originals, explicit typed matching and human answers to remaining questions. No provider call, relabel, expense correction or omitted case.',records};
-  if(output)await writeFile(output,JSON.stringify(result,null,2)+'\n');return result;
+  const result={gitSHA,journey:'AGENT-005 full CODE-002 coding population',charges:240,originals:240,approved,routed,codingReview,approvedCodingAgreement:100,method:'Existing frozen old and semantic corpora, current native source rules and historical observations, all 240 posted charges and 240 uploaded originals, explicit typed matching and human answers to remaining questions. No provider call, relabel, expense correction or omitted case.',records};
+  if(output)await writeFile(output,JSON.stringify(result,null,2)+'\n');
+  assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),gitSHA,'candidate SHA must stay fixed during the journey');
+  assert.equal(records.length,240);assert.ok(approved>0);assert.ok(codingReview>0);assert.equal(approved+routed,240);return result;
  }finally{await h.close()}
 }
 

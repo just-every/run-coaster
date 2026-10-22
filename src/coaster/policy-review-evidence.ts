@@ -34,7 +34,13 @@ export async function evidencedPolicyReview(db:D1Database,items:ClaimItem[],exce
   const actual=flatten(itemFields(item)),context=await codingContext(db,'item',item.id);
   const finance=rules.find(r=>r.scope==='finance'&&r.kind==='merchant'&&r.active&&r.merchant_key===merchantKey(item.merchant));
   const financeFields=finance&&flatten(finance.fields);
-  const financeAgrees=!!financeFields&&Object.keys(actual).filter(k=>k!=='memo').every(k=>financeFields[k]===actual[k])&&!!financeFields.category;
+  // Catalog-backed project/customer names are derived by checkedCoding from
+  // their selected dimension. Compare that one choice once; arbitrary legacy
+  // text still has to equal the finance rule. Require all rule fields too.
+  const comparable={...actual};delete comparable.memo;
+  for(const kind of ['project','customer'])if(!financeFields?.[kind]&&item.codingSnapshot?.some((s:Data)=>s.kind===kind&&s.name===actual[kind]&&actual[`dimension:${s.dimension}`]===s.id))delete comparable[kind];
+  const expected={...financeFields};delete expected.memo;
+  const financeAgrees=!!financeFields&&!!financeFields.category&&Object.keys({...expected,...comparable}).every(k=>expected[k]===comparable[k]);
   const humanAgrees=!!context&&Object.keys(actual).filter(k=>k!=='memo').every(k=>context.humanFields.includes(k));
   const codingChecked=!unreviewedCoding(item)&&financeAgrees;
   evidence.checksUnavailable=evidence.checksUnavailable.filter((name:string)=>!(name==='receipt-content'&&receiptChecked)&&!(name==='card-match'&&matched)&&!(name==='coding-confidence'&&codingChecked));

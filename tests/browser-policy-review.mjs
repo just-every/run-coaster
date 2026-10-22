@@ -25,7 +25,7 @@ export async function inspectPolicyReview(person, origin, claimId, width, eviden
  * native screens. Set-up calls use the same signed-in public API as the app. */
 export async function policyAgentScreens(browser,root,server,evidence){
  const {readFile}=await import('node:fs/promises'),{session,PEOPLE}=await import('./browser-journey.mjs'),{assertAccessible}=await import('./browser-accessibility.mjs');
- const origin=server.origin;
+ const origin=server.origin,run=Date.now();
  for(const width of [1440,390]){
   const owner=await session(browser,root,origin,'owner',width),employee=await session(browser,root,origin,'employee',width),manager=await session(browser,root,origin,'manager',width),finance=await session(browser,root,origin,'finance',width);
   try{
@@ -42,16 +42,17 @@ export async function policyAgentScreens(browser,root,server,evidence){
    const granted=(await api(owner.context,origin,'state')).approvalEnvelope;assert.equal(granted.enabled,1);
    await api(owner.context,origin,'settings/audit-sample',{percent:'100'});
    async function original(name,fixture,merchant,total,date){
+    const storedName=`${name}-${run}.png`;
     await employee.page.goto(origin+'/app#/claims');await employee.page.reload();
     const inbox=employee.page.getByRole('region',{name:'Receipt inbox',exact:true});
-    await inbox.getByLabel('Upload receipts',{exact:true}).setInputFiles({name,mimeType:'image/png',buffer:Buffer.concat([await readFile(`tests/fixtures/policy-review/synthetic-coaster-${fixture}.png`),Buffer.from(`\nsynthetic-coaster-${width}\n`)])});
-    const row=inbox.locator('.receipt-inbox-list > li').filter({has:employee.page.getByRole('link',{name,exact:true})});await row.getByRole('link',{name,exact:true}).waitFor();
-    const receipt=(await api(employee.context,origin,'receipt-inbox')).receipts.find(r=>r.name===name);
+    await inbox.getByLabel('Upload receipts',{exact:true}).setInputFiles({name:`${name}-${run}.png`,mimeType:'image/png',buffer:Buffer.concat([await readFile(`tests/fixtures/policy-review/synthetic-coaster-${fixture}.png`),Buffer.from(`\nsynthetic-coaster-${width}-${run}\n`)])});
+    const row=inbox.locator('.receipt-inbox-list > li').filter({has:employee.page.getByRole('link',{name:storedName,exact:true})});await row.getByRole('link',{name:storedName,exact:true}).waitFor();
+    const receipt=(await api(employee.context,origin,'receipt-inbox')).receipts.find(r=>r.name===storedName);
     await api(employee.context,origin,`receipt-inbox/${receipt.id}/card-match`,{expectedSequence:receipt.lifecycleSequence,enabled:true,merchant,date,total,currency,notice:receipt.matchChoice.notice});return receipt.id;
    }
    async function statement(name,rows){
-    const issuer=`${name} ${width}`;await api(owner.context,origin,'statements/cards',{issuer,last4:'1111',employee:PEOPLE.employee});
-    const body={format:'csv',name:`${name}-${width}.csv`,issuer,category,content:'Date,Merchant,Amount,Id\n'+rows.map(([merchant,amount,date],i)=>`${date},${merchant},${amount},synthetic-coaster-${width}-${name}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}};
+    const issuer=`${name} ${width} ${run}`;await api(owner.context,origin,'statements/cards',{issuer,last4:'1111',employee:PEOPLE.employee});
+    const body={format:'csv',name:`${name}-${width}.csv`,issuer,category,content:'Date,Merchant,Amount,Id\n'+rows.map(([merchant,amount,date],i)=>`${date},${merchant},${amount},synthetic-coaster-${width}-${name}-${run}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}};
     const preview=await api(owner.context,origin,'statements/preview',body);return api(owner.context,origin,'statements/commit',{...body,fingerprint:preview.fingerprint});
    }
    async function submitMixed(job,flagged){
