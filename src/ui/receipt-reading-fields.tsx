@@ -16,7 +16,7 @@ export function ReadingFields({ fields, receipt }: { fields: D; receipt: D }) {
         {field.regions?.map((r: D, i: number) => <p key={i}><button className="button small" type="button" onClick={() => setRegion({ ...r, field: names[key] ?? key })}>Show {names[key]?.toLowerCase() ?? key} on page {r.page}</button></p>)}
       </dd>
     </div>; })}</dl>
-    {region && <section aria-label="Receipt field evidence"><h4>{region.field} · original page {region.page}</h4>
+    {region && <section aria-label="Receipt field evidence"><h3>{region.field} · original page {region.page}</h3>
       <p>Region {region.x}, {region.y}, {region.width}, {region.height} (fractions of the original page).</p>
       {['image/png', 'image/jpeg', 'image/webp'].includes(receipt.mediaType) ? <div style={{ position: 'relative', maxWidth: '100%' }}>
         <img src={original} alt={`Original receipt showing ${region.field}`} style={{ display: 'block', width: '100%', height: 'auto' }} />
