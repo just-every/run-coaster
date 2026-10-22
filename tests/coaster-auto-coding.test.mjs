@@ -1,53 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
 import { harness } from './harness.mjs'
 
-const n = number => `synthetic-coaster-${number}`
-const path = 'coding/automatic'
-const fixture = JSON.parse(await readFile('tests/fixtures/coding/labels.json','utf8'))
-async function setup(h) {
-  await h.post('settings/business',{name:n(90),currency:'USD',timezone:'UTC',receiptThreshold:'10000'})
-  const managerEmail=`${n(100)}@example.test`,financeEmail=`${n(101)}@example.test`
-  const manager=await h.person(managerEmail,{employee:true,manager:true})
-  const finance=await h.person(financeEmail,{employee:true,finance:true},managerEmail)
-  const people={manager,finance,managerEmail,financeEmail}
-  for(const [i,key] of ['sam','alex','bea'].entries()){people[`${key}Email`]=`${n(102+i)}@example.test`;people[key]=await h.person(people[`${key}Email`],{employee:true},managerEmail)}
-  const sales=await h.post('settings/departments',{name:n(500)}),marketing=await h.post('settings/departments',{name:n(501)})
-  for(const key of ['sam','alex','bea'])await h.post('settings/members',{email:people[`${key}Email`],name:people[`${key}Email`].split('@')[0],employee:true,approver:managerEmail,department:key==='bea'?marketing.id:sales.id})
-  const cats=[]
-  for(let i=0;i<4;i++)cats.push(await h.post('settings/categories',{name:n(2000+i),accountCode:n(2100+i),taxCode:n(2200)}))
-  let catalog=await h.get('coding'),dimensions={},values={class:[],project:[]}
-  for(const [i,kind]of ['class','project','account'].entries()){
-    catalog=await h.post('coding/dimensions',{version:catalog.version,name:n(2300+i),kind});dimensions[kind]=catalog.saved
-    for(let j=0;j<(kind==='account'?1:4);j++){
-      catalog=await h.post('coding/values',{version:catalog.version,dimension:dimensions[kind],name:n((kind==='class'?2400:kind==='project'?2500:2600)+j)})
-      if(kind==='account')values.account=catalog.saved;else values[kind].push(catalog.saved)
-    }
-  }
-  await h.post('settings/categories',{id:cats[3].id,name:cats[3].name,accountCode:cats[3].account_code,taxCode:cats[3].tax_code,ledgerAccountId:values.account})
-  const fields=(cat=0,cl=cat,project=cat)=>({category:cats[cat].id,dimensions:{...(cl===null?{}:{[dimensions.class]:values.class[cl]}),...(project===null?{}:{[dimensions.project]:values.project[project]})}})
-  const rule=async(merchant,coding,scope='finance',cookie=finance,extra={})=>h.post(`${path}/rules`,{version:(await h.get(`${path}/rules`,cookie)).version,merchant,coding,scope,active:true,...extra},cookie)
-  const upload=async(row,merchant=row.merchant,cookie=people[row.employee??'sam'])=>{
-    const form=new FormData();form.append('file',new Blob([await readFile(`tests/fixtures/coding/${row.receipt??fixture.cases[0].receipt}`)]),`${row.id??n(6000)}.png`);form.append('source','upload');if(merchant)form.append('merchant',merchant)
-    const request=new Request(h.origin+'/api/coaster/receipt-inbox',{method:'POST',headers:{origin:h.origin,cookie},body:form})
-    const r=await h.mf.dispatchFetch(request.url,{method:'POST',headers:Object.fromEntries(request.headers),body:await request.arrayBuffer()});assert.equal(r.status,200,await r.clone().text());return r.json()
-  }
-  const statement=async(rows,last4='1111',cookie=finance)=>{
-    const body={format:'csv',name:`${rows[0].id}.csv`,issuer:n(300),category:cats[0].id,content:'Date,Merchant,Amount,Id,MCC\n'+rows.map(r=>[r.date??'2026-10-15',r.merchant,r.amount??'2.31',r.id,r.mcc??''].join(',')).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',mcc:'MCC',wholeFileLast4:last4}}
-    const p=await h.post('statements/preview',body,cookie);return h.post('statements/commit',{...body,fingerprint:p.fingerprint},cookie)
-  }
-  await h.post('statements/cards',{issuer:n(300),last4:'1111',employee:people.samEmail})
-  await h.post('statements/cards',{issuer:n(300),last4:'2222',employee:people.alexEmail})
-  return {...people,cats,dimensions,values,fields,rule,upload,statement}
-}
-async function withSetup(run){const h=await harness();try{await run(h,await setup(h))}finally{await h.close()}}
-async function manual(h,t,row,claim){
-  const coding=t.fields(row.category,row.class,row.project)
-  return h.post(`claims/${claim.id}/items`,{version:claim.version,kind:'receipt',date:row.date,merchant:row.merchant,amount:row.amount,category:coding.category,coding:coding.dimensions},t[row.employee])
-}
-const simplified=(fields,t)=>({category:fields.category?t.cats.findIndex(c=>c.id===fields.category):null,class:fields.dimensions?.[t.dimensions.class]?t.values.class.indexOf(fields.dimensions[t.dimensions.class]):null,project:fields.dimensions?.[t.dimensions.project]?t.values.project.indexOf(fields.dimensions[t.dimensions.project]):null})
+import { n, path, fixture, setup, manual, simplified } from './automatic-coding-quality.mjs'
 
+async function withSetup(run){const h=await harness();try{await run(h,await setup(h))}finally{await h.close()}}
 test('CODE-002 labeled 120-charge and 120-receipt corpus measures finance-rule exact coding and twelve-month repeat learning through native public doors',()=>withSetup(async(h,t)=>{
   const claims={}
   for(const key of ['sam','alex','bea'])claims[key]=await h.post('claims',{title:n(7000+['sam','alex','bea'].indexOf(key))},t[key])
@@ -202,3 +159,60 @@ test('CODE-002 receipt coding stays private, carries human choices through charg
   assert.deepEqual((await h.get(`claims/${submitted.id}`,t.manager)).revisions.at(-1).snapshot,frozen)
   const records=await h.get(`${path}/rates`,t.finance);assert.ok(records.rules.some(r=>r.id===rule.saved&&r.overridden>0))
 }))
+
+test('Verified receipt understanding uses consented BaseAI line items after native sources, refuses unsafe output and preserves concurrent human coding',async()=>{
+  const {readFile}=await import('node:fs/promises'),label=JSON.parse(await readFile('tests/fixtures/receipts/reader/synthetic-coaster-1001.json','utf8'))
+  const regions=[{page:1,x:.1,y:.1,width:.5,height:.1}],calls=[]
+  const response=value=>Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(value)}]}]})
+  let t,mode='valid',entered,release
+  const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:n(9500)},aiEdge:async request=>{
+    const body=await request.json();calls.push(body)
+    if(body.text.format.name==='receipt_reading')return response(Object.fromEntries(Object.entries(label.values).map(([key,value])=>[key,{value:key==='lineItems'?value.map(i=>({...i,confidence:.99,regions})):value,confidence:.99,regions}])))
+    assert.equal(body.text.format.name,'receipt_coding');assert.equal(body.store,false)
+    const prompt=JSON.parse(body.input[1].content)
+    assert.equal(prompt.receipt.merchant,label.values.merchant);assert.deepEqual(prompt.receipt.lineItems,label.values.lineItems)
+    assert.ok(!JSON.stringify(prompt).includes(t.samEmail),'no employee identity enters model context')
+    assert.ok(!('last4'in prompt.receipt)&&!('date'in prompt.receipt)&&!('total'in prompt.receipt),'payment metadata is not coding evidence')
+    assert.ok(prompt.catalog.categories.every(c=>c.id&&c.name));assert.ok(prompt.catalog.dimensions.every(d=>!('owner_email'in d)))
+    if(mode==='paused'){entered();await new Promise(resolve=>release=resolve)}
+    const score=mode==='low'?.2:.99
+    return response({category:{id:mode==='invalid'?n(9501):t.cats[0].id,confidence:score,reason:'The verified purchased items support this category'},dimensions:[{dimension:t.dimensions.class,id:t.values.class[0],confidence:score,reason:'The line items support this active class'},{dimension:t.dimensions.project,id:t.values.project[0],confidence:score,reason:'The line items name this catalog project'}],memo:{text:null,confidence:0,reason:'No additional memo is needed'}})
+  }})
+  try {
+    t=await setup(h)
+    const settings=await h.get('settings/receipt-reading');await h.post('settings/receipt-reading',{version:settings.version,enabled:true,consent:true,threshold:.95,model:n(9502)})
+    let image=1000
+    const original=async()=>{
+      const uploaded=await t.upload({id:n(9600+image),receipt:`../receipts/reader/synthetic-coaster-${++image}.png`},'')
+      const id=uploaded.receipt.id,reading=await h.post(`receipt-inbox/${id}/reading`,{expectedSequence:0,expectedReadingSequence:0,consent:true},t.sam)
+      return {id,reading,body:{expectedSequence:reading.lifecycleSequence,expectedReadingSequence:reading.sequence,contextVersion:0,consent:true}}
+    }
+    const one=await original(),before=calls.length
+    await h.post(`receipt-inbox/${one.id}/reading/coding`,{...one.body,consent:false},t.sam,400)
+    await h.post(`receipt-inbox/${one.id}/reading/coding`,one.body,t.finance,404)
+    assert.equal(calls.length,before,'no coding request occurs without the original employee and second explicit consent')
+    const first=await h.post(`receipt-inbox/${one.id}/reading/coding`,one.body,t.sam)
+    assert.deepEqual(simplified(first.values,t),{category:0,class:0,project:0})
+    assert.ok(first.codingSuggestions.at(-1).evidence.every(e=>e.source==='receipt-reading'&&e.confidence>=settings.threshold&&e.reason&&e.receipt===one.id))
+    await h.post(`receipt-inbox/${one.id}/reading/coding`,one.body,t.sam,409)
+    const forged=await h.post(`${path}/preview`,{merchant:n(9503),values:{},receiptReading:{fields:t.fields(2)}},t.sam)
+    assert.deepEqual(forged.appliedFields,[],'public preview cannot inject trusted receipt understanding')
+    mode='low';const low=await original(),lowResult=await h.post(`receipt-inbox/${low.id}/reading/coding`,low.body,t.sam)
+    assert.equal(lowResult.status,'review');assert.equal(lowResult.values.category,undefined);assert.equal(lowResult.codingSuggestions.length,0);assert.ok(lowResult.reviewFields.includes('category'))
+    mode='invalid';const invalid=await original(),invalidResult=await h.post(`receipt-inbox/${invalid.id}/reading/coding`,invalid.body,t.sam)
+    assert.equal(invalidResult.status,'review');assert.equal(invalidResult.codingSuggestions.length,0);assert.equal(invalidResult.values.category,undefined)
+    mode='valid';await t.rule(label.values.merchant,t.fields(2));await t.rule(label.values.merchant,t.fields(1),'personal',t.sam)
+    const ruled=await original(),ruledResult=await h.post(`receipt-inbox/${ruled.id}/reading/coding`,ruled.body,t.sam)
+    assert.deepEqual(simplified(ruledResult.values,t),{category:2,class:2,project:2});assert.ok(ruledResult.codingSuggestions.at(-1).evidence.every(e=>e.source==='merchant-rule'),'finance rule wins over the model and personal rule')
+    const rules=await h.get(`${path}/rules`,t.finance);for(const rule of rules.rules)await h.post(`${path}/rules`,{version:(await h.get(`${path}/rules`,t.finance)).version,id:rule.id,scope:rule.scope,merchant:rule.merchant,coding:rule.fields,active:false},t.finance)
+    const own=await h.get(`${path}/rules`,t.sam);for(const rule of own.rules)await h.post(`${path}/rules`,{version:(await h.get(`${path}/rules`,t.sam)).version,id:rule.id,scope:'personal',merchant:rule.merchant,coding:rule.fields,active:false},t.sam)
+    const race=await original(),paused=new Promise(resolve=>entered=resolve);mode='paused'
+    const pending=h.send(`/api/coaster/receipt-inbox/${race.id}/reading/coding`,race.body,t.sam)
+    await paused;await h.post(`${path}/receipts/${race.id}`,{version:0,merchant:label.values.merchant,values:t.fields(2)},t.sam);release()
+    assert.equal((await pending).status,409,'model output cannot overwrite a human edit made while the provider was running')
+    const kept=await h.get(`${path}/suggestions?receipt=${race.id}`,t.sam);assert.deepEqual(simplified(kept.values,t),{category:2,class:2,project:2});assert.equal(kept.suggestions.length,0)
+    mode='valid';let catalog=await h.get('coding');await h.post('coding/values',{version:catalog.version,id:t.values.class[0],active:false})
+    const retired=await original(),retiredResult=await h.post(`receipt-inbox/${retired.id}/reading/coding`,retired.body,t.sam)
+    assert.equal(retiredResult.status,'review');assert.equal(retiredResult.codingSuggestions.length,0,'archived IDs returned by a provider never become advice')
+  }finally{release?.();await h.close()}
+})

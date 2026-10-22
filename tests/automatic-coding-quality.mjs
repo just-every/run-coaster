@@ -1,0 +1,121 @@
+import assert from 'node:assert/strict'
+import { readFile, writeFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
+import { harness } from './harness.mjs'
+
+export const n = number => `synthetic-coaster-${number}`
+export const path = 'coding/automatic'
+export const fixture = JSON.parse(await readFile('tests/fixtures/coding/labels.json','utf8'))
+export async function setup(h) {
+  await h.post('settings/business',{name:n(90),currency:'USD',timezone:'UTC',receiptThreshold:'10000'})
+  const managerEmail=`${n(100)}@example.test`,financeEmail=`${n(101)}@example.test`
+  const manager=await h.person(managerEmail,{employee:true,manager:true})
+  const finance=await h.person(financeEmail,{employee:true,finance:true},managerEmail)
+  const people={manager,finance,managerEmail,financeEmail}
+  for(const [i,key] of ['sam','alex','bea'].entries()){people[`${key}Email`]=`${n(102+i)}@example.test`;people[key]=await h.person(people[`${key}Email`],{employee:true},managerEmail)}
+  const sales=await h.post('settings/departments',{name:n(500)}),marketing=await h.post('settings/departments',{name:n(501)})
+  for(const key of ['sam','alex','bea'])await h.post('settings/members',{email:people[`${key}Email`],name:people[`${key}Email`].split('@')[0],employee:true,approver:managerEmail,department:key==='bea'?marketing.id:sales.id})
+  const cats=[]
+  for(let i=0;i<4;i++)cats.push(await h.post('settings/categories',{name:n(2000+i),accountCode:n(2100+i),taxCode:n(2200)}))
+  let catalog=await h.get('coding'),dimensions={},values={class:[],project:[]}
+  for(const [i,kind]of ['class','project','account'].entries()){
+    catalog=await h.post('coding/dimensions',{version:catalog.version,name:n(2300+i),kind});dimensions[kind]=catalog.saved
+    for(let j=0;j<(kind==='account'?1:4);j++){
+      catalog=await h.post('coding/values',{version:catalog.version,dimension:dimensions[kind],name:n((kind==='class'?2400:kind==='project'?2500:2600)+j)})
+      if(kind==='account')values.account=catalog.saved;else values[kind].push(catalog.saved)
+    }
+  }
+  await h.post('settings/categories',{id:cats[3].id,name:cats[3].name,accountCode:cats[3].account_code,taxCode:cats[3].tax_code,ledgerAccountId:values.account})
+  const fields=(cat=0,cl=cat,project=cat)=>({category:cats[cat].id,dimensions:{...(cl===null?{}:{[dimensions.class]:values.class[cl]}),...(project===null?{}:{[dimensions.project]:values.project[project]})}})
+  const rule=async(merchant,coding,scope='finance',cookie=finance,extra={})=>h.post(`${path}/rules`,{version:(await h.get(`${path}/rules`,cookie)).version,merchant,coding,scope,active:true,...extra},cookie)
+  const upload=async(row,merchant=row.merchant,cookie=people[row.employee??'sam'])=>{
+    const form=new FormData();form.append('file',new Blob([await readFile(`tests/fixtures/coding/${row.receipt??fixture.cases[0].receipt}`)]),`${row.id??n(6000)}.png`);form.append('source','upload');if(merchant)form.append('merchant',merchant)
+    const request=new Request(h.origin+'/api/coaster/receipt-inbox',{method:'POST',headers:{origin:h.origin,cookie},body:form})
+    const r=await h.mf.dispatchFetch(request.url,{method:'POST',headers:Object.fromEntries(request.headers),body:await request.arrayBuffer()});assert.equal(r.status,200,await r.clone().text());return r.json()
+  }
+  const statement=async(rows,last4='1111',cookie=finance)=>{
+    const body={format:'csv',name:`${rows[0].id}.csv`,issuer:n(300),category:cats[0].id,content:'Date,Merchant,Amount,Id,MCC\n'+rows.map(r=>[r.date??'2026-10-15',r.merchant,r.amount??'2.31',r.id,r.mcc??''].join(',')).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',mcc:'MCC',wholeFileLast4:last4}}
+    const p=await h.post('statements/preview',body,cookie);return h.post('statements/commit',{...body,fingerprint:p.fingerprint},cookie)
+  }
+  await h.post('statements/cards',{issuer:n(300),last4:'1111',employee:people.samEmail})
+  await h.post('statements/cards',{issuer:n(300),last4:'2222',employee:people.alexEmail})
+  return {...people,cats,dimensions,values,fields,rule,upload,statement}
+}
+export async function manual(h,t,row,claim){
+  const coding=t.fields(row.category,row.class,row.project)
+  return h.post(`claims/${claim.id}/items`,{version:claim.version,kind:'receipt',date:row.date,merchant:row.merchant,amount:row.amount,category:coding.category,coding:coding.dimensions},t[row.employee])
+}
+export const simplified=(fields,t)=>({category:fields.category?t.cats.findIndex(c=>c.id===fields.category):null,class:fields.dimensions?.[t.dimensions.class]?t.values.class.indexOf(fields.dimensions[t.dimensions.class]):null,project:fields.dimensions?.[t.dimensions.project]?t.values.project.indexOf(fields.dimensions[t.dimensions.project]):null})
+
+/** Held-key journey, outside push Verify. Provider traffic is real; only auth mail uses the native test harness edge.
+ * The secret is introduced at the paid edge, so Worker captures and artifacts contain a synthetic application key. */
+export async function runLiveCodingQuality({key,model,output}={}) {
+  assert.ok(typeof key==='string'&&key.length,'COASTER_AI_KEY is required for this real provider journey')
+  assert.ok(typeof model==='string'&&model.length,'COASTER_AI_MODEL must name the actual model to measure')
+  let providerRequests=0
+  const h=await harness({bindings:{AI_ENABLED:'true',AI_MODEL:model,AI_API_KEY:n(9900)},aiEdge:async request=>{
+    assert.equal(new URL(request.url).origin,'https://api.openai.com')
+    const headers=new Headers(request.headers);headers.set('authorization',`Bearer ${key}`)
+    providerRequests++
+    return fetch(request.url,{method:request.method,headers,body:await request.arrayBuffer(),redirect:'manual'})
+  }})
+  try {
+    const t=await setup(h),claims={}
+    for(const employee of ['sam','alex','bea'])claims[employee]=await h.post('claims',{title:n(7000+['sam','alex','bea'].indexOf(employee))},t[employee])
+    for(const row of fixture.history)claims[row.employee]=await manual(h,t,row,claims[row.employee])
+    for(const employee of ['sam','alex','bea'])await h.post(`claims/${claims[employee].id}/submit`,{version:claims[employee].version},t[employee])
+    await t.rule(n(1001),t.fields(1));await t.rule(n(1002),t.fields(2),'personal',t.sam)
+    for(const [mcc,cat]of [['5812',2],['5943',0]])await h.post(`${path}/mcc`,{version:(await h.get(`${path}/rules`,t.finance)).version,mcc,category:t.cats[cat].id,active:true},t.finance)
+    let catalog=await h.get('coding');catalog=await h.post('coding/values',{version:catalog.version,id:t.values.account,active:false});await h.post('coding/values',{version:catalog.version,id:t.values.class[3],active:false})
+    const settings=await h.get('settings/receipt-reading')
+    await h.post('settings/receipt-reading',{version:settings.version,enabled:true,threshold:0.95,model,consent:true})
+    const imported=await t.statement(fixture.cases),charges=[]
+    for(const claim of imported.claims)charges.push(...(await h.get(`claims/${claim}`,t.sam)).items)
+    const records=fixture.cases.map(row=>{
+      const item=charges.find(i=>i.merchant===row.merchant&&i.amount_minor===Math.round(Number(row.amount)*100))
+      assert.ok(item)
+      const fields=item.codingSuggestions.reduce((a,s)=>({...a,...s.fields,dimensions:{...a.dimensions,...s.fields.dimensions}}),{})
+      return {id:row.id,door:'statement-file',actual:simplified(fields,t),sources:[...new Set(item.codingSuggestions.flatMap(s=>s.evidence.map(e=>e.source)))]}
+    })
+    let next=0
+    await Promise.all(Array.from({length:4},async()=>{
+      for(;;){
+        const index=next++;if(index>=fixture.cases.length)return
+        const row=fixture.cases[index],receipt=await t.upload(row,'') // Deliberately no typed merchant: only actual image reading may supply it.
+        const id=receipt.receipt.id,base=`/api/coaster/receipt-inbox/${id}/reading`
+        const read=await h.send(base,{expectedSequence:0,expectedReadingSequence:0,consent:true},t.sam)
+        let coding={status:0,value:{status:'review',values:{},codingSuggestions:[]}}
+        if(read.status===200&&typeof read.value.prefill?.merchant==='string')coding=await h.send(base+'/coding',{expectedSequence:read.value.lifecycleSequence,expectedReadingSequence:read.value.sequence,contextVersion:0,consent:true},t.sam)
+        const suggestions=coding.value?.codingSuggestions??[]
+        records.push({id:row.id,door:'actual-unlinked-image-reading',actual:simplified(coding.value?.values??{},t),sources:[...new Set(suggestions.flatMap(s=>s.evidence.map(e=>e.source)))],reading:{http:read.status,state:read.value?.state??'unavailable',merchantVerified:typeof read.value?.prefill?.merchant==='string'},understanding:{http:coding.status,status:coding.value?.status??'review',reviewFields:coding.value?.reviewFields??[]}})
+      }
+    }))
+    const measure=rows=>{
+      const result={records:rows.length,financeRule:{matched:0,total:0},fullRepeatCategory:{matched:0,total:0},eligibleRepeatCategory:{matched:0,total:0},category:{matched:0,total:0},class:{matched:0,total:0},project:{matched:0,total:0},categoryAbstentions:0,suggestedAgreement:Object.fromEntries(['category','class','project'].map(field=>[field,{matched:0,total:0}])),sources:{}}
+      for(const record of rows){
+        const label=fixture.cases.find(r=>r.id===record.id);assert.ok(label)
+        for(const field of ['category','class','project']){
+          if(label[field]!==null){result[field].total++;if(record.actual[field]===label[field])result[field].matched++}
+          if(record.actual[field]!==null){result.suggestedAgreement[field].total++;if(label[field]!==null&&record.actual[field]===label[field])result.suggestedAgreement[field].matched++}
+        }
+        if(label.repeat){result.fullRepeatCategory.total++;if(label.category!==null&&record.actual.category===label.category)result.fullRepeatCategory.matched++}
+        if(label.repeat&&label.category!==null){result.eligibleRepeatCategory.total++;if(record.actual.category===label.category)result.eligibleRepeatCategory.matched++}
+        if(label.kind==='finance'){result.financeRule.total++;if(['category','class','project'].every(f=>record.actual[f]===label[f]))result.financeRule.matched++}
+        if(record.actual.category===null)result.categoryAbstentions++
+        for(const source of record.sources)result.sources[source]=(result.sources[source]??0)+1
+      }
+      for(const field of ['financeRule','fullRepeatCategory','eligibleRepeatCategory','category','class','project'])result[field].percent=result[field].total?100*result[field].matched/result[field].total:null
+      for(const field of ['category','class','project']){const score=result.suggestedAgreement[field];score.percent=score.total?100*score.matched/score.total:null}
+      return result
+    }
+    const result={measuredAt:new Date().toISOString(),model,providerRequests,fixture:{charges:fixture.cases.length,receiptOriginals:fixture.cases.length,priorNativeExpenses:fixture.history.length,historyMonths:new Set(fixture.history.map(r=>r.date.slice(0,7))).size},method:'Native statement-file charges plus actual uploaded PNGs, real BaseAI image reading and separate explicit real BaseAI coding consent. No typed merchant, human correction, charge attachment, label-to-app channel, response replay or provider substitute. Concurrency four. Unknown/retired and failed/abstaining cases remain in the full repeat denominator.',charges:measure(records.filter(r=>r.door==='statement-file')),unlinkedReceipts:measure(records.filter(r=>r.door==='actual-unlinked-image-reading')),combined:measure(records),records:records.sort((a,b)=>a.id.localeCompare(b.id)||a.door.localeCompare(b.door)),limitations:['Statement-file intake is not live issuer-feed proof.','The original catalog and receipt fixture text contain opaque synthetic names; missing business intent is not invented.','Scores are observations, never a claim that a held-key run met an unmet bar.']}
+    if(output)await writeFile(output,JSON.stringify(result,null,2)+'\n')
+    return result
+  }finally{await h.close()}
+}
+
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
+  const outputIndex=process.argv.indexOf('--output')
+  try {const result=await runLiveCodingQuality({key:process.env.COASTER_AI_KEY,model:process.env.COASTER_AI_MODEL,output:outputIndex<0?undefined:process.argv[outputIndex+1]});console.log(JSON.stringify(result,null,2))}
+  catch(error){console.error(error instanceof Error?error.message:'Automatic coding quality journey failed');process.exitCode=1}
+}
