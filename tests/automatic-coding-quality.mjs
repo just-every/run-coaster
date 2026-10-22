@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
+import { execFileSync } from 'node:child_process'
 import { harness } from './harness.mjs'
+import { issuerServer } from './fixtures/feed/server.mjs'
 
 export const n = number => `synthetic-coaster-${number}`
 export const path = 'coding/automatic'
@@ -47,15 +49,48 @@ export async function manual(h,t,row,claim){
 }
 export const simplified=(fields,t)=>({category:fields.category?t.cats.findIndex(c=>c.id===fields.category):null,class:fields.dimensions?.[t.dimensions.class]?t.values.class.indexOf(fields.dimensions[t.dimensions.class]):null,project:fields.dimensions?.[t.dimensions.project]?t.values.project.indexOf(fields.dimensions[t.dimensions.project]):null})
 
-/** Held-key journey, outside push Verify. Provider traffic is real; only auth mail uses the native test harness edge.
+/** Real scheduled SSH/SFTP pick-up from a synthetic issuer network edge. No file-upload/preview/commit substitute. */
+export async function ingestProgramCorpus(h,t,corpus=fixture) {
+  const issuer=await issuerServer()
+  let connected
+  try {
+    const sequence=n(9901),filename=`${n(9902)}.csv`
+    issuer.files.set(filename,'Date,Merchant,Amount,Card,Transaction,MCC,Sequence\n'+corpus.cases.map(row=>[row.date,row.merchant,row.amount,'1111',row.id,row.mcc??'',sequence].join(',')).join('\n'))
+    connected=await h.post('feeds/program',{...issuer.credentials,issuer:n(300),category:t.cats[0].id,intervalMinutes:60,consent:true,mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',card:'Card',transactionId:'Transaction',mcc:'MCC',sequence:'Sequence'}},t.finance)
+    assert.equal(issuer.requests.length,0,'connecting a feed only records configuration; the scheduler picks up the file')
+    const worker=await h.mf.getWorker()
+    await worker.scheduled({scheduledTime:new Date(),cron:'17 * * * *'})
+    const state=await h.get('feeds/program',t.finance),feed=state.feeds.find(f=>f.id===connected.id)
+    assert.ok(feed?.lastSuccessAt,feed?.error??'The scheduled program feed did not complete')
+    assert.equal(feed.error,null)
+    const deliveries=state.deliveries.filter(d=>d.feed_id===connected.id)
+    assert.equal(deliveries.length,1,'the corpus is one issuer delivery')
+    const delivery=deliveries[0]
+    assert.equal(delivery.charges,corpus.cases.length)
+    assert.equal(delivery.issuer_sequence,sequence)
+    const ledger=await h.get('statements',t.finance),received=ledger.charges.filter(c=>c.file_id===delivery.file_id)
+    assert.equal(received.length,corpus.cases.length,'read back only the charges created from this scheduled delivery')
+    const itemIds=new Set(received.map(c=>c.item_id)),charges=[]
+    for(const claim of new Set(received.map(c=>c.claim_id)))charges.push(...(await h.get(`claims/${claim}`,t.sam)).items.filter(i=>itemIds.has(i.id)&&i.card_charge_id))
+    assert.equal(charges.length,corpus.cases.length,'native employee expenses retain every program charge')
+    assert.ok(issuer.requests.some(r=>r.operation==='authenticate')&&issuer.requests.some(r=>r.operation==='read'),'the scheduler used actual public-key SSH/SFTP')
+    return {charges,delivery:{id:delivery.id,fileId:delivery.file_id,issuerSequence:delivery.issuer_sequence,charges:delivery.charges},transport:'scheduled-sftp-mapped-csv'}
+  }finally{
+    try {if(connected)await h.post(`feeds/program/${connected.id}/disconnect`,{version:connected.version,consent:true},t.finance)}
+    finally {await issuer.close()}
+  }
+}
+
+/** Held-key journey, outside push Verify. AI traffic is real; SFTP's issuer is a synthetic actual SSH server.
  * The secret is introduced at the paid edge, so Worker captures and artifacts contain a synthetic application key. */
 export async function runLiveCodingQuality({key,model,output}={}) {
   assert.ok(typeof key==='string'&&key.length,'COASTER_AI_KEY is required for this real provider journey')
   assert.ok(typeof model==='string'&&model.length,'COASTER_AI_MODEL must name the actual model to measure')
   let providerRequests=0
-  const h=await harness({bindings:{AI_ENABLED:'true',AI_MODEL:model,AI_API_KEY:n(9900)},aiEdge:async request=>{
+  const gitSHA=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
+  const h=await harness({bindings:origin=>({AI_ENABLED:'true',AI_MODEL:model,AI_API_KEY:n(9900),RER_DEV_ORIGIN:origin}),aiEdge:async request=>{
     assert.equal(new URL(request.url).origin,'https://api.openai.com')
-    const headers=new Headers(request.headers);headers.set('authorization',`Bearer ${key}`)
+    const headers={authorization:`Bearer ${key}`,'content-type':request.headers.get('content-type')??'application/json',accept:request.headers.get('accept')??'application/json'}
     providerRequests++
     return fetch(request.url,{method:request.method,headers,body:await request.arrayBuffer(),redirect:'manual'})
   }})
@@ -69,13 +104,12 @@ export async function runLiveCodingQuality({key,model,output}={}) {
     let catalog=await h.get('coding');catalog=await h.post('coding/values',{version:catalog.version,id:t.values.account,active:false});await h.post('coding/values',{version:catalog.version,id:t.values.class[3],active:false})
     const settings=await h.get('settings/receipt-reading')
     await h.post('settings/receipt-reading',{version:settings.version,enabled:true,threshold:0.95,model,consent:true})
-    const imported=await t.statement(fixture.cases),charges=[]
-    for(const claim of imported.claims)charges.push(...(await h.get(`claims/${claim}`,t.sam)).items)
+    const {charges,delivery}=await ingestProgramCorpus(h,t,fixture)
     const records=fixture.cases.map(row=>{
       const item=charges.find(i=>i.merchant===row.merchant&&i.amount_minor===Math.round(Number(row.amount)*100))
       assert.ok(item)
       const fields=item.codingSuggestions.reduce((a,s)=>({...a,...s.fields,dimensions:{...a.dimensions,...s.fields.dimensions}}),{})
-      return {id:row.id,door:'statement-file',actual:simplified(fields,t),sources:[...new Set(item.codingSuggestions.flatMap(s=>s.evidence.map(e=>e.source)))]}
+      return {id:row.id,door:'scheduled-sftp-program-feed',actual:simplified(fields,t),sources:[...new Set(item.codingSuggestions.flatMap(s=>s.evidence.map(e=>e.source)))]}
     })
     let next=0
     await Promise.all(Array.from({length:4},async()=>{
@@ -108,7 +142,7 @@ export async function runLiveCodingQuality({key,model,output}={}) {
       for(const field of ['category','class','project']){const score=result.suggestedAgreement[field];score.percent=score.total?100*score.matched/score.total:null}
       return result
     }
-    const result={measuredAt:new Date().toISOString(),model,providerRequests,fixture:{charges:fixture.cases.length,receiptOriginals:fixture.cases.length,priorNativeExpenses:fixture.history.length,historyMonths:new Set(fixture.history.map(r=>r.date.slice(0,7))).size},method:'Native statement-file charges plus actual uploaded PNGs, real BaseAI image reading and separate explicit real BaseAI coding consent. No typed merchant, human correction, charge attachment, label-to-app channel, response replay or provider substitute. Concurrency four. Unknown/retired and failed/abstaining cases remain in the full repeat denominator.',charges:measure(records.filter(r=>r.door==='statement-file')),unlinkedReceipts:measure(records.filter(r=>r.door==='actual-unlinked-image-reading')),combined:measure(records),records:records.sort((a,b)=>a.id.localeCompare(b.id)||a.door.localeCompare(b.door)),limitations:['Statement-file intake is not live issuer-feed proof.','The original catalog and receipt fixture text contain opaque synthetic names; missing business intent is not invented.','Scores are observations, never a claim that a held-key run met an unmet bar.']}
+    const result={gitSHA,measuredAt:new Date().toISOString(),model,providerRequests,delivery,fixture:{charges:fixture.cases.length,receiptOriginals:fixture.cases.length,priorNativeExpenses:fixture.history.length,historyMonths:new Set(fixture.history.map(r=>r.date.slice(0,7))).size},method:'Native scheduled SFTP public-key pick-up of the complete issuer mapped-CSV corpus plus actual uploaded PNGs, real BaseAI image reading and separate explicit real BaseAI coding consent. No manual charge-file upload, typed merchant, human correction, charge attachment, label-to-app channel, response replay or AI provider substitute. Concurrency four. Unknown/retired and failed/abstaining cases remain in the full repeat denominator.',charges:measure(records.filter(r=>r.door==='scheduled-sftp-program-feed')),unlinkedReceipts:measure(records.filter(r=>r.door==='actual-unlinked-image-reading')),combined:measure(records),records:records.sort((a,b)=>a.id.localeCompare(b.id)||a.door.localeCompare(b.door)),limitations:['The issuer network edge is a synthetic real SSH/SFTP server, not an issuer account or vendor onboarding proof.','Only explicitly mapped CSV is exercised; GL, VCF and PGP forms are not exercised.','The original catalog and receipt fixture text contain opaque synthetic names; missing business intent is not invented.','Scores are observations, never a claim that a held-key run met an unmet bar.']}
     if(output)await writeFile(output,JSON.stringify(result,null,2)+'\n')
     return result
   }finally{await h.close()}
@@ -116,6 +150,6 @@ export async function runLiveCodingQuality({key,model,output}={}) {
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const outputIndex=process.argv.indexOf('--output')
-  try {const result=await runLiveCodingQuality({key:process.env.COASTER_AI_KEY,model:process.env.COASTER_AI_MODEL,output:outputIndex<0?undefined:process.argv[outputIndex+1]});console.log(JSON.stringify(result,null,2))}
+  try {const result=await runLiveCodingQuality({key:process.env.COASTER_AI_KEY,model:process.env.COASTER_AI_MODEL,output:outputIndex<0?undefined:process.argv[outputIndex+1]});const {records,...summary}=result;console.log(JSON.stringify(summary,null,2))}
   catch(error){console.error(error instanceof Error?error.message:'Automatic coding quality journey failed');process.exitCode=1}
 }
