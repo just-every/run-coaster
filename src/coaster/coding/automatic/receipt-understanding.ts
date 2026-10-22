@@ -1,9 +1,11 @@
 import { aiConfig, createAiClient } from '../../../modules/ai/index.mjs';
-import { all, type Sql } from '../../session';
+import { all, authority, commit, type Sql } from '../../session';
+import { requireThat, type Actor } from '../../types';
 import { categories } from '../../items';
 import { codingCatalog, catalogState, offeredValue } from '../model';
 import { proposeCoding, type Proposal } from './engine';
 import { flatten, inactiveReason, unflatten, type Fields, type ReceiptCodingCandidate } from './model';
+import { codingContext, contextState, contextWrite, suggestionWrites, targetSuggestions, type Target } from './storage';
 
 /** Constructed by CAPTURE-003's private verified-read accessor, never directly from request JSON.
  * The guard must bind the reading revision, lifecycle and current original owner. No image bytes or receipt metadata
@@ -99,4 +101,27 @@ export async function understandReceiptCoding(db:D1Database,env:Parameters<typeo
   const proposal=await proposeCoding(db,read.employee,input,candidate);
   proposal.guard=all(read.guard,consent.guard,higher.guard,catalogState(catalog.version),proposal.guard);
   return {status:proposal.appliedFields.length?'suggested':'review',reason:Object.keys(fields).length?'Receipt evidence supports active catalog choices':reviewFields.length?'Receipt coding is below the configured confidence; review it':'Receipt evidence does not identify an unfilled catalog choice',proposal,reviewFields,model};
+}
+
+/** Native explicit second consent door. CAPTURE-003 supplies only its own verified reading/settings guards.
+ * It neither accepts request-supplied OCR nor writes a submitted expense revision. Private original choices remain
+ * available to the normal guarded attachment flow; no generated choice becomes human input or a learning sample. */
+export async function prepareReadingCoding(db:D1Database,env:Parameters<typeof aiConfig>[0],actor:Actor,read:VerifiedCodingRead,consent:ReceiptCodingConsent,options:{contextVersion:number;signal?:AbortSignal;request?:ModelRequest}) {
+  requireThat(actor.kind==='person'&&!actor.publicCredential&&actor.roles.employee&&read.employee===actor.email,'Use the original employee’s native session',403);
+  const context=await codingContext(db,'receipt',read.receiptId);
+  requireThat(Number.isSafeInteger(options.contextVersion)&&options.contextVersion===(context?.version??0),'Receipt coding changed; reload before requesting understanding',409);
+  requireThat(!context||context.employee_email===actor.email,'Receipt coding not found',404);
+  const target:Target={kind:'receipt',id:read.receiptId,employee:read.employee,merchant:read.merchant,mcc:context?.mcc};
+  const privateOriginal:Sql={sql:"EXISTS(SELECT 1 FROM c_capture_receipts WHERE id=? AND owner_email=?) AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND kind IN ('discarded','merged'))",params:[read.receiptId,actor.email,read.receiptId]};
+  const live=all(authority(actor,'employee'),read.guard,privateOriginal,contextState(target,options.contextVersion));
+  const result=await understandReceiptCoding(db,env,{...read,guard:live},consent,{values:context?.values??{},protectedFields:context?.humanFields??[],mcc:context?.mcc,signal:options.signal,request:options.request});
+  let version=context?.version??0,values:Fields=context?.values??{};
+  if(result.proposal){
+    const proposal=result.proposal;version++;
+    values=unflatten({...flatten(values),...flatten(proposal.fields)});
+    await commit(db,all(authority(actor,'employee'),live,consent.guard,proposal.guard),[
+      contextWrite(db,target,version,values,context?.humanFields??[]),...suggestionWrites(db,target,proposal,version),
+    ]);
+  }
+  return {...result,proposal:undefined,version,contextVersion:version,values,codingSuggestions:await targetSuggestions(db,'receipt',read.receiptId)};
 }
