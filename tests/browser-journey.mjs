@@ -188,6 +188,7 @@ export async function ownerScreens(owner, origin, width, evidence, shots, import
     const sales = await api(owner.context, origin, 'settings/departments', { name: 'Sales', head: PEOPLE.manager })
     await api(owner.context, origin, 'settings/escalation-chains', { department: sales.id, steps: [{ kind: 'department-head' }, { kind: 'finance', email: PEOPLE.finance }] })
     await api(owner.context, origin, 'settings/members', { email: PEOPLE.employee, name: 'Sam Taylor', employee: true, approver: PEOPLE.manager, department: sales.id })
+    await page.reload()
   }
   await nav(page, 'Settings')
   await page.getByRole('heading', { name: 'People', exact: true }).waitFor()
