@@ -6,7 +6,7 @@ export async function receiptInput(bytes:Uint8Array,media:string) {
   if(media==='application/pdf') {
     let pdf:PDFDocument;try{pdf=await PDFDocument.load(bytes);}catch{requireThat(false,'This PDF is encrypted or unreadable; choose a readable original',422);}
     const pages=pdf.getPageCount();requireThat(pages>0&&pages<=20,'Read PDFs with 1 to 20 pages',422);
-    return {pages,content:[{type:'input_file',filename:'receipt.pdf',file_data:'data:application/pdf;base64,'+base64(bytes)}]};
+    return {pages,content:[{type:'input_file',detail:'high',filename:'receipt.pdf',file_data:'data:application/pdf;base64,'+base64(bytes)}]};
   }
   if(media==='image/heic') {
     const {default:heif}=await import('libheif-js'),images=new heif.HeifDecoder().decode(bytes);
