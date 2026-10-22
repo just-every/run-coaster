@@ -82,8 +82,8 @@ export function WorkflowEditor({ state, reload }: { state: D; reload: () => Prom
             {rule.condition.kind === 'department' && <Field label="Department" name={`rule-${index}-department`} options={state.departments.filter((d: D) => d.active).map((d: D) => ({ value: d.id, label: d.name }))} value={rule.condition.value} onChange={(e: SelectChange) => changeRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })} />}
             {rule.condition.kind === 'project' && <Field label="Project" name={`rule-${index}-project`} value={rule.condition.value} onChange={(e: InputChange) => changeRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })} />}
             <div className="form-end">
-              <button type="button" className="button small" disabled={index === 0} onClick={() => setRules(move(rules, index, -1))} aria-label={`Move rule ${index + 1} up`}>Move up</button>
-              <button type="button" className="button small" disabled={index === rules.length - 1} onClick={() => setRules(move(rules, index, 1))} aria-label={`Move rule ${index + 1} down`}>Move down</button>
+              <button type="button" className="button small" disabled={index === 0} onClick={() => setRules(move(rules, index, -1))} aria-label={`Move up rule ${index + 1}`}>Move up</button>
+              <button type="button" className="button small" disabled={index === rules.length - 1} onClick={() => setRules(move(rules, index, 1))} aria-label={`Move down rule ${index + 1}`}>Move down</button>
               <button type="button" className="button small" onClick={() => setRules(rules.filter((_, i) => i !== index))}>Remove rule {index + 1}</button>
             </div>
             {rule.stages.map((stage, stageIndex) => <fieldset className="field-wide" key={stageIndex}>
