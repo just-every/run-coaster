@@ -8,19 +8,22 @@ import {api,PEOPLE,session,setUp} from './browser-journey.mjs'
 import {records,rows,tampered} from './browser-archive.mjs'
 import {statementScreens} from './browser-statements.mjs'
 import {codingScreens} from './browser-coding.mjs'
+import {readingEdge,readingScreens} from './browser-reading.mjs'
+import {programFeedScreens} from './browser-program-feed.mjs'
 import {automaticCodingScreens} from './browser-auto-coding.mjs'
 
 const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/card-matching-proof')
 const notice="When this receipt matches one of your card charges, Coaster attaches it automatically. Approvers and finance can see the receipt, its file name and the total, currency and date you entered once that expense is submitted — by you, your delegate or the owner's scheduled submission."
 await mkdir(evidence,{recursive:true})
-let root,restored,server,browser
+let root,restored,server,browser,readerEdge
 const launch=()=>chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
 const chosen=[]
 const [part,of]=(process.env.MATCH_REFUSALS??'0/1').split('/').map(Number)
 assert.ok(Number.isInteger(part)&&Number.isInteger(of)&&of>0&&part>=0&&part<of,'MATCH_REFUSALS must be part/of')
 try {
   root=await fresh();await command(root,['install']);const port=await freePort()
-  await command(root,['setup','--owner-email','owner@harbourfinch.example','--port',String(port)])
+  readerEdge=await readingEdge();await mkdir(join(root,'.cache'),{recursive:true});await writeFile(join(root,'.cache/reading-answers.json'),JSON.stringify({AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-6000',AI_BASE_URL:readerEdge.url}),{mode:0o600})
+  await command(root,['setup','--owner-email','owner@harbourfinch.example','--port',String(port),'--answers','.cache/reading-answers.json'])
   server=await start(root,port);browser=await launch()
   const owner=await session(browser,root,server.origin,'owner',1440);await setUp(owner,server.origin)
   const category=(await api(owner.context,server.origin,'state')).categories.find(c=>c.name==='Office supplies').id
@@ -144,7 +147,7 @@ try {
   await manager.context.close();await employee.context.close()
   await statementScreens(browser,root,server.origin,owner,evidence)
   await codingScreens(browser,root,server.origin,evidence)
-  if(part===0)await automaticCodingScreens(browser,root,server.origin,evidence)
+  if(part===0){await automaticCodingScreens(browser,root,server.origin,evidence);await readingScreens(browser,root,server.origin,evidence,readerEdge);await programFeedScreens(browser,root,server,evidence)}
   // FEED-005: reconciled and closed statements (their resolutions, ledger and history) ride the same archive round trip.
   const kept=(await api(owner.context,server.origin,'statements')).files.find(f=>f.name==='synthetic-kept-match.csv')
   const reconciliation=await api(owner.context,server.origin,`statements/${kept.id}/reconcile`,{last4:'1111',openingBalance:'0.00',statementBalance:'1.00'})
@@ -193,12 +196,14 @@ try {
     ['coding_parent','c_coding_values',r=>r.parent_value_id,r=>{r.parent_value_id='synthetic-coaster-missing-parent'}],
     ['coding_item','c_items',r=>Object.keys(JSON.parse(r.coding)).length,r=>{r.coding=JSON.stringify({'synthetic-coaster-missing-level':'synthetic-coaster-missing-choice'})}],
     ['coding_category_account','c_categories',r=>r.ledger_account_id,r=>{const account=JSON.parse(r.ledger_account_snapshot);account.sourceId='synthetic-coaster-missing-account';r.ledger_account_snapshot=JSON.stringify(account)}],
-    ['automatic_coding_owner','c_auto_coding_contexts',r=>r.target_kind==='receipt',r=>{r.employee_email='synthetic-coaster-5000'}],
+    ['receipt_reading_owner','c_receipt_readings',()=>true,r=>{r.actor_email='synthetic-coaster-8000'},0],
+    ['program_feed_credentials','c_program_feeds',()=>true,r=>{r.enabled=1},0],
+    ['automatic_coding_owner','c_auto_coding_contexts',r=>r.target_kind==='receipt',r=>{r.employee_email='synthetic-coaster-5000'},0],
   ]
-  for(const [code,table,pick,change] of cases.filter((_,index)=>index%of===part)) {
+  for(const [code,table,pick,change] of cases.filter((entry,index)=>entry[4]===undefined?index%of===part:part===entry[4])) {
     await writeFile(join(restored,`exports/${code}.rer`),await tampered(archive,table,change,pick),{mode:0o600})
     const result=await command(restored,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4})
-    assert.match(result,new RegExp(code.startsWith('automatic_coding_')?'coaster_automatic_coding':code.startsWith('coding_')?'coaster_coding_catalog':code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('card_statement')?'coaster_card_statement':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
+    assert.match(result,new RegExp(code.startsWith('receipt_reading_')?'coaster_receipt_reading':code.startsWith('program_feed_')?'coaster_program_feed':code.startsWith('automatic_coding_')?'coaster_automatic_coding':code.startsWith('coding_')?'coaster_coding_catalog':code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('card_statement')?'coaster_card_statement':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
     await command(restored,['export','--output',`exports/unchanged-${code}.rer`])
     assert.deepEqual(rows(await records(join(restored,`exports/unchanged-${code}.rer`))),empty,'malformed match archive writes nothing')
   }
@@ -214,10 +219,10 @@ try {
   const after=(await api(restoredEmployee.context,server.origin,'receipt-inbox')).receipts
   assert.deepEqual(after,before,'restore and hourly replay preserve rejected pairs, existing attachments and private history')
   await restoredEmployee.context.close()
-  await writeFile(join(evidence,'result.json'),JSON.stringify({clauses:['CAPTURE-004','FEED-004'],widths:[1440,390],archive:'exact round trip',refusals:cases.filter((_,index)=>index%of===part).map(c=>c[0]),shard:{part,of}},null,2)+'\n')
+  await writeFile(join(evidence,'result.json'),JSON.stringify({clauses:['CAPTURE-004','FEED-004'],widths:[1440,390],archive:'exact round trip',refusals:cases.filter((entry,index)=>entry[4]===undefined?index%of===part:part===entry[4]).map(c=>c[0]),shard:{part,of}},null,2)+'\n')
   console.log('CAPTURE-004 FEED-004 matching consent, questions, basis and undo at 1440/390; exact CLI archive round trip, malformed refusals and replay passed')
 } finally {
-  await browser?.close();await server?.close()
+  await browser?.close();await server?.close();await readerEdge?.close()
   if(restored)await rm(restored,{recursive:true,force:true})
   if(root)await rm(root,{recursive:true,force:true})
 }

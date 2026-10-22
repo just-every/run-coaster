@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { call, type D } from './api';
 import { CodingReasons, codingWords } from './automatic-coding';
 import { Field, Form } from './parts';
@@ -11,6 +11,7 @@ export function ReceiptCoding({ receipt, state, reload }: { receipt: D; state: D
     try { setData(await call(`coding/automatic/suggestions?receipt=${encodeURIComponent(receipt.id)}`)); setError(''); }
     catch (e) { setError((e as Error).message); }
   }
+  useEffect(() => { if (data) load(); }, [receipt]);
   const current = data?.context;
   async function decide(suggestion: D, action: string, values?: D) {
     setBusy(true); setError('');
@@ -20,7 +21,7 @@ export function ReceiptCoding({ receipt, state, reload }: { receipt: D; state: D
   }
   return <details className="disclosure" onToggle={e => { if (e.currentTarget.open && !data) load(); }}>
     <summary>Coding for {receipt.name}</summary><div className="disclosure-body">
-      <p className="muted">Enter the merchant you read on this receipt. Coding suggestions use your rules and coding history; the image has not been read automatically. This coding stays in your private inbox.</p>
+      <p className="muted">Enter the merchant yourself, or use the explicit reading controls above to prepare coding from reviewed receipt fields. Suggestions show their source below. This coding stays in your private inbox.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       {data && <>
         <Form key={`merchant:${current?.version ?? 0}`} label="Suggest receipt coding" onSubmit={async v => { await call(`coding/automatic/receipts/${receipt.id}`, { version: data.contextVersion ?? current?.version ?? 0, merchant: v.merchant }); await load(); }}>

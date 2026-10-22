@@ -19,6 +19,8 @@ import { CardReconciliation } from './card-reconciliation';
 import { CodingSettings, CategoryAccountField } from './coding';
 import { QuickBooks } from './quickbooks';
 import { AutomaticCoding } from './automatic-coding';
+import { ProgramFeed } from './program-feed';
+import { ReceiptReadingSettings } from './receipt-reading';
 import type { ViewProps } from './claims';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -76,6 +78,8 @@ export function Settings({ state, reload }: ViewProps) {
       </Form>
     </Section>}
     {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <QuickBooks state={state} />}
+    {b && !state.actor.delegate && (admin || roles.finance) && <ProgramFeed state={state} />}
+    {b && admin && !state.actor.delegate && <ReceiptReadingSettings />}
     {b && admin && <CodingSettings state={state} reload={reload} />}
     {b && !auditorOnly && <AutomaticCoding state={state} />}
     {b && (reader || roles.cardAdmin) && <CardReconciliation state={state} />}

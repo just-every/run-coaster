@@ -4,6 +4,7 @@ import { Badge, Details, Empty, Field, Form, Section } from './parts';
 import { ReceiptCardMatch } from './receipt-card-match';
 import { ReceiptAttachment } from './receipt-attachment';
 import { ReceiptCoding } from './receipt-coding';
+import { ReceiptReading } from './receipt-reading';
 
 const formats = 'image/jpeg,image/png,image/webp,image/heic,application/pdf';
 const bytes = (size: number) => `${size.toLocaleString()} bytes`;
@@ -50,6 +51,7 @@ export function ReceiptInbox({ state, onChanged }: { state: D; onChanged: () => 
       <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
       {receipt.disposition === 'active' && <ReceiptAttachment key={`${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} claims={state.claims} employee={state.actor.email} reload={reload} />}
       {receipt.disposition === 'active' && <ReceiptCardMatch key={`match:${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} currency={state.business?.currency??'USD'} reload={reload} />}
+      {receipt.disposition === 'active' && !state.actor.delegate && <ReceiptReading receipt={receipt} state={state} reload={reload} />}
       {receipt.disposition === 'active' && <ReceiptCoding receipt={receipt} state={state} reload={reload} />}
       {receipt.disposition === 'active' && receipt.lifecycle.length > 0 && <Details label="Private receipt history"><ReceiptLifecycle receipt={receipt} receipts={receipts} /></Details>}
       {receipt.disposition === 'active' ? !receipt.attachment && <>
@@ -59,7 +61,7 @@ export function ReceiptInbox({ state, onChanged }: { state: D; onChanged: () => 
     </li>)}</ul>;
   const active = receipts.filter(receipt => receipt.disposition === 'active'), discarded = receipts.filter(receipt => receipt.disposition === 'discarded'), merged = receipts.filter(receipt => receipt.disposition === 'merged');
   return <Section title="Receipt inbox" className="receipt-inbox" label="Receipt inbox">
-    <p className="muted">Keep receipts here before you enter their expenses. JPEG, PNG, WebP, HEIC and multi-page PDF, up to 10 MB each. Reading is unavailable; enter expense details by hand.</p>
+    <p className="muted">Keep receipts here before you enter their expenses. JPEG, PNG, WebP, HEIC and multi-page PDF, up to 10 MB each. Enter expense details by hand, or explicitly choose receipt reading when your business enables it.</p>
     <div className={`receipt-drop${over ? ' receipt-drop-over' : ''}`} role="group" aria-label="Drop receipt files" aria-busy={busy}
       onDragOver={e => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={e => { e.preventDefault(); setOver(false); upload([...e.dataTransfer.files]); }}>

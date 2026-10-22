@@ -15,8 +15,8 @@ async function enable(h,cookie=h.owner) {return h.post('settings/receipt-reading
 const read=(h,id,cookie,reading=0,life=0,extra={})=>h.post(`receipt-inbox/${id}/reading`,{expectedSequence:life,expectedReadingSequence:reading,consent:true,...extra},cookie)
 
 test('Receipt reading requires both consents, keeps exact private evidence and returns only verified prefill',async()=>{
- const label=await load(1001),requests=[];let activeLabel=label
- const h=await harness({bindings:aiBindings,aiEdge:async request=>{const b=await request.json();requests.push(b);assert.equal(new URL(request.url).pathname,'/v1/responses');assert.equal(b.store,false);assert.ok(b.input[1].content.some(c=>activeLabel.file.endsWith('.pdf')?c.type==='input_file'&&c.file_data.startsWith('data:application/pdf;base64,'):c.type==='input_image'&&c.image_url.startsWith('data:image/png;base64,')));return response(raw(activeLabel))}})
+ const label=await load(1001),requests=[];let low=false;let activeLabel=label
+ const h=await harness({bindings:aiBindings,aiEdge:async request=>{const b=await request.json();requests.push(b);assert.equal(new URL(request.url).pathname,'/v1/responses');assert.equal(b.store,false);assert.ok(b.input[1].content.some(c=>activeLabel.file.endsWith('.pdf')?c.type==='input_file'&&c.file_data.startsWith('data:application/pdf;base64,'):c.type==='input_image'&&c.image_url.startsWith('data:image/png;base64,')));const value=raw(activeLabel);if(low)value.total.confidence=.5;return response(value)}})
  try {
   const t=await agency(h),receipt=await upload(h,t.sam)
   assert.equal(requests.length,0,'upload does not send anything for reading')
@@ -41,6 +41,20 @@ test('Receipt reading requires both consents, keeps exact private evidence and r
   activeLabel=await load(2031);const pdf=await upload(h,t.sam,2031),pdfReading=await read(h,pdf.id,t.sam)
   assert.equal(pdfReading.prefill.amount,activeLabel.values.total,'The complete multipage original is passed to Base AI');assert.equal(pdfReading.history.at(-1).usage.pages,2)
   const bytes=await h.mf.dispatchFetch(h.origin+`/api/coaster/receipt-inbox/${receipt.id}`,{headers:{cookie:t.sam}});assert.deepEqual(Buffer.from(await bytes.arrayBuffer()),await readFile(folder+label.file))
+  activeLabel=label
+  const notice=inbox.matchChoice.notice
+  await h.post('settings/receipt-reading/matching',{version:0,enabled:true,consent:true},t.sam,400)
+  await h.post('settings/receipt-reading/matching',{version:0,enabled:true,consent:true,notice,employee:'sam@harbourfinch.example'},h.owner,400)
+  await h.post('settings/receipt-reading/matching',{version:0,enabled:true,consent:true,notice},t.sam)
+  const chosen=await upload(h,t.sam,1002);let chosenRead=await read(h,chosen.id,t.sam)
+  let chosenInbox=(await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===chosen.id);assert.equal(chosenInbox.matchChoice.enabled,true,'self-granted standing choice applies only safe fields')
+  await h.post(`receipt-inbox/${chosen.id}/card-match`,{expectedSequence:chosenInbox.lifecycleSequence,enabled:false},t.sam)
+  chosenInbox=(await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===chosen.id)
+  await read(h,chosen.id,t.sam,chosenRead.sequence,chosenInbox.lifecycleSequence)
+  assert.equal((await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===chosen.id).matchChoice.enabled,false,'later reading never resurrects a withdrawn original')
+  low=true;const uncertain=await upload(h,t.sam,1003);await read(h,uncertain.id,t.sam)
+  assert.equal((await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===uncertain.id).matchChoice.enabled,false,'low-confidence totals never opt an original in')
+  await h.post('settings/receipt-reading/matching',{version:1,enabled:false,consent:false},t.sam)
  }finally{await h.close()}
 })
 
@@ -65,7 +79,7 @@ test('Receipt confidence is lowered by arithmetic and native conflicts; human co
 
 test('Receipt reader authority survives neither delegate revocation nor terminal disposition and readers cannot widen their identity',async()=>{
  const label=await load(1001);let entered,release;const paused=new Promise(resolve=>entered=resolve)
- const h=await harness({bindings:aiBindings,aiEdge:async()=>{entered();await new Promise(resolve=>release=resolve);return response(raw(label))}})
+ const h=await harness({bindings:aiBindings,aiEdge:async()=>{entered();await new Promise(resolve=>release=resolve);const value=raw(label);if(low)value.total.confidence=.5;return response(value)}})
  try {
   const t=await agency(h);await enable(h);const original=await upload(h,t.sam)
   const grant=await h.post('delegates',{delegate:'alex@harbourfinch.example',level:'submit'},t.sam),headers={'x-coaster-acting-for':'sam@harbourfinch.example'}

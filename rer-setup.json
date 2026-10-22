@@ -13,6 +13,10 @@
     {
       "id": "accounting",
       "label": "Optional accounting choices"
+    },
+    {
+      "id": "receipt-reading",
+      "label": "Optional receipt reading"
     }
   ],
   "fields": [
@@ -96,6 +100,42 @@
       "default": "sandbox",
       "group": "accounting",
       "help": "sandbox or production. This selects the company API; it never authorizes a company by itself."
+    },
+    {
+      "name": "AI_ENABLED",
+      "label": "AI transport enabled",
+      "kind": "text",
+      "required": false,
+      "default": "false",
+      "group": "receipt-reading",
+      "help": "true or false. Native receipt reading also requires an owner or admin to enable it and an employee to consent to each original."
+    },
+    {
+      "name": "AI_MODEL",
+      "label": "Vision model",
+      "kind": "text",
+      "required": false,
+      "default": "gpt-4.1-2025-04-14",
+      "group": "receipt-reading"
+    },
+    {
+      "name": "AI_API_KEY",
+      "label": "AI provider API key",
+      "kind": "secret",
+      "required": false,
+      "ownerVisible": true,
+      "input": "entered",
+      "group": "receipt-reading",
+      "help": "Optional direct AI transport credential. Receipt originals leave this installation only after explicit consent."
+    },
+    {
+      "name": "AI_BASE_URL",
+      "label": "AI provider URL",
+      "kind": "url",
+      "required": false,
+      "default": "https://api.openai.com/v1",
+      "group": "receipt-reading",
+      "help": "HTTPS API supporting image input and structured Responses. No automatic provider fallback."
     }
   ],
   "steps": [

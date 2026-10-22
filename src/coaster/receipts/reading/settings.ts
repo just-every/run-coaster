@@ -1,3 +1,4 @@
+import { MATCH_NOTICE } from '../match-notice';
 import { all, commit, authority } from '../../session';
 import { needRow, rowAuthority } from '../../permissions';
 import { event } from '../../events';
@@ -29,7 +30,7 @@ export async function saveReadingSettings(db:D1Database,a:Actor,b:Data) {
 /** Standing matching choice belongs to the employee themselves; no delegate or role-only administrator can grant it. */
 export async function setReadingMatchDefault(db:D1Database,a:Actor,b:Data) {
   requireThat(a.kind==='person'&&!a.publicCredential&&!a.delegate&&a.roles.employee,'Only the employee themselves chooses their standing matching consent',403);
-  requireThat(typeof b.enabled==='boolean'&&(!b.enabled||b.consent===true),'Explicit matching consent is required');
+  requireThat(Object.keys(b).every(k=>['version','enabled','consent','notice'].includes(k))&&typeof b.enabled==='boolean'&&(!b.enabled||b.consent===true&&b.notice===MATCH_NOTICE),'Explicit matching consent and acknowledgement of the sharing notice are required');
   const current=await db.prepare('SELECT version FROM c_receipt_reading_match_defaults WHERE employee_email=? ORDER BY version DESC LIMIT 1').bind(a.email).first<{version:number}>();
   requireThat(b.version===(current?.version??0),'Reload the current standing matching choice',409);
   await commit(db,all(authority(a,'employee'),{sql:'(SELECT COALESCE(MAX(version),0) FROM c_receipt_reading_match_defaults WHERE employee_email=?)=?',params:[a.email,b.version]}),[

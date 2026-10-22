@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 import { validateCaptureArchive } from './capture-archive.mjs';
 import { validateAutomaticCodingArchive } from './automatic-coding-archive.mjs';
+import { validateProgramFeedArchive } from './program-feed-archive.mjs';
+import { validateReceiptReadingArchive } from './receipt-reading-archive.mjs';
 import { validateCodingArchive } from './coding-archive.mjs';
 
 const refuse = code => { throw new PortabilityError('coaster_' + code, 409); };
@@ -75,6 +77,8 @@ export async function validateCoasterArchive(read, manifest) {
   await validateCaptureArchive(read, manifest);
   await validateCodingArchive(read);
   await validateAutomaticCodingArchive(read);
+  await validateReceiptReadingArchive(read);
+  await validateProgramFeedArchive(read);
   return true;
 }
 
@@ -87,6 +91,8 @@ export default {
   product: 'just-every/coaster',
   buckets: { COASTER_RECEIPTS: { prefix: 'receipt-inbox/', objectReferences: { table: 'c_capture_receipts', keyColumn: 'object_key' } } },
   excludeTables: ['rer_dependency_keys', 'rer_dependency_pending', 'rer_dependency_codes', 'c_agent_keys', 'c_guard', 'c_card_match_epoch', 'c_card_match_generations', 'c_card_match_checks', 'c_public_keys', 'c_public_oauth_clients', 'c_public_oauth_codes', 'c_public_webhooks', 'c_public_webhook_deliveries', 'c_qbo_connections', 'c_qbo_oauth_states'],
+  secretColumns: { c_program_feeds: ['credentials_sealed'] },
+  exportRow: (table, row) => table === 'c_program_feeds' ? { ...row, enabled: 0, credentials_sealed: null, lease_id: null, lease_until: 0, next_run_at: 0 } : row,
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   validateStaged: async ({ read, manifest }) => validateCoasterArchive(read, manifest),
 };

@@ -47,7 +47,7 @@ export async function saveMatchRule(db: D1Database, actor: Actor, b: Data) {
 }
 
 /** Consent is per original, never inferred from role, reading state, installation defaults or an agent key. */
-export async function chooseCardMatch(db: D1Database, actor: Actor, id: string, b: Data) {
+export async function chooseCardMatch(db: D1Database, actor: Actor, id: string, b: Data, inherited: Sql[] = []) {
   const {sequence,at} = await terminal(db,actor,id,b,['expectedSequence','enabled','merchant','date','total','currency','last4','notice']);
   requireThat(typeof b.enabled==='boolean','Choose whether to match this original');
   const business = await requireBusiness(db);
@@ -63,7 +63,7 @@ export async function chooseCardMatch(db: D1Database, actor: Actor, id: string, 
   }
   const codingContextBefore=details?await codingContext(db,'receipt',id):null;
   const coding=details&&(!codingContextBefore||codingContextBefore.merchant!==details.merchant)?await prepareTarget(db,{kind:'receipt',id,employee:actor.email,merchant:details.merchant},{},codingContextBefore?.values??{}):null;
-  await commit(db,all(authority(actor,'employee'),...(coding?[coding.guard]:[]),openOriginal(actor,id,sequence,at),noAttachment(id),
+  await commit(db,all(authority(actor,'employee'),...inherited,...(coding?[coding.guard]:[]),openOriginal(actor,id,sequence,at),noAttachment(id),
     {sql:'EXISTS(SELECT 1 FROM c_business WHERE id=1 AND currency=?)',params:[business.currency]},
     {sql: b.enabled?'NOT EXISTS(SELECT 1 FROM c_capture_cash_drafts WHERE receipt_id=?)':'1',params:b.enabled?[id]:[]}),[
     ...(coding?.writes??[]),

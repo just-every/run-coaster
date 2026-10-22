@@ -24,9 +24,9 @@ export async function harness(options = {}) {
   }
 }
 
-async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge, qboEdge, aiEdge, workerEntry = 'tests/coaster-worker.ts', bindings = {} } = {}) {
+async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge, qboEdge, aiEdge, bindings = {} } = {}) {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = await mkdtemp(join(tmpdir(), 'coaster-test-'))
-  const bundle = await build({ entryPoints: [workerEntry], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023', plugins: [heifEsbuildPlugin()] })
+  const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023', plugins: [heifEsbuildPlugin()] })
   // Every request the Worker sends anywhere is recorded with its body, so a test can prove where data leaves (DATA-001).
   const messages = [], outbound = []
   const auth = identityProvider ? await authEdge(identityProvider, origin) : null

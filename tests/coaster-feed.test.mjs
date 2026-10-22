@@ -9,7 +9,7 @@ const endpoint = 'feeds/program'
 const csv = (sequence, rows) => 'Date,Merchant,Amount,Card,Transaction,MCC,Sequence\n' + rows.map(([merchant,transaction,mcc,amount='23.17']) => ['2031-06-10',merchant,amount,'1111',transaction,mcc,sequence].join(',')).join('\n')
 
 test('CODE-002 actual scheduled SFTP public-key delivery creates coded card expenses once; active choices, human edits and disconnected consent remain guarded', async () => {
-  const issuer=await issuerServer(),h=await harness({workerEntry:'tests/fixtures/feed/worker.ts',bindings:origin=>({RER_DEV_ORIGIN:origin})})
+  const issuer=await issuerServer(),h=await harness({bindings:origin=>({RER_DEV_ORIGIN:origin})})
   try {
     await h.post('settings/business',{name:n(910),currency:'USD',timezone:'UTC',receiptThreshold:'10000'})
     const managerAddress=`${n(911)}@example.test`;await h.person(managerAddress,{employee:true,manager:true})

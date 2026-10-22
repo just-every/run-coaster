@@ -14,6 +14,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
+  ['c_program_feeds', ['connected_by']], ['c_receipt_reading_settings', ['set_by']], ['c_receipt_readings', ['actor_email', 'on_behalf_of']],
   ['c_auto_coding_rules',['owner_email','set_by']], ['c_auto_coding_contexts',['employee_email']], ['c_auto_coding_suggestions',['employee_email']], ['c_auto_coding_feedback',['actor_email']], ['c_auto_coding_observations',['employee_email']],
   ['c_workflow_tasks', ['email','on_behalf_of']], ['c_approval_workflows',['created_by']],
   ['c_claims', ['employee_email', 'approver_email', 'prepared_by', 'on_behalf_of', 'held_by']],
@@ -53,6 +54,7 @@ const ADDRESS: [string, string[]][] = [
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
+  ['c_receipt_readings', ['fields_json']],
   ['c_auto_coding_rules',['fields']], ['c_auto_coding_contexts',['values_json']], ['c_auto_coding_suggestions',['fields','evidence']], ['c_auto_coding_feedback',['values_json']], ['c_auto_coding_observations',['fields']],
   ['c_approval_workflows',['rules']], ['c_requests',['workflow']],
   ['c_claim_chains', ['steps']], ['c_revisions', ['snapshot']], ['c_decisions', ['exceptions']], ['c_events', ['detail']], ['c_proposals', ['payload']],
@@ -141,6 +143,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql("DELETE FROM c_auto_coding_rules WHERE scope='personal' AND owner_email=?",address),
     sql('DELETE FROM c_agent_keys WHERE member_email=?', address),
     sql('DELETE FROM c_public_keys WHERE member_email=?', address),
+    sql('DELETE FROM c_receipt_reading_match_defaults WHERE employee_email=?', address),
     sql('DELETE FROM c_qbo_oauth_states WHERE actor_email=?', address),
     sql('DELETE FROM c_delegations WHERE approver_email=? OR delegate_email=?', address, address),
     sql('DELETE FROM c_delegates WHERE grantor_email=? OR delegate_email=?', address, address),

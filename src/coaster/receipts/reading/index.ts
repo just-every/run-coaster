@@ -1,3 +1,4 @@
+import { applyReadingMatchDefault } from './standing';
 import { all, authority, commit, type Sql } from '../../session';
 import { now, requireThat, uid, type Actor, type Data } from '../../types';
 import { originalBytes, receiptBucket } from '../storage';
@@ -34,6 +35,7 @@ export async function readReceipt(env:ReaderBindings,a:Actor,id:string,b:Data) {
     readingLine(db,a,r,sequence+2,failure?'failed':'read',attempt,settings.version,model,fields,{...usage,pages},failure?.code??''),
     captureState(db,a,id,state,failure?.message??(state==='read'?'Receipt fields read; review before submitting':'Review the flagged receipt fields before using them')),
   ]);
+  await applyReadingMatchDefault(db,a,id);
   return readingDetail(db,a,id);
 }
 export async function correctReading(db:D1Database,a:Actor,id:string,b:Data) {
@@ -47,6 +49,7 @@ export async function correctReading(db:D1Database,a:Actor,id:string,b:Data) {
     readingLine(db,a,r,latest.sequence+1,'corrected',latest.attempt_id,latest.settings_version,latest.model,fields,{pages}),
     captureState(db,a,id,state,state==='read'?'Receipt fields confirmed by the person':'Receipt correction kept; review the remaining flagged fields'),
   ]);
+  await applyReadingMatchDefault(db,a,id);
   return readingDetail(db,a,id);
 }
 /** Trusted handoff: CODE-002 callers must include this guard in their own exact commit. Never accepts client OCR facts. */
