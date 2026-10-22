@@ -36,8 +36,11 @@ Add each person with their **Name**, **Email** and **Roles**:
 - **Employee** makes claims.
 - **Manager** approves the claims of the people who report to them.
 - **Finance** makes reimbursement batches, exports them and records payments.
+- **Admin** manages people, departments, business settings and approval workflows, but never payments.
+- **Card admin** assigns statement cards and reads card spend.
+- **Auditor** and **Bookkeeper** read submitted claims; the bookkeeper exports the files for the books.
 
-Every employee needs an **Approving manager**. Then choose **Invite**: Coaster emails them a sign-in link. A person you untick **Active** for loses access at once, and so does any agent key they made.
+Every employee needs an **Approving manager**, and can belong to a **Department** with a head. Then choose **Invite**: Coaster emails them a sign-in link. A person you untick **Active** for loses access at once, and so does any agent key they made; name a **Successor** to take over the claims waiting on them, their reports and their unsubmitted card charges.
 
 ## Then
 

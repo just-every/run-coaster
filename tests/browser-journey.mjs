@@ -187,6 +187,7 @@ export async function ownerScreens(owner, origin, width, evidence, shots, import
   if (importNow) {
     const sales = await api(owner.context, origin, 'settings/departments', { name: 'Sales', head: PEOPLE.manager })
     await api(owner.context, origin, 'settings/escalation-chains', { department: sales.id, steps: [{ kind: 'department-head' }, { kind: 'finance', email: PEOPLE.finance }] })
+    await api(owner.context, origin, 'settings/members', { email: PEOPLE.employee, name: 'Sam Taylor', employee: true, approver: PEOPLE.manager, department: sales.id })
   }
   await nav(page, 'Settings')
   await page.getByRole('heading', { name: 'People', exact: true }).waitFor()
@@ -196,6 +197,16 @@ export async function ownerScreens(owner, origin, width, evidence, shots, import
   for (const role of ['Admin (people, settings and workflows; not payments)', 'Card admin (assigns and freezes cards)', 'Bookkeeper (external; exports and ledger fixes)']) await page.getByLabel(role, { exact: true }).waitFor()
   await noOverflow(page, width)
   await shot(page, evidence, 'settings', width, shots)
+  // REPORT-001 by department (ADMIN-001): Sales groups the employee's spend and drills to a line that opens its receipt.
+  const spend = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Spend', exact: true }) })
+  await spend.getByLabel('Group by', { exact: true }).selectOption('department')
+  await spend.getByLabel('Spent from', { exact: true }).fill('2000-01-01'); await spend.getByLabel('Spent until', { exact: true }).fill('2099-12-31')
+  await spend.getByRole('button', { name: 'Show spend', exact: true }).click()
+  await spend.getByRole('button', { name: 'Sales', exact: true }).click()
+  await spend.getByRole('cell', { name: 'Sam Taylor' }).first().waitFor()
+  assert.ok(await spend.getByRole('link', { name: 'Open', exact: true }).count() > 0, 'a Sales line opens its receipt')
+  await noOverflow(page, width)
+  await shot(page, evidence, 'spend-department', width, shots)
 }
 
 /** ERASURE-001 in the screens: the owner deactivates the employee, erases them from Settings and reads the receipt. */

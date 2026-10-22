@@ -13,11 +13,15 @@ Coaster never moves money. It keeps the record of what was claimed, who decided,
 | Role | Sees and does |
 |---|---|
 | Employee | Their own claims: start, add expenses, submit, correct and resubmit. |
-| Manager | Claims routed to them once submitted: approve, return or reject. |
-| Finance | Submitted claims, batches, the export files and recording payments. |
-| Owner | Everything above, plus the business settings, categories, people and the move-in kit. |
+| Manager (approver) | Claims routed to them once submitted: approve, return or reject; the spend of everyone below them and of a department they head. |
+| Finance | Submitted claims, policy and budgets, batches, the export files and recording payments. |
+| Admin | People, departments, business settings and approval workflows; never payments. |
+| Card admin | Statement cards and card spend; no claims. |
+| Auditor | Reads every submitted claim, the history and audit packs; changes nothing. |
+| Bookkeeper | Reads submitted claims and exports the files for the books; submits nothing. |
+| Owner | Everything above but deciding claims, plus payment controls, retention and the move-in kit. |
 
-One person can hold several roles. Every employee has one approving manager, and nobody decides their own claim.
+One person can hold several roles and has the powers of all of them. Every employee has one approving manager, and nobody decides their own claim.
 
 ## What Coaster keeps
 

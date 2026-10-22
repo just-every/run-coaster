@@ -175,10 +175,10 @@ Statement file import brings a credit-card statement you downloaded into Coaster
 as company-card expenses. It is the recovery path for a card with no program
 feed, and it is not a feed, a connection, a daily file or a provider check: no
 issuer, Plaid or partner account is involved, nothing leaves the installation,
-and no real issuer's file has been imported yet. The owner or finance imports
+and no real issuer's file has been imported yet. The owner, an admin or finance imports
 (**Statements** door: `POST /api/coaster/statements/preview`, `.../commit`,
-`.../:id/undo`); the owner assigns each card by issuer label and last four
-(`POST /api/coaster/statements/cards`). Agent keys are refused.
+`.../:id/undo`); the owner, an admin or a card admin assigns each card by issuer
+label and last four (`POST /api/coaster/statements/cards`). Agent keys are refused.
 
 ## Formats read, and nothing else
 
@@ -366,5 +366,5 @@ acknowledged (`credit`), a row that cannot be classified, and a statement that d
 (`{"line": 4, "resolution": "add", "category": "<category id>"}`), explains it (`"explain"` with a `note`), or acknowledges a
 credit (`"credit"` with the refunded `charge` or a `note`). `POST .../close` writes the period's double entries to the
 card liability ledger once; the answer's `ledger` shows the card account equal to the statement balance. Owner and finance act;
-auditors read (`GET /api/coaster/statements/reconciliations`). A card's charges from one file go on one draft report named for the card and
+admins, auditors, bookkeepers and card admins read (`GET /api/coaster/statements/reconciliations`). A card's charges from one file go on one draft report named for the card and
 the statement period. Fixtures: `tests/fixtures/statements/reconcile-september.ofx` and `reconcile-earlier.qfx`.
