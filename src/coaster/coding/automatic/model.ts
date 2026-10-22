@@ -5,7 +5,9 @@ import type { Category } from '../../items';
 
 export type Fields = { category?: string; dimensions?: Record<string,string>; project?: string; customer?: string; memo?: string };
 export type Flat = Record<string,string>;
-export type Evidence = { field: string; source: string; rule?: string; ruleVersion?: number; reason: string };
+export type Evidence = { field: string; source: string; rule?: string; ruleVersion?: number; reason: string; confidence?:number; model?:string; receipt?:string };
+/** Trusted internal source, never accepted from public preview/request JSON. */
+export type ReceiptCodingCandidate = { fields:Fields; reason:string; confidence:Record<string,number>;model:string;receipt:string };
 export type Rule = { id: string; version: number; kind: 'merchant'|'mcc'; scope: 'finance'|'personal'; owner_email: string; merchant: string; merchant_key: string; fields: Fields; active: number; set_by: string; set_at: string };
 export const merchantKey = (value: string) => value.normalize('NFKC').trim().toLocaleLowerCase('en-US').replace(/\s+/gu,' ');
 export const epochState = (version: number): Sql => ({ sql:'EXISTS(SELECT 1 FROM c_auto_coding_epoch WHERE id=1 AND version=?)',params:[version] });

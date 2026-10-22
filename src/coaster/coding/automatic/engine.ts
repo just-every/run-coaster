@@ -4,16 +4,16 @@ import { codingCatalog, catalogState } from '../model';
 import { requireThat, text, type Data } from '../../types';
 import { currentRules } from './rules';
 import { learnedFields, learningSamples } from './learning';
-import { epoch, epochState, fieldsInput, flatten, inactiveReason, merchantKey, unflatten, type Evidence, type Fields } from './model';
+import { epoch, epochState, fieldsInput, flatten, inactiveReason, merchantKey, unflatten, type Evidence, type Fields, type ReceiptCodingCandidate } from './model';
 
 export type Proposal = { fields:Fields; appliedFields:string[]; evidence:Evidence[]; flags:{rule:string;ruleVersion:number;reason:string}[]; catalogVersion:number;contextVersion:number;guard:Sql };
 /** Ordered, field-level suggestions. A matched invalid rule stops the path for finance to repair; it never silently
- * falls through to learned coding that would bypass the rule. Receipt reading is deliberately absent until CAPTURE-003. */
-export async function proposeCoding(db:D1Database,employee:string,b:Data):Promise<Proposal> {
+ * falls through to learned coding that would bypass the rule. A verified internal reading is the final source. */
+export async function proposeCoding(db:D1Database,employee:string,b:Data,reading?:ReceiptCodingCandidate):Promise<Proposal> {
   const merchant=text(b.merchant,'Merchant',200),key=merchantKey(merchant),existing=flatten(fieldsInput(b.values??{})),protectedFields=new Set<string>(Array.isArray(b.protectedFields)?b.protectedFields:[]);
   const version=await epoch(db);
   const [catalog,known,rules,learned]=await Promise.all([codingCatalog(db),categories(db),currentRules(db),learningSamples(db,employee,key)]);
-  const candidates:{fields:Fields;source:string;reason:string;rule?:string;ruleVersion?:number}[]=[];
+  const candidates:{fields:Fields;source:string;reason:string;rule?:string;ruleVersion?:number;reading?:ReceiptCodingCandidate}[]=[];
   const addRule=(scope:'finance'|'personal')=>{const rule=rules.find(r=>r.kind==='merchant'&&r.active&&r.scope===scope&&r.merchant_key===key&&(scope==='finance'||r.owner_email===employee));if(rule)candidates.push({fields:rule.fields,source:scope==='finance'?'merchant-rule':'personal-rule',reason:scope==='finance'?'Finance’s exact merchant rule takes precedence over personal rules and learned coding':'Your exact merchant rule takes precedence over learned coding',rule:rule.id,ruleVersion:rule.version});};
   addRule('finance');addRule('personal');
   for(const source of ['person','department','company'] as const) {
@@ -25,6 +25,7 @@ export async function proposeCoding(db:D1Database,employee:string,b:Data):Promis
     const rule=rules.find(r=>r.kind==='mcc'&&r.active&&r.merchant_key===b.mcc);
     if(rule)candidates.push({fields:rule.fields,source:'merchant-category',reason:`Finance mapped merchant category code ${b.mcc} to this category`,rule:rule.id,ruleVersion:rule.version});
   }
+  if(reading)candidates.push({fields:reading.fields,source:'receipt-reading',reason:reading.reason,reading});
   const picked:Record<string,string>={},evidence:Evidence[]=[],flags:Proposal['flags']=[];
   for(const candidate of candidates) {
     const invalid=inactiveReason(candidate.fields,catalog,known);
@@ -35,7 +36,7 @@ export async function proposeCoding(db:D1Database,employee:string,b:Data):Promis
     for(const [field,value] of Object.entries(flatten(candidate.fields))) if(!existing[field]&&!picked[field]&&!protectedFields.has(field)) {
       // A text project/customer already supplied by a person protects the equivalent catalog choice too.
       if(field.startsWith('dimension:')) {const dimension=catalog.dimensions.find(d=>d.id===field.slice(10));if(dimension&&['project','customer'].includes(dimension.kind)&&existing[dimension.kind])continue;}
-      picked[field]=value;evidence.push({field,source:candidate.source,reason:candidate.reason,...(candidate.rule?{rule:candidate.rule,ruleVersion:candidate.ruleVersion}: {})});
+      picked[field]=value;evidence.push({field,source:candidate.source,reason:candidate.reason,...(candidate.rule?{rule:candidate.rule,ruleVersion:candidate.ruleVersion}: {}),...(candidate.reading?{confidence:candidate.reading.confidence[field],model:candidate.reading.model,receipt:candidate.reading.receipt}:{})});
     }
   }
   // Cross-source dependent values must still belong to the selected parent. Remove a conflicting child rather than guess.
