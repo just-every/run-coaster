@@ -28,7 +28,7 @@ export function ReceiptCoding({ receipt, state, reload }: { receipt: D; state: D
           <Field label="Merchant on this receipt" name="merchant" defaultValue={current?.merchant} />
         </Form>
         {data.suggestions.map((s: D) => <div className="sub-form" key={s.id}>
-          <h4>{s.status === 'accept' ? 'Accepted coding' : s.status === 'override' ? 'Corrected coding' : 'Suggested coding'}</h4>
+          <h3>{s.status === 'accept' ? 'Accepted coding' : s.status === 'override' ? 'Corrected coding' : 'Suggested coding'}</h3>
           <CodingReasons evidence={s.evidence ?? []} state={state} />
           <p>Suggested: {codingWords(s.fields, state)}</p>
           {s.status === 'override' && <p>Saved correction: {codingWords(s.feedback.values, state)}</p>}
