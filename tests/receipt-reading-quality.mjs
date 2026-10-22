@@ -11,7 +11,16 @@ assert.ok(Number.isInteger(limit)&&limit>0&&limit<=manifest.receipts.length)
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),fieldNames=['merchant','date','total','subtotal','salesTax','tip','currency','last4','lineItems']
 const comparable=(name,value)=>name==='lineItems'&&Array.isArray(value)?value.map(({description,quantity,amount})=>({description,quantity,amount})):value
 const providerResponses=[]
-const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-6002'},aiEdge:async request=>{const headers=new Headers(request.headers);headers.set('authorization','Bearer '+process.env.OPENAI_API_KEY);const response=await fetch(request.url,{method:request.method,headers,body:await request.arrayBuffer(),redirect:'manual'});const summary=await response.clone().json();providerResponses.push({status:response.status,state:summary.status??null,errorCode:summary.error?.code??null,errorType:summary.error?.type??null,param:summary.error?.param??null,outputTypes:summary.output?.map(row=>row.type)??[]});return response}})
+const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-6002'},aiEdge:async request=>{
+ const headers=new Headers(request.headers);headers.set('authorization','Bearer '+process.env.OPENAI_API_KEY)
+ providerResponses.push({stage:'sending',method:request.method,url:request.url})
+ try {
+  const response=await fetch(request.url,{method:request.method,headers,body:await request.arrayBuffer(),redirect:'manual'})
+  const summary=await response.clone().json()
+  providerResponses.push({status:response.status,state:summary.status??null,errorCode:summary.error?.code??null,errorType:summary.error?.type??null,param:summary.error?.param??null,outputTypes:summary.output?.map(row=>row.type)??[]})
+  return response
+ } catch(error) {providerResponses.push({stage:'transport-error',name:error.name,code:error.cause?.code??null,message:String(error.message).replaceAll(process.env.OPENAI_API_KEY,'[redacted]')});throw error}
+}})
 const result={model,commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),at:new Date().toISOString(),providerResponses,corpusCount:manifest.receipts.length,evaluated:0,complete:false,confidentWrong:0,unflaggedDifferent:0,missingConfidentPrefill:0,rates:{},usage:{input_tokens:0,output_tokens:0,total_tokens:0},receipts:[]}
 try {
  const team=await agency(h)
@@ -37,6 +46,7 @@ try {
  for(const name of fieldNames){const correct=result.receipts.filter(r=>r.correctWithoutReview.includes(name)).length;result.rates[name]={correctWithoutReview:correct,denominator:result.evaluated,rate:correct/result.evaluated};}
  result.passed=result.complete&&result.confidentWrong===0&&result.unflaggedDifferent===0&&result.missingConfidentPrefill===0&&['merchant','date','total'].every(name=>result.rates[name].rate>=.9)
 } finally {
+ result.outboundPaths=h.outbound.map(row=>{const u=new URL(row.url);return u.origin+u.pathname})
  await h.close()
  await writeFile(process.env.READING_QUALITY_OUTPUT??directory+'measurement.json',JSON.stringify(result,null,2)+'\n')
 }
