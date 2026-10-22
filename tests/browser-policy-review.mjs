@@ -43,6 +43,7 @@ export async function policyAgentScreens(browser,root,server,evidence){
    await api(owner.context,origin,'settings/audit-sample',{percent:'100'});
    async function original(name,fixture,merchant,total,date){
     const storedName=`${name}-${run}.png`;
+    if(width===390){fixture+=5;date=date.replace('-10-','-09-');}
     await employee.page.goto(origin+'/app#/claims');await employee.page.reload();
     const inbox=employee.page.getByRole('region',{name:'Receipt inbox',exact:true});
     await inbox.getByLabel('Upload receipts',{exact:true}).setInputFiles({name:`${name}-${run}.png`,mimeType:'image/png',buffer:Buffer.concat([await readFile(`tests/fixtures/policy-review/synthetic-coaster-${fixture}.png`),Buffer.from(`\nsynthetic-coaster-${width}-${run}\n`)])});
@@ -52,14 +53,15 @@ export async function policyAgentScreens(browser,root,server,evidence){
    }
    async function statement(name,rows){
     const issuer=`${name} ${width} ${run}`;await api(owner.context,origin,'statements/cards',{issuer,last4:'1111',employee:PEOPLE.employee});
-    const body={format:'csv',name:`${name}-${width}.csv`,issuer,category,content:'Date,Merchant,Amount,Id\n'+rows.map(([merchant,amount,date],i)=>`${date},${merchant},${amount},synthetic-coaster-${width}-${name}-${run}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}};
+    const body={format:'csv',name:`${name}-${width}.csv`,issuer,category,content:'Date,Merchant,Amount,Id\n'+rows.map(([merchant,amount,date],i)=>`${width===390?date.replace('-10-','-09-'):date},${merchant},${amount},synthetic-coaster-${width}-${name}-${run}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}};
     const preview=await api(owner.context,origin,'statements/preview',body);return api(owner.context,origin,'statements/commit',{...body,fingerprint:preview.fingerprint});
    }
    async function submitMixed(job,flagged){
     let detail=await api(employee.context,origin,`claims/${job.claims[0]}`),item=detail.items.find(i=>i.merchant===flagged);
     const changed=await api(employee.context,origin,`claims/${detail.claim.id}/items`,{version:detail.claim.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),receipt:item.receipt_id,category,explanation:'This expense needs a person to review its exception'});
     await employee.page.goto(origin+`/app#/claims/${changed.id}`);await employee.page.reload();
-    await Promise.all([employee.page.waitForResponse(r=>r.url().endsWith(`/claims/${changed.id}/submit`)&&r.status()===200),employee.page.getByRole('button',{name:'Submit for approval',exact:true}).click()]);
+    const [response]=await Promise.all([employee.page.waitForResponse(r=>r.url().endsWith(`/claims/${changed.id}/submit`)),employee.page.getByRole('button',{name:'Submit for approval',exact:true}).click()]);
+    assert.equal(response.status(),200,await response.text());
     return api(manager.context,origin,`claims/${changed.id}`);
    }
    await original(`synthetic-coaster-agent-lunch-${width}.png`,6001,'Lunch','60.00','2026-10-02');await original(`synthetic-coaster-agent-dinner-${width}.png`,6002,'Dinner','180.00','2026-10-02');

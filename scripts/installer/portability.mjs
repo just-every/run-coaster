@@ -47,6 +47,21 @@ export async function validateCoasterArchive(read, manifest) {
     if(own.length&&['approved','batched','reimbursed'].includes(c.status)) check(own.every(t=>t.status==='approved')&&decisions.filter(d=>d.claim_id===c.id&&d.revision===c.revision&&d.decision==='approved'&&d.workflow_final===1).length===1,'workflow_completion');
   }
   for (const d of decisions) check(revisions.some(r => r.claim_id === d.claim_id && r.revision === d.revision), 'decision_revision');
+  // Approval authority and its immutable submission evidence round-trip together.
+  const envelopes=await read('c_approval_envelopes'),approvalRules=await read('c_approval_rules');
+  for(const envelope of envelopes)check(Number.isInteger(envelope.version)&&envelope.version>0&&[0,1].includes(envelope.enabled)&&(envelope.enabled?Number.isInteger(envelope.limit_minor)&&envelope.limit_minor>0:envelope.limit_minor===null)&&typeof envelope.set_by==='string','approval_envelope');
+  for(const revision of revisions){
+    const snapshot=JSON.parse(revision.snapshot),approvals=snapshot.expenseApprovals??[];
+    check(Array.isArray(approvals)&&new Set(approvals.map(a=>a.item)).size===approvals.length,'expense_approval');
+    for(const approval of approvals){
+      const item=snapshot.items.find(i=>i.id===approval.item),source=approval.source==='agent'?envelopes:approval.source==='rule'?approvalRules:[],rule=source.find(r=>r.version===approval.version);
+      check(item&&item.receipt_id&&rule?.enabled===1&&item.amount_minor<rule.limit_minor&&!(snapshot.exceptions??[]).some(e=>e.item===item.id),'expense_approval');
+      check(approval.actor===`${approval.source==='agent'?'policy agent':'rule'} v${approval.version}`&&Number.isInteger(approval.ordinal)&&approval.ordinal>0&&typeof approval.sampled==='boolean','expense_approval');
+      if(approval.source==='agent')check(approval.onBehalfOf===rule.set_by&&snapshot.policyReview?.recommendations.some(r=>r.item===item.id&&r.evidence.agentEligible===true),'expense_approval');
+      else check(Boolean(item.card_charge_id),'expense_approval');
+    }
+  }
+
   for (const b of batches) check(b.total_minor === batchClaims.filter(x => x.batch_id === b.id).reduce((n, x) => n + x.amount_minor, 0), 'batch_total');
   for (const k of keys) check(batchClaims.some(x => x.batch_id === k.batch_id && x.claim_id === k.claim_id), 'reimbursement_key');
   if((await read('c_import_card_undo')).length)throw new PortabilityError('coaster_import_card_undo',409);
