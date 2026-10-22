@@ -1,3 +1,4 @@
+import { runProgramFeeds } from './feeds';
 import { deliverWebhooks } from './public-api/webhooks';
 import { runQboDaily } from './accounting/qbo';
 import { runtimeBindings, type Bindings } from '../auth.server';
@@ -16,6 +17,7 @@ import { runPaySchedule } from './batches';
  * scheduled reports (REPORT-002) and opens the pay-day batch (PAY-004). */
 export async function runHourly(original: Bindings, at: Date) {
   const env = runtimeBindings(original);
+  await runProgramFeeds(env, at);
   await runCardMatching(env.DB, at);
   await runCashDrafts(env.DB, at);
   await runReminders(env, at);

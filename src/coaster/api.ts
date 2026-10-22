@@ -1,3 +1,5 @@
+import { suggestReadingCoding } from './receipts/reading-coding';
+import { programFeedApi } from './feeds';
 import { readingSettings, saveReadingSettings, readReceipt, readingDetail, correctReading } from './receipts/reading';
 import { automaticRules, saveAutomaticRule } from './coding/automatic/rules';
 import { automaticPreview, receiptCoding, suggestionsFor, decideSuggestion } from './coding/automatic/requests';
@@ -92,6 +94,8 @@ const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) =
 };
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
 
+api.route('/api/coaster/feeds', programFeedApi);
+
 api.get('/api/coaster/settings/cash-draft-window', as(async (a, c) => cashWindow(db(c), a)));
 api.post('/api/coaster/settings/cash-draft-window/preview', as(async (a, c) => previewCashWindow(db(c), a, await body(c))));
 api.post('/api/coaster/settings/cash-draft-window', as(async (a, c) => saveCashWindow(db(c), a, await body(c))));
@@ -106,6 +110,7 @@ api.get('/api/coaster/settings/receipt-reading', as(async (a, c) => readingSetti
 api.post('/api/coaster/settings/receipt-reading', as(async (a, c) => saveReadingSettings(db(c), a, await body(c))));
 api.get('/api/coaster/receipt-inbox/:id/reading', as(async (a, c) => readingDetail(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/receipt-inbox/:id/reading', as(async (a, c) => readReceipt(runtimeBindings(c.env), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/receipt-inbox/:id/reading/coding', as(async (a, c) => suggestReadingCoding(runtimeBindings(c.env), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/receipt-inbox/:id/reading/corrections', as(async (a, c) => correctReading(db(c), a, param(c, 'id'), await body(c))));
 
 api.get('/api/coaster/receipt-inbox', as(async (a, c) => listInbox(db(c), a)));
