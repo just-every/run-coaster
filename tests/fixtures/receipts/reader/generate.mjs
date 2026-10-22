@@ -1,7 +1,8 @@
 // Deterministic synthetic receipt pixels and labels. Labels are never supplied to the application or provider.
 import { chromium } from '@playwright/test'
 import { PDFDocument,StandardFonts,rgb } from 'pdf-lib'
-import { writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
+import { writeFile,readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 const dir=fileURLToPath(new URL('.',import.meta.url)),money=n=>(n/100).toFixed(2),escape=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;')
@@ -34,6 +35,9 @@ try {
    await writeFile(join(dir,pdfId+'.pdf'),await pdf.save());await writeFile(join(dir,pdfId+'.json'),JSON.stringify(pdfLabel,null,2)+'\n');manifest.push({id:pdfId,file:pdfLabel.file,label:pdfId+'.json'})
   }
  }
+ execFileSync('/usr/bin/sips',['-s','format','heic',join(dir,'synthetic-coaster-1002.png'),'--out',join(dir,'synthetic-coaster-2041.heic')],{stdio:'pipe'})
+ const heicLabel={...JSON.parse(await readFile(join(dir,'synthetic-coaster-1002.json'),'utf8')),id:'synthetic-coaster-2041',file:'synthetic-coaster-2041.heic',kind:'heic',tags:['heic','restaurant','printed-tip']}
+ await writeFile(join(dir,heicLabel.id+'.json'),JSON.stringify(heicLabel,null,2)+'\n');manifest.push({id:heicLabel.id,file:heicLabel.file,label:heicLabel.id+'.json'})
  await writeFile(join(dir,'manifest.json'),JSON.stringify({version:1,synthetic:true,receipts:manifest},null,2)+'\n')
- console.log(`Generated ${manifest.length} labeled synthetic receipt originals (40 images, 5 multipage PDFs)`)
+ console.log(`Generated ${manifest.length} labeled synthetic receipt originals (40 PNG images, 5 multipage PDFs, 1 HEIC image)`)
 } finally {await browser.close()}

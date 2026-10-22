@@ -226,6 +226,11 @@
       "id": "synthetic-coaster-1040",
       "file": "synthetic-coaster-1040.png",
       "label": "synthetic-coaster-1040.json"
+    },
+    {
+      "id": "synthetic-coaster-2041",
+      "file": "synthetic-coaster-2041.heic",
+      "label": "synthetic-coaster-2041.json"
     }
   ]
 }
