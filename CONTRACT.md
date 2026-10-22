@@ -347,7 +347,7 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 | 21 | 04 | Itemized Lodging · Room / Lodging · Tax | CLAIM-007, COA-003 | done |
 | 22 | 05 Match | Amex daily file, 61 new charges, 58 matched | FEED-002, FEED-004 | missing |
 | 23 | 05 | Attendees added, per-person limit checked | CLAIM-007, AGENT-002 | partial |
-| 24 | 05 | Coding by rule, past coding and merchant category | CODE-002 | missing |
+| 24 | 05 | Coding by rule, past coding and merchant category | CODE-002 | partial |
 | 25 | 05 | Card $458.95 · out of pocket $448.80 · claim $907.75 | FEED-004, FEED-006 | missing |
 | 26 | 05 | Submit inside Jordan's Slack thread (claim submitted 9:31 am) | COA-006, AGENT-007 | partial |
 | 27 | 06 Approve | Lyft "approved by rule" | APPROVE-004, FEED-004 | partial |
