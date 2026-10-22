@@ -1,0 +1,19 @@
+# Scheduled SFTP program deliveries
+
+Coaster currently supports explicit mapped CSV deliveries pulled from an issuer-authorized SFTP directory. An owner, admin or finance member connects the directory in Settings, pins the issuer's independently confirmed SSH host-key fingerprint, supplies its private-key file and chooses the mapping and cadence. Hosted connections require a public IPv4 address. Local loopback is accepted only by the native development installation.
+
+The scheduler lists and reads the configured directory. It never writes or removes issuer files. A file needs an issuer sequence column; name, sequence and content hash identify its delivery. Redelivery does not create the charges twice. Cards must already be assigned to active employees. Native expense creation, coding, matching and submission keep their own permission and consent checks.
+
+Disconnect explicitly stops future connections and prevents an in-flight delivery from committing. Credentials are sealed in the installation, never returned to the browser, excluded from archives, and not restored. Restored feed records stay disconnected. These consent, destination and credential-retention defaults await ct ratification.
+
+## Commercial formats and infrastructure still required
+
+Mapped CSV is not an implementation of Amex GL1025, Visa VCF, Mastercard CDF3 or PGP. The following version-matched issuer documentation and sanitized samples are required before those formats can be implemented without guessing:
+
+- Amex GL1025: the enrolled program's complete Data File Guide. [SAP names GL1025 version 3.5](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/f4153779fcb742c094bb6157c0ff1cbe/4d59ff940afd3ba4e10000000a42189b.html?locale=en-US); [Worldpay's partial offsets](https://docs.paymetric.info/gl1025.htm) do not define complete transactions. [Amex enrollment](https://www.americanexpress.com/content/dam/amex/en-us/business/resource-center/program-management/forms/PA-enrollment-form.pdf) coordinates SFTP delivery with the issuer.
+- Visa VCF: the issuer's delivery profile and matching Interface Specifications Guide, distinguishing VCF from IntelliLink's separate simplified format. [Visa's public rules](https://cis.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf) reference versions but do not supply the complete transaction layout.
+- Mastercard CDF3: the precise release's XSD, HTML layout guide and outbound samples. [Mastercard's CDF3 overview](https://www.umsystem.edu/sites/default/files/media/documents/Attachment%20C%20MasterCard%20CDF3Overview.pdf) names these separate artifacts; the overview alone is insufficient.
+
+An inbound installation-specific SFTP drop also needs a managed public TCP endpoint. The current Workers deployment cannot expose one: [public inbound TCP is unsupported](https://developers.cloudflare.com/workers/runtime-apis/handlers/connect/) and [`net.Server` is unsupported](https://developers.cloudflare.com/workers/runtime-apis/nodejs/net/). That requires Base infrastructure or an authorized managed SFTP service. Existing outbound pick-up does not depend on inbound support.
+
+Enrollment checklists, PGP delivery, expected-delivery calendars and FEED-003 stale-feed/coverage reporting remain open. FEED-002 commercial adapters inherit CODE-002 coding, CAPTURE-004 matching, MOVE-004 historical deduplication, ADMIN-001 permissions and AUDIT-001 history obligations. The existing statement-file import remains the documented recovery door in [IMPORTING.md](IMPORTING.md).

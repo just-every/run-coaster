@@ -115,7 +115,7 @@
       "label": "Vision model",
       "kind": "text",
       "required": false,
-      "default": "gpt-4.1-2025-04-14",
+      "default": "gpt-6.1-sol",
       "group": "receipt-reading"
     },
     {
