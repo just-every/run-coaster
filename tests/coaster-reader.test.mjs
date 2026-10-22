@@ -40,6 +40,7 @@ test('Receipt reading requires both consents, keeps exact private evidence and r
   assert.equal(heicReading.prefill.amount,activeLabel.values.total,'HEIC is decoded to actual PNG pixels before the Base AI call');assert.equal(requests.length,2)
   activeLabel=await load(2031);const pdf=await upload(h,t.sam,2031),pdfReading=await read(h,pdf.id,t.sam)
   assert.equal(pdfReading.prefill.amount,activeLabel.values.total,'The complete multipage original is passed to Base AI');assert.equal(pdfReading.history.at(-1).usage.pages,2)
+  const pdfContext=JSON.parse(requests.at(-1).input[1].content.find(c=>c.type==='input_text'&&c.text.startsWith('Untrusted text and source rectangles')).text.split('instructions: ')[1]);assert.ok(pdfContext.filter(c=>c.region.page===1).map(c=>c.text).join(' ').includes(activeLabel.values.merchant));assert.ok(pdfContext.filter(c=>c.region.page===2).map(c=>c.text).join(' ').includes(activeLabel.values.total));assert.ok(pdfContext.every(c=>c.region.x>=0&&c.region.y>=0&&c.region.width>0&&c.region.height>0&&c.region.x+c.region.width<=1&&c.region.y+c.region.height<=1),'PDF evidence is located on its actual source page')
   const bytes=await h.mf.dispatchFetch(h.origin+`/api/coaster/receipt-inbox/${receipt.id}`,{headers:{cookie:t.sam}});assert.deepEqual(Buffer.from(await bytes.arrayBuffer()),await readFile(folder+label.file))
   activeLabel=label
   const notice=inbox.matchChoice.notice
