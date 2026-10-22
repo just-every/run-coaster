@@ -1,6 +1,7 @@
 // AGENT-005: read the actual submitted evidence in the approver's claim panel.
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { api } from './browser-journey.mjs'
 
 export async function inspectPolicyReview(person, origin, claimId, width, evidence, shots, phase='submitted') {
@@ -87,7 +88,7 @@ export async function policyAgentScreens(browser,root,server,evidence){
 
 // The combined proof uses an independent US installation so it does not change
 // the existing AUD baseline journeys or their immutable financial fixtures.
-if(process.argv[1]&&import.meta.url===(await import('node:url')).pathToFileURL(process.argv[1]).href){
+async function main(){
  const {chromium}=await import('@playwright/test'),{fresh,freePort,command,start}=await import('./browser-runtime.mjs'),{session,setUp,api}=await import('./browser-journey.mjs'),{mkdir,rm,writeFile}=await import('node:fs/promises'),{resolve}=await import('node:path'),{execFileSync}=await import('node:child_process');
  const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/policy-agent-proof');let root,server,browser;
  try{
@@ -97,3 +98,5 @@ if(process.argv[1]&&import.meta.url===(await import('node:url')).pathToFileURL(p
   await writeFile(join(evidence,'result.json'),JSON.stringify({sha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),widths:[1440,390],clauses:['AGENT-005','FEED-004']},null,2)+'\n');console.log('AGENT-005 / FEED-004 envelope, citations, explicit agreement, revocation, mixed rule approval and samples passed at 1440/390');
  }finally{await browser?.close();await server?.close();if(root)await rm(root,{recursive:true,force:true});}
 }
+
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)main().catch(error=>{console.error(error);process.exitCode=1});
