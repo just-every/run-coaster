@@ -21,6 +21,7 @@ import { advancesFor, claimAdvance } from './advances';
 import { can } from './permissions';
 import { departments } from './departments';
 import { escalationChains } from './escalation-chains';
+import { codingCatalog } from './coding/catalog';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -43,6 +44,7 @@ export async function workspace(db: D1Database, actor: Actor) {
     actor: { email: actor.email, name: actor.name, roles: actor.roles, delegate: actor.delegate ?? null },
     business: await business(db),
     categories: await categories(db),
+    coding: await codingCatalog(db),
     policyFields: policy?.rules.filter(r => r.kind === 'required-field').map(r => ({ category: r.category, field: r.field })) ?? [],
     claims: seen.map(c => ({ ...c, open_questions: questions[c.id] ?? 0, waiting_business_days: waiting(c), over_service_level: settings ? (waiting(c) ?? 0) > settings.service_level_days : false, employee_name: names[c.employee_email] ?? c.employee_email, approver_name: c.approver_email ? names[c.approver_email] ?? c.approver_email : null })),
     names: Object.fromEntries((members.results as Data[]).filter(m => m.active).map(m => [m.email, m.name])),

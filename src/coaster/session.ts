@@ -1,4 +1,5 @@
 import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server';
+import { accessSnapshot } from './public-api/identity';
 import { Fault, requireThat, type Actor, type Roles } from './types';
 
 export type Sql = { sql: string; params: unknown[]; after?: Sql };
@@ -56,6 +57,12 @@ export async function agent(request: Request, original: Bindings): Promise<Actor
 export function authority(actor: Actor, role?: Role | Role[]): Sql {
   const roles = role === undefined ? [] : Array.isArray(role) ? role : [role], others = roles.filter((r): r is Exclude<Role, 'owner'> => r !== 'owner');
   const ownerOnly = roles.length > 0 && !others.length, orMember = (alias: string) => others.map(r => holds(r, alias)).join(' OR ');
+  if (actor.publicCredential) {
+    const credential = actor.publicCredential;
+    const roleCheck = !roles.length ? '' : ownerOnly ? " AND o.role='owner'" : ` AND (o.role='owner' OR (${orMember('m')}))`;
+    const draft = credential.draftClaim ? " AND EXISTS(SELECT 1 FROM c_claims c WHERE c.id=? AND c.employee_email=k.member_email AND c.status='draft')" : '';
+    return { sql: `EXISTS(SELECT 1 FROM c_public_keys k JOIN c_members m ON m.email=k.member_email JOIN oa_operators o ON lower(o.email)=m.email WHERE k.id=? AND k.member_email=? AND k.revoked_at IS NULL AND k.expires_at>unixepoch()*1000 AND m.active=1 AND o.status='active' AND ${accessSnapshot()}=k.access_snapshot AND k.scopes=? AND EXISTS(SELECT 1 FROM json_each(k.scopes) WHERE value=?) AND (k.oauth_client IS NULL OR EXISTS(SELECT 1 FROM c_public_oauth_clients cl WHERE cl.id=k.oauth_client AND cl.revoked_at IS NULL))${roleCheck}${draft})`, params: [credential.id,actor.email,credential.scopes,credential.scope,...(credential.draftClaim ? [credential.draftClaim] : [])] };
+  }
   if (actor.kind === 'agent') {
     const roleCheck = roles.length ? (ownerOnly ? ' AND 0' : ` AND (${orMember('m')})`) : '';
     return { sql: `EXISTS(SELECT 1 FROM c_agent_keys k JOIN c_members m ON m.email=k.member_email AND m.active=1 WHERE k.id=? AND k.revoked_at IS NULL AND ${activeAccount}${roleCheck})`, params: [actor.keyId] };

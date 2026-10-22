@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { amountText, call, fileBase64, money, today, type D } from './api';
 import { Choice, Field, Form } from './parts';
+import { CodingFields } from './coding';
 import { PerDiemFields, perDiemInput } from './per-diem';
 
 type Part = { category: string; costCentre: string; amount: string; description: string };
@@ -14,6 +15,9 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
   const business = state.business, active = state.categories.filter((c: D) => c.active === 1).map((c: D) => ({ ...c, required_fields: [...new Set([...c.required_fields, ...(state.policyFields ?? []).filter((r: D) => r.category === c.id).map((r: D) => r.field)])] }));
   const [date, setDate] = useState(item?.spent_on ?? today());
   const [perDiem, setPerDiem] = useState<D>({ method: item?.per_diem?.method ?? (item?.kind === 'per_diem' ? 'company' : 'gsa'), locationId: item?.per_diem?.locationId ?? '', endDate: item?.per_diem?.endDate ?? today(), component: item?.per_diem?.component ?? 'mie' });
+  const [coding, setCoding] = useState<Record<string,string>>(item?.coding ?? {});
+  const [category, setCategory] = useState(item?.allocations?.[0]?.category_id ?? '');
+  const selectedCatalog = (kind: string) => state.coding.values.find((v: D) => v.id === coding[v.dimension_id] && state.coding.dimensions.some((d: D) => d.id === v.dimension_id && d.kind === kind));
   const [kind, setKind] = useState<string>(item?.kind ?? 'receipt');
   const [currency, setCurrency] = useState<string>(item?.original_currency || business.currency);
   const [split, setSplit] = useState<Part[] | null>(item && item.allocations.length > 1 ? item.allocations.map((a: D) => ({ category: a.category_id, costCentre: a.cost_centre, amount: amountText(a.original_minor ?? a.amount_minor), description: a.description ?? '' })) : null);
@@ -33,7 +37,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
     }
     const allocations = split ? split.map(p => ({ category: p.category, costCentre: p.costCentre, amount: p.amount, description: p.description })) : [{ category: v.category, costCentre: v.costCentre }];
     const fields = Object.fromEntries(fieldNames.map(name => [name, v[`field:${name}`] ?? '']));
-    await call(`claims/${claim.id}/items`, { version, item: item?.id, kind, date: v.date, merchant: v.merchant, currency: kind === 'receipt' ? currency : business.currency, manualRate: v.manualRate, amount: v.amount, salesTax: v.salesTax, distance: v.distance, days: v.days, ...(kind === 'per_diem' && perDiem.method !== 'company' ? { perDiem: perDiemInput(perDiem, v) } : {}), description: v.description, explanation: v.explanation, receipt, allocations, attendees: parseAttendees(v.attendees ?? ''), fields, request: v.request || null, allowance: kind === 'receipt' ? v.allowance || null : null, billable: !!v.billable, customer: v.customer, project: v.project });
+    await call(`claims/${claim.id}/items`, { version, item: item?.id, kind, date: v.date, merchant: v.merchant, currency: kind === 'receipt' ? currency : business.currency, manualRate: v.manualRate, amount: v.amount, salesTax: v.salesTax, distance: v.distance, days: v.days, ...(kind === 'per_diem' && perDiem.method !== 'company' ? { perDiem: perDiemInput(perDiem, v) } : {}), description: v.description, explanation: v.explanation, receipt, allocations, attendees: parseAttendees(v.attendees ?? ''), fields, request: v.request || null, allowance: kind === 'receipt' ? v.allowance || null : null, billable: !!v.billable, customer: v.customer, project: v.project, coding });
     await onDone();
   }
   const first = item?.allocations?.[0];
@@ -51,8 +55,9 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
     {kind === 'mileage' && <><Field label="Route" name="merchant" required={false} placeholder="Office to client site" defaultValue={item?.kind === 'mileage' ? item.merchant : ''} /><Field label="Distance (mi)" name="distance" inputMode="decimal" defaultValue={item?.distance_hundredths ? String(item.distance_hundredths / 100) : ''} /></>}
     {kind === 'per_diem' && <PerDiemFields date={date} config={perDiem} onChange={setPerDiem} companyRate={business.per_diem_minor} currency={business.currency} fxEnabled={!!business.fx_enabled} item={item} />}
     <Field label="Description" name="description" required={false} defaultValue={item?.description} />
-    <Field label="Customer" name="customer" required={false} defaultValue={item?.customer} />
-    <Field label="Project" name="project" required={false} defaultValue={item?.project} />
+    {!selectedCatalog('customer') && <Field label="Customer" name="customer" required={false} defaultValue={item?.customer} />}
+    {!selectedCatalog('project') && <Field label="Project" name="project" required={false} defaultValue={item?.project} />}
+    <CodingFields catalog={state.coding} value={coding} categories={split ? split.map(p => p.category) : [category]} onChange={setCoding} />
     <Field label="Billable to this customer" name="billable" type="checkbox" required={false} defaultChecked={!!item?.billable} />
     {split
       ? <fieldset className="split field-wide"><legend>Split across categories{kind === 'receipt' ? ` (${currency})` : ''}</legend>
@@ -64,7 +69,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
           </div>)}
           <div className="actions"><button type="button" className="button" onClick={() => setSplit([...split, { category: '', costCentre: '', amount: '', description: '' }])}>Add part</button><button type="button" className="button" onClick={() => setSplit(null)}>One category</button></div>
         </fieldset>
-      : <><Field label="Category" name="category" options={categoryOptions} defaultValue={first?.category_id} /><Field label="Cost center" name="costCentre" required={false} defaultValue={first?.cost_centre} /><button type="button" className="button link-button field-wide" onClick={() => setSplit([{ category: first?.category_id ?? '', costCentre: first?.cost_centre ?? '', amount: '', description: '' }, { category: '', costCentre: '', amount: '', description: '' }])}>Split or itemize across categories</button></>}
+      : <><Field label="Category" name="category" options={categoryOptions} value={category} onChange={(e: any) => setCategory(e.target.value)} /><Field label="Cost center" name="costCentre" required={false} defaultValue={first?.cost_centre} /><button type="button" className="button link-button field-wide" onClick={() => setSplit([{ category: first?.category_id ?? '', costCentre: first?.cost_centre ?? '', amount: '', description: '' }, { category: '', costCentre: '', amount: '', description: '' }])}>Split or itemize across categories</button></>}
     {kind === 'receipt' && <label className="field field-wide"><span className="field-label">{item?.receipt_id ? 'Replace receipt (the earlier one stays in the history)' : 'Receipt photo or PDF'}</span><input type="file" name="receiptFile" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" /></label>}
     {kind === 'receipt' && <Field label="Attendees" name="attendees" type="textarea" required={false} defaultValue={attendeeLines(item?.attendees)} hint="For meals: one person per line, yourself included; colleagues as Name <email>, guests by name" />}
     {kind === 'receipt' && caps.length > 0 && <Field label="Claim against allowance" name="allowance" required={false} options={caps} defaultValue={item?.allowance_id ?? ''} hint="Reimbursed up to what is left; the rest is flagged and not reimbursed" />}

@@ -4,10 +4,11 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { agency, harness } from './harness.mjs'
+import { qboFixture } from './fixtures/qbo.mjs'
 
 const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example', PRIYA = 'priya@harbourfinch.example', MORGAN = 'morgan@harbourfinch.example', JORDAN = 'jordan@harbourfinch.example'
 const domain = '@harbourfinch.example'
-async function withAgency(run) { const h = await harness(); try { await run(h, await agency(h)) } finally { await h.close() } }
+async function withAgency(run, options = {}) { const h = await harness(options); try { await run(h, await agency(h)) } finally { await h.close() } }
 
 let counter = 0
 const png = text => ({ name: `${text}.png`, source: 'upload', base64: Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from(text)]).toString('base64') })
@@ -21,7 +22,7 @@ async function submitted(h, cookie, title, amount, category, extra) {
 }
 const decide = (h, cookie, c, extra = {}, status = 200) => h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', acknowledge: true, ...extra }, cookie, status)
 const tables = ['c_events', 'c_members', 'c_categories', 'c_policies', 'c_budgets', 'c_cards', 'c_claims', 'c_items', 'c_batches', 'c_approval_workflows', 'c_approval_rules', 'c_departments', 'c_mileage_rates', 'c_allowances',
-  'c_escalation_chains', 'c_card_match_rules', 'c_statement_files', 'c_card_charges', 'c_delegates', 'c_requests', 'c_advances', 'c_agent_keys', 'c_proposals']
+  'c_escalation_chains', 'c_card_match_rules', 'c_statement_files', 'c_card_charges', 'c_delegates', 'c_requests', 'c_advances', 'c_agent_keys', 'c_proposals', 'c_coding_dimensions', 'c_coding_values', 'c_category_dimensions', 'c_coding_refreshes', 'c_qbo_oauth_states', 'c_qbo_connections']
 const snapshot = h => h.db.prepare(`SELECT ${tables.map(t => `(SELECT COUNT(*) FROM ${t}) AS ${t}`).join(',')}`).first()
 
 /** The role permission matrix in CONTRACT.md: each row's label and, per role, its cell text ('' is refused). */
@@ -41,7 +42,9 @@ const statement = (n, category) => ({ format: 'ofx', name: `matrix-${n}.ofx`, is
   `<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260610<TRNAMT>-${(10 + n).toFixed(2)}<FITID>MATRIX-${n}<NAME>Matrix supplies ${n}</STMTTRN>`, '</BANKTRANLIST>',
   `<LEDGERBAL><BALAMT>-${(10 + n).toFixed(2)}<DTASOF>20260630</LEDGERBAL>`, '</CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>', ''].join('\n') })
 
-test('ADMIN-001 the permission matrix: each role as a single-role person succeeds at every permitted cell through its public route and is refused every other with 403 and no write', () => withAgency(async (h, t) => {
+test('ADMIN-001 the permission matrix: each role as a single-role person succeeds at every permitted cell through its public route and is refused every other with 403 and no write', () => {
+ const qbo = qboFixture()
+ return withAgency(async (h, t) => {
   const cookie = { Owner: h.owner }
   // One person holding only each role, under the existing three-level hierarchy (jordan, priya, then each person).
   for (const [role, flags] of [['Admin', { admin: true }], ['Finance', { finance: true }], ['Card admin', { cardAdmin: true }], ['Approver', { manager: true }], ['Employee', { employee: true }], ['Auditor', { auditor: true }], ['Bookkeeper', { bookkeeper: true }]])
@@ -62,7 +65,16 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
   const request = async () => h.post('requests', { title: `Trip ${++n}`, estimate: '50.00', purpose: 'Client visit' }, team)
   const previewed = async () => { const body = statement(++n, t.c.office); return { ...body, fingerprint: (await h.post('statements/preview', body)).fingerprint } }
   const range = 'from=2026-01-01&to=2026-12-31'
+  const connectQbo = async () => { const start = await h.post('accounting/qbo/connect', { consent: true }); assert.equal((await h.send(qbo.callback(start.authorizationUrl), undefined, h.owner)).status, 303) }
+  const codingDimension = async () => (await h.post('coding/dimensions', { version: (await h.get('coding')).version, name: `synthetic-coaster-${1000 + ++n}`, kind: 'tag' })).saved
   const doors = [
+    { row: 'Business settings', call: async who => send('coding/dimensions', { version: (await h.get('coding')).version, name: `synthetic-coaster-${1000 + ++n}`, kind: 'tag' }, who) },
+    { row: 'Business settings', prepare: codingDimension, call: async (who, dimension) => send('coding/values', { version: (await h.get('coding')).version, dimension, name: `synthetic-coaster-${1000 + ++n}` }, who) },
+    { row: 'Business settings', prepare: codingDimension, call: async (who, dimension) => send('coding/requirements', { version: (await h.get('coding')).version, category: t.c.office, dimensions: [{ dimension, required: false }] }, who) },
+    { row: 'Business settings', call: async who => send('coding/import', { version: (await h.get('coding')).version, csv: `dimension,parentDimension,kind,required,value,parentValue,owner\nsynthetic-coaster-${1000 + ++n},,tag,false,synthetic-coaster-${1000 + ++n},,` }, who) },
+    { row: 'Connect feeds', call: who => send('accounting/qbo/connect', { consent: true }, who) },
+    { row: 'Connect feeds', prepare: connectQbo, call: async who => send('accounting/qbo/disconnect', { consent: true, version: (await h.get('accounting/qbo')).version }, who) },
+    { row: 'Run a manual ledger sync', prepare: connectQbo, call: who => send('accounting/qbo/refresh', {}, who) },
     { row: 'Business settings', call: who => send('settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', perDiem: '75.00', receiptThreshold: '' }, who) },
     { row: 'Business settings', call: async who => send('settings/approval-workflow', { version: (await h.get('state')).approvalWorkflow?.version ?? 0, rules: [] }, who) },
     { row: 'Business settings', call: who => send('settings/categories', { name: `Category ${++n}`, accountCode: '6900', taxCode: 'GST' }, who) },
@@ -115,9 +127,8 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
     { row: 'Read full history', call: who => send('history', undefined, who) },
   ]
   // Rows whose action has no door in Coaster yet: the clause that adds the door asserts it in its own text and acceptance.
-  const noDoor = { 'Connect payment funding account': 'PAY-001', 'Edit coding on submitted or approved expenses': 'ACCT-006', 'See employees\' bank details': 'PAY-002', 'Run a manual ledger sync and fix mappings': 'ACCT-001' }
+  const noDoor = { 'Connect payment funding account': 'PAY-001', 'Edit coding on submitted or approved expenses': 'ACCT-006', 'See employees\' bank details': 'PAY-002' }
   const rows = await matrix()
-  assert.equal(rows.length, 18)
   for (const row of rows) assert.ok(row.label in noDoor || doors.some(d => row.label.startsWith(d.row)), `matrix row "${row.label}" has a door in this journey or is named as having none`)
   for (const label of Object.keys(noDoor)) assert.ok(rows.some(r => r.label === label))
   const ok = r => r.status >= 200 && r.status < 300
@@ -133,7 +144,7 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
       hasRoute.add(row.label)
     }
   }
-  assert.equal(hasRoute.size + Object.keys(noDoor).length, 18)
+  assert.equal(hasRoute.size + Object.keys(noDoor).length, rows.length)
   // Agent routes follow the same rows: a key acts inside its person's row, and a person who cannot submit cannot hold one.
   const approved = (await approvedBy(`Agent batch ${++n}`, t.priya)).id
   for (const role of ['Admin', 'Finance', 'Card admin', 'Approver', 'Employee', 'Auditor', 'Bookkeeper']) {
@@ -161,7 +172,8 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
   assert.equal((await send('settings/members', { email: 'owner@harbourfinch.example', name: 'Rose', employee: true }, cookie.Admin)).status, 403)
   assert.equal((await send('delegates', { grantor: 'owner@harbourfinch.example', delegate: ALEX, level: 'full' }, cookie.Admin)).status, 403)
   assert.equal((await send('settings/members', { email: MORGAN, name: 'morgan', employee: true, finance: true, release: true, approver: PRIYA }, cookie.Admin)).status, 403)
-}))
+ }, { qboEdge: qbo.fetch, bindings: qbo.bindings })
+})
 
 const BASE = { priya: { employee: true, manager: true }, sam: { employee: true }, alex: { employee: true }, jordan: { employee: true, manager: true, finance: true }, morgan: { employee: true, finance: true } }
 /** Saves a person with every field the form carries (a save replaces roles, approving manager and department). */

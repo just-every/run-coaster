@@ -16,6 +16,8 @@ import { PolicyRules } from './policy';
 import { Departments } from './departments';
 import { EscalationChains } from './escalation-chains';
 import { CardReconciliation } from './card-reconciliation';
+import { CodingSettings, CategoryAccountField } from './coding';
+import { QuickBooks } from './quickbooks';
 import type { ViewProps } from './claims';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -72,6 +74,8 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Escalate after (business days)" name="escalateAfter" inputMode="numeric" required={false} defaultValue={b.escalation_days == null ? '' : String(b.escalation_days)} hint="After the last reminder, to the person's manager, then the same again to finance; empty turns escalation off" />
       </Form>
     </Section>}
+    {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <QuickBooks state={state} />}
+    {b && admin && <CodingSettings state={state} reload={reload} />}
     {b && (reader || roles.cardAdmin) && <CardReconciliation state={state} />}
     {b && (reader || roles.manager) && <SpendAnalytics currency={b.currency} />}
     {b && reader && <Budgets state={state} canSet={admin || roles.finance} />}
@@ -116,11 +120,12 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     {admin && b && <Section title="Expense categories">
       {state.categories.length ? <table className="plain"><thead><tr><th>Category</th><th>Account</th><th>Tax code</th><th className="figure">Limit per expense</th><th>Receipt</th><th>Status</th><th><span className="visually-hidden">Change</span></th></tr></thead><tbody>
-        {state.categories.map((c: D) => <tr key={c.id}><td>{c.name}{c.required_fields.length > 0 && <small className="muted"> · needs {c.required_fields.join(', ')}</small>}</td><td><span className="mobile-label">Account </span>{c.account_code}</td><td><span className="mobile-label">Tax </span>{c.tax_code}</td><td className="figure">{c.limit_minor == null ? 'No limit' : money(c.limit_minor, b.currency)}{c.per_person_limit_minor != null ? ` · ${money(c.per_person_limit_minor, b.currency)} a person` : ''}</td><td>{c.receipt_always ? 'Always' : 'Over the threshold'}</td><td>{c.active ? 'In use' : 'Retired'}</td><td><button className="button small" onClick={() => setCategory(c)}>Change</button></td></tr>)}
+        {state.categories.map((c: D) => <tr key={c.id}><td>{c.name}{c.required_fields.length > 0 && <small className="muted"> · needs {c.required_fields.join(', ')}</small>}</td><td><span className="mobile-label">Account </span>{c.account_code}{c.ledger_account && <small className="muted"><br />Mapped: {c.ledger_account.name} · {c.ledger_account.source === 'native' ? 'Coaster' : 'QuickBooks'} · {c.ledger_account.sourceId || c.ledger_account.id}{!c.ledger_account_available && ' · unavailable'}</small>}</td><td><span className="mobile-label">Tax </span>{c.tax_code}</td><td className="figure">{c.limit_minor == null ? 'No limit' : money(c.limit_minor, b.currency)}{c.per_person_limit_minor != null ? ` · ${money(c.per_person_limit_minor, b.currency)} a person` : ''}</td><td>{c.receipt_always ? 'Always' : 'Over the threshold'}</td><td>{c.active ? 'In use' : 'Retired'}</td><td><button className="button small" onClick={() => setCategory(c)}>Change</button></td></tr>)}
       </tbody></table> : <Empty title="No categories yet">Add the categories your accountant expects, with their account and tax codes.</Empty>}
       <div className="sub-form"><h3>{category ? `Change ${category.name}` : 'Add a category'}</h3><Form key={category?.id ?? 'new'} label={category ? 'Save category' : 'Add category'} onSubmit={async v => { await call('settings/categories', { ...v, id: category?.id }); setCategory(null); await saved('Category saved.'); }} secondary={category ? <button type="button" className="button" onClick={() => setCategory(null)}>Cancel</button> : undefined}>
         <Field label="Category name" name="name" defaultValue={category?.name} />
-        <Field label="Account code" name="accountCode" defaultValue={category?.account_code} />
+        <Field label="Account code" name="accountCode" defaultValue={category?.account_code} hint="Manual code used in accounting exports; independent of the chart-account mapping" />
+        <CategoryAccountField catalog={state.coding} category={category} />
         <Field label="Tax code" name="taxCode" defaultValue={category?.tax_code} hint="For example TAX or NON" />
         <Field label="Limit per expense" name="limit" inputMode="decimal" required={false} defaultValue={category?.limit_minor == null ? '' : amountText(category.limit_minor)} />
         <Field label="Limit per person" name="perPersonLimit" inputMode="decimal" required={false} defaultValue={category?.per_person_limit_minor == null ? '' : amountText(category.per_person_limit_minor)} hint="For meals: the amount divided among the attendees" />

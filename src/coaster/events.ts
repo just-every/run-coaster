@@ -3,7 +3,7 @@ import { now, uid, type Actor, type Data } from './types';
 /** One append-only history line, numbered in write order (seq survives export and restore); agents are named alongside
  * the person they act for, and a delegate's line is theirs with the person they acted for. */
 export function event(db: D1Database, actor: Actor, action: string, target: { claim?: string; batch?: string }, detail: Data = {}) {
-  const who = actor.kind === 'agent' ? { ...detail, agent: actor.agentLabel } : actor.delegate ? { ...detail, actingFor: actor.email } : detail;
+  const who = actor.publicCredential ? { ...detail, apiCredential: actor.publicCredential.id, channel: 'public-api' } : actor.kind === 'agent' ? { ...detail, agent: actor.agentLabel } : actor.delegate ? { ...detail, actingFor: actor.email } : detail;
   return ruleEvent(db, actor.delegate?.email ?? actor.email, action, target, who);
 }
 

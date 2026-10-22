@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiHref, call, money, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 
-const GROUPINGS = [['employee', 'Employee'], ['category', 'Category'], ['merchant', 'Merchant'], ['cost-centre', 'Cost centre'], ['department', 'Department'], ['month', 'Month'], ['card', 'Card']].map(([value, label]) => ({ value, label }));
+const GROUPINGS = [['employee', 'Employee'], ['category', 'Category'], ['merchant', 'Merchant'], ['cost-centre', 'Cost centre'], ['department', 'Department'], ['project', 'Project'], ['month', 'Month'], ['card', 'Card']].map(([value, label]) => ({ value, label }));
 
 /** Spend grouped by employee, department, category, merchant, cost centre, card or month, drilled to each expense and its receipt, with saved views (REPORT-001). */
 export function SpendAnalytics({ currency }: { currency: string }) {

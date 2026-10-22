@@ -5,6 +5,7 @@ import { insertClaim, insertItem, loadClaim, receiptBytes } from './claims';
 import { createBatch } from './batches';
 import { requireBusiness } from './settings';
 import { now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
+import { checkedCoding } from './coding/validation';
 
 /** A person makes a key for their own agent. The secret is shown once and stored only as a hash. */
 export async function createAgentKey(db: D1Database, actor: Actor, b: Data) {
@@ -37,9 +38,10 @@ export async function proposeClaim(db: D1Database, actor: Actor, b: Data) {
   const business = await requireBusiness(db), known = await categories(db);
   const title = text(b.title, 'Claim title', 200);
   requireThat(Array.isArray(b.items) && b.items.length > 0 && b.items.length <= 50, 'Propose between 1 and 50 expenses');
+  const checked = await checkedCoding(db, await Promise.all((b.items as Data[]).map(raw => pricedItem(raw, business, known))));
   const id = uid(), statements: D1PreparedStatement[] = [], items: Data[] = [];
-  for (const raw of b.items) {
-    const item = await pricedItem(raw, business, known);
+  for (const [index, raw] of b.items.entries()) {
+    const item = checked.items[index];
     let receipt: string | null = null;
     if (raw.receipt) {
       const { bytes, media, name } = receiptBytes(raw.receipt);
@@ -49,7 +51,7 @@ export async function proposeClaim(db: D1Database, actor: Actor, b: Data) {
     items.push({ ...raw, receipt: undefined, receiptId: receipt, amountMinor: item.amount_minor });
   }
   const payload = { title, note: optionalText(b.note, 'Note', 2000), items };
-  await commit(db, authority(actor, 'employee'), [
+  await commit(db, all(authority(actor, 'employee'), checked.guard), [
     db.prepare("INSERT INTO c_proposals(id,kind,agent_label,for_email,payload,status,created_at) VALUES(?,'claim',?,?,?,'proposed',?)").bind(id, actor.agentLabel, actor.email, JSON.stringify(payload), now()),
     ...statements,
     event(db, actor, 'claim-proposed', {}, { proposal: id, title, expenses: items.length }),
@@ -99,15 +101,16 @@ export async function acceptProposal(db: D1Database, actor: Actor, id: string) {
   }
   need(actor, 'employee');
   const business = await requireBusiness(db), known = await categories(db), claimId = uid();
+  const checked = await checkedCoding(db, await Promise.all((p.payload.items as Data[]).map(raw => pricedItem(raw, business, known))));
   const statements: D1PreparedStatement[] = [insertClaim(db, claimId, actor.email, p.payload.title, business.currency, p.agent_label)];
-  for (const [i, raw] of (p.payload.items as Data[]).entries()) statements.push(...insertItem(db, claimId, uid(), i, await pricedItem(raw, business, known), raw.receiptId ?? null));
+  for (const [i, raw] of (p.payload.items as Data[]).entries()) statements.push(...insertItem(db, claimId, uid(), i, checked.items[i], raw.receiptId ?? null));
   statements.push(
     db.prepare('UPDATE c_receipts SET claim_id=? WHERE proposal_id=?').bind(claimId, id),
     db.prepare('UPDATE c_claims SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_items WHERE claim_id=?) WHERE id=?').bind(claimId, claimId),
     db.prepare("UPDATE c_proposals SET status='accepted',decided_by=?,decided_at=?,result_id=? WHERE id=?").bind(actor.email, at, claimId, id),
     event(db, actor, 'proposal-accepted', { claim: claimId }, { proposal: id, agent: p.agent_label }),
   );
-  await commit(db, all(authority(actor, 'employee'), open(id)), statements);
+  await commit(db, all(authority(actor, 'employee'), open(id), checked.guard), statements);
   return { proposal: await proposal(db, id), claim: await loadClaim(db, claimId) };
 }
 

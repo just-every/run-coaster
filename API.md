@@ -138,3 +138,113 @@ Native finance reads `GET settings/cash-draft-window` (`{days:null|1..90,version
 - `GET settings/card-matching` and `POST settings/card-matching`: owner/finance, native session. A save takes `{version,enabled:boolean,windowDays:0..14,tipPercent:0..30,fxPercent:0..10}` with integer bounds, appends the next version and refuses a stale version. Defaults are on, 7 days, 20%, 5%. Off stops future automatic attachment; existing attachments and manual choices remain.
 
 Only hourly delivery attaches automatically, under `automation: card match` on behalf of the employee, on channel `schedule`. It never approves, samples, submits or notifies. Its global history line names only charge, claim and rule version; entered details and lifecycle remain private. The claim's receipt alias carries a frozen `card_match_basis`, copied to submitted revisions; there are zero copied original bytes. Detach excludes the original/card-transaction key pair permanently, including after statement undo/re-import, and appends withdrawal. Audit-pack manifests include each submitted expense's frozen `cardMatchBasis` (null for an expense without an automatic match) and ordinary receipt provenance, including `source`; they omit receipts absent from every submitted revision, private lifecycle lines, typed merchants and questions. The exact rule and amount/date semantics are in CONTRACT.md and the claims guide.
+
+## Public REST credentials and OAuth (API-001, partial)
+
+The separate public boundary is `/api/coaster/public-api`. This implementation
+uses a conservative permission policy pending owner policy review: only the
+owner's own native session can grant or revoke credentials, OAuth clients and
+webhook subscriptions. Credentials bind to that consenting owner's person;
+they cannot impersonate another member or use delegation. The owner must have
+an active Coaster member record before granting access. Other role grants
+are not implemented. A credential's scopes narrow the person's current native
+permissions. A member edit, deactivation, operator version/access change,
+expiry, credential revocation or OAuth client revocation invalidates it.
+Writes recheck that authority inside the native guarded transaction.
+
+Use `Authorization: Bearer <token>` on `/v1/*`. Public tokens use the `cpa_`
+audience; native sessions and proposal-only `cst_` agent keys cannot replace
+one. Public credentials cannot submit, decide, approve, release, record a
+payment, change security/settings, consent to outbound delivery, or mint more
+credentials. They prepare only the consenting person's **draft** claims,
+expenses and uploads. Returned and submitted records require native action.
+There is no automatic submission through this boundary.
+
+Native same-origin owner management routes (all relative to the public boundary):
+
+| Route | Request / result |
+|---|---|
+| `POST /keys` | `{label, scopes: string[], expiresInDays?: 1..90}`; default 30 days. Returns `{id,label,scopes,expiresAt,token}`. Copy the random token now: only its SHA-256 hash is retained. `member`, if supplied, must be the consenting owner's email. |
+| `GET /keys` | Credential metadata, scopes, expiry and revocation; never a token or hash. Includes OAuth access credentials. |
+| `POST /keys/:id/revoke` | Immediately stops this key. |
+| `POST /oauth/clients` | `{label, redirectUri}`; register one exact HTTPS redirect URI without credentials or fragment. Returns `{client_id,redirect_uri}`. |
+| `POST /oauth/clients/:id/revoke` | Stops outstanding codes and all credentials from this client. |
+| `POST /oauth/authorize` | Explicit native owner grant: `{client_id,redirect_uri,response_type:"code",scopes,code_challenge,code_challenge_method:"S256",state,consent:true}`. Returns a `redirect_uri` with a five-minute authorization code and the exact `state`; the consenting client follows it. No silent GET grant exists. |
+| `POST /oauth/token` | No session required. JSON or form body `{grant_type:"authorization_code",client_id,redirect_uri,code,code_verifier}`. Verifier is 43–128 RFC 7636 characters; challenge is base64url(SHA-256(verifier)). Exact client, redirect and S256 match are required. Atomic single-use exchange returns `{access_token,token_type:"Bearer",expires_in:3600,scope}`. No refresh tokens: obtain another explicit native grant after expiry. |
+
+Every scope must be named explicitly; unknown, wildcard and empty scopes refuse
+before a grant is written. Management actions append audit history without
+secret values. API writes record `channel:"public-api"` and `apiCredential`.
+
+Public resource routes are relative to `/api/coaster/public-api/v1`:
+
+| Scope | Routes / behavior |
+|---|---|
+| `claims:read` | `GET /claims`, `GET /claims/:id`: native visible claim summaries. Does not return nested expenses, receipts, decisions, history or people records. Native draft privacy still applies. |
+| `claims:write` | `POST /claims {title}`; `POST /claims/:id/title {version,title}`. Own drafts only. |
+| `expenses:read` | `GET /expenses?claimId=ID`, `GET /expenses/:id`: native visible expenses and allocation coding, with receipt identifiers but no receipt bytes or file metadata. |
+| `expenses:write` | `POST /expenses {claimId,version,...native item fields}`; `POST /expenses/:id {version,...native item fields}`; `POST /expenses/:id/remove {version}`. An existing own draft is required; no claim is created as a side effect of invalid expense input. Native item validation, immutable card facts, allocation rules and exact version checks apply. Responses include `{claim}` with its updated version. |
+| `receipts:read` | `GET /receipts?claimId=ID` returns native visible file metadata; `GET /receipts/:id` downloads original bytes. The native original-sharing rule applies. |
+| `receipts:write` | `POST /claims/:id/receipts {version,name,base64,item?}` uses native format/size checks on an own draft, returning `{claim,receipt}`. Originals stay append-only. |
+| `cards:read` | `GET /cards`: native statement-card assignment metadata and last four only, for card-spend readers. Card issuance/provider operations remain in CARD-001. |
+| `batches:read` | `GET /batches`: batch summaries for native batch readers. No preparation, review or release through a credential. |
+| `payments:read` | `GET /payments`: reimbursed batches with their externally recorded payment date/reference. This is the current native settlement record; no payment rail or bank account access is added. |
+| `people:read` | `GET /people`: native people administrators see the roster; others would see their own row. No sign-in or bank secrets. |
+| `reports:read` | `GET /reports/aging`, `/cycle-time`, `/receipts`, `/unsubmitted`, `/exceptions` with native `from`, `to`, `format=csv` options; `/reports/spend?by=...&from=...&to=...` uses the existing native spend scope and grouping options. |
+
+Collection results use `{data,nextOffset}`. Optional `offset` starts at zero;
+`limit` defaults to 50 and is at most 100. Reads use the current native role and
+record visibility. Unsupported resource actions refuse. Normal JSON errors
+carry the same 4xx semantics as native handlers; stale writes return 409.
+
+### Consented signed webhooks
+
+At most 100 active subscriptions are supported. Only the native owner may call `POST /webhooks` with
+`{destination,events,consent:true}`. Consent explicitly authorizes sending
+minimal event metadata to that exact HTTPS address. There is no outbound send
+before consent, and earlier history is not replayed to a newly subscribed
+destination. The response includes `{id,destination,events,secret}`; the random
+HMAC secret is shown once, then stored AES-GCM sealed under `SESSION_SECRET`
+with the subscription id bound as associated data. `GET /webhooks` returns
+subscription metadata and persisted delivery attempts/statuses, never secrets.
+`POST /webhooks/:id/revoke` stops future dispatches; it cannot retract a request
+already in flight. Membership/operator access changes also stop dispatch.
+
+Supported events are `claim.created`, `claim.submitted`, `claim.approved`,
+`claim.returned`, `claim.rejected`, and `payment.settled`. Approval means the
+native final approval, including the native automatic approval rule; settlement
+means finance's existing native recording of an externally paid batch after
+release. No credential can produce either privileged decision.
+
+Destinations currently require a **global public IPv4 literal**, standard HTTPS
+port, and no URL credentials, query or fragment. Private, loopback, link-local,
+reserved, multicast, IPv6 and hostname destinations refuse. This intentionally
+narrow implementation prevents DNS rebinding without relying on an unproven
+DNS-to-connection pin. Domain destinations await a trusted public-egress
+boundary and policy review. The exact consented destination is the allowlist;
+redirects are never followed. Native request/response bodies, receipts,
+amounts, people, event detail and file content never enter the payload.
+Delivery status retains only attempt scheduling, status and delivery time.
+
+The exact JSON body is `{id,type,time,record:{id,status}}`. Each delivery sends
+`x-coaster-event-id`, `x-coaster-timestamp` (Unix seconds), and
+`x-coaster-signature: v1=<lowercase hexadecimal HMAC-SHA256>` over
+`timestamp + "." + exactBodyBytes`, using the shown secret as UTF-8 key bytes.
+A receiver should reject timestamps outside its tolerance, compare signatures
+in constant time, and deduplicate by event id. Retries preserve the event id
+and body and use a fresh signature timestamp.
+
+The hourly trigger derives a durable outbox from committed native history,
+leases each attempt before sending, and records only HTTP status (zero for
+transport failure) and delivery time. Only 2xx succeeds; 3xx is a failed attempt
+without forwarding. There are at most six attempts with 1, 2, 4, 8 and 16-hour
+retry delays, bounded by hourly scheduling. Delivery is at least once: a crash
+after external receipt and before success persistence can repeat an event.
+Credentials, OAuth registrations/codes, subscriptions and pending deliveries
+are excluded from installation archives; exported native audit history stays.
+
+Evidence: `tests/coaster-api.test.mjs` covers scoped key preparation and scope
+refusal/resource reads, OAuth consent/redirect/PKCE/single use, and signed
+approval/payment notifications with retries and revocation at the outbound
+network edge. API-001 remains partial pending authority policy review, domain
+egress support, and any wider OAuth consent experience required by that policy.

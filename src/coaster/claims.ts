@@ -2,6 +2,7 @@ import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { can } from './permissions';
 import { event, ruleEvent } from './events';
 import { categories, pricedItem, type Allocation, type ItemInput } from './items';
+import { checkedCoding } from './coding/validation';
 import { findExceptions, missingFields, repeatedInClaim, type ClaimItem } from './exceptions';
 import { requireBusiness } from './settings';
 import { localDay, routeFor } from './delegation';
@@ -58,7 +59,7 @@ export function insertClaim(db: D1Database, id: string, employee: string, title:
 
 export function insertItem(db: D1Database, claimId: string, itemId: string, position: number, item: ItemInput, receiptId: string | null) {
   return [
-    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id,allowance_id,claimed_minor,billable,customer,project,original_minor,original_currency,fx_rate,fx_date,fx_source,original_sales_tax_minor,per_diem,card_charge_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null, item.allowance_id ?? null, item.claimed_minor ?? null, item.billable ? 1 : 0, item.customer ?? '', item.project ?? '', item.original_minor ?? null, item.original_currency ?? '', item.fx_rate ?? '', item.fx_date ?? '', item.fx_source ?? '', item.original_sales_tax_minor ?? null, item.per_diem ? JSON.stringify(item.per_diem) : '', item.card_charge_id ?? null),
+    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id,allowance_id,claimed_minor,billable,customer,project,original_minor,original_currency,fx_rate,fx_date,fx_source,original_sales_tax_minor,per_diem,card_charge_id,coding) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null, item.allowance_id ?? null, item.claimed_minor ?? null, item.billable ? 1 : 0, item.customer ?? '', item.project ?? '', item.original_minor ?? null, item.original_currency ?? '', item.fx_rate ?? '', item.fx_date ?? '', item.fx_source ?? '', item.original_sales_tax_minor ?? null, item.per_diem ? JSON.stringify(item.per_diem) : '', item.card_charge_id ?? null, JSON.stringify(item.coding ?? {})),
     ...item.allocations.map((a: Allocation, i) => db.prepare('INSERT INTO c_allocations(item_id,position,category_id,cost_centre,amount_minor,description,original_minor) VALUES(?,?,?,?,?,?,?)').bind(itemId, i, a.category_id, a.cost_centre, a.amount_minor, a.description ?? '', a.original_minor ?? null)),
   ];
 }
@@ -94,6 +95,8 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
   editable(actor, claim, b);
   const business = await requireBusiness(db), receiptId = await ownReceipt(db, claim, b.receipt, b.item);
   let item: ItemInput = { ...await pricedItem(b, business, await categories(db)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
+  const coding = await checkedCoding(db,[item]);
+  item = coding.items[0];
   // A purchase claimed against a cap is reimbursed up to what is left of it (CLAIM-009).
   if (b.allowance) item = await capToAllowance(db, claim.employee_email, item, b.allowance, typeof b.item === 'string' ? b.item : null);
   for (const a of item.attendees ?? []) if (a.email) requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=?').bind(a.email).first(), `${a.name} is not a Coaster member; add them as a guest`);
@@ -118,7 +121,7 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
     position = (count?.last ?? -1) + 1;
   }
   statements.push(...insertItem(db, claim.id, itemId, position, item, receiptId), claimTotal(db, claim.id), event(db, actor, b.item ? 'expense-changed' : 'expense-added', { claim: claim.id }, { item: itemId, merchant: item.merchant, amountMinor: item.amount_minor, receipt: receiptId, request: item.request_id, allowance: item.allowance_id ?? null, claimedMinor: item.claimed_minor ?? null }));
-  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
+  await commit(db, all(authority(actor, 'employee'), coding.guard, claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
   return loadClaim(db, id);
 }
 
@@ -170,9 +173,9 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
 export async function claimItems(db: D1Database, claimId: string): Promise<ClaimItem[]> {
   const [items, parts] = await db.batch([
     db.prepare('SELECT i.*, r.sha256 AS receipt_sha256, r.name AS receipt_name, r.media_type AS receipt_media, r.size AS receipt_size, r.card_match_basis, ch.transaction_key AS card_transaction_key, cd.issuer AS card_issuer, cd.last4 AS card_last4 FROM c_items i LEFT JOIN c_receipts r ON r.id=i.receipt_id LEFT JOIN c_card_charges ch ON ch.id=i.card_charge_id LEFT JOIN c_cards cd ON cd.id=ch.card_id WHERE i.claim_id=? ORDER BY i.position').bind(claimId),
-    db.prepare('SELECT a.*, c.name AS category_name, c.account_code, c.tax_code FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_categories c ON c.id=a.category_id WHERE i.claim_id=? ORDER BY a.item_id, a.position').bind(claimId),
+    db.prepare('SELECT a.*, c.name AS category_name, c.account_code, c.tax_code,c.ledger_account_id,c.ledger_account_snapshot FROM c_allocations a JOIN c_items i ON i.id=a.item_id JOIN c_categories c ON c.id=a.category_id WHERE i.claim_id=? ORDER BY a.item_id, a.position').bind(claimId),
   ]);
-  return (items.results as ClaimItem[]).map(item => ({ ...item, per_diem: item.per_diem ? JSON.parse(item.per_diem) : null, attendees: JSON.parse(String(item.attendees)), fields: JSON.parse(String(item.fields)), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id) }) as ClaimItem);
+  return (items.results as ClaimItem[]).map(item => ({ ...item, coding: JSON.parse(String(item.coding ?? '{}')), per_diem: item.per_diem ? JSON.parse(item.per_diem) : null, attendees: JSON.parse(String(item.attendees)), fields: JSON.parse(String(item.fields)), allocations: (parts.results as Data[]).filter(p => p.item_id === item.id).map(p => ({ ...p,ledger_account: p.ledger_account_id ? JSON.parse(p.ledger_account_snapshot) : null })) }) as ClaimItem);
 }
 
 /** Submission freezes the exact claim as a new revision and routes it to the employee's manager, or approves it at
@@ -192,7 +195,8 @@ export async function submitScheduled(db: D1Database, id: string, by: string, bu
 
 /** Everything a submission checks and writes once the submitter's authority is known. */
 async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, history: (action: string, detail: Data) => D1PreparedStatement, note: string, bucket?: R2Bucket) {
-  const items = await claimItems(db, claim.id);
+  const coding = await checkedCoding(db,await claimItems(db, claim.id));
+  const items = coding.items;
   requireThat(items.length > 0, 'Add at least one expense before submitting');
   const cardGuards = await noCardDuplicates(db, claim.employee_email, items);
   const configured = await configuredChain(db, claim.employee_email);
@@ -215,7 +219,7 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const rule = await currentRule(db), byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
   const revision = claim.revision + 1, total = reimbursableMinor(items), at = now();
   const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: policyReview(items, exceptions, active), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(auth, ...cardGuards, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
+  await commit(db, all(auth, coding.guard, ...cardGuards, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),
     ...(workflow && resolved ? insertTasks(db, 'claim', claim.id, revision, 0, 0, resolved.tasks) : []),
     ...(!workflow && configured.chain ? [freezeChain(db, claim.id, revision, configured.chain.id, configured.chain.steps)] : []),

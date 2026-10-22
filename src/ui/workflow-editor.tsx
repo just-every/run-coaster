@@ -3,7 +3,7 @@ import { call, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 
 type Condition = { kind: 'always' | 'amount' | 'category' | 'project' | 'exception' | 'spend-request' | 'department'; value: string };
-type Reviewer = { kind: 'manager' | 'named' | 'finance' | 'department-head' | 'managers-manager'; email?: string };
+type Reviewer = { kind: 'manager' | 'named' | 'finance' | 'department-head' | 'managers-manager' | 'projectOwner'; email?: string };
 const NAMED = ['named', 'finance'];
 type Rule = { label: string; condition: Condition; stages: Reviewer[][] };
 type SelectChange = ChangeEvent<HTMLSelectElement>;
@@ -22,6 +22,7 @@ const REVIEWERS = [
   { value: 'manager', label: 'Employee’s approving manager' },
   { value: 'managers-manager', label: 'Employee’s manager’s manager' },
   { value: 'department-head', label: 'Employee’s department head' },
+  { value: 'projectOwner', label: 'Expense’s project owner' },
   { value: 'named', label: 'Named manager' },
   { value: 'finance', label: 'Named finance reviewer' },
 ];

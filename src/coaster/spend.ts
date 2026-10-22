@@ -7,9 +7,8 @@ import { isoDate, now, requireThat, text, uid, type Actor, type Data } from './t
 import { can } from './permissions';
 import { inScope, scopeParams } from './departments';
 
-/** Spend analytics (REPORT-001). Departments (ADMIN-001) and projects (CODE-001)
- * join these groupings when those clauses ship. */
-export const GROUPINGS = { employee: 'Employee', category: 'Category', merchant: 'Merchant', 'cost-centre': 'Cost centre', department: 'Department', month: 'Month', card: 'Card' } as const;
+/** Spend analytics, including native and catalog project coding, counted from the frozen submitted revision. */
+export const GROUPINGS = { employee: 'Employee', category: 'Category', merchant: 'Merchant', 'cost-centre': 'Cost centre', department: 'Department', project: 'Project', month: 'Month', card: 'Card' } as const;
 type By = keyof typeof GROUPINGS;
 const isBy = (v: unknown): v is By => typeof v === 'string' && Object.hasOwn(GROUPINGS, v);
 
@@ -21,7 +20,7 @@ function scope(actor: Actor) {
   return { sql: ` AND ${inScope('c.employee_email')}`, params: scopeParams(actor.email) };
 }
 
-const keyOf = (by: By, l: Data): [string, string] => by === 'card' ? [l.card ?? '', l.cardLabel ?? 'Out of pocket'] : by === 'employee' ? [l.employee, l.employeeName] : by === 'category' ? [l.category, l.categoryName] : by === 'merchant' ? [l.merchant.trim().toLowerCase(), l.merchant.trim()] : by === 'cost-centre' ? [l.costCentre, l.costCentre || 'No cost centre'] : by === 'department' ? [l.department ?? '', l.departmentName || 'No department'] : [l.date.slice(0, 7), l.date.slice(0, 7)];
+const keyOf = (by: By, l: Data): [string, string] => by === 'card' ? [l.card ?? '', l.cardLabel ?? 'Out of pocket'] : by === 'employee' ? [l.employee, l.employeeName] : by === 'category' ? [l.category, l.categoryName] : by === 'merchant' ? [l.merchant.trim().toLowerCase(), l.merchant.trim()] : by === 'cost-centre' ? [l.costCentre, l.costCentre || 'No cost centre'] : by === 'project' ? [l.projectId || l.project || '', l.project || 'No project'] : by === 'department' ? [l.department ?? '', l.departmentName || 'No department'] : [l.date.slice(0, 7), l.date.slice(0, 7)];
 
 /** Spend for expense dates in the period (both ends inclusive), grouped one way, approved and pending apart; with `key`,
  * the lines of that one group, each with its receipt to open. A saved view (`view`) reopens its own query. */

@@ -48,6 +48,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_cards', ['employee_email', 'assigned_by']], ['c_card_charges', ['employee_email']], ['c_card_charge_undo_history', ['employee_email']], ['c_statement_files', ['imported_by', 'undone_by']],
   ['c_card_statements', ['opened_by', 'closed_by']], ['c_card_statement_resolutions', ['resolved_by']],
   ['c_departments', ['head_email', 'created_by']], ['c_escalation_chains', ['set_by']], ['c_card_handoffs', ['from_email', 'to_email', 'by_email']],
+  ['c_coding_values', ['owner_email']], ['c_qbo_connections', ['connected_by']],
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
@@ -132,6 +133,8 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql('UPDATE c_comments SET parent_id=NULL WHERE parent_id IN (SELECT id FROM c_comments WHERE author_email=?)', address),
     sql('DELETE FROM c_comments WHERE author_email=?', address),
     sql('DELETE FROM c_agent_keys WHERE member_email=?', address),
+    sql('DELETE FROM c_public_keys WHERE member_email=?', address),
+    sql('DELETE FROM c_qbo_oauth_states WHERE actor_email=?', address),
     sql('DELETE FROM c_delegations WHERE approver_email=? OR delegate_email=?', address, address),
     sql('DELETE FROM c_delegates WHERE grantor_email=? OR delegate_email=?', address, address),
     ...['c_escalations', 'c_reminders'].map(t => sql(`DELETE FROM ${t} WHERE key IN (SELECT key FROM c_reminder_items WHERE person=?)`, address)),

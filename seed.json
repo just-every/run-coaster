@@ -6,7 +6,7 @@
   "category": "expenses",
   "spine": {
     "id": "claim-to-reimbursement",
-    "record": "Claim revision → Decision → Reimbursement batch → Accounting CSV"
+    "record": "Claim revision \u2192 Decision \u2192 Reimbursement batch \u2192 Accounting CSV"
   },
   "description": "Employee expense claims with receipt evidence, manager approval, duplicate-safe reimbursement batches, an accounting CSV and an Expensify move-in kit, on the owner's own Cloudflare account.",
   "capabilities": [
@@ -74,14 +74,14 @@
     "Moving money or payment files",
     "Payroll and travel booking",
     "OCR or model receipt reading",
-    "Accounting software sync",
+    "Accounting transaction posting",
     "Tax determination"
   ],
   "externals": [
     {
       "id": "cloudflare",
       "required": true,
-      "why": "Worker hosting, D1 business records and R2 receipt originals in the owner’s Cloudflare account",
+      "why": "Worker hosting, D1 business records and R2 receipt originals in the owner\u2019s Cloudflare account",
       "data": [
         "HTTP requests",
         "Business records and receipt provenance in D1; original receipt-inbox bytes in R2"
@@ -122,6 +122,29 @@
       "data": [
         "GET https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml without a query, body, cookies, authorization or redirects",
         "No expense amount, currency, date, receipt, identity, claim or imported source data is sent; ECB receives only ordinary connection metadata"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "quickbooks-accounting-choices",
+      "required": false,
+      "requiredWhen": "A person allowed by ADMIN-001 explicitly connects their company through Intuit consent",
+      "why": "Read accounting choices on the daily schedule; transaction posting is not implemented. Disconnect stops future requests.",
+      "data": [
+        "The Intuit app client id, callback, accounting OAuth scope and session-bound random state in the authorization request",
+        "Authorization code, app credentials and rotating tokens exchanged with Intuit; tokens sealed in D1 and excluded from archives",
+        "Authenticated metadata GET queries for accounts, classes, locations (QuickBooks Department), customers/projects and vendors; no expense, receipt, employee or payment payload is sent"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "public-api-webhooks",
+      "required": false,
+      "requiredWhen": "The owner explicitly consents to an exact public HTTPS IPv4 destination and selected event types",
+      "why": "Signed notifications of native state changes, with persistent delivery attempts. No outbound notification without an owner-consented active subscription.",
+      "data": [
+        "HMAC-signed event id, event type, time, resource kind/id and state only",
+        "No names, email addresses, amounts, receipt bytes, comments, expense bodies or secrets in event payloads; delivery retains HTTP status, never response bodies"
       ],
       "adapters": []
     }

@@ -9,6 +9,10 @@
     {
       "id": "owner",
       "label": "First owner"
+    },
+    {
+      "id": "accounting",
+      "label": "Optional accounting choices"
     }
   ],
   "fields": [
@@ -64,6 +68,31 @@
       "required": false,
       "help": "Optional Auth install. Leave empty to use email links.",
       "default": ""
+    },
+    {
+      "name": "QBO_CLIENT_ID",
+      "label": "QuickBooks app client ID",
+      "kind": "secret",
+      "required": false,
+      "group": "accounting",
+      "help": "Optional Intuit app credentials. The company still requires explicit consent in Settings; blank leaves QuickBooks disconnected."
+    },
+    {
+      "name": "QBO_CLIENT_SECRET",
+      "label": "QuickBooks app client secret",
+      "kind": "secret",
+      "required": false,
+      "group": "accounting",
+      "ownerVisible": false
+    },
+    {
+      "name": "QBO_ENVIRONMENT",
+      "label": "QuickBooks environment",
+      "kind": "text",
+      "required": false,
+      "default": "sandbox",
+      "group": "accounting",
+      "help": "sandbox or production. This selects the company API; it never authorizes a company by itself."
     }
   ],
   "steps": [

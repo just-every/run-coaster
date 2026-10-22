@@ -1,10 +1,12 @@
 import type { Business } from './settings';
+import { categoryAccountViews, type CategoryAccount } from './coding/category-accounts';
+import { codingInput, type CodingSnapshot } from './coding/model';
 import { createFx, manualFx, type FxConversion } from './fx';
 import { rateOn } from './mileage';
 import { pricePerDiem, type PerDiemTrip } from './per-diem';
 import { amount, distance, email, isoDate, mileageMinor, optionalAmount, optionalText, requireThat, text, type Data } from './types';
 
-export type Category = { id: string; name: string; account_code: string; tax_code: string; limit_minor: number | null; active: number; receipt_always: number; per_person_limit_minor: number | null; required_fields: string[] };
+export type Category = { id: string; name: string; account_code: string; tax_code: string; limit_minor: number | null; active: number; receipt_always: number; per_person_limit_minor: number | null; required_fields: string[]; ledger_account_id?: string | null; ledger_account_snapshot?: string; ledger_account?: CategoryAccount | null; ledger_account_available?: boolean };
 /** One categorized part of an expense; an itemized folio names each part (room, tax, in-room dining). */
 export type Allocation = { category_id: string; cost_centre: string; amount_minor: number; description?: string; original_minor?: number };
 /** Someone at a meal: a colleague (by their Coaster email) or a guest. */
@@ -18,12 +20,14 @@ export type ItemInput = Partial<FxConversion> & {
   /** A stipend's allowance, or the cap a purchase is claimed against with the receipt's amount when it was capped (CLAIM-009). */
   allowance_id?: string | null; claimed_minor?: number | null;
   billable?: boolean; customer?: string; project?: string;
+  coding?: Record<string,string>; codingSnapshot?: CodingSnapshot[]; codingVersion?: number;
   /** The statement charge a company-card expense carries (FEED-004); set only by the statement import. */
   card_charge_id?: string | null;
 };
 
 export async function categories(db: D1Database): Promise<Category[]> {
-  return (await db.prepare('SELECT * FROM c_categories ORDER BY name').all<Category & { required_fields: string }>()).results.map(c => ({ ...c, required_fields: JSON.parse(c.required_fields) }));
+  const rows = (await db.prepare('SELECT * FROM c_categories ORDER BY name').all<Category & { required_fields: string }>()).results;
+  return categoryAccountViews(db,rows.map(c => ({ ...c, required_fields: JSON.parse(c.required_fields) })));
 }
 
 /** One expense line, priced from policy (mileage at the rate in force on its trip date) and split across categories; a receipt's sales tax is its own line. */
@@ -73,8 +77,9 @@ export function itemInput(b: Data, business: Business, known: Category[]): ItemI
   requireThat(sum === amount_minor - sales_tax_minor, sales_tax_minor ? 'The split must add up exactly to the expense amount less its sales tax' : 'The split must add up exactly to the expense amount');
   requireThat(b.billable === undefined || typeof b.billable === 'boolean', 'Billable must be true or false');
   const billable = b.billable === true, customer = optionalText(b.customer, 'Customer', 200), project = optionalText(b.project, 'Project', 200);
-  requireThat(!billable || customer, 'A billable expense needs a customer');
-  return { ...(per_diem ? { per_diem } : {}), kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_thousandths, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations, billable, customer, project,
+  const coding = codingInput(b.coding);
+  requireThat(!billable || customer || Object.keys(coding).length, 'A billable expense needs a customer');
+  return { ...(per_diem ? { per_diem } : {}), kind, spent_on, merchant, description: optionalText(b.description, 'Description', 500), amount_minor, distance_hundredths, days, rate_thousandths, explanation: optionalText(b.explanation, 'Explanation', 1000), allocations, billable, customer, project, coding,
     sales_tax_minor, sales_tax_account: sales_tax_minor ? business.sales_tax_account : '', sales_tax_code: sales_tax_minor ? business.sales_tax_code : '', attendees: attendees(b.attendees), fields: customFields(b.fields) };
 }
 

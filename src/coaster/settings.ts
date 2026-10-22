@@ -4,6 +4,7 @@ import { handOver, openWork } from './handoff';
 import { event } from './events';
 import { mileageRates, seedIrsRates, type MileageRate } from './mileage';
 import { categories } from './items';
+import { categoryAccountInput } from './coding/category-accounts';
 import { ownerPolicyVersion } from './policy-configuration';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
@@ -77,18 +78,21 @@ const LODGING = /\b(lodging|hotels?|motels?)\b/i;
 export async function saveCategory(db: D1Database, actor: Actor, b: Data) {
   needRow(actor, 'settings');
   const id = typeof b.id === 'string' && b.id ? b.id : uid();
-  if (b.id) requireThat(await db.prepare('SELECT 1 FROM c_categories WHERE id=?').bind(id).first(), 'Category not found', 404);
+  const previous = b.id ? await db.prepare('SELECT ledger_account_id,ledger_account_snapshot FROM c_categories WHERE id=?').bind(id).first<Data>() : null;
+  if (b.id) requireThat(previous, 'Category not found', 404);
+  const ledgerAccount = await categoryAccountInput(db,b.ledgerAccountId,previous);
   const name = text(b.name, 'Category name', 100);
   const clash = await db.prepare('SELECT id FROM c_categories WHERE name=? AND id<>?').bind(name, id).first();
   requireThat(!clash, 'Another category already has that name', 409);
   // Lodging always needs a receipt at any amount (IRS); the owner can ask the same of any other category.
   const receiptAlways = LODGING.test(name) ? 1 : flag(b.receiptAlways);
   const required = requiredFields(b.requiredFields);
-  const values = [id, name, text(b.accountCode, 'Account code', 40), text(b.taxCode, 'Tax code', 40), optionalAmount(b.limit, 'Limit per expense'), b.active === false || b.active === 'false' ? 0 : 1, receiptAlways, optionalAmount(b.perPersonLimit, 'Limit per person'), JSON.stringify(required)];
-  await commit(db, rowAuthority(actor, 'settings'), [
-    db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always,per_person_limit_minor,required_fields) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,account_code=excluded.account_code,tax_code=excluded.tax_code,limit_minor=excluded.limit_minor,active=excluded.active,receipt_always=excluded.receipt_always,per_person_limit_minor=excluded.per_person_limit_minor,required_fields=excluded.required_fields').bind(...values),
+  const values = [id, name, text(b.accountCode, 'Account code', 40), text(b.taxCode, 'Tax code', 40), optionalAmount(b.limit, 'Limit per expense'), b.active === false || b.active === 'false' ? 0 : 1, receiptAlways, optionalAmount(b.perPersonLimit, 'Limit per person'), JSON.stringify(required),ledgerAccount.id,ledgerAccount.snapshot];
+  const mappingState = previous ? [{ sql:'EXISTS(SELECT 1 FROM c_categories WHERE id=? AND ledger_account_id IS ? AND ledger_account_snapshot=?)',params:[id,previous.ledger_account_id,previous.ledger_account_snapshot] }] : [];
+  await commit(db, all(rowAuthority(actor, 'settings'),...ledgerAccount.guards,...mappingState), [
+    db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always,per_person_limit_minor,required_fields,ledger_account_id,ledger_account_snapshot) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,account_code=excluded.account_code,tax_code=excluded.tax_code,limit_minor=excluded.limit_minor,active=excluded.active,receipt_always=excluded.receipt_always,per_person_limit_minor=excluded.per_person_limit_minor,required_fields=excluded.required_fields,ledger_account_id=excluded.ledger_account_id,ledger_account_snapshot=excluded.ledger_account_snapshot').bind(...values),
     ...ownerPolicyVersion(db, actor.delegate?.email ?? actor.email, (await requireBusiness(db)).timezone, now()),
-    event(db, actor, 'category-saved', {}, { id, name, accountCode: values[2], taxCode: values[3], limitMinor: values[4], active: values[5] === 1, receiptAlways: values[6] === 1, perPersonLimitMinor: values[7], requiredFields: required }),
+    event(db, actor, 'category-saved', {}, { id, name, accountCode: values[2], taxCode: values[3], limitMinor: values[4], active: values[5] === 1, receiptAlways: values[6] === 1, perPersonLimitMinor: values[7], requiredFields: required, ledgerAccount: ledgerAccount.id ? JSON.parse(ledgerAccount.snapshot) : null }),
   ]);
   return (await categories(db)).find(c => c.id === id);
 }

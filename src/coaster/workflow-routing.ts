@@ -1,3 +1,4 @@
+import { projectOwners } from './coding/project-owners';
 import { configuredChain } from './approval-chain';
 import { currentWorkflow, workflowState, type Reviewer } from './workflow-configuration';
 import { localDay, routeFor } from './delegation';
@@ -15,14 +16,21 @@ export async function workflowPlan(db:D1Database,employee:string,total:number,it
  const matched:string[]=[];
  for(const rule of workflow.rules) {
   const c=rule.condition;
-  const match=c.kind==='always'||c.kind==='amount'&&total>amount(c.value,'Amount')||c.kind==='exception'&&exceptions.length>0||c.kind==='category'&&items.some(i=>i.allocations?.some((a:Data)=>a.category_id===c.value))||c.kind==='project'&&items.some(i=>i.project===c.value)||c.kind==='spend-request'&&(request||items.some(i=>i.request_id))||c.kind==='department'&&!!member?.department_id&&member.department_id===c.value;
+  const match=c.kind==='always'||c.kind==='amount'&&total>amount(c.value,'Amount')||c.kind==='exception'&&exceptions.length>0||c.kind==='category'&&items.some(i=>i.allocations?.some((a:Data)=>a.category_id===c.value))||c.kind==='project'&&items.some(i=>i.project===c.value||i.codingSnapshot?.some((v:Data)=>v.kind==='project'&&v.id===c.value))||c.kind==='spend-request'&&(request||items.some(i=>i.request_id))||c.kind==='department'&&!!member?.department_id&&member.department_id===c.value;
   if(match){stages.push(...rule.stages);matched.push(rule.label);}
  }
  const guards:Sql[]=[workflowState(workflow.version),...configured.guards];
  const frozen:Reviewer[][]=[];
  for(const stage of stages){
   const reviewers:Reviewer[]=[];
-  for(const r of stage){
+  const expanded:Reviewer[]=[];
+  for(const reviewer of stage) {
+   if(reviewer.kind==='projectOwner') {
+    const resolved=await projectOwners(db,items); guards.push(resolved.guard);
+    expanded.push(...resolved.owners.map(address=>({kind:'named' as const,email:address})));
+   } else expanded.push(reviewer);
+  }
+  for(const r of expanded){
    const address=r.kind==='manager'?member?.approver_email:r.kind==='department-head'?member?.department_head:r.kind==='managers-manager'?member?.managers_manager:r.email;
    requireThat(address||!['department-head','managers-manager'].includes(r.kind),r.kind==='department-head'?'The employee\'s department has no active head; ask the owner to set one':'The employee\'s approving manager has no manager; ask the owner to correct the hierarchy',409);
    requireThat(address&&address!==employee,'Nobody approves their own claim or spend request; ask the owner to correct the workflow',409);
@@ -33,6 +41,7 @@ export async function workflowPlan(db:D1Database,employee:string,total:number,it
    requireThat(await db.prepare(`SELECT 1 WHERE ${guard.sql}`).bind(...guard.params).first(),'Every workflow reviewer must be active with the matching role',409);
    guards.push(guard);reviewers.push({kind:r.kind==='finance'?'finance':'named',email:address});
   }
+  requireThat(new Set(reviewers.map(r=>r.email)).size===reviewers.length,'Parallel reviewers resolve to the same person; ask the owner to correct the workflow',409);
   frozen.push(reviewers);
  }
  guards.push({sql:'EXISTS(SELECT 1 FROM c_members WHERE email=? AND approver_email IS ? AND department_id IS ? AND active=1)',params:[employee,member?.approver_email??null,member?.department_id??null]});

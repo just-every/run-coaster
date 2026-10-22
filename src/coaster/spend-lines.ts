@@ -19,7 +19,7 @@ export async function spendLines(db: D1Database, from: string, to: string, scope
     if (charge) { if (counted.has(charge.id)) return; counted.add(charge.id); }
     const base = { claim: c.id, number: claimNumber(c.number), employee: c.employee_email, employeeName: c.employee_name ?? c.employee_email,
       status: ['approved', 'batched', 'reimbursed'].includes(c.status) ? 'approved' : 'pending', item: item.id, date: item.spent_on,
-      merchant: item.merchant, receipt: item.receipt?.id ?? null, card: charge?.card_id ?? null,
+      merchant: item.merchant, project: item.project ?? '', projectId: item.codingSnapshot?.find((v:Data)=>v.kind==='project')?.id ?? '', tags: Object.values(item.coding ?? {}), coding: item.codingSnapshot ?? [], receipt: item.receipt?.id ?? null, card: charge?.card_id ?? null,
       cardLabel: charge ? `${charge.issuer} ····${charge.last4}` : null, cardCharge: charge?.id ?? null, department: department.get(c.employee_email)?.id ?? '', departmentName: department.get(c.employee_email)?.name ?? '' };
     for (const part of item.allocations as Data[]) out.push({ ...base, category: part.category_id, categoryName: part.category_name, costCentre: part.cost_centre ?? '', amountMinor: part.amount_minor });
     if (item.sales_tax_minor) out.push({ ...base, category: 'sales-tax', categoryName: 'Sales tax', costCentre: '', amountMinor: item.sales_tax_minor });

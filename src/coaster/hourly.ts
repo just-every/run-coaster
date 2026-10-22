@@ -1,3 +1,5 @@
+import { deliverWebhooks } from './public-api/webhooks';
+import { runQboDaily } from './accounting/qbo';
 import { runtimeBindings, type Bindings } from '../auth.server';
 import { deliverReports } from './report-schedules';
 import { runReminders } from './reminders';
@@ -23,4 +25,6 @@ export async function runHourly(original: Bindings, at: Date) {
   await runRetention(env, at);
   await deliverReports(env, at);
   await runPaySchedule(env.DB, at);
+  await deliverWebhooks(env, at);
+  await runQboDaily(env, at);
 }

@@ -7,6 +7,7 @@ import {command,fresh,freePort,start} from './browser-runtime.mjs'
 import {api,PEOPLE,session,setUp} from './browser-journey.mjs'
 import {records,rows,tampered} from './browser-archive.mjs'
 import {statementScreens} from './browser-statements.mjs'
+import {codingScreens} from './browser-coding.mjs'
 
 const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/card-matching-proof')
 const notice="When this receipt matches one of your card charges, Coaster attaches it automatically. Approvers and finance can see the receipt, its file name and the total, currency and date you entered once that expense is submitted — by you, your delegate or the owner's scheduled submission."
@@ -141,6 +142,7 @@ try {
   await api(manager.context,server.origin,`claims/${held.id}/release`,{version:held.version,acknowledge:true})
   await manager.context.close();await employee.context.close()
   await statementScreens(browser,root,server.origin,owner,evidence)
+  await codingScreens(browser,root,server.origin,evidence)
   // FEED-005: reconciled and closed statements (their resolutions, ledger and history) ride the same archive round trip.
   const kept=(await api(owner.context,server.origin,'statements')).files.find(f=>f.name==='synthetic-kept-match.csv')
   const reconciliation=await api(owner.context,server.origin,`statements/${kept.id}/reconcile`,{last4:'1111',openingBalance:'0.00',statementBalance:'1.00'})
@@ -186,11 +188,14 @@ try {
     ['match_history_merged','c_capture_lifecycle',r=>r.kind==='match-details',(r,input)=>{r.kind='merged';r.reason='synthetic-merged';r.match_data=null;r.survivor_id=rows(input).find(i=>i.table==='c_capture_receipts'&&i.row.id!==r.receipt_id).row.id}],
     ['card_charge_employee','c_card_charges',()=>true,r=>{r.employee_email='synthetic-foreign@example.test'}],
     ['card_statement_ledger','c_card_ledger',()=>true,r=>{r.amount_minor+=1}],
+    ['coding_parent','c_coding_values',r=>r.parent_value_id,r=>{r.parent_value_id='synthetic-coaster-missing-parent'}],
+    ['coding_item','c_items',r=>Object.keys(JSON.parse(r.coding)).length,r=>{r.coding=JSON.stringify({'synthetic-coaster-missing-level':'synthetic-coaster-missing-choice'})}],
+    ['coding_category_account','c_categories',r=>r.ledger_account_id,r=>{const account=JSON.parse(r.ledger_account_snapshot);account.sourceId='synthetic-coaster-missing-account';r.ledger_account_snapshot=JSON.stringify(account)}],
   ]
   for(const [code,table,pick,change] of cases.filter((_,index)=>index%of===part)) {
     await writeFile(join(restored,`exports/${code}.rer`),await tampered(archive,table,change,pick),{mode:0o600})
     const result=await command(restored,['import','--input',`exports/${code}.rer`,'--yes'],{expected:4})
-    assert.match(result,new RegExp(code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('card_statement')?'coaster_card_statement':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
+    assert.match(result,new RegExp(code.startsWith('coding_')?'coaster_coding_catalog':code==='match_basis'?'coaster_capture_lifecycle_provenance':code.startsWith('card_charge')?'coaster_card_charge':code.startsWith('card_statement')?'coaster_card_statement':code.startsWith('match_history')?'coaster_capture_(history|merge)':code.startsWith('match_basis_')?'coaster_capture_match_basis':code.startsWith('match_choice')?'coaster_capture_match_choice':'coaster_capture_'+code))
     await command(restored,['export','--output',`exports/unchanged-${code}.rer`])
     assert.deepEqual(rows(await records(join(restored,`exports/unchanged-${code}.rer`))),empty,'malformed match archive writes nothing')
   }

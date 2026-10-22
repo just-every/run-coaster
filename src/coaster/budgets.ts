@@ -2,6 +2,7 @@ import { all, authority, commit } from './session';
 import { event, ruleEvent } from './events';
 import { business, requireBusiness } from './settings';
 import { spendLines } from './spend-lines';
+import { codingCatalog, catalogState, offeredValue } from './coding/model';
 import { localDate } from './reports';
 import { parseCsv } from './imports/csv';
 import { operatorMail } from '../mail.server.mjs';
@@ -10,9 +11,9 @@ import { money, type ClaimItem, type PolicyException } from './exceptions';
 import { amount, email, now, requireThat, text, uid, type Actor, type Data } from './types';
 import { can, needRow, rowAuthority } from './permissions';
 
-/** Budgets with threshold alerts (REPORT-004). Departments (ADMIN-001) are a budget scope; projects and tags (CODE-001) join when that clause ships. */
-export type Budget = { id: string; version: number; name: string; scope: 'entity' | 'category' | 'cost-centre' | 'department'; scope_key: string; per_member: number; period: 'monthly' | 'quarterly' | 'yearly'; amount_minor: number; scope_category: string; owner_email: string; thresholds: number[]; policy_rule: number; alert_amounts: number; set_by: string; set_at: string };
-const SCOPES = ['entity', 'category', 'cost-centre', 'department'], PERIODS = ['monthly', 'quarterly', 'yearly'];
+/** Versioned budgets, including project and catalog tag scopes. */
+export type Budget = { id: string; version: number; name: string; scope: 'entity' | 'category' | 'cost-centre' | 'department' | 'project' | 'tag'; scope_key: string; per_member: number; period: 'monthly' | 'quarterly' | 'yearly'; amount_minor: number; scope_category: string; owner_email: string; thresholds: number[]; policy_rule: number; alert_amounts: number; set_by: string; set_at: string };
+const SCOPES = ['entity', 'category', 'cost-centre', 'department', 'project', 'tag'], PERIODS = ['monthly', 'quarterly', 'yearly'];
 
 /** The period holding a date (YYYY-MM, YYYY-Qn or YYYY) and its first and last day. */
 export function periodOf(day: string, period: Budget['period']) {
@@ -29,7 +30,7 @@ export async function budgets(db: D1Database): Promise<Budget[]> {
   return results.map(b => ({ ...b, thresholds: JSON.parse(b.thresholds) }) as Budget);
 }
 
-const inScope = (b: Budget, l: Data) => b.scope === 'entity' || (b.scope === 'category' ? l.category === b.scope_key : b.scope === 'department' ? l.department === b.scope_key && (!b.scope_category || l.category === b.scope_category) : l.costCentre === b.scope_key);
+const inScope = (b: Budget, l: Data) => b.scope === 'entity' || (b.scope === 'category' ? l.category === b.scope_key : b.scope === 'department' ? l.department === b.scope_key && (!b.scope_category || l.category === b.scope_category) : b.scope === 'project' ? l.projectId === b.scope_key || l.tags?.includes(b.scope_key) : b.scope === 'tag' ? l.tags?.includes(b.scope_key) : l.costCentre === b.scope_key);
 
 /** A budget's actual for one period: submitted (pending), approved and posted company-card spend by expense date, per member when it is per member. */
 export async function actual(db: D1Database, b: Budget, day: string) {
@@ -39,12 +40,14 @@ export async function actual(db: D1Database, b: Budget, day: string) {
   return { period_key: p.key, period_from: p.from, period_to: p.to, ...(b.per_member ? { members: [...new Set(lines.map(l => l.employee))].sort().map(m => view(lines.filter(l => l.employee === m), m)) } : view(lines)) };
 }
 
-function budgetInput(b: Data, members: Set<string>, categories: Set<string>, departments: Set<string>) {
+function budgetInput(b: Data, members: Set<string>, categories: Set<string>, departments: Set<string>, projects: Set<string>, tags: Set<string>) {
   const scope = String(b.scope ?? 'entity');
-  requireThat(SCOPES.includes(scope), 'A budget covers the whole business, a category, a cost centre or a department');
+  requireThat(SCOPES.includes(scope), 'A budget covers the whole business, a category, a cost centre, department, project or tag');
   const scopeKey = scope === 'entity' ? '' : text(b.scopeKey, scope === 'category' ? 'Category' : scope === 'department' ? 'Department' : 'Cost centre', 100);
   requireThat(scope !== 'category' || categories.has(scopeKey), 'Choose one of your categories');
   requireThat(scope !== 'department' || departments.has(scopeKey), 'Choose one of your departments');
+  requireThat(scope !== 'project' || projects.has(scopeKey), 'Choose an active catalog project');
+  requireThat(scope !== 'tag' || tags.has(scopeKey), 'Choose an active catalog tag');
   // A department budget can be narrowed to one category, such as Sales travel.
   const scopeCategory = scope === 'department' && b.category ? text(b.category, 'Category', 100) : '';
   requireThat(!scopeCategory || categories.has(scopeCategory), 'Choose one of your categories');
@@ -62,7 +65,10 @@ async function context(db: D1Database) {
   const members = new Set((await db.prepare('SELECT email FROM c_members WHERE active=1').all<{ email: string }>()).results.map(r => r.email));
   const categories = new Set((await db.prepare('SELECT id FROM c_categories').all<{ id: string }>()).results.map(r => r.id));
   const departments = new Set((await db.prepare('SELECT id FROM c_departments WHERE active=1').all<{ id: string }>()).results.map(r => r.id));
-  return { members, categories, departments };
+  const catalog = await codingCatalog(db), active = catalog.values.filter(v => offeredValue(catalog,v));
+  const projects = new Set(active.filter(v => catalog.dimensions.find(d => d.id === v.dimension_id)?.kind === 'project').map(v => v.id));
+  const tags = new Set(active.filter(v => catalog.dimensions.find(d => d.id === v.dimension_id)?.kind === 'tag').map(v => v.id));
+  return { members, categories, departments, projects, tags, catalogVersion: catalog.version };
 }
 const insert = (db: D1Database, id: string, version: number, v: ReturnType<typeof budgetInput>, by: string) => db.prepare('INSERT INTO c_budgets(id,version,name,scope,scope_key,scope_category,per_member,period,amount_minor,owner_email,thresholds,policy_rule,alert_amounts,set_by,set_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id, version, v.name, v.scope, v.scopeKey, v.scopeCategory, v.perMember ? 1 : 0, v.period, v.amountMinor, v.owner, JSON.stringify(v.thresholds), v.policyRule ? 1 : 0, v.alertAmounts ? 1 : 0, by, now());
 /** Only the owner may let a budget's alerts carry amounts; by default they name the percentage and period only. */
@@ -73,12 +79,12 @@ const setter = (actor: Actor) => { needRow(actor, 'policy'); requireThat(actor.k
 export async function saveBudget(db: D1Database, actor: Actor, b: Data) {
   const guard = setter(actor);
   await requireBusiness(db);
-  const ctx = await context(db), v = budgetInput(b, ctx.members, ctx.categories, ctx.departments);
+  const ctx = await context(db), v = budgetInput(b, ctx.members, ctx.categories, ctx.departments, ctx.projects, ctx.tags);
   amountsAllowed(actor, v);
   const id = typeof b.id === 'string' && b.id ? b.id : uid();
   const version = ((await db.prepare('SELECT MAX(version) AS n FROM c_budgets WHERE id=?').bind(id).first<{ n: number | null }>())?.n ?? 0) + 1;
   requireThat(!b.id || version > 1, 'Budget not found', 404);
-  await commit(db, all(guard, { sql: 'NOT EXISTS(SELECT 1 FROM c_budgets WHERE id=? AND version>=?)', params: [id, version] }), [insert(db, id, version, v, actor.delegate?.email ?? actor.email), event(db, actor, 'budget-saved', {}, { budget: id, version, ...v })]);
+  await commit(db, all(guard, catalogState(ctx.catalogVersion), { sql: 'NOT EXISTS(SELECT 1 FROM c_budgets WHERE id=? AND version>=?)', params: [id, version] }), [insert(db, id, version, v, actor.delegate?.email ?? actor.email), event(db, actor, 'budget-saved', {}, { budget: id, version, ...v })]);
   return budgetReport(db, actor);
 }
 
@@ -89,9 +95,9 @@ export async function importBudgets(db: D1Database, actor: Actor, b: Data) {
   requireThat(typeof b.csv === 'string' && b.csv.length > 0 && b.csv.length <= 200_000, 'Choose the budgets CSV');
   const { rows } = parseCsv(b.csv), ctx = await context(db), by = actor.delegate?.email ?? actor.email;
   requireThat(rows.length >= 1 && rows.length <= 200, 'Import one to 200 budgets');
-  const parsed = rows.map((r, i) => { try { return budgetInput(r, ctx.members, ctx.categories, ctx.departments); } catch (e) { throw Object.assign(e as Error, { message: `Row ${i + 2}: ${(e as Error).message}` }); } });
+  const parsed = rows.map((r, i) => { try { return budgetInput(r, ctx.members, ctx.categories, ctx.departments, ctx.projects, ctx.tags); } catch (e) { throw Object.assign(e as Error, { message: `Row ${i + 2}: ${(e as Error).message}` }); } });
   parsed.forEach(v => amountsAllowed(actor, v));
-  await commit(db, guard, [...parsed.map(v => insert(db, uid(), 1, v, by)), event(db, actor, 'budgets-imported', {}, { budgets: parsed.length })]);
+  await commit(db, all(guard,catalogState(ctx.catalogVersion)), [...parsed.map(v => insert(db, uid(), 1, v, by)), event(db, actor, 'budgets-imported', {}, { budgets: parsed.length })]);
   return budgetReport(db, actor);
 }
 
@@ -114,8 +120,8 @@ export async function overBudget(db: D1Database, claim: { id: string; employee_e
   for (const b of ruled) {
     const used = new Map<string, number>();
     for (const item of items) {
-      const p = periodOf(item.spent_on, b.period), parts = item.allocations.filter(a => inScope(b, { category: a.category_id, costCentre: a.cost_centre ?? '', department }));
-      const amountMinor = parts.reduce((n, a) => n + a.amount_minor, 0);
+      const p = periodOf(item.spent_on, b.period), parts = item.allocations.filter(a => inScope(b, { category: a.category_id, costCentre: a.cost_centre ?? '', department, project: item.project ?? '', projectId: item.codingSnapshot?.find((v:Data)=>v.kind==='project')?.id ?? '', tags: Object.values(item.coding ?? {}) }));
+      const amountMinor = parts.reduce((n, a) => n + a.amount_minor, 0) + (parts.length && ['project','tag'].includes(b.scope) ? item.sales_tax_minor ?? 0 : 0);
       if (!amountMinor) continue;
       if (!used.has(p.key)) used.set(p.key, (await spendLines(db, p.from, p.to)).filter(l => l.claim !== claim.id && inScope(b, l) && (!b.per_member || l.employee === claim.employee_email)).reduce((n, l) => n + l.amountMinor, 0));
       const total = used.get(p.key)! + amountMinor;

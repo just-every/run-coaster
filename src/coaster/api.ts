@@ -1,3 +1,4 @@
+import { publicApi } from './public-api/routes';
 import { changeAttachment } from './receipts/attachments';
 import { Hono, type Context } from 'hono';
 import { deploymentHealth } from '../base/deployment-health';
@@ -54,6 +55,9 @@ import { Fault, requireThat, type Actor, type Data } from './types';
 import { can, needRow } from './permissions';
 import { saveDepartment } from './departments';
 import { saveEscalationChain } from './escalation-chains';
+import { codingCatalog, codingOptions, saveDimension, saveCodingValue, saveCodingRequirements } from './coding/catalog';
+import { importCoding } from './coding/import';
+import { qboStatus, startQbo, finishQbo, refreshQbo, saveQboSchedule, disconnectQbo } from './accounting/qbo';
 
 type C = Context<{ Bindings: Bindings }>;
 export const api = new Hono<{ Bindings: Bindings }>();
@@ -248,3 +252,23 @@ api.post('/api/coaster/import/:op', as(async (a, c) => importAction(db(c), a, pa
 // CLAIM-002 reference lookups and nonwriting trip preview use the same pricing as saved expenses.
 api.get('/api/coaster/per-diem/locations', as(async (a, c) => { need(a, 'employee'); return perDiemLocations(c.req.query('method')); }));
 api.post('/api/coaster/per-diem/quote', as(async (a, c) => { need(a, 'employee'); const b = await body(c); return pricePerDiem(b.date, b.perDiem); }));
+
+api.get('/api/coaster/coding', as(async (_a, c) => codingCatalog(db(c))));
+api.get('/api/coaster/coding/options', as(async (_a, c) => codingOptions(await codingCatalog(db(c)), c.req.query('dimension') ?? '', c.req.query('parent') ?? '')));
+api.post('/api/coaster/coding/dimensions', as(async (a, c) => saveDimension(db(c), a, await body(c))));
+api.post('/api/coaster/coding/values', as(async (a, c) => saveCodingValue(db(c), a, await body(c))));
+api.post('/api/coaster/coding/requirements', as(async (a, c) => saveCodingRequirements(db(c), a, await body(c))));
+api.post('/api/coaster/coding/import', as(async (a, c) => importCoding(db(c), a, await body(c))));
+
+api.get('/api/coaster/accounting/qbo', as(async (a, c) => qboStatus(runtimeBindings(c.env), a)));
+api.post('/api/coaster/accounting/qbo/connect', as(async (a, c) => startQbo(runtimeBindings(c.env), a, await body(c))));
+api.get('/api/coaster/accounting/qbo/callback', as(async (a, c) => {
+  c.header('referrer-policy', 'no-referrer');
+  await finishQbo(runtimeBindings(c.env), a, new URL(c.req.url));
+  return c.redirect('/app#/settings', 303);
+}));
+api.post('/api/coaster/accounting/qbo/refresh', as(async (a, c) => refreshQbo(runtimeBindings(c.env), a)));
+api.post('/api/coaster/accounting/qbo/schedule', as(async (a, c) => saveQboSchedule(runtimeBindings(c.env), a, await body(c))));
+api.post('/api/coaster/accounting/qbo/disconnect', as(async (a, c) => disconnectQbo(runtimeBindings(c.env), a, await body(c))));
+
+api.route('/api/coaster/public-api', publicApi);

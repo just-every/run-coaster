@@ -41,6 +41,10 @@ export interface Bindings {
  MAIL_FROM?: string
  MAIL_API_KEY?: string
  MAIL_ACCOUNT_ID?: string
+ /** Optional Intuit app; connecting a company still requires explicit native-session consent. */
+ QBO_CLIENT_ID?: string
+ QBO_CLIENT_SECRET?: string
+ QBO_ENVIRONMENT?: 'sandbox' | 'production'
 }
 
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env

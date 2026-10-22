@@ -19,6 +19,8 @@ export type Actor = {
   operatorId?: string;
   session?: string;
   keyId?: string;
+  /** Public REST credential, separate from native sessions and agent keys. */
+  publicCredential?: { id: string; scope: string; scopes: string; draftClaim?: string };
   agentLabel?: string;
   /** Set when a person acts as someone's delegate (ADMIN-005): `email` is then the granting person's. */
   delegate?: { email: string; name: string; level: 'submit' | 'full'; grant: string };
