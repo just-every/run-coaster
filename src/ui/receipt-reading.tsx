@@ -16,7 +16,7 @@ export function ReceiptReadingSettings() {
     {error && <p className="form-error" role="alert">{error}</p>}
     {data && <Form key={data.version} label="Save receipt reading" onSubmit={async values => { await call('settings/receipt-reading', { ...values, version: data.version, threshold: Number(values.threshold) }); await load(); }}>
       <Field label="Enable receipt reading" name="enabled" type="checkbox" defaultValue={data.enabled} />
-      <Field label="Vision model" name="model" defaultValue={data.model || 'gpt-4.1-2025-04-14'} hint="The exact model configured with your AI provider" />
+      <Field label="Vision model" name="model" defaultValue={data.model} hint="The exact model configured with your AI provider" />
       <Field label="Minimum confidence" name="threshold" type="number" min="0.9" max="1" step="0.01" defaultValue={data.threshold} />
       <Field label="I authorize sending explicitly selected receipts to the configured AI provider" name="consent" type="checkbox" />
     </Form>}
