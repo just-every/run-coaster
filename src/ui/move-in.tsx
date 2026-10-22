@@ -20,7 +20,7 @@ export function MoveIn({ state, reload }: ViewProps) {
   const [preview, setPreview] = useState<D>(), [jobs, setJobs] = useState<D>(), [cutover, setCutover] = useState<D>(), [error, setError] = useState(''), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
   const refresh = async () => { const [imports, report] = await Promise.all([call('import'), call('import/cutover')]); setJobs(imports); setCutover(report); await reload(); };
   useEffect(() => { refresh().catch(e => setError(e.message)); }, []);
-  const input = () => ({ csv: file?.csv, filename: file?.name, mapping: { date, statuses }, receipts });
+  const input = () => ({ csv: file?.csv, filename: file?.name, mapping: { date, statuses }, ...(receipts.length ? { receipts } : {}) });
   async function run(work: () => Promise<void>) { setBusy(true); setError(''); setNotice(''); try { await work(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }
   async function look(mapping = statuses) {
     const result = await call('import/preview', { ...input(), mapping: { date, statuses: mapping } });

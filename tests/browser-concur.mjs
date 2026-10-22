@@ -50,6 +50,16 @@ export async function concurJourney(owner, origin, width, evidence, shots) {
 export async function expensifyJourney(owner,origin,width,evidence,shots){
  const {page,context}=owner;
  await page.setViewportSize({width,height:1000});await page.goto(origin+'/app#/move-in');
+ // CSV-only history remains a public door when no image files are selected.
+ const prior=await api(context,origin,'state'),legacy=page.getByRole('region',{name:'Import a file',exact:true}),legacyId=`synthetic-coaster-legacy-${width}`;
+ const legacyCsv=`reportID,reportName,accountEmail,status,transactionID,created,merchant,amount,currency,receiptFilename\n${legacyId},Legacy report ${width},${legacyId}@example.test,Closed,${legacyId}-expense,2026-09-01,Legacy meal,25.00,${prior.business.currency},legacy.png\n`;
+ await legacy.getByLabel('Expensify receipt files',{exact:true}).setInputFiles([]);
+ await legacy.getByLabel('Expensify CSV',{exact:true}).setInputFiles({name:`${legacyId}.csv`,mimeType:'text/csv',buffer:Buffer.from(legacyCsv)});
+ await legacy.getByRole('button',{name:'Preview',exact:true}).click();await expect(legacy.getByRole('button',{name:'Import 1 report',exact:true})).toBeEnabled();
+ await legacy.getByRole('button',{name:'Import 1 report',exact:true}).click();await page.getByRole('region',{name:'Imported history',exact:true}).getByRole('cell',{name:`Legacy report ${width}`,exact:true}).waitFor();
+ assert.ok((await api(context,origin,'import')).history.some(h=>h.reportId===legacyId));
+ await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/coaster/import/undo')&&r.status()===200),page.getByRole('region',{name:'Imports',exact:true}).getByRole('button',{name:'Undo import',exact:true}).first().click()]);
+ assert.ok(!(await api(context,origin,'import')).history.some(h=>h.reportId===legacyId));await page.reload();
  const section=page.getByRole('region',{name:'Expensify configuration',exact:true});
  const employee=crypto.randomUUID(),manager=crypto.randomUUID(),category=crypto.randomUUID(),tag=crypto.randomUUID(),card=crypto.randomUUID();
  const data={members:[{key:employee,email:`synthetic-coaster-${width}@example.com`,name:`Expensify employee ${width}`},{key:manager,email:`synthetic-coaster-manager-${width}@example.com`,name:`Expensify manager ${width}`,manager:true}],categories:[{key:category,name:`Expensify meals ${width}`,accountCode:'6310',taxCode:'NONE'}],chains:[{key:crypto.randomUUID(),employee,steps:[manager]}],tags:[{key:tag,name:`Client synthetic-coaster-${width}`}],cards:[{key:card,issuer:`Synthetic Coaster ${width}`,last4:String(width).padStart(4,'0'),employee}],policies:[{key:crypto.randomUUID(),name:'US expense limit',rules:[{kind:'per-expense-limit',category,limit:'70.00'}]}],unmappedSetting:true};
