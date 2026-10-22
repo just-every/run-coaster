@@ -1,0 +1,865 @@
+{
+  "schema": 1,
+  "definitionCommit": "f27a470626f05bfea3bdcb5738f0247055349c36",
+  "kindCounts": {
+    "finance": 24,
+    "personal": 12,
+    "person": 24,
+    "department": 12,
+    "company": 12,
+    "ambiguous": 12,
+    "retired-account": 6,
+    "new-mcc": 6,
+    "unknown": 6,
+    "retired-class": 6
+  },
+  "inputs": {
+    "catalog.json": "ffbcfbc309e59e5cb8249db8b0a3da9c698366570fc0cbb2becf4c2d888eac46",
+    "rules.json": "f18446f2572a8639ac90c3e0252fc7661af40d17823b0e8cf9dd20fcc5c12967",
+    "history.json": "4ec4ffbda5ba8103f433ab7249ce5ad6f61646acc76928cb8a683bee7d3a22f0",
+    "charges.json": "0f3eaf9bea1b106d712369ea107f2bd570e8c2c1dafe428d9bf4c5c06dfac17c",
+    "labels.json": "966f0744dd95426ba27cab4ef4fec732eef5eb25c1303566a40f477e91b84998"
+  },
+  "receipts": [
+    {
+      "id": "synthetic-coaster-30000",
+      "path": "receipts/synthetic-coaster-30000.png",
+      "sha256": "98cd581615ef8e4cd380455fbb31e6125d0fddd179e040df087b22e4baa8d77b",
+      "label": "labels/synthetic-coaster-30000.json",
+      "labelSha256": "e44b4aaa84397afd29394dccf73cc029a8874654b58f3f3e66480c7a4ba3e980"
+    },
+    {
+      "id": "synthetic-coaster-30001",
+      "path": "receipts/synthetic-coaster-30001.png",
+      "sha256": "904f7dfc32fadf7e90d8b609bbda266189eb8215fda7d74141d5f924e733fa01",
+      "label": "labels/synthetic-coaster-30001.json",
+      "labelSha256": "9cfedac7ccaea6427adc27ed6a70dafbf24a01d715ac7142ff3acb1c7b97a5f4"
+    },
+    {
+      "id": "synthetic-coaster-30002",
+      "path": "receipts/synthetic-coaster-30002.png",
+      "sha256": "373d937530f756f03a6f6044c019843f5699bf3664e97dee20828a95950a05af",
+      "label": "labels/synthetic-coaster-30002.json",
+      "labelSha256": "179ca11b239a897a32e8ca7666be6fa24c6d83881235b9c4510a8a1f03350227"
+    },
+    {
+      "id": "synthetic-coaster-30003",
+      "path": "receipts/synthetic-coaster-30003.png",
+      "sha256": "dd7f3c0823c3b6d47a03df3337d503505604cbe975c72a34c46c9efac6b29e14",
+      "label": "labels/synthetic-coaster-30003.json",
+      "labelSha256": "6dba09feda0ab1b9b671be6cbc2a4257ad38013460dc416463b9bd4214465d79"
+    },
+    {
+      "id": "synthetic-coaster-30004",
+      "path": "receipts/synthetic-coaster-30004.png",
+      "sha256": "d6ee162bf097cb15d66c3b2d0fec53d7dd367ffd4fb46106fa07bc156ad61f6a",
+      "label": "labels/synthetic-coaster-30004.json",
+      "labelSha256": "35edaaf97518192bf0e9441d09dada02ae69cbce32ec39aa9fc10afba983f1a6"
+    },
+    {
+      "id": "synthetic-coaster-30005",
+      "path": "receipts/synthetic-coaster-30005.png",
+      "sha256": "addacfa302bcb11e48537e8d5dd4bc3b6d151f71726212138b1221f895a4fc37",
+      "label": "labels/synthetic-coaster-30005.json",
+      "labelSha256": "584704a56243dc800c2e1afc470d3c5046f64ddadf2230bba628b03d456cfefe"
+    },
+    {
+      "id": "synthetic-coaster-30006",
+      "path": "receipts/synthetic-coaster-30006.png",
+      "sha256": "439cefafc438f132b95dbf8fc2a93f3fc4329c8a34740353828fed2fd2b3fbc6",
+      "label": "labels/synthetic-coaster-30006.json",
+      "labelSha256": "1a00b7ce43e489ee35911c69c8a79a07a6aa8c76ac7b5d39692fd010a10d514b"
+    },
+    {
+      "id": "synthetic-coaster-30007",
+      "path": "receipts/synthetic-coaster-30007.png",
+      "sha256": "778c00d55b91bce50190548824c52eb6c796c6c58567d5718bd8e8ea4e67f72f",
+      "label": "labels/synthetic-coaster-30007.json",
+      "labelSha256": "4fc90d136071ac565f4b1e2f2e5f07937d7d186eab74243f539ed7fba38ceedf"
+    },
+    {
+      "id": "synthetic-coaster-30008",
+      "path": "receipts/synthetic-coaster-30008.png",
+      "sha256": "a151add338910ecdad53ac0986418079fd41b8b0aac58bd4e5caf168f7906fbb",
+      "label": "labels/synthetic-coaster-30008.json",
+      "labelSha256": "926836c3645f80e4c924e30631c539cf5a6343339fe4f4501985e4a3efbd56bd"
+    },
+    {
+      "id": "synthetic-coaster-30009",
+      "path": "receipts/synthetic-coaster-30009.png",
+      "sha256": "32421e40dec897fd03dea7f5112f73615815b792469781c7b9ea92e5d0a92712",
+      "label": "labels/synthetic-coaster-30009.json",
+      "labelSha256": "1dfa4b6af2caf206087244c1213038c4ac8caeb5e0b2257dce60955b02b317a3"
+    },
+    {
+      "id": "synthetic-coaster-30010",
+      "path": "receipts/synthetic-coaster-30010.png",
+      "sha256": "343750bb8e3bf843900d12fc60eb27abc7e25daac14a5967ff530f09731be445",
+      "label": "labels/synthetic-coaster-30010.json",
+      "labelSha256": "b5d0bc560c08fb08816d4c187342737c0597d1e6fa26ca507dac4b7228bfa954"
+    },
+    {
+      "id": "synthetic-coaster-30011",
+      "path": "receipts/synthetic-coaster-30011.png",
+      "sha256": "d47d3c9982cda80617be0644e060a935013bf6a5b2e53469ec21e325d8356bc6",
+      "label": "labels/synthetic-coaster-30011.json",
+      "labelSha256": "a22cde7a01e9c2cd896307284b8516121a5cc7ea1abb52b407f562e9878f3176"
+    },
+    {
+      "id": "synthetic-coaster-30012",
+      "path": "receipts/synthetic-coaster-30012.png",
+      "sha256": "1ab60c5853dd25660e6d0db46a8a4ac1abf4bfb19cea7016431044f7581bec69",
+      "label": "labels/synthetic-coaster-30012.json",
+      "labelSha256": "03141861732d910cbe79b78d1d218b9afa740e340228c343fd4b7c36cf4a29de"
+    },
+    {
+      "id": "synthetic-coaster-30013",
+      "path": "receipts/synthetic-coaster-30013.png",
+      "sha256": "260ab8f484ad527d3b90f6077c4f23b16d397e92751610446c13256a530c116f",
+      "label": "labels/synthetic-coaster-30013.json",
+      "labelSha256": "d1e7e8a1fd27bf76d23329777305913528973983a19d357da7cba2252e7809d3"
+    },
+    {
+      "id": "synthetic-coaster-30014",
+      "path": "receipts/synthetic-coaster-30014.png",
+      "sha256": "19c07d062a6cda5fff04483cf3a5a6611b9b97ad4966aed5eda99a00118de2b6",
+      "label": "labels/synthetic-coaster-30014.json",
+      "labelSha256": "71d17bda173c1be0316204eb80536577f97f5990676b219a3ec46635936e6c87"
+    },
+    {
+      "id": "synthetic-coaster-30015",
+      "path": "receipts/synthetic-coaster-30015.png",
+      "sha256": "f3aa02b0d930f2bf6695daaeff3d3c539afd00176307a9b4286da9acbc64188b",
+      "label": "labels/synthetic-coaster-30015.json",
+      "labelSha256": "7fac9704c3fbad21df223bc992c8918a29dea895545560e3391577c2bcdbf476"
+    },
+    {
+      "id": "synthetic-coaster-30016",
+      "path": "receipts/synthetic-coaster-30016.png",
+      "sha256": "f069a8424c7d701f08c700f2a9f3e7f24430103ad03a5d05d384f8cd34217368",
+      "label": "labels/synthetic-coaster-30016.json",
+      "labelSha256": "9dc2c40d65044831c78666e14125dab4d62e2513d90efec74bf8c3a8a06b01ad"
+    },
+    {
+      "id": "synthetic-coaster-30017",
+      "path": "receipts/synthetic-coaster-30017.png",
+      "sha256": "d5d88c0c273bd3541ade2a40c400d8dad659c27a436c6f0c463ddd6a12b9cb61",
+      "label": "labels/synthetic-coaster-30017.json",
+      "labelSha256": "447c5bec7a49c6c92fd606b63cbba2b39e024d2ef0a082c2603cecce87f942d2"
+    },
+    {
+      "id": "synthetic-coaster-30018",
+      "path": "receipts/synthetic-coaster-30018.png",
+      "sha256": "2ebbac3459aa151c7341b9cd2c80034931f6b632adc4f45d1e89b7dbfda8e51c",
+      "label": "labels/synthetic-coaster-30018.json",
+      "labelSha256": "3c0d414c5efaf46f2eacd0c08029fca33420233f74b21ae81af6d1ac49cdaf19"
+    },
+    {
+      "id": "synthetic-coaster-30019",
+      "path": "receipts/synthetic-coaster-30019.png",
+      "sha256": "efb2899eb9e06e03625b28d26bcf3f3fed4d06254a068f7c944bf7af03b4626e",
+      "label": "labels/synthetic-coaster-30019.json",
+      "labelSha256": "05d5de4c639549c506efac9436f340d4802c2659649426380ebe74ff554042f6"
+    },
+    {
+      "id": "synthetic-coaster-30020",
+      "path": "receipts/synthetic-coaster-30020.png",
+      "sha256": "eb1b8d36c40b170ca94e3042504a2a61937c517d7e67612a67bb394a1f92a2de",
+      "label": "labels/synthetic-coaster-30020.json",
+      "labelSha256": "0052620bb39b7525e61c9ff60dd077c14cb00f9677d834333eae9a1a434eb935"
+    },
+    {
+      "id": "synthetic-coaster-30021",
+      "path": "receipts/synthetic-coaster-30021.png",
+      "sha256": "619d174847d8c806a89af1990486f3900599e984d0aa2a6b9b8caa2df3904063",
+      "label": "labels/synthetic-coaster-30021.json",
+      "labelSha256": "e0eef7153a0feba6ee0cba495ed509c087a4b72c9f3f7b85ef71b0bd3461477f"
+    },
+    {
+      "id": "synthetic-coaster-30022",
+      "path": "receipts/synthetic-coaster-30022.png",
+      "sha256": "5363286fa341d559b1217474a24f67ce9d92a18b3c9181a7dd2ef277e82d75ca",
+      "label": "labels/synthetic-coaster-30022.json",
+      "labelSha256": "c6e2efab53a83608f397826e1e01f59a3c46b7071e254472d99eeae3ab979dbd"
+    },
+    {
+      "id": "synthetic-coaster-30023",
+      "path": "receipts/synthetic-coaster-30023.png",
+      "sha256": "13d9ee427a0017abe9a7f2add62ba236d31cf0e31425bbf777103502603ec36b",
+      "label": "labels/synthetic-coaster-30023.json",
+      "labelSha256": "35e16b5e44b006ab0e9f605f97dc50ceab0084611f312fceaa29059e2097738f"
+    },
+    {
+      "id": "synthetic-coaster-30024",
+      "path": "receipts/synthetic-coaster-30024.png",
+      "sha256": "c2bf2279d797fb155571c39ce92b03576093756b86fb18e638ea01428936a7fe",
+      "label": "labels/synthetic-coaster-30024.json",
+      "labelSha256": "d5f6310fb5af3e8a10edbba167f83c50a6d860e9625e5a2f653d89bae0b7f806"
+    },
+    {
+      "id": "synthetic-coaster-30025",
+      "path": "receipts/synthetic-coaster-30025.png",
+      "sha256": "c687dbd10b543f9077c4db28e99668cce5f259a7918887b1607ec92b18585f53",
+      "label": "labels/synthetic-coaster-30025.json",
+      "labelSha256": "0d9ca6491bc29efad77813e0ddaed259dc21b451c2c43f70b2eec5e9a149be05"
+    },
+    {
+      "id": "synthetic-coaster-30026",
+      "path": "receipts/synthetic-coaster-30026.png",
+      "sha256": "688d0744a45675cfcd9e4156f0ee87bf016fae1bfa8ff35187656be68d41cf88",
+      "label": "labels/synthetic-coaster-30026.json",
+      "labelSha256": "918c5688cf1c5f811a15cbc72c11e55b3c310fcf2be88d5bf02bddf2ae73a550"
+    },
+    {
+      "id": "synthetic-coaster-30027",
+      "path": "receipts/synthetic-coaster-30027.png",
+      "sha256": "7ff20af2416906e135bcc68722b13cc6d8e8728437d1dfca6327a42dd074c0ce",
+      "label": "labels/synthetic-coaster-30027.json",
+      "labelSha256": "4969a5002b2e7e4e90d3ee60057abaec79fa20986994978f599e8ee2b3c3a129"
+    },
+    {
+      "id": "synthetic-coaster-30028",
+      "path": "receipts/synthetic-coaster-30028.png",
+      "sha256": "6e0e3d67086d3d3f85bbdb54da94530c25afcf62e432922051587d13e44dc214",
+      "label": "labels/synthetic-coaster-30028.json",
+      "labelSha256": "4fb5a4f5683f5721163ff1c3635e966e672c3d4e0f357b01d7427376fdd4c831"
+    },
+    {
+      "id": "synthetic-coaster-30029",
+      "path": "receipts/synthetic-coaster-30029.png",
+      "sha256": "64039b22dc3eaabb31e89c185261e6e9e991b26c71dd5d00386131dc5bb4cfd2",
+      "label": "labels/synthetic-coaster-30029.json",
+      "labelSha256": "bfd417a3fe9c7aa3dce10730f2e18592b2b143eb3b7d8d878e7905b02c28ee08"
+    },
+    {
+      "id": "synthetic-coaster-30030",
+      "path": "receipts/synthetic-coaster-30030.png",
+      "sha256": "3d7f36a25487b6a0cd0326a5e4540667741b577ec96eb299c3968cd33b9e8ae7",
+      "label": "labels/synthetic-coaster-30030.json",
+      "labelSha256": "6cbe745cdf5638bf3bab936033978400ba2fb1329084af6ecc798fa0b76ca6c5"
+    },
+    {
+      "id": "synthetic-coaster-30031",
+      "path": "receipts/synthetic-coaster-30031.png",
+      "sha256": "f55d73bfca120411856bb4f03dd0feceb8ec7f1942be196c10376f42d4c0ffac",
+      "label": "labels/synthetic-coaster-30031.json",
+      "labelSha256": "e4f66c2e7a8a0461cd951811815d759f149c7cb40d41bfc23f98d83d46a3f446"
+    },
+    {
+      "id": "synthetic-coaster-30032",
+      "path": "receipts/synthetic-coaster-30032.png",
+      "sha256": "0b52f98075254d881eb4c38e6c755d5dd83113bb24934c6b6367617424a0b4fa",
+      "label": "labels/synthetic-coaster-30032.json",
+      "labelSha256": "e0e6a66008776d01e74bcb2afcce64a2c0e08afe18c92d116bc390de9161e7be"
+    },
+    {
+      "id": "synthetic-coaster-30033",
+      "path": "receipts/synthetic-coaster-30033.png",
+      "sha256": "d348bb312f46f58ecee1c5a776ec2590b8bb7efa4dbfead21856da375972f58f",
+      "label": "labels/synthetic-coaster-30033.json",
+      "labelSha256": "6c6e19b1f78cf29d6e84670c78f1a68666199bfcea27b7e6f9a82f71f06f27e6"
+    },
+    {
+      "id": "synthetic-coaster-30034",
+      "path": "receipts/synthetic-coaster-30034.png",
+      "sha256": "16bfb65e3b0b7dc839e1abb5feca894eaca6b945d5a07f89dbcaf823af7c85d6",
+      "label": "labels/synthetic-coaster-30034.json",
+      "labelSha256": "5d2b375109f063235665070cde869d5743cc94f5a070a2776eba1262e4e4fb8a"
+    },
+    {
+      "id": "synthetic-coaster-30035",
+      "path": "receipts/synthetic-coaster-30035.png",
+      "sha256": "2112cc14298ab0dc8adcc3f4c7063c5b51920d2b1fdb864bf7e7a93f5df37a4a",
+      "label": "labels/synthetic-coaster-30035.json",
+      "labelSha256": "37cc3e424a0db135be485413e14e0e659bd264f4facef1cd70740a1b24a2cacb"
+    },
+    {
+      "id": "synthetic-coaster-30036",
+      "path": "receipts/synthetic-coaster-30036.png",
+      "sha256": "fb355c9f59e14e8ff40b3eab436c89439952ea06de6cf51437e4841e46f883c3",
+      "label": "labels/synthetic-coaster-30036.json",
+      "labelSha256": "9a950c6397eed2186d2ea072add0a859b3037390548554e98cbdfec6ebddf235"
+    },
+    {
+      "id": "synthetic-coaster-30037",
+      "path": "receipts/synthetic-coaster-30037.png",
+      "sha256": "83c0bddf15cdf797d9c9221a641fdcb2137f6a3aebc9b1b25556740a140b18e1",
+      "label": "labels/synthetic-coaster-30037.json",
+      "labelSha256": "97f72edda2dd2569d9d7231efa57555b57444ca3f628dec8eea6083059450db9"
+    },
+    {
+      "id": "synthetic-coaster-30038",
+      "path": "receipts/synthetic-coaster-30038.png",
+      "sha256": "2113158538bc74ddd0c00991a085fc1d6919423254c6b39eb4f9ae4dc4d5f44f",
+      "label": "labels/synthetic-coaster-30038.json",
+      "labelSha256": "31fa8b29d5e38ce67592cbb9c83cd5a1355a0ea0adbdfb4e5e52f8e2aefd7c87"
+    },
+    {
+      "id": "synthetic-coaster-30039",
+      "path": "receipts/synthetic-coaster-30039.png",
+      "sha256": "3cb44ba795f228ca6ef73c0899ebdc74253e3b98412f96aa80ac614fb7c647cf",
+      "label": "labels/synthetic-coaster-30039.json",
+      "labelSha256": "cdde5835920cdfa543b07f369b3f8b1ae8190e45d9fe6cf740550c91bbc7c8cd"
+    },
+    {
+      "id": "synthetic-coaster-30040",
+      "path": "receipts/synthetic-coaster-30040.png",
+      "sha256": "8f388ee9b62347d27f0ee12c334e0561c5c0c9a78ece23da2cc8dc128dc70ae0",
+      "label": "labels/synthetic-coaster-30040.json",
+      "labelSha256": "c849601ec80b13599a755fe26f36abda4397e6054412444726e1aac8d5e2242f"
+    },
+    {
+      "id": "synthetic-coaster-30041",
+      "path": "receipts/synthetic-coaster-30041.png",
+      "sha256": "667d12b9e0692010db27737b581b4a419fe8c99dafc40932b06484567840ad30",
+      "label": "labels/synthetic-coaster-30041.json",
+      "labelSha256": "5f674422046fdca119240eefc2e759d86992e663a32d06fa3fd6cc0c59eee924"
+    },
+    {
+      "id": "synthetic-coaster-30042",
+      "path": "receipts/synthetic-coaster-30042.png",
+      "sha256": "e5f62e1d807b549e1f3de6684e7c27c5d791792fce919b05f7e8a053fc687438",
+      "label": "labels/synthetic-coaster-30042.json",
+      "labelSha256": "0d37c2947159080f4f7fcce908c45e95b340a3486d31ed3e3930174aeb0f7f4b"
+    },
+    {
+      "id": "synthetic-coaster-30043",
+      "path": "receipts/synthetic-coaster-30043.png",
+      "sha256": "0b5fe797e05c730d56d55388b12aed40661d6f2c68d9adbc9857229b2ff0cfd6",
+      "label": "labels/synthetic-coaster-30043.json",
+      "labelSha256": "ef17a0d909c71a10f1bb5af81aa97ea457b8a9a2cf4b8c54a1ad5062afab53fc"
+    },
+    {
+      "id": "synthetic-coaster-30044",
+      "path": "receipts/synthetic-coaster-30044.png",
+      "sha256": "10d8cacfa6efb6c732129c0e8486f58d8a258503d82a5945cec8190ccc41fde2",
+      "label": "labels/synthetic-coaster-30044.json",
+      "labelSha256": "ae18dc17570fce78ad7a5d8d60821dc706827145c08ed690c37cb5443f01b77c"
+    },
+    {
+      "id": "synthetic-coaster-30045",
+      "path": "receipts/synthetic-coaster-30045.png",
+      "sha256": "7bf9207472bf3f7bd5e8035022b252ace7ea378336ca772b1e2c0c10200bbe95",
+      "label": "labels/synthetic-coaster-30045.json",
+      "labelSha256": "1cb9d102b027b048aead065f8b80585915d524ba19f95c23ad3d18aa6fee0730"
+    },
+    {
+      "id": "synthetic-coaster-30046",
+      "path": "receipts/synthetic-coaster-30046.png",
+      "sha256": "bab1c27cd409fc87ab6ffbadda736643dfda14063de9cd5c4a03e27cef98f32e",
+      "label": "labels/synthetic-coaster-30046.json",
+      "labelSha256": "6b27bf20e4e58f87a681375d65ad007d020d5b9c077b8d110264e3de8a1541f5"
+    },
+    {
+      "id": "synthetic-coaster-30047",
+      "path": "receipts/synthetic-coaster-30047.png",
+      "sha256": "cffcb43cccfcef826364687e5c57e2b17f38e8af309ffda8f4491d7272eb5f78",
+      "label": "labels/synthetic-coaster-30047.json",
+      "labelSha256": "11e5aca60da6f475c6bc4a586c10ba9309541a059f9787992b212be384904f8f"
+    },
+    {
+      "id": "synthetic-coaster-30048",
+      "path": "receipts/synthetic-coaster-30048.png",
+      "sha256": "6e65c64b8f510f4e09859dbf0de9aa53eb68ecd90c4f9d49a383cfd5a0a9bb97",
+      "label": "labels/synthetic-coaster-30048.json",
+      "labelSha256": "bdeb917c86bc04eb862212558a0d216b95bdf969d755e166c5f79def326c357d"
+    },
+    {
+      "id": "synthetic-coaster-30049",
+      "path": "receipts/synthetic-coaster-30049.png",
+      "sha256": "79e5d8b85d230fc5f339cfacfbed96c0dac1e57c58f4a003a2a3172dc1d9098b",
+      "label": "labels/synthetic-coaster-30049.json",
+      "labelSha256": "79644f735f5756b495b16160335136e95fb761fce417d420382b688f01cdd286"
+    },
+    {
+      "id": "synthetic-coaster-30050",
+      "path": "receipts/synthetic-coaster-30050.png",
+      "sha256": "e216e7beda4f7209e08bdc0d9bd83319af14ba911fedf11b408de3e34b7c2a82",
+      "label": "labels/synthetic-coaster-30050.json",
+      "labelSha256": "5e593e656fa5742e1e8dc68e1340caa6e5a0967e8a6f1a4e0060e1de3e5b6cde"
+    },
+    {
+      "id": "synthetic-coaster-30051",
+      "path": "receipts/synthetic-coaster-30051.png",
+      "sha256": "b3d2c98a90190bc19dedc3676ccd1c36b5c48529103ef54cf367085d5b55eab0",
+      "label": "labels/synthetic-coaster-30051.json",
+      "labelSha256": "012c2e576bf1f84df5afa0f68e47957752b9cd2aa8f295d280423c34685eba21"
+    },
+    {
+      "id": "synthetic-coaster-30052",
+      "path": "receipts/synthetic-coaster-30052.png",
+      "sha256": "5531bdab412d22d859d2d9c2247625ce9afb8c2d066b5c764cd48244076a1562",
+      "label": "labels/synthetic-coaster-30052.json",
+      "labelSha256": "05f7defd0bb62e842a6549106e610d5405375c737a640026c86d516889e09b53"
+    },
+    {
+      "id": "synthetic-coaster-30053",
+      "path": "receipts/synthetic-coaster-30053.png",
+      "sha256": "2f7fb7a9070fbbd319a4771c5cab366604e1339b541ee1b2931c6570524e1919",
+      "label": "labels/synthetic-coaster-30053.json",
+      "labelSha256": "2af11c93109727e80bafa578bbe87cd0524cbe4c85fc1cf900735ccc114dfb6a"
+    },
+    {
+      "id": "synthetic-coaster-30054",
+      "path": "receipts/synthetic-coaster-30054.png",
+      "sha256": "4a4ce8ab4d44dcfa175c04bd48686f6a4573e90d9f382704ac4c51b982ea3526",
+      "label": "labels/synthetic-coaster-30054.json",
+      "labelSha256": "b8f2ea690867949f17adc5ebfeb66a0e472f74f2cdfdf36b088626f8b4879c65"
+    },
+    {
+      "id": "synthetic-coaster-30055",
+      "path": "receipts/synthetic-coaster-30055.png",
+      "sha256": "07ab5618114c17b9e32e18e1e21497db2386376a26a93aaf99c2f99d316d1805",
+      "label": "labels/synthetic-coaster-30055.json",
+      "labelSha256": "e769179b203e33e5d0840368f3acdd4cb64345c4f4c8fe52f5bc9b336634c67e"
+    },
+    {
+      "id": "synthetic-coaster-30056",
+      "path": "receipts/synthetic-coaster-30056.png",
+      "sha256": "20a340b62b13dd3fa2b973d7217cdf81f209422201f31fb8025627b993fe219a",
+      "label": "labels/synthetic-coaster-30056.json",
+      "labelSha256": "1465e9e95d3b7fb9ce3c6d6d912420ed5f1f23592acdda2a66670e68d57802b5"
+    },
+    {
+      "id": "synthetic-coaster-30057",
+      "path": "receipts/synthetic-coaster-30057.png",
+      "sha256": "2f986759dd61f280b05cc2a393ded0f1b61d721be569acaca32cc4f78d24ee54",
+      "label": "labels/synthetic-coaster-30057.json",
+      "labelSha256": "8530759d2f1e15dbf0dc2252e5501ea6b4b77b617f63847a911d04e89386d608"
+    },
+    {
+      "id": "synthetic-coaster-30058",
+      "path": "receipts/synthetic-coaster-30058.png",
+      "sha256": "be6e4569cb05fa547ab47e11dd1eb2e5ad98b87a5493b41c0e8a9d9f2869f453",
+      "label": "labels/synthetic-coaster-30058.json",
+      "labelSha256": "95ac76283fe65833b65d87a37fb5fe0a5bca8de6929690ddb9d83b8b16190eba"
+    },
+    {
+      "id": "synthetic-coaster-30059",
+      "path": "receipts/synthetic-coaster-30059.png",
+      "sha256": "62144b5d420a45565d1699108d3e0d1987b9e23348eba051caf3cad3cdcc4327",
+      "label": "labels/synthetic-coaster-30059.json",
+      "labelSha256": "f14981c4068d3b7ae1a8c9c703970501e59f75c312b8f924c401eab24f0f1b2c"
+    },
+    {
+      "id": "synthetic-coaster-30060",
+      "path": "receipts/synthetic-coaster-30060.png",
+      "sha256": "6561e3a4466b7114279e7e815b2856bfcb4eefd8a6283e9ad3143ef2c6976540",
+      "label": "labels/synthetic-coaster-30060.json",
+      "labelSha256": "f1292220d88a6cb565baa76d0f2e144c0d6894a7e5cd0e64de2ec4769e1ce217"
+    },
+    {
+      "id": "synthetic-coaster-30061",
+      "path": "receipts/synthetic-coaster-30061.png",
+      "sha256": "b1f418364943881795fbe8321c6556720bac8e6d0870fbbb9e7de2d8b0697e0c",
+      "label": "labels/synthetic-coaster-30061.json",
+      "labelSha256": "1e1c34b569a93516180704d33d7ee6d3abd992aef04d3431afbb76d178b508c1"
+    },
+    {
+      "id": "synthetic-coaster-30062",
+      "path": "receipts/synthetic-coaster-30062.png",
+      "sha256": "b0ac74d81656920376cc6cde13860451cd8c8b1859940f57c358e0e14a6de88c",
+      "label": "labels/synthetic-coaster-30062.json",
+      "labelSha256": "298262bf31a14cb3de4753eec743bf319d6833976ac41c6e187e6033f93cab85"
+    },
+    {
+      "id": "synthetic-coaster-30063",
+      "path": "receipts/synthetic-coaster-30063.png",
+      "sha256": "c3f458190fe1481b5940b891f446e72a47202c842912ec63da11503dab35b033",
+      "label": "labels/synthetic-coaster-30063.json",
+      "labelSha256": "6e5d35592b07273d98aaee8301a2905f5b4a4d6d117dd9a082c8d2df747f1f73"
+    },
+    {
+      "id": "synthetic-coaster-30064",
+      "path": "receipts/synthetic-coaster-30064.png",
+      "sha256": "b7c511868df12b26971372609fa91b0fd49434f23a7661245f309195d5bd4bf2",
+      "label": "labels/synthetic-coaster-30064.json",
+      "labelSha256": "df8d9b79d25bbef5dd756bd77226a3b0af8643a6aa38558061ceb0e7a80af54c"
+    },
+    {
+      "id": "synthetic-coaster-30065",
+      "path": "receipts/synthetic-coaster-30065.png",
+      "sha256": "4efe37cf850bc5d05f32b8917bf6172fbffe5b11fbc95024c9b00f5fe31847bb",
+      "label": "labels/synthetic-coaster-30065.json",
+      "labelSha256": "bcb0b0a15710027e449d7fc61d6ba066a43fc0568955e45478236d4d4f86ec72"
+    },
+    {
+      "id": "synthetic-coaster-30066",
+      "path": "receipts/synthetic-coaster-30066.png",
+      "sha256": "c2066b1f7bc576075137c290d7673b0874ddd5ee06e9310f11ff1667f582cbfe",
+      "label": "labels/synthetic-coaster-30066.json",
+      "labelSha256": "a8e1001a8ca693cc1eaa714ec833babcf50154f186ba4c1d07041d88aa62b2db"
+    },
+    {
+      "id": "synthetic-coaster-30067",
+      "path": "receipts/synthetic-coaster-30067.png",
+      "sha256": "3c76d2506f367121c0755a7bd6129cde64555b59b4e6fb88940e4b9d41f84a93",
+      "label": "labels/synthetic-coaster-30067.json",
+      "labelSha256": "8821f68748a4cde0804e9c6612574cfafc73e39b10a4287cae899e4347707c54"
+    },
+    {
+      "id": "synthetic-coaster-30068",
+      "path": "receipts/synthetic-coaster-30068.png",
+      "sha256": "ad27d9eae0390b49fc140575f4daf070c5e2e58a1be5dd41b22ce6cb0ede9cf8",
+      "label": "labels/synthetic-coaster-30068.json",
+      "labelSha256": "6bbb29fbda79fba04e301f85d9de18a241d91db7130bbc7623ac6ade43f659f0"
+    },
+    {
+      "id": "synthetic-coaster-30069",
+      "path": "receipts/synthetic-coaster-30069.png",
+      "sha256": "4416c42ad5295ae9aa0f312cb24f898b3d46ddf545ea48c1f2ec9a5c82883e73",
+      "label": "labels/synthetic-coaster-30069.json",
+      "labelSha256": "03b5a17f746f34ec3faf7a75c5377335c49d1a26c5b86e7817be1bce3b62d13a"
+    },
+    {
+      "id": "synthetic-coaster-30070",
+      "path": "receipts/synthetic-coaster-30070.png",
+      "sha256": "98d1558c3e5b45447f500d90dc12520d1541452ccf7fce4eae2e36838aae5188",
+      "label": "labels/synthetic-coaster-30070.json",
+      "labelSha256": "23c5561dd9cf34cc56300628a7559d6d9b5e5fd341bb8b8747740eeb7bd9491e"
+    },
+    {
+      "id": "synthetic-coaster-30071",
+      "path": "receipts/synthetic-coaster-30071.png",
+      "sha256": "68d888586313ff3667c6c931d105bc4a842429c4b368b813638ce6fc1246594c",
+      "label": "labels/synthetic-coaster-30071.json",
+      "labelSha256": "534c889acfef178a823a1a398ab6cbfefe4ddc6c03581340abf22ea0c8d88f1a"
+    },
+    {
+      "id": "synthetic-coaster-30072",
+      "path": "receipts/synthetic-coaster-30072.png",
+      "sha256": "2a14608fed0212a579f558660351a97b4229045bd962d20b6a606b3bf12e267d",
+      "label": "labels/synthetic-coaster-30072.json",
+      "labelSha256": "ecb2804d68432f4a7291ba23f1a765497687438b2a9642e4b923bca23f818629"
+    },
+    {
+      "id": "synthetic-coaster-30073",
+      "path": "receipts/synthetic-coaster-30073.png",
+      "sha256": "030983574f992dd85885d74bcf74262c0a21f079bbe30006d90296dfcf7c7275",
+      "label": "labels/synthetic-coaster-30073.json",
+      "labelSha256": "40d92799962b63415ced4aa875c2893e0b630f6911796e24e92766323931eb4f"
+    },
+    {
+      "id": "synthetic-coaster-30074",
+      "path": "receipts/synthetic-coaster-30074.png",
+      "sha256": "e19fe2645102f8cdd7bb06149f9eb8e3923cc4194a4f0149d9885407af0b9f7f",
+      "label": "labels/synthetic-coaster-30074.json",
+      "labelSha256": "c8449a2f853107891c5899248b7e6df30bcc5f056b2e50d6805fbdbcea6aadf3"
+    },
+    {
+      "id": "synthetic-coaster-30075",
+      "path": "receipts/synthetic-coaster-30075.png",
+      "sha256": "1af93d11c07feab3849cea4210a9c811c7e00666adbc26b16c1de950cfe7549f",
+      "label": "labels/synthetic-coaster-30075.json",
+      "labelSha256": "e5efb4840e43892327ed0a6fedb2f87d52c64fc8e1b1106a2c6f74ed971f35b5"
+    },
+    {
+      "id": "synthetic-coaster-30076",
+      "path": "receipts/synthetic-coaster-30076.png",
+      "sha256": "2aa622a41b8c10e479a4c7a10cdd36b00a0127cf59620921693451e52e6922b8",
+      "label": "labels/synthetic-coaster-30076.json",
+      "labelSha256": "a849b54b9c8199a745c99eb99137ffd265aa82696ef771c436a013e83f1bf151"
+    },
+    {
+      "id": "synthetic-coaster-30077",
+      "path": "receipts/synthetic-coaster-30077.png",
+      "sha256": "d5522b88841750912b3394f424716c2d621f7d660e51a16b914bf5ac8553257a",
+      "label": "labels/synthetic-coaster-30077.json",
+      "labelSha256": "c3067d71d14744766cc988fad94b34795a127f35641b31ce613a9ccf82d4afc6"
+    },
+    {
+      "id": "synthetic-coaster-30078",
+      "path": "receipts/synthetic-coaster-30078.png",
+      "sha256": "0e90c7de46d7a8757d5a4253591cfdcb06f290c8e9ac31a9c03f7ecbbc1f17c5",
+      "label": "labels/synthetic-coaster-30078.json",
+      "labelSha256": "78441cf0ffee5322e8e2a05a301295898b726cc25431d7a3193e0f6639859177"
+    },
+    {
+      "id": "synthetic-coaster-30079",
+      "path": "receipts/synthetic-coaster-30079.png",
+      "sha256": "c5fe0c88b9ca3d26404fb8b476591df58e42b19a33f570774cb8bda7c3ed731e",
+      "label": "labels/synthetic-coaster-30079.json",
+      "labelSha256": "0561ebf272552a9fcda852ee8eb664bcab0993ade5276c37d59461447b6712d7"
+    },
+    {
+      "id": "synthetic-coaster-30080",
+      "path": "receipts/synthetic-coaster-30080.png",
+      "sha256": "b8b801f153317f5f1010cf8669fab9eb093492ca9bd450680f519a93e2754b69",
+      "label": "labels/synthetic-coaster-30080.json",
+      "labelSha256": "ee34be7b31390e1941e2ab4cbfbd3b110610fcfa334e6ebaf226c7f716816d34"
+    },
+    {
+      "id": "synthetic-coaster-30081",
+      "path": "receipts/synthetic-coaster-30081.png",
+      "sha256": "fdde6469a6372503e2bb6e852102aed84df648c7a52f9cd57514fb6bd9744e50",
+      "label": "labels/synthetic-coaster-30081.json",
+      "labelSha256": "4eb5f37fbd1dc4c9ec473ac6fec4cea3a35a4e077d546d50ce1d06f320c68494"
+    },
+    {
+      "id": "synthetic-coaster-30082",
+      "path": "receipts/synthetic-coaster-30082.png",
+      "sha256": "9d081e973367988167df50d6914a79378d6f6ed034f35a6809ba1c8fc2add8ed",
+      "label": "labels/synthetic-coaster-30082.json",
+      "labelSha256": "e99fbfb8650c3f3ecf1218826a86fdb1cc952aeff61867fee5a2a2969231158d"
+    },
+    {
+      "id": "synthetic-coaster-30083",
+      "path": "receipts/synthetic-coaster-30083.png",
+      "sha256": "e9686eb369ba46f2f1c4e961e14377eca3f180cedb6ba709146cf19d5b4289da",
+      "label": "labels/synthetic-coaster-30083.json",
+      "labelSha256": "41c91e238ebbc008d14f317cf7d8ce8f3f9b03c72c1a96a89ba79f0bff812eb4"
+    },
+    {
+      "id": "synthetic-coaster-30084",
+      "path": "receipts/synthetic-coaster-30084.png",
+      "sha256": "f9cbc38e38bedf6368df0c0ae6bde95af1c7c62f0d0110847664d1ea1800f03d",
+      "label": "labels/synthetic-coaster-30084.json",
+      "labelSha256": "0d8d04d2958a7830c0a0aa5016a5f0d1a40cf0bae01832150baeccb996658a75"
+    },
+    {
+      "id": "synthetic-coaster-30085",
+      "path": "receipts/synthetic-coaster-30085.png",
+      "sha256": "dce7a68ae63d5d47d70f2f5597816fc8654188422f05c2b2f0df1119bae50a81",
+      "label": "labels/synthetic-coaster-30085.json",
+      "labelSha256": "b5346b7014fae6052d0f416a47a6f8ec6bb331e2789e303b5a0c6f213ac2fccb"
+    },
+    {
+      "id": "synthetic-coaster-30086",
+      "path": "receipts/synthetic-coaster-30086.png",
+      "sha256": "6c4528d9bda923f6821ec37fc8fe0669f366396a736178529e6aa48a1659b20f",
+      "label": "labels/synthetic-coaster-30086.json",
+      "labelSha256": "796a416567daaaf69cf94c488ecf895780d8a639ef1ca4260a20b004759393da"
+    },
+    {
+      "id": "synthetic-coaster-30087",
+      "path": "receipts/synthetic-coaster-30087.png",
+      "sha256": "c45dd5a3b66af0d62d254ec6dd48ec4ef79e43c85ec396f7eece7370072a4024",
+      "label": "labels/synthetic-coaster-30087.json",
+      "labelSha256": "43d113fee8e3bcd54202b01ba268d6846b5ec1ce2fd3103f78bf423e375ad684"
+    },
+    {
+      "id": "synthetic-coaster-30088",
+      "path": "receipts/synthetic-coaster-30088.png",
+      "sha256": "22191a5f999b14a29094ed17641b1c74f529adad376100fc9a9a90b75a0cf77e",
+      "label": "labels/synthetic-coaster-30088.json",
+      "labelSha256": "f6603019854c5c09d5ae54ec9071df4249a0ff0f61caa20e14100d3bad036e94"
+    },
+    {
+      "id": "synthetic-coaster-30089",
+      "path": "receipts/synthetic-coaster-30089.png",
+      "sha256": "6a34ee999535938d2c03b300a0849c8bef619815065638009e9ff3e937317c25",
+      "label": "labels/synthetic-coaster-30089.json",
+      "labelSha256": "350253f291a55ba8c354c750f484c2c80fb26e35d59bab58699cf9434479e743"
+    },
+    {
+      "id": "synthetic-coaster-30090",
+      "path": "receipts/synthetic-coaster-30090.png",
+      "sha256": "737a86d1881c73e29edf15d2ed44163d3a1f27e19b9f21ae3857da7c6183e8b3",
+      "label": "labels/synthetic-coaster-30090.json",
+      "labelSha256": "a8b92134292da6787073f4abe38f0ff06a374b4ea1440e0cd47a93e76d3e807f"
+    },
+    {
+      "id": "synthetic-coaster-30091",
+      "path": "receipts/synthetic-coaster-30091.png",
+      "sha256": "bb89a1412fad01faaa4ac8e4ed22849e8996d09b15823502a7c119eaba2af173",
+      "label": "labels/synthetic-coaster-30091.json",
+      "labelSha256": "c5a2779aba7bd966a2e0fbf4279e73e8b9176500bef218074133b0874750903a"
+    },
+    {
+      "id": "synthetic-coaster-30092",
+      "path": "receipts/synthetic-coaster-30092.png",
+      "sha256": "50269d28b174a5d9e4bafdf28810e6c253ec5187742ea553c4b5435ae3bf8658",
+      "label": "labels/synthetic-coaster-30092.json",
+      "labelSha256": "b3cd3dc0aa13adf8728079612555e2f5a569838960079b0d638597c6c8621ce8"
+    },
+    {
+      "id": "synthetic-coaster-30093",
+      "path": "receipts/synthetic-coaster-30093.png",
+      "sha256": "e4a01e425e0a80545a9126d625bafb559c57b3f78c663081de772d9766fbd0e3",
+      "label": "labels/synthetic-coaster-30093.json",
+      "labelSha256": "2bba68b1ddecb4009d118a16425d9a4fe7b3bfdf379017d911e2cc50f2684998"
+    },
+    {
+      "id": "synthetic-coaster-30094",
+      "path": "receipts/synthetic-coaster-30094.png",
+      "sha256": "c6648e1db7499e714c65cc9ae3c3c85e49ecc6f0630406c7cc2dbe93aa7e3507",
+      "label": "labels/synthetic-coaster-30094.json",
+      "labelSha256": "67553d111bfc6340dc494bacda5959d2681f1f725c5cd6507cd99b4b21bf9cbb"
+    },
+    {
+      "id": "synthetic-coaster-30095",
+      "path": "receipts/synthetic-coaster-30095.png",
+      "sha256": "026b4d941f9ad99f653940be92837d7a109cf6a4f0b2c2e69eda3854c9871ac1",
+      "label": "labels/synthetic-coaster-30095.json",
+      "labelSha256": "c6f95374c994a71395430deba2514d2485a4a04dc817a5fc60ea3046394395a3"
+    },
+    {
+      "id": "synthetic-coaster-30096",
+      "path": "receipts/synthetic-coaster-30096.png",
+      "sha256": "95ecb826886cf4fb4fa1e5edac8b0923fa089a238918f8980fead3d309e8b4c1",
+      "label": "labels/synthetic-coaster-30096.json",
+      "labelSha256": "1917379280b8f834594a4bada00781aed0da6e01f0298a17df18b001c322f5b4"
+    },
+    {
+      "id": "synthetic-coaster-30097",
+      "path": "receipts/synthetic-coaster-30097.png",
+      "sha256": "b1a0d99f4f0d7efa575007f16995d1e8fe28eb24a03dac31755ac78ee81f62da",
+      "label": "labels/synthetic-coaster-30097.json",
+      "labelSha256": "df07a06731933141a9782e8a2349c4e6c2eb72d2d41c2d8d89182f4631c41ff0"
+    },
+    {
+      "id": "synthetic-coaster-30098",
+      "path": "receipts/synthetic-coaster-30098.png",
+      "sha256": "7026c853bc793a23938890e3c383e58acee790d0173574b6bc63428534b0183c",
+      "label": "labels/synthetic-coaster-30098.json",
+      "labelSha256": "34fef7c9c136a1a27e334ce5c8bdf8324b05f51818496ba943369914320f5fc2"
+    },
+    {
+      "id": "synthetic-coaster-30099",
+      "path": "receipts/synthetic-coaster-30099.png",
+      "sha256": "3eeda58678e29f3bb4fbfdc4f89bc8c3171c14b17f8bfb9193bee8c22dbee61b",
+      "label": "labels/synthetic-coaster-30099.json",
+      "labelSha256": "91e61244365aa40e24a05c52e17d41a2b29f6d757c072adbf6d0735783fe407e"
+    },
+    {
+      "id": "synthetic-coaster-30100",
+      "path": "receipts/synthetic-coaster-30100.png",
+      "sha256": "9f011f6a2f086035eb08e99e94f861115e36dca401d7666a985bd30bc579e64f",
+      "label": "labels/synthetic-coaster-30100.json",
+      "labelSha256": "e1056a32e9ca7410899871e559eb3adc112aa1b1af51bdc83efad2ba472b4b39"
+    },
+    {
+      "id": "synthetic-coaster-30101",
+      "path": "receipts/synthetic-coaster-30101.png",
+      "sha256": "4f7a21140f6dcbf64bb455b3285e34aeb4abc230a7cab66a849514effe550216",
+      "label": "labels/synthetic-coaster-30101.json",
+      "labelSha256": "1fc80aba796f35d022850e55f161b77b829de086a7153c0be46061dc997f53c5"
+    },
+    {
+      "id": "synthetic-coaster-30102",
+      "path": "receipts/synthetic-coaster-30102.png",
+      "sha256": "0530a92010ebac63250136ab7aa912ad8ff66acc141a2ac68d0d3e4429ebea50",
+      "label": "labels/synthetic-coaster-30102.json",
+      "labelSha256": "6558edf836ab99074a55fe9dda4c39ea2b9d0104983b5525667c05d7dbbcce84"
+    },
+    {
+      "id": "synthetic-coaster-30103",
+      "path": "receipts/synthetic-coaster-30103.png",
+      "sha256": "cdde64dc0dbdcfd3e5bc05e44d1f5bff3bd1ebefec3142b9d0985a6e8eda6336",
+      "label": "labels/synthetic-coaster-30103.json",
+      "labelSha256": "c7f2e5b3da6c3b7ae9f2810be42d2eee7a670fbf1ef50825fd8b250a3815f5e1"
+    },
+    {
+      "id": "synthetic-coaster-30104",
+      "path": "receipts/synthetic-coaster-30104.png",
+      "sha256": "213260b42a0a9ce34b10d3048e619b38a387139bd7d65260b66d3936c2121700",
+      "label": "labels/synthetic-coaster-30104.json",
+      "labelSha256": "faa5caae40ed14d44a31290ba7a0de12460c0250a90d5055f96fd39aa25fbce6"
+    },
+    {
+      "id": "synthetic-coaster-30105",
+      "path": "receipts/synthetic-coaster-30105.png",
+      "sha256": "2053c605f6f0fa3b3c8cc8a70ffa4eaa908ff957d6a0c8eb88694ee7e5f17ebf",
+      "label": "labels/synthetic-coaster-30105.json",
+      "labelSha256": "d8614085c8fd2d8162fb735cfcb3923097166ed8f2c5b96eaf5fdf1296661ada"
+    },
+    {
+      "id": "synthetic-coaster-30106",
+      "path": "receipts/synthetic-coaster-30106.png",
+      "sha256": "ff61975e7e451f083f8e59a9d6243ddcba86383d08ec07cb241483d51f368325",
+      "label": "labels/synthetic-coaster-30106.json",
+      "labelSha256": "3f8dfa871c5a27794dd4526c0527166760c2aab39a7b77c7b7a7e6deec901f09"
+    },
+    {
+      "id": "synthetic-coaster-30107",
+      "path": "receipts/synthetic-coaster-30107.png",
+      "sha256": "cbcbc0ec7943a3619e8519830bb96df91f339d32a8cf4ae8bef5abb24c2c14d6",
+      "label": "labels/synthetic-coaster-30107.json",
+      "labelSha256": "553779d44ad08ced57e6a027880360e7b58e8abfc8f197fa508cd51f6fee9839"
+    },
+    {
+      "id": "synthetic-coaster-30108",
+      "path": "receipts/synthetic-coaster-30108.png",
+      "sha256": "07405f02fa135f77d487ac9e09f787279c97d3b5d93ba1e5485254e98c98d251",
+      "label": "labels/synthetic-coaster-30108.json",
+      "labelSha256": "70fd8beaf8a2dea59e1da620f0693acc82cc1b96e98c2d6c4c811147901dcb85"
+    },
+    {
+      "id": "synthetic-coaster-30109",
+      "path": "receipts/synthetic-coaster-30109.png",
+      "sha256": "44d0e61e8106dd0c965ac7f78b034e7c4dcbdc64a34fb005f54912f322b7c792",
+      "label": "labels/synthetic-coaster-30109.json",
+      "labelSha256": "3f66347e5f62fe16d0eaf2a7f59d343d642ce413b2231c74a13f3ede1ed608db"
+    },
+    {
+      "id": "synthetic-coaster-30110",
+      "path": "receipts/synthetic-coaster-30110.png",
+      "sha256": "9d7ac8cf939abeaabd84682e6451be79a0ee730df0e8e0032fe9d56e51bed628",
+      "label": "labels/synthetic-coaster-30110.json",
+      "labelSha256": "24c7d1553bba846ab18622d2a8d36a1058578bfdf42399c1e412f9fdefb77c44"
+    },
+    {
+      "id": "synthetic-coaster-30111",
+      "path": "receipts/synthetic-coaster-30111.png",
+      "sha256": "3bab6173d2bbf9c0d77a032e7fc594443ba127e9f8b2e5b18466e2294c7243b2",
+      "label": "labels/synthetic-coaster-30111.json",
+      "labelSha256": "0498f442a8d9547400e1d85c8b6416421835101246c1ea2b9c2b052575fc79a0"
+    },
+    {
+      "id": "synthetic-coaster-30112",
+      "path": "receipts/synthetic-coaster-30112.png",
+      "sha256": "cecdec66e2db0c96fbbf755ff1f96ec640fbc4ea2e83439b6d4c610e4980cc7b",
+      "label": "labels/synthetic-coaster-30112.json",
+      "labelSha256": "996a049ccb4cce87bfc4a7b888a9d7ea1176d7720c1967b105e7d5b62103ca24"
+    },
+    {
+      "id": "synthetic-coaster-30113",
+      "path": "receipts/synthetic-coaster-30113.png",
+      "sha256": "84d8b99de853f2242612eba6ebc301f3902e44fda5244262dace25feb5b1b552",
+      "label": "labels/synthetic-coaster-30113.json",
+      "labelSha256": "afbc72c42713edd4fcf6e31a62583256cc150ece3331ef4d3d255dc10716116b"
+    },
+    {
+      "id": "synthetic-coaster-30114",
+      "path": "receipts/synthetic-coaster-30114.png",
+      "sha256": "88e3bafa77b4a30c729f44fe6ed4bd5f934add541ccab1f8131c5e2d871adb0c",
+      "label": "labels/synthetic-coaster-30114.json",
+      "labelSha256": "a5c630379c3d0ad1b4267332b9c3084811996189251b9eb96e915162e9a2b9ca"
+    },
+    {
+      "id": "synthetic-coaster-30115",
+      "path": "receipts/synthetic-coaster-30115.png",
+      "sha256": "1e9e458d44bc44e67c3929c6ee01e8b1101d72908a623ee96a11a9a997fc58f1",
+      "label": "labels/synthetic-coaster-30115.json",
+      "labelSha256": "b04fa43b958ff9033172e21e7c1699a0d126a3593e76faf075d3df5a2941317c"
+    },
+    {
+      "id": "synthetic-coaster-30116",
+      "path": "receipts/synthetic-coaster-30116.png",
+      "sha256": "c54fe65630faaa144111e0564515bd408153ce7001f1667e1965c503a854486a",
+      "label": "labels/synthetic-coaster-30116.json",
+      "labelSha256": "9f9c44b6fcf97b9cdc1b4bf73145ff38de6f678398a2f062b80b34171835ee3c"
+    },
+    {
+      "id": "synthetic-coaster-30117",
+      "path": "receipts/synthetic-coaster-30117.png",
+      "sha256": "a3f241dbdaea313ec4c67416208dc776021bb86e53cf48a9a81f4fa93d034b5e",
+      "label": "labels/synthetic-coaster-30117.json",
+      "labelSha256": "89200bf48fe73d043c9e62e28756a3410dadad315c14474759887d1200f668e0"
+    },
+    {
+      "id": "synthetic-coaster-30118",
+      "path": "receipts/synthetic-coaster-30118.png",
+      "sha256": "0189be8b985061565266e8155957ed9adf9f5ba95066d24b630bc8749d649986",
+      "label": "labels/synthetic-coaster-30118.json",
+      "labelSha256": "3603a241c9821b5869a82ae5b357271175de6014935ce62eff912f2258d3a533"
+    },
+    {
+      "id": "synthetic-coaster-30119",
+      "path": "receipts/synthetic-coaster-30119.png",
+      "sha256": "28e15928a2c0872a1f08275145c060da7a78feec3285fe015d9ac10d30b8ac99",
+      "label": "labels/synthetic-coaster-30119.json",
+      "labelSha256": "d65217b0d935d0e9531c31f4da546fb420c9b5812254ce1f0141b230656779de"
+    }
+  ]
+}
