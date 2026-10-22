@@ -76,7 +76,8 @@
       "required": false,
       "group": "accounting",
       "help": "Optional Intuit app credentials. The company still requires explicit consent in Settings; blank leaves QuickBooks disconnected.",
-      "ownerVisible": true
+      "ownerVisible": true,
+      "input": "entered"
     },
     {
       "name": "QBO_CLIENT_SECRET",
@@ -84,7 +85,8 @@
       "kind": "secret",
       "required": false,
       "group": "accounting",
-      "ownerVisible": false
+      "ownerVisible": true,
+      "input": "entered"
     },
     {
       "name": "QBO_ENVIRONMENT",
