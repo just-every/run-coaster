@@ -41,6 +41,9 @@ export async function receiveDelivery(db: D1Database, f: Feed, delivery: Deliver
     for(const claim of place.claims.keys())writes.push(claimTotal(db,claim));
   } else file=(await db.prepare('SELECT id FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL LIMIT 1').bind(plan.fingerprint).first<{id:string}>())!.id;
   writes.push(db.prepare('INSERT INTO c_program_deliveries(id,feed_id,name,issuer_sequence,sha256,file_id,charges,received_at) VALUES(?,?,?,?,?,?,?,?)').bind(id,f.id,delivery.name,sequence,plan.sha,file,plan.importable.length,at),ruleEvent(db,'automation: program feed','program-feed-delivery-received',{}, {feed:f.id,delivery:id,file,issuer:f.issuer,sequence,sha256:plan.sha,charges:plan.importable.length,duplicates:plan.review.duplicates.length,overlaps:plan.review.possibleDuplicates.length,excluded:plan.review.excluded.length,masked:true,channel:'feed'}));
-  await commit(db,all(authorized,...guards),writes);
+  // A delivery repeats the same card/role and catalog/epoch predicates for many charges.
+  // Keep every distinct predicate while binding each identical guard only once, as native statement import does.
+  const distinctGuards=[...new Map(guards.map(guard=>[JSON.stringify(guard),guard])).values()];
+  await commit(db,all(authorized,...distinctGuards),writes);
   return true;
 }
