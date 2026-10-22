@@ -193,6 +193,7 @@ export async function runPolicyAgentCodingQuality({output}={}){
    const claim=(await h.get(`claims/${item.claim_id}`,t.sam)).claim;
    await h.post(`receipt-inbox/${id}/attach`,{expectedSequence:original.lifecycleSequence,claimId:claim.id,itemId:item.id,version:claim.version},t.sam);
   }
+  console.log('All 240 charges and originals retained; evaluating submitted recommendations');
   const records=[];let approved=0,routed=0,codingReview=0;
   for(const id of reportIds){
    const before=await h.get(`claims/${id}`,t.sam),submitted=await h.post(`claims/${id}/submit`,{version:before.claim.version},t.sam);

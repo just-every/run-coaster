@@ -14,14 +14,14 @@ const merchant=(s:string)=>s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{
 /** Read private evidence internally. The submitted assessment contains results
  * and the already-shared receipt fingerprint, never private readings/lines. */
 export async function evidencedPolicyReview(db:D1Database,items:ClaimItem[],exceptions:PolicyException[],active:Active,employee:string,currency:string){
- const review=policyReview(items,exceptions,active),version=await epoch(db),rules=await currentRules(db),guards:Sql[]=[epochState(version)];
+ const review=policyReview(items,exceptions,active),version=await epoch(db),rules=await currentRules(db),guards:Sql[]=[epochState(version)],readings:{id:string;sequence:number}[]=[];
  for(const recommendation of review.recommendations){
   const item=items.find(i=>i.id===recommendation.item)!,evidence=recommendation.evidence as Data;
   const receipt= item.receipt_id ? await db.prepare('SELECT capture_receipt_id FROM c_receipts WHERE id=?').bind(item.receipt_id).first<{capture_receipt_id:string|null}>():null;
   let receiptChecked=false,receiptNeedsReview=false;
   if(receipt?.capture_receipt_id){
    const line=await db.prepare('SELECT sequence,kind,fields_json FROM c_receipt_readings WHERE receipt_id=? ORDER BY sequence DESC LIMIT 1').bind(receipt.capture_receipt_id).first<{sequence:number;kind:string;fields_json:string}>();
-   guards.push({sql:'COALESCE((SELECT MAX(sequence) FROM c_receipt_readings WHERE receipt_id=?),0)=?',params:[receipt.capture_receipt_id,line?.sequence??0]});
+   readings.push({id:receipt.capture_receipt_id,sequence:line?.sequence??0});
    if(line&&['read','corrected'].includes(line.kind)){
     const fields=JSON.parse(line.fields_json),basis=item.card_match_basis?JSON.parse(item.card_match_basis):null;
     receiptNeedsReview=['merchant','date','total','currency'].some(k=>fields[k]?.review);
@@ -45,5 +45,6 @@ export async function evidencedPolicyReview(db:D1Database,items:ClaimItem[],exce
   evidence.pastSpendAssessment={method:'submission-policy-evaluator',policyVersion:active.version,rules:active.rules.filter(r=>['daily-limit','trip-limit','monthly-limit'].includes(r.kind)).map(r=>r.kind)};
   evidence.agentEligible=!exceptions.some(e=>e.item===item.id)&&item.kind==='receipt'&&!!item.receipt_id&&(receiptChecked||matched)&&!receiptNeedsReview&&codingChecked;
  }
+ if(readings.length)guards.push({sql:`NOT EXISTS(SELECT 1 FROM json_each(?) e WHERE COALESCE((SELECT MAX(sequence) FROM c_receipt_readings WHERE receipt_id=json_extract(e.value,'$.id')),0)<>json_extract(e.value,'$.sequence'))`,params:[JSON.stringify(readings)]});
  return {review,guard:all(guards[0],...guards.slice(1))};
 }

@@ -43,7 +43,7 @@ export async function policyAgentScreens(browser,root,server,evidence){
    async function original(name,fixture,merchant,total,date){
     await employee.page.goto(origin+'/app#/claims');await employee.page.reload();
     const inbox=employee.page.getByRole('region',{name:'Receipt inbox',exact:true});
-    await inbox.getByLabel('Upload receipts',{exact:true}).setInputFiles({name,mimeType:'image/png',buffer:await readFile(`tests/fixtures/policy-review/synthetic-coaster-${fixture}.png`)});
+    await inbox.getByLabel('Upload receipts',{exact:true}).setInputFiles({name,mimeType:'image/png',buffer:Buffer.concat([await readFile(`tests/fixtures/policy-review/synthetic-coaster-${fixture}.png`),Buffer.from(`\nsynthetic-coaster-${width}\n`)])});
     const row=inbox.locator('.receipt-inbox-list > li').filter({has:employee.page.getByRole('link',{name,exact:true})});await row.getByRole('link',{name,exact:true}).waitFor();
     const receipt=(await api(employee.context,origin,'receipt-inbox')).receipts.find(r=>r.name===name);
     await api(employee.context,origin,`receipt-inbox/${receipt.id}/card-match`,{expectedSequence:receipt.lifecycleSequence,enabled:true,merchant,date,total,currency,notice:receipt.matchChoice.notice});return receipt.id;
