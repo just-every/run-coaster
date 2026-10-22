@@ -159,12 +159,12 @@ async function runCorpus({name,key,model,gitSHA,exactMatching,matchingPolicy,pro
     })
     const postChargeRecords=await snapshotNativeCharges(h,t,chargeRecords),postReceiptRecords=records.map(record=>({id:record.id,...record.afterNativeAttachment}))
     assert.equal(head(),gitSHA,'Candidate changed during corpus')
-    return {corpus:name,gitSHA,model,measuredAt:new Date().toISOString(),providerRequests,fixture:{charges:chargesInput.length,receiptOriginals:labels.length,priorNativeExpenses:semantic?.history.rows.length??oldFixture.history.length},delivery,matchingPolicy,matchingRule,matchingConsents,intake,afterNativeAttachment:{receipts:measureSemanticCoding(postReceiptRecords,labels),charges:measureSemanticCoding(postChargeRecords,labels),combined:measureSemanticCoding([...postChargeRecords,...postReceiptRecords],labels),chargeExpenses:measureSemanticCoding(postChargeRecords.map(record=>({...record,actual:record.expenseActual})),labels),chargeMeasurement:'Suggestion scores require source evidence whose value survives in the current native expense. Raw allocation/catalog coding, including unadvised importer defaults, is reported separately as chargeExpenses.',counts:{total:records.length,uploaded:records.filter(r=>r.receiptId).length,attached:records.filter(r=>r.attachment).length,unmatched:records.filter(r=>!r.attachment).length,matchingChoices:records.filter(r=>r.afterNativeAttachment.receipt?.matchChoice?.enabled).length,receiptsWithNativeMcc:records.filter(r=>r.afterNativeAttachment.context?.mcc).length,chargeExpensesRead:postChargeRecords.filter(record=>record.expense).length,chargeReadFailures:postChargeRecords.filter(record=>record.failure).length,readingHttpFailures:records.filter(r=>r.reading?.http!==200).length,readingNeedsAttention:records.filter(r=>r.reading?.state==='needs-attention').length,codingHttpFailures:records.filter(r=>r.understanding?.http!==200).length,archived:records.filter(r=>['discarded','merged'].includes(r.afterNativeAttachment.receipt?.disposition)).length},settled:matching.settled,ticks:matching.ticks},chargeRecords,postChargeRecords,records}
+    return {corpus:name,gitSHA,model,measuredAt:new Date().toISOString(),providerRequests,fixture:{charges:chargesInput.length,receiptOriginals:labels.length,priorNativeExpenses:semantic?.history.rows.length??oldFixture.history.length},delivery,matchingPolicy,matchingRule,matchingConsents,intake,afterNativeAttachment:{receipts:measureSemanticCoding(postReceiptRecords,labels),charges:measureSemanticCoding(postChargeRecords,labels),combined:measureSemanticCoding([...postChargeRecords,...postReceiptRecords],labels),chargeExpenses:measureSemanticCoding(postChargeRecords.map(record=>({...record,actual:record.expenseActual})),labels),chargeMeasurement:'Suggestion scores require source evidence whose value survives in the current native expense. Raw allocation/catalog coding, including unadvised importer defaults, is reported separately as chargeExpenses.',counts:{total:records.length,uploaded:records.filter(r=>r.receiptId).length,attached:records.filter(r=>r.attachment).length,unmatched:records.filter(r=>!r.attachment).length,matchingChoices:records.filter(r=>r.afterNativeAttachment.receipt?.matchChoice?.enabled).length,receiptsWithNativeMcc:records.filter(r=>r.afterNativeAttachment.context?.mcc).length,chargeExpensesRead:postChargeRecords.filter(record=>record.expense).length,chargeReadFailures:postChargeRecords.filter(record=>record.failure).length,readingHttpFailures:records.filter(r=>r.reading?.http!==200).length,readingNeedsAttention:records.filter(r=>r.reading?.state==='needs-attention').length,codingHttpFailures:records.filter(r=>r.understanding?.http!==200).length,archived:records.filter(r=>['discarded','merged'].includes(r.afterNativeAttachment.receipt?.disposition)).length},settled:matching.settled,ticks:matching.ticks},chargeRecords,postChargeRecords,postReceiptRecords,records}
   }finally{clearInterval(heartbeat);await h.close()}
 }
 
 /** Actual provider journey; no fixture answers, merchant text, corrections or attachment choices enter application requests. */
-export async function runAttachmentCodingQuality({key,model='gpt-6.1-sol',corpus='both',exactMatching=false,output,progress=(name,phase,done,total)=>console.error(`[${name}] ${phase} ${done}/${total}`)}={}){
+export async function runAttachmentCodingQuality({key,model='gpt-6.1-sol',corpus='both',exactMatching=false,assertAfterAttachment=false,output,progress=(name,phase,done,total)=>console.error(`[${name}] ${phase} ${done}/${total}`)}={}){
   assert.ok(typeof key==='string'&&key.length,'COASTER_AI_KEY is required for the real provider journey')
   assert.ok(['old','semantic','both'].includes(corpus),'--corpus must be old, semantic or both')
   const matchingPolicy=exactMatching?'explicit-global-zero-tip-and-fx-tolerances':'installation-tip-and-fx-tolerances'
@@ -177,6 +177,23 @@ export async function runAttachmentCodingQuality({key,model='gpt-6.1-sol',corpus
       // A later failure must never erase a completed corpus's original records and measurements.
       if(output){await writeFile(`${output}.${name}.json`,JSON.stringify(measured,null,2)+'\n');await writeFile(output,JSON.stringify(result,null,2)+'\n')}
     }
+    const labels=[],intakeRecords=[],finalRecords=[]
+    for(const [name,measured]of Object.entries(result.corpora)){
+      const corpusLabels=name==='old'?oldFixture.cases:(await loadSemanticFixture()).labels.cases
+      const qualify=record=>({...record,id:`${name}:${record.id}`})
+      labels.push(...corpusLabels.map(qualify))
+      intakeRecords.push(...measured.chargeRecords.map(qualify),...measured.records.map(record=>qualify({id:record.id,...record.intake})))
+      finalRecords.push(...measured.postChargeRecords.map(qualify),...measured.postReceiptRecords.map(qualify))
+    }
+    result.evaluatedStage='after-native-hourly-attachment'
+    result.global={intake:measureSemanticCoding(intakeRecords,labels),final:measureSemanticCoding(finalRecords,labels)}
+    const final=result.global.final
+    result.acceptance={assertionRequested:assertAfterAttachment,evaluatedStage:result.evaluatedStage,financeRulePassed:final.financeRule.percent===100,fullRepeatCategoryPassed:typeof final.fullRepeatCategory.percent==='number'&&final.fullRepeatCategory.percent>=90}
+    result.acceptance.thresholdsMet=result.acceptance.financeRulePassed&&result.acceptance.fullRepeatCategoryPassed
+    if(assertAfterAttachment){
+      assert.ok(result.acceptance.financeRulePassed,'Global final-stage finance-rule suggestions must match 100% of the full selected fixture set')
+      assert.ok(result.acceptance.fullRepeatCategoryPassed,'Global final-stage repeat category suggestions must match at least 90% of the full selected fixture set')
+    }
     result.status='complete';result.finishedAt=new Date().toISOString()
   }catch(error){result.status='failed';result.failure=briefError(error);if(output)await writeFile(output,JSON.stringify(result,null,2)+'\n');throw error}
   if(output)await writeFile(output,JSON.stringify(result,null,2)+'\n')
@@ -185,7 +202,7 @@ export async function runAttachmentCodingQuality({key,model='gpt-6.1-sol',corpus
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const value=flag=>{const index=process.argv.indexOf(flag);return index<0?undefined:process.argv[index+1]}
   try{
-    const result=await runAttachmentCodingQuality({key:process.env.COASTER_AI_KEY,model:process.env.COASTER_AI_MODEL??'gpt-6.1-sol',corpus:value('--corpus')??'both',exactMatching:process.argv.includes('--exact-matching'),output:value('--output')})
-    console.log(JSON.stringify({...result,corpora:Object.fromEntries(Object.entries(result.corpora).map(([name,{records,chargeRecords,postChargeRecords,...summary}])=>[name,summary]))},null,2))
+    const result=await runAttachmentCodingQuality({key:process.env.COASTER_AI_KEY,model:process.env.COASTER_AI_MODEL??'gpt-6.1-sol',corpus:value('--corpus')??'both',exactMatching:process.argv.includes('--exact-matching'),assertAfterAttachment:process.argv.includes('--assert-after-attachment'),output:value('--output')})
+    console.log(JSON.stringify({...result,corpora:Object.fromEntries(Object.entries(result.corpora).map(([name,{records,chargeRecords,postChargeRecords,postReceiptRecords,...summary}])=>[name,summary]))},null,2))
   }catch(error){console.error(error instanceof Error?error.message:'Attachment coding quality journey failed');process.exitCode=1}
 }
