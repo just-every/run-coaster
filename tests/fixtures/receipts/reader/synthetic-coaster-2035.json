@@ -1,0 +1,37 @@
+{
+  "id": "synthetic-coaster-2035",
+  "file": "synthetic-coaster-2035.pdf",
+  "kind": "multipage-pdf",
+  "tags": [
+    "multipage-pdf",
+    "invoice"
+  ],
+  "values": {
+    "merchant": "SYNTHETIC COASTER PRINT",
+    "date": "2026-08-07",
+    "total": "64.18",
+    "subtotal": "59.70",
+    "salesTax": "4.48",
+    "tip": "0.00",
+    "currency": "USD",
+    "last4": "3135",
+    "lineItems": [
+      {
+        "description": "Printed booklets",
+        "quantity": 1,
+        "amount": "16.55"
+      },
+      {
+        "description": "Binding service",
+        "quantity": 1,
+        "amount": "19.90"
+      },
+      {
+        "description": "Delivery",
+        "quantity": 1,
+        "amount": "23.25"
+      }
+    ]
+  },
+  "regions": {}
+}

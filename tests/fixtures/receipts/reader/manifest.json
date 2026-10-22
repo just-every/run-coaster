@@ -1,0 +1,231 @@
+{
+  "version": 1,
+  "synthetic": true,
+  "receipts": [
+    {
+      "id": "synthetic-coaster-1001",
+      "file": "synthetic-coaster-1001.png",
+      "label": "synthetic-coaster-1001.json"
+    },
+    {
+      "id": "synthetic-coaster-1002",
+      "file": "synthetic-coaster-1002.png",
+      "label": "synthetic-coaster-1002.json"
+    },
+    {
+      "id": "synthetic-coaster-1003",
+      "file": "synthetic-coaster-1003.png",
+      "label": "synthetic-coaster-1003.json"
+    },
+    {
+      "id": "synthetic-coaster-1004",
+      "file": "synthetic-coaster-1004.png",
+      "label": "synthetic-coaster-1004.json"
+    },
+    {
+      "id": "synthetic-coaster-1005",
+      "file": "synthetic-coaster-1005.png",
+      "label": "synthetic-coaster-1005.json"
+    },
+    {
+      "id": "synthetic-coaster-1006",
+      "file": "synthetic-coaster-1006.png",
+      "label": "synthetic-coaster-1006.json"
+    },
+    {
+      "id": "synthetic-coaster-1007",
+      "file": "synthetic-coaster-1007.png",
+      "label": "synthetic-coaster-1007.json"
+    },
+    {
+      "id": "synthetic-coaster-1008",
+      "file": "synthetic-coaster-1008.png",
+      "label": "synthetic-coaster-1008.json"
+    },
+    {
+      "id": "synthetic-coaster-1009",
+      "file": "synthetic-coaster-1009.png",
+      "label": "synthetic-coaster-1009.json"
+    },
+    {
+      "id": "synthetic-coaster-1010",
+      "file": "synthetic-coaster-1010.png",
+      "label": "synthetic-coaster-1010.json"
+    },
+    {
+      "id": "synthetic-coaster-1011",
+      "file": "synthetic-coaster-1011.png",
+      "label": "synthetic-coaster-1011.json"
+    },
+    {
+      "id": "synthetic-coaster-1012",
+      "file": "synthetic-coaster-1012.png",
+      "label": "synthetic-coaster-1012.json"
+    },
+    {
+      "id": "synthetic-coaster-1013",
+      "file": "synthetic-coaster-1013.png",
+      "label": "synthetic-coaster-1013.json"
+    },
+    {
+      "id": "synthetic-coaster-1014",
+      "file": "synthetic-coaster-1014.png",
+      "label": "synthetic-coaster-1014.json"
+    },
+    {
+      "id": "synthetic-coaster-1015",
+      "file": "synthetic-coaster-1015.png",
+      "label": "synthetic-coaster-1015.json"
+    },
+    {
+      "id": "synthetic-coaster-1016",
+      "file": "synthetic-coaster-1016.png",
+      "label": "synthetic-coaster-1016.json"
+    },
+    {
+      "id": "synthetic-coaster-1017",
+      "file": "synthetic-coaster-1017.png",
+      "label": "synthetic-coaster-1017.json"
+    },
+    {
+      "id": "synthetic-coaster-1018",
+      "file": "synthetic-coaster-1018.png",
+      "label": "synthetic-coaster-1018.json"
+    },
+    {
+      "id": "synthetic-coaster-1019",
+      "file": "synthetic-coaster-1019.png",
+      "label": "synthetic-coaster-1019.json"
+    },
+    {
+      "id": "synthetic-coaster-1020",
+      "file": "synthetic-coaster-1020.png",
+      "label": "synthetic-coaster-1020.json"
+    },
+    {
+      "id": "synthetic-coaster-1021",
+      "file": "synthetic-coaster-1021.png",
+      "label": "synthetic-coaster-1021.json"
+    },
+    {
+      "id": "synthetic-coaster-1022",
+      "file": "synthetic-coaster-1022.png",
+      "label": "synthetic-coaster-1022.json"
+    },
+    {
+      "id": "synthetic-coaster-1023",
+      "file": "synthetic-coaster-1023.png",
+      "label": "synthetic-coaster-1023.json"
+    },
+    {
+      "id": "synthetic-coaster-1024",
+      "file": "synthetic-coaster-1024.png",
+      "label": "synthetic-coaster-1024.json"
+    },
+    {
+      "id": "synthetic-coaster-1025",
+      "file": "synthetic-coaster-1025.png",
+      "label": "synthetic-coaster-1025.json"
+    },
+    {
+      "id": "synthetic-coaster-1026",
+      "file": "synthetic-coaster-1026.png",
+      "label": "synthetic-coaster-1026.json"
+    },
+    {
+      "id": "synthetic-coaster-1027",
+      "file": "synthetic-coaster-1027.png",
+      "label": "synthetic-coaster-1027.json"
+    },
+    {
+      "id": "synthetic-coaster-1028",
+      "file": "synthetic-coaster-1028.png",
+      "label": "synthetic-coaster-1028.json"
+    },
+    {
+      "id": "synthetic-coaster-1029",
+      "file": "synthetic-coaster-1029.png",
+      "label": "synthetic-coaster-1029.json"
+    },
+    {
+      "id": "synthetic-coaster-1030",
+      "file": "synthetic-coaster-1030.png",
+      "label": "synthetic-coaster-1030.json"
+    },
+    {
+      "id": "synthetic-coaster-1031",
+      "file": "synthetic-coaster-1031.png",
+      "label": "synthetic-coaster-1031.json"
+    },
+    {
+      "id": "synthetic-coaster-2031",
+      "file": "synthetic-coaster-2031.pdf",
+      "label": "synthetic-coaster-2031.json"
+    },
+    {
+      "id": "synthetic-coaster-1032",
+      "file": "synthetic-coaster-1032.png",
+      "label": "synthetic-coaster-1032.json"
+    },
+    {
+      "id": "synthetic-coaster-2032",
+      "file": "synthetic-coaster-2032.pdf",
+      "label": "synthetic-coaster-2032.json"
+    },
+    {
+      "id": "synthetic-coaster-1033",
+      "file": "synthetic-coaster-1033.png",
+      "label": "synthetic-coaster-1033.json"
+    },
+    {
+      "id": "synthetic-coaster-2033",
+      "file": "synthetic-coaster-2033.pdf",
+      "label": "synthetic-coaster-2033.json"
+    },
+    {
+      "id": "synthetic-coaster-1034",
+      "file": "synthetic-coaster-1034.png",
+      "label": "synthetic-coaster-1034.json"
+    },
+    {
+      "id": "synthetic-coaster-2034",
+      "file": "synthetic-coaster-2034.pdf",
+      "label": "synthetic-coaster-2034.json"
+    },
+    {
+      "id": "synthetic-coaster-1035",
+      "file": "synthetic-coaster-1035.png",
+      "label": "synthetic-coaster-1035.json"
+    },
+    {
+      "id": "synthetic-coaster-2035",
+      "file": "synthetic-coaster-2035.pdf",
+      "label": "synthetic-coaster-2035.json"
+    },
+    {
+      "id": "synthetic-coaster-1036",
+      "file": "synthetic-coaster-1036.png",
+      "label": "synthetic-coaster-1036.json"
+    },
+    {
+      "id": "synthetic-coaster-1037",
+      "file": "synthetic-coaster-1037.png",
+      "label": "synthetic-coaster-1037.json"
+    },
+    {
+      "id": "synthetic-coaster-1038",
+      "file": "synthetic-coaster-1038.png",
+      "label": "synthetic-coaster-1038.json"
+    },
+    {
+      "id": "synthetic-coaster-1039",
+      "file": "synthetic-coaster-1039.png",
+      "label": "synthetic-coaster-1039.json"
+    },
+    {
+      "id": "synthetic-coaster-1040",
+      "file": "synthetic-coaster-1040.png",
+      "label": "synthetic-coaster-1040.json"
+    }
+  ]
+}
