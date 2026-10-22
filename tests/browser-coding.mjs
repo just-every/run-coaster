@@ -101,6 +101,10 @@ export async function codingScreens(browser, root, origin, evidence) {
 }
 
 async function shot(page, evidence, name, width) {
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits ${width}px`)
   await page.screenshot({ path: join(evidence, `${name}-${width}.png`) })
+  const overflow = await page.evaluate(() => [...document.querySelectorAll('body *')].flatMap(e => {
+    const r = e.getBoundingClientRect();
+    return r.width > innerWidth && getComputedStyle(e).position !== 'fixed' ? [{ tag: e.tagName, class: e.className, width: Math.round(r.width) }] : [];
+  }))
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits ${width}px: ${JSON.stringify(overflow.slice(0, 15))}`)
 }
