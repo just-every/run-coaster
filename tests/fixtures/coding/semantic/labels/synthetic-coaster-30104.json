@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30104",
+  "merchant": "PAPER CRANE OFFICE",
+  "date": "2026-10-05",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "113.26",
+  "salesTax": "7.08",
+  "tip": "0.00",
+  "total": "120.34",
+  "lineItems": [
+    {
+      "description": "USB-C workstation dock",
+      "quantity": 1,
+      "unitPrice": "49.64",
+      "amount": "49.64"
+    },
+    {
+      "description": "Legal pads pack of 6",
+      "quantity": 1,
+      "unitPrice": "19.24",
+      "amount": "19.24"
+    },
+    {
+      "description": "Desk cable organizer",
+      "quantity": 2,
+      "unitPrice": "22.19",
+      "amount": "44.38"
+    }
+  ],
+  "reference": null,
+  "format": "photographed-receipt",
+  "expected": {
+    "category": 0,
+    "class": null,
+    "project": null,
+    "customer": null
+  }
+}

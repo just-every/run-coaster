@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "finance": [
+    {
+      "merchant": "ASTER AIR",
+      "coding": {
+        "category": 1,
+        "class": 1,
+        "project": 1
+      },
+      "active": true
+    }
+  ],
+  "personal": [
+    {
+      "employee": "sam",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "coding": {
+        "category": 2,
+        "class": 2,
+        "project": 2
+      },
+      "active": true
+    }
+  ],
+  "mcc": [
+    {
+      "mcc": "5812",
+      "category": 2
+    },
+    {
+      "mcc": "5943",
+      "category": 0
+    }
+  ]
+}

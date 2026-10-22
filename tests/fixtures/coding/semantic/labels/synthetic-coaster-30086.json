@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30086",
+  "merchant": "Amazon",
+  "date": "2026-10-07",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "113.26",
+  "salesTax": "7.08",
+  "tip": "0.00",
+  "total": "120.34",
+  "lineItems": [
+    {
+      "description": "USB-C workstation dock - Kestrel prototype for Kestrel Labs",
+      "quantity": 1,
+      "unitPrice": "49.64",
+      "amount": "49.64"
+    },
+    {
+      "description": "Legal pads pack of 6 - Engineering team delivery",
+      "quantity": 1,
+      "unitPrice": "19.24",
+      "amount": "19.24"
+    },
+    {
+      "description": "Desk cable organizer",
+      "quantity": 2,
+      "unitPrice": "22.19",
+      "amount": "44.38"
+    }
+  ],
+  "reference": {
+    "customer": "Kestrel Labs",
+    "project": "Kestrel prototype",
+    "department": "Engineering"
+  },
+  "format": "business-invoice",
+  "expected": {
+    "category": 0,
+    "class": 2,
+    "project": 2,
+    "customer": "Kestrel Labs"
+  }
+}

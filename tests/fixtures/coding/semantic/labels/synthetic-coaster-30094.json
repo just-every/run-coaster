@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30094",
+  "merchant": "GATE 24 MARKET",
+  "date": "2026-10-15",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "73.20",
+  "salesTax": "4.58",
+  "tip": "0.00",
+  "total": "77.78",
+  "lineItems": [
+    {
+      "description": "USB-C charging cable",
+      "quantity": 1,
+      "unitPrice": "52.60",
+      "amount": "52.60"
+    },
+    {
+      "description": "Laptop power adapter",
+      "quantity": 1,
+      "unitPrice": "20.60",
+      "amount": "20.60"
+    }
+  ],
+  "reference": null,
+  "format": "retail-invoice",
+  "expected": {
+    "category": 0,
+    "class": null,
+    "project": null,
+    "customer": null
+  }
+}

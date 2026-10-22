@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30084",
+  "merchant": "Amazon",
+  "date": "2026-10-05",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "111.50",
+  "salesTax": "6.97",
+  "tip": "0.00",
+  "total": "118.47",
+  "lineItems": [
+    {
+      "description": "USB-C workstation dock",
+      "quantity": 1,
+      "unitPrice": "48.90",
+      "amount": "48.90"
+    },
+    {
+      "description": "Legal pads pack of 6",
+      "quantity": 1,
+      "unitPrice": "18.90",
+      "amount": "18.90"
+    },
+    {
+      "description": "Desk cable organizer",
+      "quantity": 2,
+      "unitPrice": "21.85",
+      "amount": "43.70"
+    }
+  ],
+  "reference": null,
+  "format": "marketplace-invoice",
+  "expected": {
+    "category": 0,
+    "class": null,
+    "project": null,
+    "customer": null
+  }
+}

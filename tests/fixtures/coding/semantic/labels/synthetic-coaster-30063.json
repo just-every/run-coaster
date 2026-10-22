@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30063",
+  "merchant": "BIRCHWOOD TABLE",
+  "date": "2026-10-04",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "91.54",
+  "salesTax": "5.72",
+  "tip": "16.48",
+  "total": "113.74",
+  "lineItems": [
+    {
+      "description": "Sandwich lunch trays",
+      "quantity": 2,
+      "unitPrice": "11.64",
+      "amount": "23.28"
+    },
+    {
+      "description": "Garden salad bowl",
+      "quantity": 1,
+      "unitPrice": "14.74",
+      "amount": "14.74"
+    },
+    {
+      "description": "Sparkling water",
+      "quantity": 3,
+      "unitPrice": "17.84",
+      "amount": "53.52"
+    }
+  ],
+  "reference": null,
+  "format": "restaurant-receipt",
+  "expected": {
+    "category": 2,
+    "class": 2,
+    "project": 2,
+    "customer": null
+  }
+}

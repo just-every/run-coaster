@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30026",
+  "merchant": "HARBOR & PINE KITCHEN",
+  "date": "2026-10-07",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "90.16",
+  "salesTax": "5.64",
+  "tip": "16.23",
+  "total": "112.03",
+  "lineItems": [
+    {
+      "description": "Sandwich lunch trays",
+      "quantity": 2,
+      "unitPrice": "11.41",
+      "amount": "22.82"
+    },
+    {
+      "description": "Garden salad bowl",
+      "quantity": 1,
+      "unitPrice": "14.51",
+      "amount": "14.51"
+    },
+    {
+      "description": "Sparkling water",
+      "quantity": 3,
+      "unitPrice": "17.61",
+      "amount": "52.83"
+    }
+  ],
+  "reference": null,
+  "format": "restaurant-receipt",
+  "expected": {
+    "category": 2,
+    "class": 2,
+    "project": 2,
+    "customer": null
+  }
+}

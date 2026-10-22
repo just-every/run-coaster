@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30116",
+  "merchant": "CONCOURSE NORTH TRAVEL SHOP",
+  "date": "2026-10-17",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "68.88",
+  "salesTax": "4.31",
+  "tip": "0.00",
+  "total": "73.19",
+  "lineItems": [
+    {
+      "description": "USB-C charging cable",
+      "quantity": 1,
+      "unitPrice": "49.64",
+      "amount": "49.64"
+    },
+    {
+      "description": "Laptop power adapter",
+      "quantity": 1,
+      "unitPrice": "19.24",
+      "amount": "19.24"
+    }
+  ],
+  "reference": null,
+  "format": "photographed-receipt",
+  "expected": {
+    "category": 0,
+    "class": null,
+    "project": null,
+    "customer": null
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30099",
+  "merchant": "EMBER & LOOM CREATIVE",
+  "date": "2026-10-20",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "455.40",
+  "salesTax": "28.46",
+  "tip": "0.00",
+  "total": "483.86",
+  "lineItems": [
+    {
+      "description": "Campaign artwork retainer",
+      "quantity": 1,
+      "unitPrice": "330.10",
+      "amount": "330.10"
+    },
+    {
+      "description": "Brand illustration service",
+      "quantity": 1,
+      "unitPrice": "125.30",
+      "amount": "125.30"
+    }
+  ],
+  "reference": null,
+  "format": "service-invoice",
+  "expected": {
+    "category": null,
+    "class": null,
+    "project": null,
+    "customer": null
+  }
+}

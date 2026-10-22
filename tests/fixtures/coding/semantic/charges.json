@@ -1,0 +1,1087 @@
+{
+  "schema": 1,
+  "issuer": "synthetic-coaster-300",
+  "currency": "USD",
+  "rows": [
+    {
+      "id": "synthetic-coaster-30000",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-01",
+      "merchant": "ASTER AIR",
+      "amount": "223.60",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30001",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-02",
+      "merchant": "ASTER AIR",
+      "amount": "225.97",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30002",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-03",
+      "merchant": "ASTER AIR",
+      "amount": "228.33",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30003",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-04",
+      "merchant": "ASTER AIR",
+      "amount": "230.70",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30004",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-05",
+      "merchant": "ASTER AIR",
+      "amount": "233.06",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30005",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-06",
+      "merchant": "ASTER AIR",
+      "amount": "235.43",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30006",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-07",
+      "merchant": "ASTER AIR",
+      "amount": "237.79",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30007",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-08",
+      "merchant": "ASTER AIR",
+      "amount": "240.16",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30008",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-09",
+      "merchant": "ASTER AIR",
+      "amount": "242.52",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30009",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-10",
+      "merchant": "ASTER AIR",
+      "amount": "244.89",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30010",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-11",
+      "merchant": "ASTER AIR",
+      "amount": "247.25",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30011",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-12",
+      "merchant": "ASTER AIR",
+      "amount": "249.62",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30012",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-13",
+      "merchant": "ASTER AIR",
+      "amount": "251.98",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30013",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-14",
+      "merchant": "ASTER AIR",
+      "amount": "254.35",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30014",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-15",
+      "merchant": "ASTER AIR",
+      "amount": "256.71",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30015",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-16",
+      "merchant": "ASTER AIR",
+      "amount": "259.08",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30016",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-17",
+      "merchant": "ASTER AIR",
+      "amount": "261.44",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30017",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-18",
+      "merchant": "ASTER AIR",
+      "amount": "263.81",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30018",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-19",
+      "merchant": "ASTER AIR",
+      "amount": "266.17",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30019",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-20",
+      "merchant": "ASTER AIR",
+      "amount": "268.54",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30020",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-01",
+      "merchant": "ASTER AIR",
+      "amount": "270.90",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30021",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-02",
+      "merchant": "ASTER AIR",
+      "amount": "273.27",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30022",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-03",
+      "merchant": "ASTER AIR",
+      "amount": "275.63",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30023",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-04",
+      "merchant": "ASTER AIR",
+      "amount": "278.00",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30024",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-05",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "108.59",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30025",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-06",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "110.31",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30026",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-07",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "112.03",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30027",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-08",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "113.74",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30028",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-09",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "115.46",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30029",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-10",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "117.16",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30030",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-11",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "118.88",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30031",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-12",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "120.60",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30032",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-13",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "122.31",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30033",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-14",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "124.03",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30034",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-15",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "125.75",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30035",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-16",
+      "merchant": "HARBOR & PINE KITCHEN",
+      "amount": "127.45",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30036",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-17",
+      "merchant": "BLUE HERON AIR",
+      "amount": "223.60",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30037",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-18",
+      "merchant": "BLUE HERON AIR",
+      "amount": "225.97",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30038",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-19",
+      "merchant": "BLUE HERON AIR",
+      "amount": "228.33",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30039",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-20",
+      "merchant": "BLUE HERON AIR",
+      "amount": "230.70",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30040",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-01",
+      "merchant": "BLUE HERON AIR",
+      "amount": "233.06",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30041",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-02",
+      "merchant": "BLUE HERON AIR",
+      "amount": "235.43",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30042",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-03",
+      "merchant": "BLUE HERON AIR",
+      "amount": "237.79",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30043",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-04",
+      "merchant": "BLUE HERON AIR",
+      "amount": "240.16",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30044",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-05",
+      "merchant": "BLUE HERON AIR",
+      "amount": "242.52",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30045",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-06",
+      "merchant": "BLUE HERON AIR",
+      "amount": "244.89",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30046",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-07",
+      "merchant": "BLUE HERON AIR",
+      "amount": "247.25",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30047",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-08",
+      "merchant": "BLUE HERON AIR",
+      "amount": "249.62",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30048",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-09",
+      "merchant": "BLUE HERON AIR",
+      "amount": "251.98",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30049",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-10",
+      "merchant": "BLUE HERON AIR",
+      "amount": "254.35",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30050",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-11",
+      "merchant": "BLUE HERON AIR",
+      "amount": "256.71",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30051",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-12",
+      "merchant": "BLUE HERON AIR",
+      "amount": "259.08",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30052",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-13",
+      "merchant": "BLUE HERON AIR",
+      "amount": "261.44",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30053",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-14",
+      "merchant": "BLUE HERON AIR",
+      "amount": "263.81",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30054",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-15",
+      "merchant": "BLUE HERON AIR",
+      "amount": "266.17",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30055",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-16",
+      "merchant": "BLUE HERON AIR",
+      "amount": "268.54",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30056",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-17",
+      "merchant": "BLUE HERON AIR",
+      "amount": "270.90",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30057",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-18",
+      "merchant": "BLUE HERON AIR",
+      "amount": "273.27",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30058",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-19",
+      "merchant": "BLUE HERON AIR",
+      "amount": "275.63",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30059",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-20",
+      "merchant": "BLUE HERON AIR",
+      "amount": "278.00",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30060",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-01",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "108.59",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30061",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-02",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "110.31",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30062",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-03",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "112.03",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30063",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-04",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "113.74",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30064",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-05",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "115.46",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30065",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-06",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "117.16",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30066",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-07",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "118.88",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30067",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-08",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "120.60",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30068",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-09",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "122.31",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30069",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-10",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "124.03",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30070",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-11",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "125.75",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30071",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-12",
+      "merchant": "BIRCHWOOD TABLE",
+      "amount": "127.45",
+      "mcc": "5812"
+    },
+    {
+      "id": "synthetic-coaster-30072",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-13",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "223.60",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30073",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-14",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "225.97",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30074",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-15",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "228.33",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30075",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-16",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "230.70",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30076",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-17",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "233.06",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30077",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-18",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "235.43",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30078",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-19",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "237.79",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30079",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-20",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "240.16",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30080",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-01",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "242.52",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30081",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-02",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "244.89",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30082",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-03",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "247.25",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30083",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-04",
+      "merchant": "CEDARWING AIRLINES",
+      "amount": "249.62",
+      "mcc": "4511"
+    },
+    {
+      "id": "synthetic-coaster-30084",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-05",
+      "merchant": "Amazon",
+      "amount": "118.47",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30085",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-06",
+      "merchant": "Amazon",
+      "amount": "110.31",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30086",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-07",
+      "merchant": "Amazon",
+      "amount": "120.34",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30087",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-08",
+      "merchant": "Amazon",
+      "amount": "113.74",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30088",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-09",
+      "merchant": "Amazon",
+      "amount": "122.21",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30089",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-10",
+      "merchant": "Amazon",
+      "amount": "117.16",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30090",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-11",
+      "merchant": "GATE 24 MARKET",
+      "amount": "75.48",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30091",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-12",
+      "merchant": "GATE 24 MARKET",
+      "amount": "81.68",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30092",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-13",
+      "merchant": "GATE 24 MARKET",
+      "amount": "76.63",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30093",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-14",
+      "merchant": "GATE 24 MARKET",
+      "amount": "83.96",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30094",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-15",
+      "merchant": "GATE 24 MARKET",
+      "amount": "77.78",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30095",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-16",
+      "merchant": "GATE 24 MARKET",
+      "amount": "86.26",
+      "mcc": "5999"
+    },
+    {
+      "id": "synthetic-coaster-30096",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-17",
+      "merchant": "EMBER & LOOM CREATIVE",
+      "amount": "474.94",
+      "mcc": "7311"
+    },
+    {
+      "id": "synthetic-coaster-30097",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-18",
+      "merchant": "EMBER & LOOM CREATIVE",
+      "amount": "477.91",
+      "mcc": "7311"
+    },
+    {
+      "id": "synthetic-coaster-30098",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-19",
+      "merchant": "EMBER & LOOM CREATIVE",
+      "amount": "480.89",
+      "mcc": "7311"
+    },
+    {
+      "id": "synthetic-coaster-30099",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-20",
+      "merchant": "EMBER & LOOM CREATIVE",
+      "amount": "483.86",
+      "mcc": "7311"
+    },
+    {
+      "id": "synthetic-coaster-30100",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-01",
+      "merchant": "EMBER & LOOM CREATIVE",
+      "amount": "486.84",
+      "mcc": "7311"
+    },
+    {
+      "id": "synthetic-coaster-30101",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-02",
+      "merchant": "EMBER & LOOM CREATIVE",
+      "amount": "489.81",
+      "mcc": "7311"
+    },
+    {
+      "id": "synthetic-coaster-30102",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-03",
+      "merchant": "PAPER CRANE OFFICE",
+      "amount": "118.47",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30103",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-04",
+      "merchant": "PAPER CRANE OFFICE",
+      "amount": "119.40",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30104",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-05",
+      "merchant": "PAPER CRANE OFFICE",
+      "amount": "120.34",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30105",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-06",
+      "merchant": "PAPER CRANE OFFICE",
+      "amount": "121.27",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30106",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-07",
+      "merchant": "PAPER CRANE OFFICE",
+      "amount": "122.21",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30107",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-08",
+      "merchant": "PAPER CRANE OFFICE",
+      "amount": "123.14",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30108",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-09",
+      "merchant": "JUNIPER COUNTER",
+      "amount": "50.68",
+      "mcc": ""
+    },
+    {
+      "id": "synthetic-coaster-30109",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-10",
+      "merchant": "JUNIPER COUNTER",
+      "amount": "51.65",
+      "mcc": ""
+    },
+    {
+      "id": "synthetic-coaster-30110",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-11",
+      "merchant": "JUNIPER COUNTER",
+      "amount": "52.62",
+      "mcc": ""
+    },
+    {
+      "id": "synthetic-coaster-30111",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-12",
+      "merchant": "JUNIPER COUNTER",
+      "amount": "53.58",
+      "mcc": ""
+    },
+    {
+      "id": "synthetic-coaster-30112",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-13",
+      "merchant": "JUNIPER COUNTER",
+      "amount": "54.55",
+      "mcc": ""
+    },
+    {
+      "id": "synthetic-coaster-30113",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-14",
+      "merchant": "JUNIPER COUNTER",
+      "amount": "55.52",
+      "mcc": ""
+    },
+    {
+      "id": "synthetic-coaster-30114",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-15",
+      "merchant": "CONCOURSE NORTH TRAVEL SHOP",
+      "amount": "72.04",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30115",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-16",
+      "merchant": "CONCOURSE NORTH TRAVEL SHOP",
+      "amount": "72.61",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30116",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-17",
+      "merchant": "CONCOURSE NORTH TRAVEL SHOP",
+      "amount": "73.19",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30117",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-18",
+      "merchant": "CONCOURSE NORTH TRAVEL SHOP",
+      "amount": "73.76",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30118",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-19",
+      "merchant": "CONCOURSE NORTH TRAVEL SHOP",
+      "amount": "74.33",
+      "mcc": "5943"
+    },
+    {
+      "id": "synthetic-coaster-30119",
+      "employee": "sam",
+      "last4": "1111",
+      "date": "2026-10-20",
+      "merchant": "CONCOURSE NORTH TRAVEL SHOP",
+      "amount": "74.91",
+      "mcc": "5943"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30091",
+  "merchant": "GATE 24 MARKET",
+  "date": "2026-10-12",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "65.74",
+  "salesTax": "4.11",
+  "tip": "11.83",
+  "total": "81.68",
+  "lineItems": [
+    {
+      "description": "Chicken sandwich",
+      "quantity": 1,
+      "unitPrice": "12.56",
+      "amount": "12.56"
+    },
+    {
+      "description": "Roasted vegetable wrap",
+      "quantity": 1,
+      "unitPrice": "15.66",
+      "amount": "15.66"
+    },
+    {
+      "description": "Iced coffee",
+      "quantity": 2,
+      "unitPrice": "18.76",
+      "amount": "37.52"
+    }
+  ],
+  "reference": null,
+  "format": "airport-cafe",
+  "expected": {
+    "category": 2,
+    "class": null,
+    "project": null,
+    "customer": null
+  }
+}

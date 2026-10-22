@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30089",
+  "merchant": "Amazon",
+  "date": "2026-10-10",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "94.30",
+  "salesTax": "5.89",
+  "tip": "16.97",
+  "total": "117.16",
+  "lineItems": [
+    {
+      "description": "Sandwich lunch trays",
+      "quantity": 2,
+      "unitPrice": "12.10",
+      "amount": "24.20"
+    },
+    {
+      "description": "Garden salad bowl",
+      "quantity": 1,
+      "unitPrice": "15.20",
+      "amount": "15.20"
+    },
+    {
+      "description": "Sparkling water",
+      "quantity": 3,
+      "unitPrice": "18.30",
+      "amount": "54.90"
+    }
+  ],
+  "reference": null,
+  "format": "restaurant-receipt",
+  "expected": {
+    "category": 2,
+    "class": null,
+    "project": null,
+    "customer": null
+  }
+}

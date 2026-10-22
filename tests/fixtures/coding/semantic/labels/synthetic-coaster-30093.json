@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30093",
+  "merchant": "GATE 24 MARKET",
+  "date": "2026-10-14",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "67.58",
+  "salesTax": "4.22",
+  "tip": "12.16",
+  "total": "83.96",
+  "lineItems": [
+    {
+      "description": "Chicken sandwich - HarborHome launch for HarborHome",
+      "quantity": 1,
+      "unitPrice": "13.02",
+      "amount": "13.02"
+    },
+    {
+      "description": "Roasted vegetable wrap - Sales team delivery",
+      "quantity": 1,
+      "unitPrice": "16.12",
+      "amount": "16.12"
+    },
+    {
+      "description": "Iced coffee",
+      "quantity": 2,
+      "unitPrice": "19.22",
+      "amount": "38.44"
+    }
+  ],
+  "reference": {
+    "customer": "HarborHome",
+    "project": "HarborHome launch",
+    "department": "Sales"
+  },
+  "format": "business-invoice",
+  "expected": {
+    "category": 2,
+    "class": 1,
+    "project": 1,
+    "customer": "HarborHome"
+  }
+}

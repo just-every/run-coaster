@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30003",
+  "merchant": "ASTER AIR",
+  "date": "2026-10-04",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "214.60",
+  "salesTax": "16.10",
+  "tip": "0.00",
+  "total": "230.70",
+  "lineItems": [
+    {
+      "description": "Economy airfare Boston to Chicago",
+      "quantity": 1,
+      "unitPrice": "190.39",
+      "amount": "190.39"
+    },
+    {
+      "description": "Seat reservation",
+      "quantity": 1,
+      "unitPrice": "24.21",
+      "amount": "24.21"
+    }
+  ],
+  "reference": null,
+  "format": "airline-email",
+  "expected": {
+    "category": 1,
+    "class": 1,
+    "project": 1,
+    "customer": null
+  }
+}

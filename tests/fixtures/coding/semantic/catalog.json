@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "business": {
+    "name": "Northstar Studio",
+    "currency": "USD",
+    "timezone": "America/New_York"
+  },
+  "departments": [
+    {
+      "key": "sales",
+      "name": "Sales"
+    },
+    {
+      "key": "engineering",
+      "name": "Engineering"
+    }
+  ],
+  "people": [
+    {
+      "key": "sam",
+      "email": "synthetic-coaster-61001@example.test",
+      "name": "Sam Rivers",
+      "department": "sales"
+    },
+    {
+      "key": "alex",
+      "email": "synthetic-coaster-61002@example.test",
+      "name": "Alex Reed",
+      "department": "sales"
+    },
+    {
+      "key": "bea",
+      "email": "synthetic-coaster-61003@example.test",
+      "name": "Bea Chen",
+      "department": "engineering"
+    }
+  ],
+  "categories": [
+    {
+      "name": "Office supplies & equipment",
+      "accountCode": "6100",
+      "taxCode": "Sales tax"
+    },
+    {
+      "name": "Airfare & business travel",
+      "accountCode": "6200",
+      "taxCode": "Sales tax"
+    },
+    {
+      "name": "Business meals",
+      "accountCode": "6300",
+      "taxCode": "Sales tax"
+    },
+    {
+      "name": "Marketing & design services (legacy)",
+      "accountCode": "6400",
+      "taxCode": "Sales tax",
+      "ledgerAccount": "legacy-account"
+    }
+  ],
+  "dimensions": {
+    "class": {
+      "name": "Department class",
+      "kind": "class",
+      "values": [
+        {
+          "key": "operations",
+          "name": "Operations"
+        },
+        {
+          "key": "sales",
+          "name": "Sales"
+        },
+        {
+          "key": "engineering",
+          "name": "Engineering"
+        },
+        {
+          "key": "legacy-events",
+          "name": "Field Events"
+        }
+      ]
+    },
+    "project": {
+      "name": "Project",
+      "kind": "project",
+      "values": [
+        {
+          "key": "internal-operations",
+          "name": "Internal operations"
+        },
+        {
+          "key": "harborhome-launch",
+          "name": "HarborHome launch"
+        },
+        {
+          "key": "kestrel-prototype",
+          "name": "Kestrel prototype"
+        },
+        {
+          "key": "legacy-roadshow",
+          "name": "Summit roadshow"
+        }
+      ]
+    },
+    "account": {
+      "name": "General ledger account",
+      "kind": "account",
+      "values": [
+        {
+          "key": "legacy-account",
+          "name": "Marketing services - legacy chart account"
+        }
+      ]
+    },
+    "customer": {
+      "name": "Customer",
+      "kind": "customer",
+      "values": [
+        {
+          "key": "harborhome",
+          "name": "HarborHome"
+        },
+        {
+          "key": "kestrel",
+          "name": "Kestrel Labs"
+        }
+      ]
+    }
+  },
+  "retireAfterHistory": [
+    {
+      "dimension": "account",
+      "key": "legacy-account"
+    },
+    {
+      "dimension": "class",
+      "key": "legacy-events"
+    }
+  ]
+}

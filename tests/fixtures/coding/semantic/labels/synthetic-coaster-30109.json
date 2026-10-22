@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30109",
+  "merchant": "JUNIPER COUNTER",
+  "date": "2026-10-10",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "48.61",
+  "salesTax": "3.04",
+  "tip": "0.00",
+  "total": "51.65",
+  "lineItems": [
+    {
+      "description": "Mixed assortment - contents not itemized",
+      "quantity": 1,
+      "unitPrice": "48.61",
+      "amount": "48.61"
+    }
+  ],
+  "reference": null,
+  "format": "retail-invoice",
+  "expected": {
+    "category": null,
+    "class": null,
+    "project": null,
+    "customer": null
+  }
+}

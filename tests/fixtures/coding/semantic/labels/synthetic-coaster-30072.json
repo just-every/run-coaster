@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "id": "synthetic-coaster-30072",
+  "merchant": "CEDARWING AIRLINES",
+  "date": "2026-10-13",
+  "currency": "USD",
+  "last4": "1111",
+  "subtotal": "208.00",
+  "salesTax": "15.60",
+  "tip": "0.00",
+  "total": "223.60",
+  "lineItems": [
+    {
+      "description": "Economy airfare Boston to Chicago",
+      "quantity": 1,
+      "unitPrice": "184.00",
+      "amount": "184.00"
+    },
+    {
+      "description": "Seat reservation",
+      "quantity": 1,
+      "unitPrice": "24.00",
+      "amount": "24.00"
+    }
+  ],
+  "reference": null,
+  "format": "airline-email",
+  "expected": {
+    "category": 1,
+    "class": 1,
+    "project": 1,
+    "customer": null
+  }
+}
