@@ -15,6 +15,7 @@ import { PolicyAdvice } from './policy-advice';
 import { PolicyRules } from './policy';
 import { Departments } from './departments';
 import { EscalationChains } from './escalation-chains';
+import { CardReconciliation } from './card-reconciliation';
 import type { ViewProps } from './claims';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -71,6 +72,7 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Escalate after (business days)" name="escalateAfter" inputMode="numeric" required={false} defaultValue={b.escalation_days == null ? '' : String(b.escalation_days)} hint="After the last reminder, to the person's manager, then the same again to finance; empty turns escalation off" />
       </Form>
     </Section>}
+    {b && (reader || roles.cardAdmin) && <CardReconciliation state={state} />}
     {b && (reader || roles.manager) && <SpendAnalytics currency={b.currency} />}
     {b && reader && <Budgets state={state} canSet={admin || roles.finance} />}
     {reader && <Reports owner={owner} schedules={owner || roles.finance} />}

@@ -6,6 +6,7 @@ import {join,resolve} from 'node:path'
 import {command,fresh,freePort,start} from './browser-runtime.mjs'
 import {api,PEOPLE,session,setUp} from './browser-journey.mjs'
 import {records,rows,tampered} from './browser-archive.mjs'
+import {statementScreens} from './browser-statements.mjs'
 
 const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/card-matching-proof')
 const notice="When this receipt matches one of your card charges, Coaster attaches it automatically. Approvers and finance can see the receipt, its file name and the total, currency and date you entered once that expense is submitted — by you, your delegate or the owner's scheduled submission."
@@ -139,7 +140,8 @@ try {
   assert.deepEqual(JSON.parse(heldDetail.items[0].card_match_basis),JSON.parse(detail.items.find(i=>i.id===attachment.itemId).card_match_basis))
   await api(manager.context,server.origin,`claims/${held.id}/release`,{version:held.version,acknowledge:true})
   await manager.context.close();await employee.context.close()
-  // FEED-005: one reconciled and closed statement (its resolution, ledger and history) rides the same archive round trip.
+  await statementScreens(browser,root,server.origin,owner,evidence)
+  // FEED-005: reconciled and closed statements (their resolutions, ledger and history) ride the same archive round trip.
   const kept=(await api(owner.context,server.origin,'statements')).files.find(f=>f.name==='synthetic-kept-match.csv')
   const reconciliation=await api(owner.context,server.origin,`statements/${kept.id}/reconcile`,{last4:'1111',openingBalance:'0.00',statementBalance:'1.00'})
   const closedStatement=await api(owner.context,server.origin,`statements/reconciliations/${reconciliation.id}/close`,{})
