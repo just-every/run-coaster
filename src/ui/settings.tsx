@@ -95,6 +95,15 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Every expense under" name="limit" inputMode="decimal" required={false} defaultValue={state.approvalRule?.limit_minor ? amountText(state.approvalRule.limit_minor) : '75.00'} hint="Each expense must be under this, carry its receipt and raise no policy exception" />
       </Form>
     </Section>}
+    {owner && !state.actor.delegate && b && <Section title="Policy agent approval envelope" label="Policy agent envelope">
+      <p className="muted">Off until you grant authority. At submission the policy agent may approve an expense strictly under your limit when policy checks pass, receipt or card-match evidence agrees and coding matches an active finance merchant rule. Uncertain evidence goes to the approver. Reports retain their configured approval workflows; no payment is released.</p>
+      <p>{state.approvalEnvelope?.enabled ? `Envelope v${state.approvalEnvelope.version} · every qualifying expense under ${money(state.approvalEnvelope.limit_minor,b.currency)}` : 'No active approval envelope'}</p>
+      <Form key={state.approvalEnvelope?.version??0} label="Save policy agent envelope" onSubmit={async v=>{await call('settings/approval-envelope',{...v,version:state.approvalEnvelope?.version??0});await saved('Policy agent envelope saved.');}}>
+        <Field label="Enable the policy agent envelope" name="enabled" type="checkbox" defaultValue={state.approvalEnvelope?.enabled===1}/>
+        <Field label="Envelope expense limit" name="limit" inputMode="decimal" required={false} defaultValue={state.approvalEnvelope?.limit_minor?amountText(state.approvalEnvelope.limit_minor):'100.00'}/>
+        <Field label="I authorize qualifying approvals on my behalf" name="consent" type="checkbox" defaultValue={false}/>
+      </Form>
+    </Section>}
     {owner && b && <Section title="Payment controls">
       <p className="muted">Releasing a reviewed batch needs you, or a finance member you give release access under People, signed in within the last 10 minutes (a recent sign-in, not a second factor), and never someone with a claim in the batch. On the reimbursement day, at 9:00 ({b.timezone}), Coaster opens a draft batch of every approved claim for finance to review; it never releases one.</p>
       <Form key={`${b.dual_release_over_minor ?? 'off'}-${b.pay_weekday ?? 'off'}-${b.advance_account ?? ''}`} label="Save payment controls" onSubmit={async v => { await call('settings/payment-controls', v); await saved('Payment controls saved.'); }}>

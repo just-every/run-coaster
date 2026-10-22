@@ -11,6 +11,7 @@ export const MATRIX = {
   people: ['owner', 'admin'],
   policy: ['owner', 'admin', 'finance'],
   funding: ['owner'],
+  agentEnvelope: ['owner'],
   connections: ['owner', 'admin', 'finance'],
   cards: ['owner', 'admin', 'cardAdmin'],
   submit: ['employee'],

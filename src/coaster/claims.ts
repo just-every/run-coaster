@@ -13,7 +13,10 @@ import { linkableRequest } from './requests';
 import { approvesByRule, currentRule, ruleApproval, ruleStill } from './auto-approval';
 import { capToAllowance } from './allowances';
 import { receiptSignals } from './receipt-signals';
-import { policyReview } from './policy-review';
+import { evidencedPolicyReview } from './policy-review-evidence';
+import { auditSample } from './audit-queue';
+import { currentEnvelope } from './approval-envelopes';
+import { expenseApprovals } from './expense-approvals';
 import { policyConfiguration, policyStill } from './policy-configuration';
 import { workflowPlan, resolveStage, insertTasks, workflowAccess } from './workflow-routing';
 import { configuredChain, freezeChain } from './approval-chain';
@@ -231,15 +234,25 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const resolved = workflow ? await resolveStage(db, workflow.plan.stages[0], claim.employee_email, business.timezone) : null;
   const routed = resolved?.tasks[0];
   const rule = await currentRule(db), byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
+  const evidenced=await evidencedPolicyReview(db,items,exceptions,active,claim.employee_email,claim.currency);
+  const envelope=await currentEnvelope(db),individual=await expenseApprovals(db,items,exceptions,evidenced.review,rule,envelope,claim.employee_email,claim.currency);
+  const byAgent=!workflow&&!configured.chain&&individual.approvals.length===items.length&&individual.approvals.some(a=>a.source==='agent');
+  const approved=byRule||byAgent;
   const revision = claim.revision + 1, total = reimbursableMinor(items), at = now();
-  const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: policyReview(items, exceptions, active), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(auth, coding.guard, ...cardGuards, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(byRule ? [ruleStill(rule!)] : [])), [
+  const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: evidenced.review, ...(individual.approvals.length?{expenseApprovals:individual.approvals}:{}), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  await commit(db, all(auth, coding.guard, evidenced.guard, individual.guard, ...cardGuards, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(rule ? [ruleStill(rule)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),
     ...(workflow && resolved ? insertTasks(db, 'claim', claim.id, revision, 0, 0, resolved.tasks) : []),
     ...(!workflow && configured.chain ? [freezeChain(db, claim.id, revision, configured.chain.id, configured.chain.steps)] : []),
-    db.prepare('UPDATE c_claims SET status=?,revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?').bind(byRule ? 'approved' : 'submitted', revision, routed?.email ?? approver, routed?.on_behalf_of ?? onBehalfOf, total, at, claim.id),
+    db.prepare('UPDATE c_claims SET status=?,revision=?,approver_email=?,on_behalf_of=?,total_minor=?,version=version+1,updated_at=? WHERE id=?').bind(approved ? 'approved' : 'submitted', revision, routed?.email ?? approver, routed?.on_behalf_of ?? onBehalfOf, total, at, claim.id),
     history(revision === 1 ? 'claim-submitted' : 'claim-resubmitted', { revision, totalMinor: total, exceptions: exceptions.length, note, approver, onBehalfOf }),
+    ...individual.writes(claim.id,revision),
     ...(byRule ? ruleApproval(db, claim.id, revision, rule!, claim.currency) : []),
+    ...(byAgent&&!byRule?[
+      db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,?,'approved',?,?,?,'[]',?)").bind(uid(),claim.id,revision,'Every expense is covered by the owner’s compliant-spend envelope',`policy agent v${envelope!.version}`,at,envelope!.set_by),
+      auditSample(db,claim.id,revision),
+      ruleEvent(db,`policy agent v${envelope!.version}`,'claim-approved',{claim:claim.id},{revision,envelope:envelope!.version,onBehalfOf:envelope!.set_by}),
+    ]:[]),
   ]);
   return loadClaim(db, claim.id);
 }

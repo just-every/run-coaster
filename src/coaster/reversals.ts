@@ -68,7 +68,7 @@ export async function unapproveClaim(db: D1Database, actor: Actor, id: string, b
     const route = resolved ? {approver:resolved.tasks[0].email,onBehalfOf:resolved.tasks[0].on_behalf_of,guard:resolved.guards[0]} : chain ? await chainRoute(db, chain.steps, 0, claim.employee_email, localDay((await requireBusiness(db)).timezone)) : null;
     state.push(route?.guard ?? { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [claim.approver_email] });
     const approver = route?.approver ?? claim.approver_email, onBehalfOf = route ? route.onBehalfOf : claim.on_behalf_of;
-    const snapshot = { ...JSON.parse(previous.snapshot), approver, onBehalfOf, reopened: { fromRevision: claim.revision, by: actor.delegate?.email ?? actor.email, reason } };
+    const snapshot = { ...JSON.parse(previous.snapshot), expenseApprovals:[], approver, onBehalfOf, reopened: { fromRevision: claim.revision, by: actor.delegate?.email ?? actor.email, reason } };
     writes.push(
       db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, claim.revision + 1, previous.submitted_by, at, previous.total_minor, JSON.stringify(snapshot)),
       ...(resolved ? insertTasks(db,'claim',claim.id,claim.revision+1,0,0,resolved.tasks) : []),

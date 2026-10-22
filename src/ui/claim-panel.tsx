@@ -99,7 +99,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         {claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}
       </ul>
     </section>
-    <PolicyReview revision={detail.revisions.at(-1)} />
+    <PolicyReview revision={detail.revisions.at(-1)} claim={claim} agreement={state.reviewerAgreement} feedback={detail.events.filter((e:D)=>e.action==='policy-review-feedback'&&e.actor_email===(state.actor.delegate?.email??me))} mayRecord={deciding} onDone={done} />
     <ReceiptSignals revision={detail.revisions.at(-1)} events={detail.events} mayReview={state.actor.roles.finance} claimId={claim.id} done={done} />
     <ClaimAdvance state={state} claim={claim} advance={detail.advance} editable={editable} done={done} />
     {detail.requests.length > 0 && <section className="panel-block" aria-label="Spend requests">

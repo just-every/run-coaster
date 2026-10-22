@@ -27,6 +27,7 @@ export const nextDay = (day: string) => new Date(Date.parse(day + 'T00:00:00Z') 
  * `role:owner` principal or an import run), the owner's approval rule ("rule vN"), the hourly run (written under its
  * name: schedule, allowance, budget, reminder, escalation, retention, report schedule), or a person in the app. */
 export function channel(actor: string, action: string, detail: Data) {
+  if (actor.startsWith('policy agent v')) return 'agent';
   if (detail.agent && !action.startsWith('proposal-')) return 'agent';
   if (actor.startsWith('role:') || action.startsWith('import-')) return 'import';
   if (actor.startsWith('rule v')) return 'rule';

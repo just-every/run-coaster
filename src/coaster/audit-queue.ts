@@ -23,17 +23,23 @@ const reader = (actor: Actor) => requireThat(actor.roles.finance || actor.roles.
  * that finance has not reviewed yet; ordered by risk then age, or by age then risk. Plus the audit samples. */
 export async function exceptionQueue(db: D1Database, actor: Actor, sort = 'risk') {
   reader(actor);
-  const [claims, reviews, samples, signalReviews] = await db.batch([
+  const [claims, reviews, samples, signalReviews,expenseFindings] = await db.batch([
     db.prepare("SELECT c.id,c.number,c.employee_email,c.title,c.status,c.revision,c.total_minor,c.currency,r.submitted_at,r.snapshot FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision WHERE c.status IN ('submitted','approved','batched','reimbursed')"),
     db.prepare('SELECT claim_id,revision,item_id,code FROM c_exception_reviews'),
     db.prepare('SELECT s.*, c.number, c.employee_email, c.title, c.total_minor, c.currency FROM c_audit_samples s JOIN c_claims c ON c.id=s.claim_id ORDER BY s.sampled_at DESC'),
     db.prepare("SELECT claim_id,json_extract(detail,'$.revision') AS revision,json_extract(detail,'$.item') AS item_id,json_extract(detail,'$.code') AS code FROM c_events WHERE action='receipt-signal-reviewed'"),
+    db.prepare("SELECT claim_id,detail,actor_email,at FROM c_events WHERE action='expense-audit-finding-recorded' ORDER BY seq"),
   ]);
   const done = new Set((reviews.results as Data[]).map(r => `${r.claim_id}|${r.revision}|${r.item_id}|${r.code}`)), at = Date.now();
   const reviewedSignals = new Set((signalReviews.results as Data[]).map(r => `${r.claim_id}|${r.revision}|${r.item_id}|${r.code}`));
-  const open: Data[] = [];
+  const open: Data[] = [],expenseSamples:Data[]=[];
   for (const c of claims.results as Data[]) {
     const snapshot = JSON.parse(c.snapshot);
+    for(const approval of snapshot.expenseApprovals??[])if(approval.sampled){
+      const item=snapshot.items.find((i:Data)=>i.id===approval.item);
+      const found=(expenseFindings.results as Data[]).find(f=>{const d=JSON.parse(f.detail);return f.claim_id===c.id&&d.revision===c.revision&&d.item===approval.item;});
+      expenseSamples.push({...(found?{finding:{...JSON.parse(found.detail),by:found.actor_email,at:found.at}}:{}),claim:c.id,revision:c.revision,item:approval.item,number:claimNumber(c.number),merchant:item?.merchant,amountMinor:item?.amount_minor,currency:c.currency,actor:approval.actor,ordinal:approval.ordinal,percent:approval.samplePercent});
+    }
     const signals = (snapshot.receiptSignals ?? []).flatMap((r: Data) => r.signals.map((s: Data) => ({ ...s, item: r.item, message: s.reason, signal: true })));
     for (const e of [...snapshot.exceptions, ...signals] as Data[]) {
       if ((e.signal ? reviewedSignals : done).has(`${c.id}|${c.revision}|${e.item}|${e.code}`)) continue;
@@ -44,7 +50,7 @@ export async function exceptionQueue(db: D1Database, actor: Actor, sort = 'risk'
   const byAge = (a: Data, b: Data) => a.submittedAt.localeCompare(b.submittedAt), byRisk = (a: Data, b: Data) => b.risk - a.risk;
   open.sort(sort === 'age' ? (a, b) => byAge(a, b) || byRisk(a, b) || a.number.localeCompare(b.number) : (a, b) => byRisk(a, b) || byAge(a, b) || a.number.localeCompare(b.number));
   const settings = await requireBusiness(db);
-  return { sort: sort === 'age' ? 'age' : 'risk', open, samplePercent: settings.audit_sample_percent, samples: (samples.results as Data[]).map(s => ({ ...s, number: claimNumber(s.number) })) };
+  return { expenseSamples, sort: sort === 'age' ? 'age' : 'risk', open, samplePercent: settings.audit_sample_percent, samples: (samples.results as Data[]).map(s => ({ ...s, number: claimNumber(s.number) })) };
 }
 
 /** Finance reviews one open exception with a note; it leaves the queue and the review is a history line. */
@@ -88,6 +94,7 @@ export async function recordFinding(db: D1Database, actor: Actor, b: Data) {
   need(actor, 'finance');
   requireThat(actor.kind === 'person', 'Only a person records a finding', 403);
   const claim = await loadClaim(db, b.claim);
+  if(b.item!==undefined)return recordExpenseFinding(db,actor,claim,b);
   const sample = await db.prepare('SELECT outcome FROM c_audit_samples WHERE claim_id=? AND revision=?').bind(claim.id, b.revision).first<{ outcome: string | null }>();
   requireThat(sample, 'That approval was not sampled', 404);
   requireThat(claim.employee_email !== actor.email && claim.employee_email !== actor.delegate?.email, 'Someone else in finance must audit your own claim', 403);
@@ -99,4 +106,18 @@ export async function recordFinding(db: D1Database, actor: Actor, b: Data) {
     event(db, actor, 'audit-finding-recorded', { claim: claim.id }, { revision: b.revision, outcome: b.outcome, finding }),
   ]);
   return exceptionQueue(db, actor);
+}
+
+/** Findings on independently sampled expense approvals remain append-only
+ * history, with the same finance and no-own-claim separation as report samples. */
+async function recordExpenseFinding(db:D1Database,a:Actor,claim:Awaited<ReturnType<typeof loadClaim>>,b:Data){
+ requireThat(claim.employee_email!==a.email&&claim.employee_email!==a.delegate?.email,'Someone else in finance must audit your own expense',403);
+ const row=await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(claim.id,b.revision).first<{snapshot:string}>();
+ requireThat(row&&JSON.parse(row.snapshot).expenseApprovals?.some((p:Data)=>p.item===b.item&&p.sampled),'That expense approval was not sampled',404);
+ requireThat(b.outcome==='clean'||b.outcome==='issue','Choose clean or issue found');
+ const finding=b.outcome==='issue'?text(b.finding,'Finding',2000):optionalText(b.finding,'Finding',2000);
+ const absent={sql:"NOT EXISTS(SELECT 1 FROM c_events WHERE claim_id=? AND action='expense-audit-finding-recorded' AND json_extract(detail,'$.revision')=? AND json_extract(detail,'$.item')=?)",params:[claim.id,b.revision,b.item]};
+ requireThat(!await db.prepare(`SELECT 1 WHERE NOT (${absent.sql})`).bind(...absent.params).first(),'This expense sample already has its finding',409);
+ await commit(db,all(authority(a,'finance'),absent,{sql:'EXISTS(SELECT 1 FROM c_revisions WHERE claim_id=? AND revision=? AND snapshot=?)',params:[claim.id,b.revision,row.snapshot]}),[event(db,a,'expense-audit-finding-recorded',{claim:claim.id},{revision:b.revision,item:b.item,outcome:b.outcome,finding})]);
+ return exceptionQueue(db,a);
 }

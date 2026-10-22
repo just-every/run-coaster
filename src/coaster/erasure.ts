@@ -47,7 +47,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_delegations', ['created_by', 'revoked_by']],
   ['c_delegates', ['created_by', 'revoked_by']],
   ['c_policies', ['published_by']],
-  ['c_cards', ['employee_email', 'assigned_by']], ['c_card_charges', ['employee_email']], ['c_card_charge_undo_history', ['employee_email']], ['c_statement_files', ['imported_by', 'undone_by']],
+  ['c_approval_envelopes',['set_by']], ['c_cards', ['employee_email', 'assigned_by']], ['c_card_charges', ['employee_email']], ['c_card_charge_undo_history', ['employee_email']], ['c_statement_files', ['imported_by', 'undone_by']],
   ['c_card_statements', ['opened_by', 'closed_by']], ['c_card_statement_resolutions', ['resolved_by']],
   ['c_departments', ['head_email', 'created_by']], ['c_escalation_chains', ['set_by']], ['c_card_handoffs', ['from_email', 'to_email', 'by_email']],
   ['c_coding_values', ['owner_email']], ['c_qbo_connections', ['connected_by']],

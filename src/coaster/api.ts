@@ -19,6 +19,8 @@ import { retractClaim, unapproveClaim } from './reversals';
 import { releaseHold } from './holds';
 import { exceptionQueue, recordFinding, reviewException, saveAuditSample } from './audit-queue';
 import { saveWorkflow } from './workflow-configuration';
+import { saveEnvelope } from './approval-envelopes';
+import { reviewFeedback } from './policy-review-feedback';
 import { saveApprovalRule } from './auto-approval';
 import { report } from './reports';
 import { saveReminderSettings } from './reminders';
@@ -213,6 +215,8 @@ api.post('/api/coaster/claims/:id/items/:item/accountable-plan', as(async (a, c)
 api.get('/api/coaster/exceptions', as(async (a, c) => exceptionQueue(db(c), a, c.req.query('sort'))));
 api.post('/api/coaster/exceptions/review', as(async (a, c) => reviewException(db(c), a, await body(c))));
 api.post('/api/coaster/settings/approval-workflow', as(async (a, c) => saveWorkflow(db(c), a, await body(c))));
+api.post('/api/coaster/settings/approval-envelope', as(async (a,c)=>saveEnvelope(db(c),a,await body(c))));
+api.post('/api/coaster/claims/:id/policy-review-feedback', as(async (a,c)=>reviewFeedback(db(c),a,param(c,'id'),await body(c))));
 api.post('/api/coaster/settings/approval-rule', as(async (a, c) => saveApprovalRule(db(c), a, await body(c))));
 api.post('/api/coaster/settings/payment-controls', as(async (a, c) => savePaymentControls(db(c), a, await body(c))));
 api.post('/api/coaster/settings/auto-submit', as(async (a, c) => saveAutoSubmit(db(c), a, await body(c))));

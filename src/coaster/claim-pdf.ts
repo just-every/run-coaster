@@ -103,6 +103,8 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
   for (const [index, item] of items.entries()) {
     layout.heading(`Expense ${index + 1}: ${item.merchant} | ${money(item.amount_minor, claim.currency)}`);
     layout.text(`${item.spent_on} | ${item.kind} | ${item.id}`);
+    const expenseApproval=detail.revisions.at(-1)?.snapshot.expenseApprovals?.find((a:Data)=>a.item===item.id);
+    if(expenseApproval)layout.text(`Approved at submission by ${expenseApproval.actor}${expenseApproval.onBehalfOf?` on behalf of ${expenseApproval.onBehalfOf}`:''}: ${expenseApproval.reason}`);
     if (isCardExpense(item)) layout.text(`Company card ${item.card_issuer ?? ''} ····${item.card_last4 ?? ''} | paid by the company, not reimbursed`);
     if (item.original_minor != null && item.original_currency !== claim.currency) {
       layout.text(`Original amount: ${money(item.original_minor, item.original_currency)}`);

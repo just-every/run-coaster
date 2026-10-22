@@ -1,7 +1,7 @@
 import { noCardDuplicates } from './card-duplicates';
 import { reimbursableMinor, REIMBURSABLE_SUM } from './card-expenses';
 import { receiptSignals } from './receipt-signals';
-import { policyReview } from './policy-review';
+import { evidencedPolicyReview } from './policy-review-evidence';
 import { policyConfiguration, policyStill } from './policy-configuration';
 import { all, authority, commit, type Sql } from './session';
 import { event } from './events';
@@ -56,7 +56,7 @@ export async function approveWithHold(db: D1Database, actor: Actor, claim: Claim
   writes.push(
     ...moveItems(db, items.filter(i => hold.includes(i.id)), claim.id, heldId),
     db.prepare(`UPDATE c_claims SET total_minor=(SELECT ${REIMBURSABLE_SUM} FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?`).bind(heldId, at, heldId),
-    db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, submitted.submitted_by, at, total, JSON.stringify({ ...snapshot, ...(snapshot.receiptSignals ? { receiptSignals: snapshot.receiptSignals.filter((r: Data) => !hold.includes(r.item)) } : {}), ...(snapshot.policyReview ? { policyReview: { ...snapshot.policyReview, recommendations: snapshot.policyReview.recommendations.filter((r: Data) => !hold.includes(r.item)) } } : {}), total_minor: total, exceptions, items: kept, split })),
+    db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, submitted.submitted_by, at, total, JSON.stringify({ ...snapshot, ...(snapshot.expenseApprovals?{expenseApprovals:snapshot.expenseApprovals.filter((a:Data)=>!hold.includes(a.item))}:{}), ...(snapshot.receiptSignals ? { receiptSignals: snapshot.receiptSignals.filter((r: Data) => !hold.includes(r.item)) } : {}), ...(snapshot.policyReview ? { policyReview: { ...snapshot.policyReview, recommendations: snapshot.policyReview.recommendations.filter((r: Data) => !hold.includes(r.item)) } } : {}), total_minor: total, exceptions, items: kept, split })),
     ...(task ? [db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step,workflow_final) VALUES(?,?,?,'approved',?,?,?,?,?,?,0)").bind(uid(),claim.id,claim.revision,override??reason,by,at,JSON.stringify(exceptions),onBehalfOf,task.slot),db.prepare("UPDATE c_workflow_tasks SET status='approved' WHERE kind='claim' AND record_id=? AND revision=? AND slot=?").bind(claim.id,claim.revision,task.slot)] : []),
     ...(chain ? [freezeChain(db, claim.id, revision, chain.chain_id, chain.steps, chain.position)] : []),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step) VALUES(?,?,?,'approved',?,?,?,?,?,?)").bind(uid(), claim.id, revision, override ?? '', by, at, JSON.stringify(exceptions), onBehalfOf, chain?.position ?? 0),
@@ -96,8 +96,9 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   requireThat(original, 'Original claim missing', 409);
   const at = now(), total = reimbursableMinor(items), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of, by = actor.delegate?.email ?? actor.email;
   const reason = override ?? optionalText(b.reason, 'Reason', 1000);
-  const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: policyReview(items, exceptions, active), policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(authority(actor, 'manager'), checked.guard, ...cardGuards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['returned'])), [
+  const evidenced=await evidencedPolicyReview(db,items,exceptions,active,claim.employee_email,claim.currency);
+  const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: evidenced.review, policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  await commit(db, all(authority(actor, 'manager'), checked.guard, evidenced.guard, ...cardGuards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['returned'])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,1,?,?,?,?)').bind(claim.id, original.submitted_by, at, total, JSON.stringify(snapshot)),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,1,'approved',?,?,?,?,?)").bind(uid(), claim.id, reason, by, at, JSON.stringify(exceptions), onBehalfOf),
     db.prepare("UPDATE c_claims SET status='approved',revision=1,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(total, at, claim.id),

@@ -773,3 +773,32 @@ test('ADMIN-001 deactivating an approver or a cardholder hands approvals, report
   await assert.rejects(h.db.prepare('UPDATE c_card_charges SET amount_minor=1').run(), /immutable/)
   await assert.rejects(h.db.prepare("UPDATE c_card_charges SET employee_email='x@y.example'").run(), /immutable/)
 }))
+
+test('FEED-004 a compliant $40 card charge approves independently on a mixed report while its exceptional $40 peer routes to a person and the rule version is sampled',()=>withAgency(async(h,t)=>{
+ await h.post('settings/business',{name:'Synthetic Coaster',currency:'USD',timezone:'America/New_York',receiptThreshold:''});
+ await h.post('policy',{rules:[{kind:'blocked-merchant',merchant:'Flagged Dinner',hard:false}]},t.morgan);
+ await h.post('settings/approval-rule',{enabled:true,limit:'75.00'});
+ await h.post('settings/audit-sample',{percent:'100'},t.morgan);
+ const lunch=await original(h,t.sam,'synthetic-coaster-6401.png',{},await readFile('tests/fixtures/policy-review/synthetic-coaster-6004.png'));
+ const dinner=await original(h,t.sam,'synthetic-coaster-6402.png',{},await readFile('tests/fixtures/policy-review/synthetic-coaster-6005.png'));
+ await choose(h,t,lunch,{merchant:'Lunch',date:'2026-10-02',total:'40.00',currency:'USD'});
+ await choose(h,t,dinner,{merchant:'Flagged Dinner',date:'2026-10-20',total:'40.00',currency:'USD'});
+ const file=await statement(h,t,[{id:'synthetic-coaster-6403',merchant:'Lunch',amount:'40.00',date:'2026-10-03',transaction:'2026-10-02'},{id:'synthetic-coaster-6404',merchant:'Flagged Dinner',amount:'40.00',date:'2026-10-21',transaction:'2026-10-20'}]);
+ await Promise.all([tick(h),tick(h)]);
+ let detail=await h.get(`claims/${file.claims[0]}`,t.sam);
+ assert.equal(detail.claim.status,'draft');assert.deepEqual(detail.revisions,[]);assert.deepEqual(detail.decisions,[]);assert.equal((await h.get('exceptions',t.morgan)).expenseSamples.length,0);
+ const flagged=detail.items.find(i=>i.merchant==='Flagged Dinner');
+ const edited=await h.post(`claims/${detail.claim.id}/items`,{version:detail.claim.version,item:flagged.id,kind:'receipt',date:flagged.spent_on,merchant:flagged.merchant,amount:'40.00',receipt:flagged.receipt_id,category:t.c.office,explanation:'Finance needs to review this merchant'},t.sam);
+ const claim=await h.post(`claims/${edited.id}/submit`,{version:edited.version},t.sam);
+ assert.equal(claim.status,'submitted');assert.equal(claim.total_minor,0);
+ detail=await h.get(`claims/${claim.id}`,t.priya);const snapshot=detail.revisions.at(-1).snapshot,approved=snapshot.expenseApprovals;
+ assert.equal(approved.length,1);assert.equal(approved[0].item,detail.items.find(i=>i.merchant==='Lunch').id);assert.equal(approved[0].source,'rule');assert.equal(approved[0].actor,'rule v1');assert.equal(approved[0].sampled,true);assert.deepEqual(detail.decisions,[],'the exceptional peer still needs its assigned person');
+ assert.ok(snapshot.exceptions.some(e=>e.item===flagged.id&&e.code==='blocked-merchant'));
+ const samples=(await h.get('exceptions',t.morgan)).expenseSamples;assert.equal(samples.length,1);assert.equal(samples[0].item,approved[0].item);assert.equal(samples[0].amountMinor,4000);
+ const finding=await h.post('audit-samples/finding',{claim:claim.id,revision:claim.revision,item:approved[0].item,outcome:'clean',finding:'Receipt, statement and coding checked'},t.morgan);assert.equal(finding.expenseSamples[0].finding.outcome,'clean');
+ await h.post('audit-samples/finding',{claim:claim.id,revision:claim.revision,item:approved[0].item,outcome:'issue',finding:'Cannot overwrite an earlier finding'},t.morgan,409);
+ const history=(await h.get('history?q=expense-approved-by-rule',t.morgan)).lines;assert.equal(history.length,1);assert.equal(history[0].channel,'rule');assert.equal(history[0].detail.item,approved[0].item);assert.equal(history[0].detail.version,1);
+ const complete=await h.post(`claims/${claim.id}/decision`,{version:claim.version,revision:claim.revision,decision:'approved',acknowledge:true},t.priya);assert.equal(complete.status,'approved');
+ await h.post('settings/approval-rule',{enabled:false});const after=await h.get(`claims/${claim.id}`,t.morgan);assert.deepEqual(after.revisions[0].snapshot,snapshot);assert.equal(after.decisions.length,1);assert.equal(after.decisions[0].actor_email,SAM.replace('sam','priya'));assert.equal(after.claim.total_minor,0);
+ await h.post('batches',{claims:[claim.id]},t.morgan,409);
+}))

@@ -149,8 +149,68 @@ export async function runLiveCodingQuality({key,model,output}={}) {
   }finally{await h.close()}
 }
 
+/** AGENT-005: run the entire frozen old + semantic coding populations through
+ * posted expenses and private originals. Source facts/merchant rules are input;
+ * coding labels are read only after submission to score the agent decisions. */
+export async function runPolicyAgentCodingQuality({output}={}){
+ const semantic=JSON.parse(await readFile('tests/fixtures/coding/semantic/labels.json','utf8'));
+ const rules=JSON.parse(await readFile('tests/fixtures/coding/semantic/rules.json','utf8'));
+ const history=JSON.parse(await readFile('tests/fixtures/coding/semantic/history.json','utf8')).rows;
+ const h=await harness();
+ try{
+  const t=await setup(h),claims={};
+  for(const person of ['sam','alex','bea'])claims[person]=await h.post('claims',{title:n(64000+['sam','alex','bea'].indexOf(person))},t[person]);
+  for(const row of [...fixture.history,...history])claims[row.employee]=await manual(h,t,row,claims[row.employee]);
+  for(const person of ['sam','alex','bea'])await h.post(`claims/${claims[person].id}/submit`,{version:claims[person].version},t[person]);
+  await t.rule(n(1001),t.fields(1));await t.rule(n(1002),t.fields(2),'personal',t.sam);
+  for(const row of rules.finance)await t.rule(row.merchant,t.fields(row.coding.category,row.coding.class,row.coding.project));
+  for(const row of rules.personal)await t.rule(row.merchant,t.fields(row.coding.category,row.coding.class,row.coding.project),'personal',t[row.employee]);
+  for(const row of rules.mcc)await h.post(`${path}/mcc`,{version:(await h.get(`${path}/rules`,t.finance)).version,mcc:row.mcc,category:t.cats[row.category].id,active:true},t.finance);
+  let catalog=await h.get('coding');catalog=await h.post('coding/values',{version:catalog.version,id:t.values.account,active:false});await h.post('coding/values',{version:catalog.version,id:t.values.class[3],active:false});
+  await h.post('settings/approval-envelope',{version:0,enabled:true,limit:'1000.00',consent:true});
+  const matching=await h.get('settings/card-matching');await h.post('settings/card-matching',{version:matching.version,enabled:true,windowDays:7,tipPercent:0,fxPercent:0});
+  const sources=[{corpus:fixture,folder:''},{corpus:semantic,folder:'semantic/'}],originals=[],reportIds=new Set();
+  for(const {corpus,folder}of sources){
+   const imported=await t.statement(corpus.cases);for(const id of imported.claims)reportIds.add(id);
+   for(const row of corpus.cases){
+    const original=await t.upload({...row,receipt:folder+row.receipt});
+    originals.push({row,id:original.receipt.id});
+    await h.post(`receipt-inbox/${original.receipt.id}/card-match`,{expectedSequence:0,enabled:true,merchant:row.merchant,date:row.date,total:row.amount,currency:'USD',notice:original.receipt.matchChoice.notice},t.sam);
+   }
+  }
+  const worker=await h.mf.getWorker();for(let hour=0;hour<3;hour++)await worker.scheduled({scheduledTime:Date.now()+hour*3600000,cron:'17 * * * *'});
+  const allItems=[];for(const id of reportIds)allItems.push(...(await h.get(`claims/${id}`,t.sam)).items);
+  assert.equal(allItems.length,240);assert.equal(originals.length,240);
+  const originalById=new Map((await h.get('receipt-inbox',t.sam)).receipts.map(r=>[r.id,r]));
+  // A person explicitly resolves every remaining question. No charge amount,
+  // coding or expected label is changed to force an automatic approval.
+  for(const {row,id}of originals){
+   const original=originalById.get(id);if(original.attachment)continue;
+   const item=allItems.find(i=>i.card_transaction_key.endsWith('id:'+row.id));assert.ok(item);
+   const claim=(await h.get(`claims/${item.claim_id}`,t.sam)).claim;
+   await h.post(`receipt-inbox/${id}/attach`,{expectedSequence:original.lifecycleSequence,claimId:claim.id,itemId:item.id,version:claim.version},t.sam);
+  }
+  const records=[];let approved=0,routed=0,codingReview=0;
+  for(const id of reportIds){
+   const before=await h.get(`claims/${id}`,t.sam),submitted=await h.post(`claims/${id}/submit`,{version:before.claim.version},t.sam);
+   const detail=await h.get(`claims/${id}`,t.manager),snapshot=detail.revisions.at(-1).snapshot;
+   for(const item of snapshot.items){
+    const label=[...fixture.cases,...semantic.cases].find(r=>item.card_transaction_key.endsWith('id:'+r.id));assert.ok(label);
+    const approval=snapshot.expenseApprovals?.find(a=>a.item===item.id),review=snapshot.policyReview.recommendations.find(r=>r.item===item.id),actual=simplified({category:item.allocations.length===1?item.allocations[0].category_id:undefined,dimensions:item.coding},t);
+    if(approval){assert.equal(approval.source,'agent');assert.deepEqual(actual,{category:label.category,class:label.class,project:label.project},label.id+' approved coding must equal its label');assert.equal(review.evidence.codingAssessment.reviewRequired,false);approved++;}
+    else routed++;
+    if(review.evidence.codingAssessment.reviewRequired){codingReview++;assert.equal(approval,undefined);assert.equal(submitted.status,'submitted');}
+    records.push({id:label.id,item:item.id,approved:!!approval,actual,label:{category:label.category,class:label.class,project:label.project},codingReview:review.evidence.codingAssessment.reviewRequired,method:review.evidence.codingAssessment.method});
+   }
+  }
+  assert.equal(records.length,240);assert.ok(approved>0);assert.ok(codingReview>0);assert.equal(approved+routed,240);
+  const result={gitSHA:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),journey:'AGENT-005 full CODE-002 coding population',charges:240,originals:240,approved,routed,codingReview,approvedCodingAgreement:100,method:'Existing frozen old and semantic corpora, current native source rules and historical observations, all 240 posted charges and 240 uploaded originals, explicit typed matching and human answers to remaining questions. No provider call, relabel, expense correction or omitted case.',records};
+  if(output)await writeFile(output,JSON.stringify(result,null,2)+'\n');return result;
+ }finally{await h.close()}
+}
+
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const outputIndex=process.argv.indexOf('--output')
-  try {const result=await runLiveCodingQuality({key:process.env.COASTER_AI_KEY,model:process.env.COASTER_AI_MODEL,output:outputIndex<0?undefined:process.argv[outputIndex+1]});const {records,...summary}=result;console.log(JSON.stringify(summary,null,2))}
+  try {const result=process.argv.includes('--policy-agent')?await runPolicyAgentCodingQuality({output:outputIndex<0?undefined:process.argv[outputIndex+1]}):await runLiveCodingQuality({key:process.env.COASTER_AI_KEY,model:process.env.COASTER_AI_MODEL,output:outputIndex<0?undefined:process.argv[outputIndex+1]});const {records,...summary}=result;console.log(JSON.stringify(summary,null,2))}
   catch(error){console.error(error instanceof Error?error.message:'Automatic coding quality journey failed');process.exitCode=1}
 }

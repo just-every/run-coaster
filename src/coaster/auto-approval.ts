@@ -1,3 +1,4 @@
+import { unreviewedCoding } from './expense-approvals';
 import { all, commit, type Sql } from './session';
 import { needRow, rowAuthority } from './permissions';
 import { ruleEvent, event } from './events';
@@ -32,7 +33,7 @@ export async function saveApprovalRule(db: D1Database, actor: Actor, b: Data) {
 /** A claim approves itself under the rule only when every expense is a receipt expense with its receipt attached and
  * strictly under the rule's amount, and the submitted revision raises no policy exception at all. */
 export function approvesByRule(rule: ApprovalRule | null, items: ClaimItem[], exceptions: PolicyException[]): rule is ApprovalRule {
-  return !!rule?.enabled && rule.limit_minor !== null && !exceptions.length && items.every(i => i.kind === 'receipt' && !!i.receipt_id && i.amount_minor < rule.limit_minor!);
+  return !!rule?.enabled && rule.limit_minor !== null && !exceptions.length && items.every(i => i.kind === 'receipt' && !unreviewedCoding(i) && !!i.receipt_id && i.amount_minor < rule.limit_minor!);
 }
 
 /** The submission write stands only while the rule it was judged under is still the current version. */

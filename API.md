@@ -304,3 +304,24 @@ echoes them. Native-session owner authority is required, including for undo and
 original-byte status reads. Exported Integration Server report CSVs use this
 same file door; the native import API has no credential custody or outbound Integration Server call.
 The separate explicitly consented host command is documented in IMPORTING.md.
+
+## Policy review and compliant-spend envelopes (AGENT-005)
+
+`POST settings/approval-envelope` accepts `{version, enabled, limit?, consent}`
+from the actual native owner; enabling requires explicit consent and a positive
+strict per-expense limit. Each save is append-only; disabling revokes future
+authority. Agent keys, public credentials, admins and Full delegates are refused.
+This conservative authority and evidence/coding boundary awaits ct ratification.
+
+Submitted revisions expose `policyReview` and any `expenseApprovals` with source,
+version, actor/on-behalf owner, reason, sample ordinal and percentage. Existing
+configured workflow stages still apply. Only a fully covered report with no
+explicit workflow completes automatically. Card expenses never reimburse.
+`POST claims/:id/policy-review-feedback` accepts `{version, revision, item, agree}`
+from a native assigned reviewer, once per reviewer/item/revision, excluding own
+claims. `state.reviewerAgreement` is that reviewer’s agreed/total count and percent
+over retained explicit feedback; no unanswered or automatic decision is counted.
+
+`GET exceptions` adds `expenseSamples`. `POST audit-samples/finding` also accepts
+`item` for an independently sampled expense, with the existing outcome/finding
+fields. Finance records one append-only finding and cannot audit its own expense.

@@ -249,6 +249,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Policy agent envelope and mixed card approvals at both widths
+        if: ${{ matrix.refusals == '0/3' }}
+        run: node tests/browser-policy-review.mjs
+        env:
+          COASTER_EVIDENCE: ${{ runner.temp }}/card-matching-proof/policy-agent
       - name: Card matching consent, questions, undo and archive replay
         run: node tests/card-matching.mjs
         env:

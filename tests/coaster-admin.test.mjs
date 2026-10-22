@@ -22,7 +22,7 @@ async function submitted(h, cookie, title, amount, category, extra) {
   return h.post(`claims/${c.id}/submit`, { version: c.version }, cookie)
 }
 const decide = (h, cookie, c, extra = {}, status = 200) => h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', acknowledge: true, ...extra }, cookie, status)
-const tables = ['c_events', 'c_members', 'c_categories', 'c_policies', 'c_budgets', 'c_cards', 'c_claims', 'c_items', 'c_batches', 'c_approval_workflows', 'c_approval_rules', 'c_departments', 'c_mileage_rates', 'c_allowances',
+const tables = ['c_events', 'c_members', 'c_categories', 'c_policies', 'c_budgets', 'c_cards', 'c_claims', 'c_items', 'c_batches', 'c_approval_workflows', 'c_approval_rules', 'c_approval_envelopes', 'c_departments', 'c_mileage_rates', 'c_allowances',
   'c_escalation_chains', 'c_card_match_rules', 'c_statement_files', 'c_card_charges', 'c_delegates', 'c_requests', 'c_advances', 'c_agent_keys', 'c_proposals', 'c_coding_dimensions', 'c_coding_values', 'c_category_dimensions', 'c_coding_refreshes', 'c_qbo_oauth_states', 'c_qbo_connections',
   'c_receipt_reading_settings', 'c_receipt_readings', 'c_receipt_reading_match_defaults', 'c_program_feeds', 'c_program_deliveries',
   'c_auto_coding_rules', 'c_auto_coding_contexts', 'c_auto_coding_suggestions', 'c_auto_coding_feedback', 'c_auto_coding_observations', 'c_auto_coding_flags']
@@ -89,6 +89,7 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
     { row: 'Business settings', call: who => send('settings/auto-submit', { schedule: 'daily' }, who) },
     { row: 'Business settings', call: who => send('settings/departments', { name: `Department ${++n}` }, who) },
     { row: 'Business settings', call: who => send('settings/approval-rule', { enabled: false }, who) },
+    { row: 'Grant or revoke policy agent', call: async who => send('settings/approval-envelope', {version:(await h.get('state')).approvalEnvelope?.version??0,enabled:false,consent:false},who) },
     { row: 'Business settings', prepare: () => owned('Stuck'), call: (who, c) => send(`claims/${c.id}/reassign`, { version: c.version, approver: PRIYA, reason: 'On leave' }, who) },
     { row: 'Business settings', prepare: request, call: (who, r) => send(`requests/${r.id}/reassign`, { version: r.version, approver: PRIYA, reason: 'On leave' }, who) },
     { row: 'Invite people', call: who => send('settings/members', { email: `added-${++n}${domain}`, name: 'Added', employee: true }, who) },

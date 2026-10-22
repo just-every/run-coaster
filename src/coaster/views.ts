@@ -12,6 +12,8 @@ import { delegateGrants } from './delegates';
 import { loadRequest, requestsFor } from './requests';
 import { claimComments, openQuestions } from './comments';
 import { exportTemplates } from './exports';
+import { currentEnvelope } from './approval-envelopes';
+import { reviewerAgreement } from './policy-review-feedback';
 import { currentRule } from './auto-approval';
 import { localDate } from './reports';
 import { businessDaysBetween } from './business-days';
@@ -61,6 +63,8 @@ export async function workspace(db: D1Database, actor: Actor) {
     delegates: await delegateGrants(db, actor),
     requests: await requestsFor(db, actor),
     approvalWorkflow: can(actor, 'settings') ? await currentWorkflow(db) : null,
+    approvalEnvelope: actor.roles.owner&&!actor.delegate ? await currentEnvelope(db) : null,
+    reviewerAgreement: await reviewerAgreement(db,actor),
     approvalRule: can(actor, 'readAll') ? await currentRule(db) : null,
     allowances: await allowancesFor(db, actor),
     advances: settings ? (await advancesFor(db, actor)).advances : [],
