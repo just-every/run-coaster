@@ -22,7 +22,8 @@ async function submitted(h, cookie, title, amount, category, extra) {
 }
 const decide = (h, cookie, c, extra = {}, status = 200) => h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', acknowledge: true, ...extra }, cookie, status)
 const tables = ['c_events', 'c_members', 'c_categories', 'c_policies', 'c_budgets', 'c_cards', 'c_claims', 'c_items', 'c_batches', 'c_approval_workflows', 'c_approval_rules', 'c_departments', 'c_mileage_rates', 'c_allowances',
-  'c_escalation_chains', 'c_card_match_rules', 'c_statement_files', 'c_card_charges', 'c_delegates', 'c_requests', 'c_advances', 'c_agent_keys', 'c_proposals', 'c_coding_dimensions', 'c_coding_values', 'c_category_dimensions', 'c_coding_refreshes', 'c_qbo_oauth_states', 'c_qbo_connections']
+  'c_escalation_chains', 'c_card_match_rules', 'c_statement_files', 'c_card_charges', 'c_delegates', 'c_requests', 'c_advances', 'c_agent_keys', 'c_proposals', 'c_coding_dimensions', 'c_coding_values', 'c_category_dimensions', 'c_coding_refreshes', 'c_qbo_oauth_states', 'c_qbo_connections',
+  'c_auto_coding_rules', 'c_auto_coding_contexts', 'c_auto_coding_suggestions', 'c_auto_coding_feedback', 'c_auto_coding_observations', 'c_auto_coding_flags']
 const snapshot = h => h.db.prepare(`SELECT ${tables.map(t => `(SELECT COUNT(*) FROM ${t}) AS ${t}`).join(',')}`).first()
 
 /** The role permission matrix in CONTRACT.md: each row's label and, per role, its cell text ('' is refused). */
@@ -89,6 +90,9 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
     { row: 'Invite people', call: who => send('delegates', { grantor: SAM, delegate: ALEX, level: 'submit' }, who) },
     { row: 'Invite people', prepare: () => h.post('delegates', { grantor: SAM, delegate: ALEX, level: 'submit' }), call: (who, g) => send(`delegates/${g.id}/revoke`, {}, who) },
     { row: 'Policy rules', call: who => send('policy', { rules: [] }, who) },
+    { row: 'Policy rules', call: async who => send('coding/automatic/rules', { version: (await h.get('coding/automatic/rules')).version, scope: 'finance', merchant: `synthetic-coaster-${2000 + ++n}`, coding: { category: t.c.office }, active: true }, who) },
+    { row: 'Policy rules', call: async who => send('coding/automatic/mcc', { version: (await h.get('coding/automatic/rules')).version, mcc: String(1000 + ++n), category: t.c.office, active: true }, who) },
+    { row: 'Policy rules', call: who => send('coding/automatic/rates', undefined, who) },
     { row: 'Policy rules', call: who => send('budgets', { name: `Budget ${++n}`, scope: 'entity', period: 'monthly', amount: '5000.00', owner: SAM, thresholds: '80, 100' }, who) },
     { row: 'Policy rules', call: who => send('budgets/import', { csv: `name,scope,scopeKey,period,amount,owner,thresholds,perMember,policyRule\nImported ${++n},entity,,yearly,9000.00,${SAM},100,no,no\n` }, who) },
     { row: 'Policy rules', call: who => send('allowances', { name: `Stipend ${++n}`, type: 'stipend', member: SAM, category: t.c.office, period: 'monthly', amount: '10.00', tax: 'accountable', startsOn: '2026-06-01' }, who) },
@@ -99,6 +103,8 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
     { row: 'Connect feeds', prepare: async () => h.post('statements/commit', await previewed()), call: (who, job) => send(`statements/${job.file}/undo`, {}, who) },
     { row: 'Issue, limit, freeze', call: who => send('statements/cards', { issuer: 'Synthetic Card', last4: '1111', employee: SAM }, who) },
     { row: 'Submit own', call: who => send('claims', { title: 'Mine' }, who) },
+    { row: 'Submit own', call: async who => send('coding/automatic/rules', { version: (await h.get('coding/automatic/rules')).version, scope: 'personal', merchant: `synthetic-coaster-${2000 + ++n}`, coding: { category: t.c.office }, active: true }, who) },
+    { row: 'Submit own', call: who => send('coding/automatic/preview', { merchant: 'synthetic-coaster-3000', values: {} }, who) },
     { row: 'Submit own', call: who => send('expenses', { kind: 'receipt', date: '2026-06-10', merchant: 'Matrix', amount: '5.00', category: t.c.office, explanation: 'Client work' }, who) },
     { row: 'Submit own', call: who => send('requests', { title: `Trip ${++n}`, estimate: '50.00', purpose: 'Client visit' }, who) },
     { row: 'Submit own', call: who => send('advances', { purpose: `Trip ${++n}`, amount: '50.00' }, who) },
