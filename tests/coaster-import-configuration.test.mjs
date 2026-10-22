@@ -75,6 +75,9 @@ test('MOVE-001 Expensify configuration previews exact people, chains, categories
  data.members[0].name='Expensify Employee';data.members[1].name='Expensify Lead';
  data.tags=[{key:key(),name:'Client: synthetic-coaster-1'}];data.cards=[{key:key(),issuer:'Synthetic Coaster',last4:'1101',employee:data.members[0].key}];
  data.policies=[{key:key(),name:'Synthetic Coaster policy',rules:[{kind:'per-expense-limit',category:data.categories[0].key,limit:'70.00'}]}];data.unmappedSourceSetting=true;
+ const beforeCustody=(await h.db.prepare('SELECT COUNT(*) n FROM ik_jobs').first()).n;
+ for(const field of ['number','cardNumber','bankAccountNumber'])await h.post('import/preview',{source:'expensify',configuration:{...data,cards:data.cards.map(c=>({...c,[field]:'9'.repeat(12)+'1201'}))}},undefined,400);
+ assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM ik_jobs').first()).n,beforeCustody,'full-account fields never reach a persisted original or plan');
  const before=(await h.get('state')).members.length, prior=(await h.get('policy')).versions[0].version;
  const b=await preview(h,JSON.stringify(data,null,2)+'\n','expensify');
  assert.deepEqual([b.review.summary.members,b.review.summary.categories,b.review.summary.chains,b.review.summary.tags,b.review.summary.cards,b.review.summary.policyRules],[2,1,1,1,1,1]);

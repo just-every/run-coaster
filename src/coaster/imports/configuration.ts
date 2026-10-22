@@ -66,6 +66,8 @@ export async function configurationSource(db: D1Database, namespace: string, inp
     values.set(tag.key,{id,dimension_id:tagDimension,name,parent_value_id:null,owner_email:null,active:1,source_id:'',updated_at:'imported'});
   }
   for(const card of cards){
+    const unsupported=Object.keys(card).filter(k=>!['key','issuer','last4','employee'].includes(k));
+    requireThat(!unsupported.length,`Card fields not mapped: ${unsupported.join(', ')}. Export only issuer, last four and the explicit employee reference; nothing was retained.`);
     const id=crosswalk[card.key],employee=references.get(card.employee);
     requireThat(employee?.is_employee===1,'Each card must name an explicitly imported employee row');
     requireThat(typeof card.last4==='string'&&/^\d{4}$/.test(card.last4),'Import card last four only, never a full card number');

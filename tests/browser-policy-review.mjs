@@ -105,7 +105,7 @@ export async function policyReviewArchive(root){
   for(const kind of ['envelope','expense']){
    await writeFile(join(destination,'exports/invalid.rer'),await tampered(archive,kind==='envelope'?'c_approval_envelopes':'c_revisions',row=>{if(kind==='envelope')row.limit_minor=-1;else{const snapshot=JSON.parse(row.snapshot);snapshot.expenseApprovals[0].version=999999;row.snapshot=JSON.stringify(snapshot)}},row=>kind==='envelope'?row.enabled===1:JSON.parse(row.snapshot).expenseApprovals?.length));
    const log=await command(destination,['import','--input','exports/invalid.rer','--yes'],{expected:4});assert.match(log,/coaster_(approval_envelope|expense_approval)/);
-   await command(destination,['export','--output','exports/after-refusal.rer']);assert.deepEqual(rows(await records(join(destination,'exports/after-refusal.rer'))),empty,'malformed authority never writes a destination row');
+   await command(destination,['export','--output',`exports/after-${kind}-refusal.rer`]);assert.deepEqual(rows(await records(join(destination,`exports/after-${kind}-refusal.rer`))),empty,'malformed authority never writes a destination row');
   }
   await command(destination,['import','--input','exports/policy-agent.rer','--yes']);await command(destination,['export','--output','exports/roundtrip.rer']);
   assert.deepEqual(rows(await records(join(destination,'exports/roundtrip.rer'))),before,'envelopes, approvals, samples, explicit feedback and revisions round-trip exactly');
