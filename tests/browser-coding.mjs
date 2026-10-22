@@ -104,7 +104,7 @@ async function shot(page, evidence, name, width) {
   await page.screenshot({ path: join(evidence, `${name}-${width}.png`) })
   const overflow = await page.evaluate(() => [...document.querySelectorAll('body *')].flatMap(e => {
     const r = e.getBoundingClientRect();
-    return r.width > innerWidth && getComputedStyle(e).position !== 'fixed' ? [{ tag: e.tagName, class: e.className, width: Math.round(r.width) }] : [];
+    return r.right > innerWidth + 1 && r.width > 0 && getComputedStyle(e).position !== 'fixed' ? [{ tag: e.tagName, class: e.className, width: Math.round(r.width), right: Math.round(r.right) }] : [];
   }))
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits ${width}px: ${JSON.stringify(overflow.slice(0, 15))}`)
 }
