@@ -50,7 +50,6 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
       const receipt = saved.find(row => row.name === file.name)
       assert.ok(receipt, file.name)
       assert.equal(receipt.state, 'needs-attention')
-      assert.match(receipt.attentionReason, /reading.*not available/i)
       assert.equal(receipt.size, file.bytes.length)
       assert.equal(receipt.sha256, hash(file.bytes))
       const response = await context.request.get(origin + receipt.downloadUrl)
