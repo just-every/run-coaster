@@ -13,7 +13,7 @@ export function ProgramFeed({ state }: { state: D }) {
     <p>Connect an issuer’s SFTP directory of CSV deliveries with an explicit column mapping. Coaster reads files on the hourly schedule, keeps masked originals and imports each delivery once. Assign each card to its employee before the feed arrives. This connection does not issue cards or post a ledger entry.</p>
     {error && <p className="form-error" role="alert">{error}</p>}
     {data?.feeds.map((feed: D) => <div className="sub-form" key={feed.id}>
-      <h3>{feed.issuer}</h3><p>{feed.enabled ? 'Connected' : 'Disconnected'} · every {feed.intervalMinutes} minutes{Boolean(feed.nextRunAt) && ` · next ${new Date(feed.nextRunAt).toISOString()}`}{Boolean(feed.lastSuccessAt) && ` · last received ${feed.lastSuccessAt}`}</p>
+      <h3>{feed.issuer}</h3><p>{feed.enabled ? 'Connected' : 'Disconnected'} · every {feed.intervalMinutes} minutes{Boolean(feed.enabled && feed.nextRunAt) && ` · next ${new Date(feed.nextRunAt).toISOString()}`}{Boolean(feed.lastSuccessAt) && ` · last received ${feed.lastSuccessAt}`}</p>
       {feed.error && <p role="alert">{feed.error}</p>}
       {feed.enabled && <Form label={`Disconnect ${feed.issuer}`} onSubmit={async values => { await call(`feeds/program/${feed.id}/disconnect`, { version: feed.version, consent: values.consent }); await load(); }}><Field label="I confirm this feed must stop future connections and imports" name="consent" type="checkbox" /></Form>}
       <Details label={`Deliveries from ${feed.issuer}`}><ul>{data.deliveries.filter((d: D) => d.feed_id === feed.id).map((delivery: D) => <li key={delivery.id}>{delivery.name} · sequence {delivery.issuer_sequence} · {delivery.charges} charges · {delivery.received_at}</li>)}</ul></Details>
