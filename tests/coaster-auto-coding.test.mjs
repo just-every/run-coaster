@@ -177,7 +177,7 @@ test('Verified receipt understanding uses consented BaseAI line items after nati
     if(mode==='paused'){entered();await new Promise(resolve=>release=resolve)}
     if(mode==='unavailable')return Response.json({error:{message:'private upstream detail'}},{status:503})
     const score=mode==='low'?.2:.99
-    return response({category:{id:mode==='invalid'?n(9501):t.cats[0].id,confidence:score,reason:'The verified purchased items support this category'},dimensions:[{dimension:t.dimensions.class,id:t.values.class[0],confidence:score,reason:'The line items support this active class'},{dimension:t.dimensions.project,id:t.values.project[0],confidence:score,reason:'The line items name this catalog project'}],memo:{text:null,confidence:0,reason:'No additional memo is needed'}})
+    return response({category:{id:mode==='invalid'?n(9501):t.cats[mode==='transfer'?2:0].id,confidence:score,reason:'The verified purchased items support this category'},dimensions:[{dimension:t.dimensions.class,id:t.values.class[0],confidence:score,reason:'The line items support this active class'},{dimension:t.dimensions.project,id:t.values.project[0],confidence:score,reason:'The line items name this catalog project'}],memo:{text:mode==='transfer'?n(9590):null,confidence:mode==='transfer'?.99:0,reason:'No additional memo is needed'}})
   }})
   try {
     t=await setup(h)
@@ -186,7 +186,8 @@ test('Verified receipt understanding uses consented BaseAI line items after nati
     const original=async()=>{
       const uploaded=await t.upload({id:n(9600+image),receipt:`../receipts/reader/synthetic-coaster-${++image}.png`},'')
       const id=uploaded.receipt.id,reading=await h.post(`receipt-inbox/${id}/reading`,{expectedSequence:0,expectedReadingSequence:0,consent:true},t.sam)
-      return {id,reading,body:{expectedSequence:reading.lifecycleSequence,expectedReadingSequence:reading.sequence,contextVersion:0,consent:true}}
+      const context=await h.get(`${path}/suggestions?receipt=${id}`,t.sam)
+      return {id,reading,notice:uploaded.receipt.matchChoice.notice,body:{expectedSequence:reading.lifecycleSequence,expectedReadingSequence:reading.sequence,contextVersion:context.contextVersion,consent:true}}
     }
     const one=await original(),before=calls.length
     await h.post(`receipt-inbox/${one.id}/reading/coding`,{...one.body,consent:false},t.sam,400)
@@ -202,6 +203,33 @@ test('Verified receipt understanding uses consented BaseAI line items after nati
     assert.equal(lowResult.status,'review');assert.equal(lowResult.values.category,undefined);assert.equal(lowResult.codingSuggestions.length,0);assert.ok(lowResult.reviewFields.includes('category'))
     mode='invalid';const invalid=await original(),invalidResult=await h.post(`receipt-inbox/${invalid.id}/reading/coding`,invalid.body,t.sam)
     assert.equal(invalidResult.status,'review');assert.equal(invalidResult.codingSuggestions.length,0);assert.equal(invalidResult.values.category,undefined)
+    // Real saved source-five advice carries through the ordinary consented hourly attachment, without a second model call.
+    const matching=await h.get('settings/card-matching');await h.post('settings/card-matching',{version:matching.version,enabled:true,windowDays:matching.window_days,tipPercent:0,fxPercent:0})
+    await h.post('settings/receipt-reading/matching',{version:one.reading.matchDefault.version,enabled:true,consent:true,notice:one.notice},t.sam)
+    await h.post('statements/cards',{issuer:n(300),last4:label.values.last4,employee:t.samEmail})
+    const worker=await h.mf.getWorker()
+    for(const variant of ['placeholder','finance','human','archived']){
+      mode='transfer';const source=await original(),saved=await h.post(`receipt-inbox/${source.id}/reading/coding`,source.body,t.sam),merchant=n(9700+['placeholder','finance','human','archived'].indexOf(variant))
+      if(variant==='finance')await t.rule(merchant,t.fields(1))
+      const imported=await t.statement([{id:n(9710+image),merchant,date:label.values.date,amount:label.values.total}],label.values.last4)
+      let detail=await h.get(`claims/${imported.claims[0]}`,t.sam),expense=detail.items.at(-1)
+      if(variant==='human'){
+        await h.post(`claims/${detail.claim.id}/items`,{version:detail.claim.version,item:expense.id,kind:'receipt',date:expense.spent_on,merchant:expense.merchant,amount:label.values.total,category:t.cats[1].id,coding:t.fields(1).dimensions},t.sam)
+      }
+      if(variant==='archived'){const catalog=await h.get('coding');await h.post('coding/values',{version:catalog.version,id:t.values.class[0],active:false})}
+      const paid=calls.length;await worker.scheduled({scheduledTime:new Date(),cron:'17 * * * *'});assert.equal(calls.length,paid,'attachment never asks the model again')
+      detail=await h.get(`claims/${detail.claim.id}`,t.sam);expense=detail.items.find(item=>item.id===expense.id)
+      assert.ok(expense.receipt_id,'the native hourly matcher attached the original')
+      if(variant==='placeholder'){
+        assert.equal(expense.allocations[0].category_id,t.cats[2].id,'an unchanged importer placeholder receives the actual saved reading category')
+        assert.deepEqual(expense.coding,t.fields(0).dimensions)
+        assert.equal(saved.values.memo,n(9590));assert.notEqual(expense.description,saved.values.memo,'generated original text stays private until the person adopts it')
+        const evidence=expense.codingSuggestions.flatMap(s=>s.evidence).filter(e=>e.source==='receipt-reading')
+        assert.ok(evidence.some(e=>e.field==='category'&&e.receipt===source.id&&e.confidence&&e.model&&e.reason))
+        assert.ok(evidence.every(e=>e.reason!==saved.codingSuggestions.at(-1).evidence.find(original=>original.field===e.field)?.reason),'the private model explanation is not copied onto the expense')
+      }else if(variant==='archived')assert.ok(!expense.codingSuggestions.some(s=>s.evidence.some(e=>e.source==='receipt-reading')),'archived saved reading choices are refused at transfer')
+      else{assert.equal(expense.allocations[0].category_id,t.cats[1].id);assert.deepEqual(expense.coding,t.fields(1).dimensions,'higher-priority finance coding and employee choices stay protected')}
+    }
     mode='valid';await t.rule(label.values.merchant,t.fields(2));await t.rule(label.values.merchant,t.fields(1),'personal',t.sam)
     const ruled=await original(),ruledResult=await h.post(`receipt-inbox/${ruled.id}/reading/coding`,ruled.body,t.sam)
     assert.deepEqual(simplified(ruledResult.values,t),{category:2,class:2,project:2});assert.ok(ruledResult.codingSuggestions.at(-1).evidence.every(e=>e.source==='merchant-rule'),'finance rule wins over the model and personal rule')
@@ -217,7 +245,7 @@ test('Verified receipt understanding uses consented BaseAI line items after nati
     const own=await h.get(`${path}/rules`,t.sam);for(const rule of own.rules)await h.post(`${path}/rules`,{version:(await h.get(`${path}/rules`,t.sam)).version,id:rule.id,scope:'personal',merchant:rule.merchant,coding:rule.fields,active:false},t.sam)
     const race=await original(),paused=new Promise(resolve=>entered=resolve);mode='paused'
     const pending=h.send(`/api/coaster/receipt-inbox/${race.id}/reading/coding`,race.body,t.sam)
-    await paused;await h.post(`${path}/receipts/${race.id}`,{version:0,merchant:label.values.merchant,values:t.fields(2)},t.sam);release()
+    await paused;await h.post(`${path}/receipts/${race.id}`,{version:race.body.contextVersion,merchant:label.values.merchant,values:t.fields(2)},t.sam);release()
     assert.equal((await pending).status,409,'model output cannot overwrite a human edit made while the provider was running')
     const kept=await h.get(`${path}/suggestions?receipt=${race.id}`,t.sam);assert.deepEqual(simplified(kept.values,t),{category:2,class:2,project:2});assert.equal(kept.suggestions.length,0)
     mode='valid';let catalog=await h.get('coding');await h.post('coding/values',{version:catalog.version,id:t.values.class[0],active:false})
