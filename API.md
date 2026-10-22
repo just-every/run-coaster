@@ -287,6 +287,8 @@ ratification; the clause remains partial.
 New statement-file charges use this service, and CSV statements may map an MCC
 column. An uploaded original may supply a typed `merchant` multipart field;
 otherwise its employee can enter the merchant in the private inbox. Manual and
-scheduled original attachment only fills empty expense coding. These are native
+scheduled original attachment only fills empty expense coding. An actual matched
+charge can supply its own MCC to the original’s empty coding fields; receipt
+metadata and fixture labels never invent one. These are native
 statement-file and upload doors: no issuer-feed integration or CAPTURE-003
 image-reading result is claimed. Those forms retain their own obligations.
