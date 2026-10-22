@@ -130,3 +130,16 @@ globalThis.fetch=async(url,options)=>{
  assert.ok(!(await readdir(dir)).includes('refused'));
  }finally{await rm(dir,{recursive:true,force:true})}
 })
+
+test('MOVE-001 erasure withdraws the policy original, replaces imported cardholder identity and prevents undo/reimport resurrection',async()=>{
+ const h=await harness();try{
+ await agency(h);const data=payload();data.cards=[{key:key(),issuer:'Synthetic Coaster',last4:'1201',employee:data.members[0].key}];data.tags=[{key:key(),name:'Synthetic client'}];
+ const b=await preview(h,JSON.stringify(data),'expensify'),r=await commit(h,b);
+ const erased=await h.post('settings/members/erase',{email:data.members[0].email});assert.ok(erased.id);
+ const card=await h.db.prepare('SELECT employee_email FROM c_cards WHERE last4=?').bind('1201').first();assert.equal(card.employee_email,erased.retained.subject);
+ const tables=(await h.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").all()).results;
+ for(const {name}of tables){const rows=(await h.db.prepare(`SELECT * FROM "${name}"`).all()).results;for(const row of rows)for(const value of Object.values(row)){const text=typeof value==='object'&&value!==null?Buffer.from(value instanceof ArrayBuffer?value:value.buffer??[]).toString():String(value);assert.ok(!text.includes(data.members[0].email)&&!text.includes(data.members[0].name),`${name} must not resurrect the imported identity`);}}
+ const status=await h.post('import/status',{source:'expensify',id:r.job.id,mappingVersion:r.mappingVersion});assert.ok(status.originals.every(o=>o.original.status!=='retained'));
+ await undo(h,r,'expensify');await h.post('import/commit',b,undefined,409);
+ }finally{await h.close()}
+})

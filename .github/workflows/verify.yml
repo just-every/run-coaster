@@ -32,7 +32,7 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: bash scripts/ci/install-browser.sh
       - run: pnpm run verify
 
   coaster_flows:
@@ -78,7 +78,7 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: bash scripts/ci/install-browser.sh
       - name: Browser journeys, restore and fresh-clone verbs
         run: node tests/browser.mjs
         env:
@@ -115,7 +115,7 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: bash scripts/ci/install-browser.sh
       - name: Receipt inbox journeys, lifecycle archive refusals and restore
         run: node tests/capture.mjs
         env:
@@ -149,7 +149,7 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: bash scripts/ci/install-browser.sh
       - name: Keyboard-only journeys and axe on every main screen
         run: node tests/accessibility.mjs
         env:
@@ -180,7 +180,7 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: bash scripts/ci/install-browser.sh
       - name: Cash-window screens, scheduled drafts and archive replay
         run: node tests/capture-cash.mjs
         env:
@@ -211,7 +211,7 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: bash scripts/ci/install-browser.sh
       - name: Combined 300-expense detector acceptance
         run: node tests/policy-signals-scale.mjs
       - name: Receipt/spend signal evidence, review and payment screens
@@ -248,7 +248,7 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: bash scripts/ci/install-browser.sh
       - name: Policy agent envelope and mixed card approvals at both widths
         if: ${{ matrix.refusals == '0/3' }}
         run: node tests/browser-policy-review.mjs

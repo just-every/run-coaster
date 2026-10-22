@@ -158,10 +158,13 @@ export async function runPolicyAgentCodingQuality({output}={}){
  const history=JSON.parse(await readFile('tests/fixtures/coding/semantic/history.json','utf8')).rows;
  const h=await harness();
  try{
-  const t=await setup(h),claims={};
-  for(const person of ['sam','alex','bea'])claims[person]=await h.post('claims',{title:n(64000+['sam','alex','bea'].indexOf(person))},t[person]);
-  for(const row of [...fixture.history,...history])claims[row.employee]=await manual(h,t,row,claims[row.employee]);
-  for(const person of ['sam','alex','bea'])await h.post(`claims/${claims[person].id}/submit`,{version:claims[person].version},t[person]);
+  const t=await setup(h),claims={},counts={},historyClaims=new Map();
+  for(const person of ['sam','alex','bea']){claims[person]=await h.post('claims',{title:n(64000+historyClaims.size)},t[person]);counts[person]=0;historyClaims.set(claims[person].id,{claim:claims[person],person});}
+  for(const row of [...fixture.history,...history]){
+   if(counts[row.employee]===100){claims[row.employee]=await h.post('claims',{title:n(64000+historyClaims.size)},t[row.employee]);counts[row.employee]=0;}
+   claims[row.employee]=await manual(h,t,row,claims[row.employee]);counts[row.employee]++;historyClaims.set(claims[row.employee].id,{claim:claims[row.employee],person:row.employee});
+  }
+  for(const {claim,person}of historyClaims.values())await h.post(`claims/${claim.id}/submit`,{version:claim.version},t[person]);
   await t.rule(n(1001),t.fields(1));await t.rule(n(1002),t.fields(2),'personal',t.sam);
   for(const row of rules.finance)await t.rule(row.merchant,t.fields(row.coding.category,row.coding.class,row.coding.project));
   for(const row of rules.personal)await t.rule(row.merchant,t.fields(row.coding.category,row.coding.class,row.coding.project),'personal',t[row.employee]);
