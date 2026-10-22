@@ -45,3 +45,35 @@ export async function concurJourney(owner, origin, width, evidence, shots) {
  assert.ok(!(await api(context,origin,'state')).members.some(m=>m.email===person.email),'MOVE-002 undo removes untouched imported people')
  await shot('concur-undone')
 }
+
+// MOVE-001 uses the same native owner review and undo doors as other incumbents.
+export async function expensifyJourney(owner,origin,width,evidence,shots){
+ const {page,context}=owner;
+ await page.setViewportSize({width,height:1000});await page.goto(origin+'/app#/move-in');
+ const section=page.getByRole('region',{name:'Expensify configuration',exact:true});
+ const employee=crypto.randomUUID(),manager=crypto.randomUUID(),category=crypto.randomUUID(),tag=crypto.randomUUID(),card=crypto.randomUUID();
+ const data={members:[{key:employee,email:`synthetic-coaster-${width}@example.com`,name:`Expensify employee ${width}`},{key:manager,email:`synthetic-coaster-manager-${width}@example.com`,name:`Expensify manager ${width}`,manager:true}],categories:[{key:category,name:`Expensify meals ${width}`,accountCode:'6310',taxCode:'NONE'}],chains:[{key:crypto.randomUUID(),employee,steps:[manager]}],tags:[{key:tag,name:`Client synthetic-coaster-${width}`}],cards:[{key:card,issuer:`Synthetic Coaster ${width}`,last4:String(width).padStart(4,'0'),employee}],policies:[{key:crypto.randomUUID(),name:'US expense limit',rules:[{kind:'per-expense-limit',category,limit:'70.00'}]}],unmappedSetting:true};
+ const capture=async(name,target=section)=>{const path=join(evidence,`${name}-${width}.jpg`);await target.screenshot({path,type:'jpeg',quality:85});shots.push({screen:name,viewport:width,path});};
+ await section.getByLabel('Expensify policy JSON',{exact:true}).setInputFiles({name:'expensify-policy.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data))});
+ await section.getByRole('button',{name:'Preview configuration',exact:true}).click();await section.getByText('Preview · nothing imported yet',{exact:true}).waitFor();
+ assert.ok(!(await api(context,origin,'state')).members.some(m=>m.email===data.members[0].email));
+ await expect(section.getByText(/unmappedSetting kept/)).toBeVisible();await capture('expensify-configuration-preview');
+ await section.getByRole('button',{name:'Import configuration',exact:true}).click();await section.getByRole('status').waitFor();
+ const state=await api(context,origin,'state');assert.equal(state.members.find(m=>m.email===data.members[0].email).active,0);
+ const csv=`reportID,reportName,accountEmail,status,transactionID,created,merchant,amount,currency,receiptFilename\nsynthetic-coaster-${width},Expensify report ${width},${data.members[0].email},Closed,synthetic-coaster-expense-${width},2026-10-01,Bistro,60.00,${state.business.currency},meal.png\n`;
+ const file=page.getByRole('region',{name:'Import a file',exact:true});
+ await file.getByLabel('Expensify CSV',{exact:true}).setInputFiles({name:'expensify.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+ await file.getByLabel('Expensify receipt files',{exact:true}).setInputFiles({name:'meal.png',mimeType:'image/png',buffer:await readFile('tests/fixtures/receipts/bistro.png')});
+ await file.getByRole('button',{name:'Preview',exact:true}).click();await file.getByText('Preview · nothing imported yet',{exact:true}).waitFor();
+ await expect(file.getByText(/1 reports · 1 expenses · 1 receipts/)).toBeVisible();await capture('expensify-receipt-preview',file);
+ await file.getByRole('button',{name:'Import 1 report',exact:true}).click();await file.getByRole('status').filter({hasText:'Imported 1 report'}).waitFor();
+ const history=page.getByRole('region',{name:'Imported history',exact:true});await history.getByText('Bistro · meal.png · receipt retained',{exact:true}).waitFor();await capture('expensify-imported-receipt',history);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`MOVE-001 no overflow at ${width}`);
+ const jobs=page.getByRole('region',{name:'Imports',exact:true});
+ for(let i=0;i<2;i++){
+  await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/coaster/import/undo')&&r.status()===200),jobs.getByRole('button',{name:'Undo import',exact:true}).first().click()]);
+  await page.getByRole('status').filter({hasText:'Import undone'}).waitFor();
+ }
+ assert.ok(!(await api(context,origin,'state')).members.some(m=>m.email===data.members[0].email));
+ assert.ok(!(await api(context,origin,'import')).history.some(h=>h.reportId===`synthetic-coaster-${width}`));await capture('expensify-undone',jobs);
+}

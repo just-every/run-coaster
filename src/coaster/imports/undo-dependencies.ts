@@ -17,11 +17,22 @@ export async function importDependencies(db:any,effects:D1UndoEffect[],rows:Targ
  const workflowClaims=await query("SELECT json_object('id',claim_id,'plan',json_extract(snapshot,'$.workflow')) value FROM c_revisions WHERE json_type(snapshot,'$.workflow') IS NOT NULL ORDER BY claim_id,revision");
  const rules=await query("SELECT json_object('version',version,'rules',json(rules)) value FROM c_policies ORDER BY version");
  const allowance=await query("SELECT json_object('id',id,'category',category_id) value FROM c_allowances ORDER BY id");
+ const cards=await query("SELECT json_object('id',id,'employee',employee_email) value FROM c_cards ORDER BY id");
+ const charges=await query("SELECT json_object('id',id,'card',card_id) value FROM c_card_charges ORDER BY id");
+ const pastCharges=await query("SELECT json_object('id',id,'card',card_id) value FROM c_card_charge_undo_history ORDER BY id");
+ const statements=await query("SELECT json_object('id',id,'card',card_id) value FROM c_card_statements ORDER BY id");
+ const tags=await query("SELECT json_object('id',id,'dimension',dimension_id,'parent',parent_value_id) value FROM c_coding_values ORDER BY id");
+ const dimensions=await query("SELECT json_object('id',id,'parent',parent_id) value FROM c_coding_dimensions ORDER BY id");
+ const coding=await query("SELECT json_object('id',id,'coding',json(coding)) value FROM c_items ORDER BY id");
+ const requirements=await query("SELECT json_object('category',category_id,'dimension',dimension_id) value FROM c_category_dimensions ORDER BY category_id,dimension_id");
+ const codingHistory=await query("SELECT json_object('id',claim_id,'snapshot',json(snapshot)) value FROM c_revisions ORDER BY claim_id,revision");
+ const codingRules=await query("SELECT json_object('id',id,'fields',json(fields)) value FROM c_auto_coding_rules ORDER BY id");
  const key=(kind:string,id:string)=>effects.find(e=>e.expected.targetKind===kind&&e.expected.targetId===id)?.provenance.id;
  const edge=(required:string,dependent:string|undefined,table:string,id:string)=>dependencies.push({requiredEffectId:required,...(dependent?{dependentEffectId:dependent}:{}),cause:{table,recordId:id},evidence:{reason:'Live native reference'}});
  for(const effect of effects){
   const e=effect.expected,id=e.targetId,required=effect.provenance.id,value=e.value as any;
   if(e.targetKind==='member'){
+   for(const c of cards)if(c.employee===value.email)edge(required,key('card',c.id),'c_cards',c.id);
    for(const r of [...claims,...requests])if(r.employee===value.email||r.approver===value.email)edge(required,undefined,'c_claims/c_requests',r.id);
    for(const t of tasks)if(t.email===value.email||t.onBehalfOf===value.email)edge(required,undefined,'c_workflow_tasks',t.id);
    for(const w of workflows)if(JSON.stringify(w.rules).includes(JSON.stringify(value.email)))edge(required,undefined,'c_approval_workflows',String(w.version));
@@ -37,6 +48,17 @@ export async function importDependencies(db:any,effects:D1UndoEffect[],rows:Targ
    for(const p of rules)if(p.rules.some((r:any)=>r.category===id))edge(required,undefined,'c_policies',String(p.version));
   }
   if(e.targetKind==='approval-chain')for(const f of frozen)if(f.chain===id)edge(required,undefined,'c_claim_chains',f.claim);
+  if(e.targetKind==='card')for(const c of [...charges,...pastCharges,...statements])if(c.card===id)edge(required,undefined,'c_card_charges',c.id);
+  if(e.targetKind==='tag-dimension'){
+   for(const t of tags)if(t.dimension===id)edge(required,key('tag',t.id),'c_coding_values',t.id);
+   for(const d of dimensions)if(d.parent===id)edge(required,key('tag-dimension',d.id),'c_coding_dimensions',d.id);
+   for(const r of requirements)if(r.dimension===id)edge(required,undefined,'c_category_dimensions',r.category);
+  }
+  if(['tag','tag-dimension'].includes(e.targetKind)){
+   for(const c of coding)if(Object.entries(c.coding).some(([dimension,choice])=>dimension===id||choice===id))edge(required,undefined,'c_items',c.id);
+   for(const c of codingHistory)if(JSON.stringify(c.snapshot).includes(JSON.stringify(id)))edge(required,undefined,'c_revisions',c.id);
+   for(const r of codingRules)if(JSON.stringify(r.fields).includes(JSON.stringify(id)))edge(required,undefined,'c_auto_coding_rules',r.id);
+  }
   if(e.targetKind==='crosswalk'){
    const native=key(value.kind,value.targetId);
    if(native)edge(required,native,'c_import_targets',value.targetId);

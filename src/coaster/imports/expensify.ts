@@ -1,5 +1,6 @@
 import { canonicalJson, sha256, type Diagnostic, type ImportMapping, type SourceBundle, type SourceRecord } from '../../modules/import-kit/src/d1/index';
 import { parseCsv } from './csv';
+import { receiptBytes } from '../claims';
 import { requireThat, type Data } from '../types';
 
 /** The Expensify move-in kit reads a report-template CSV built from Expensify's documented export fields (IMPORTING.md). */
@@ -18,13 +19,14 @@ export function day(value: string, format: string): string | null {
   if (format === 'YYYY-MM-DD') { const x = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v); if (!x) return null; [, y, m, d] = x; }
   else { const x = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v); if (!x) return null; y = x[3]; [m, d] = format === 'MM/DD/YYYY' ? [x[1], x[2]] : [x[2], x[1]]; }
   const iso = `${y}-${m}-${d}`;
-  return new Date(iso + 'T00:00:00Z').toISOString().slice(0, 10) === iso ? iso : null;
+  const parsed = new Date(iso + 'T00:00:00Z');
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === iso ? iso : null;
 }
 export const minor = (value: string) => /^\d{1,10}(\.\d{1,2})?$/.test(value.trim()) ? Number(value.trim().split('.')[0]) * 100 + Number((value.trim().split('.')[1] ?? '').padEnd(2, '0')) : null;
 const yes = (value: string | undefined) => ['true', 'yes', '1', 'y'].includes((value ?? '').trim().toLowerCase());
 
 /** Plan input for import-kit: report and expense records, exact bytes, and diagnostics that block commit. */
-export function expensifySource(raw: unknown, filename: unknown, config: unknown, currency: string) {
+export function expensifySource(raw: unknown, filename: unknown, config: unknown, currency: string, files?: unknown) {
   requireThat(typeof raw === 'string' && raw.length > 0 && raw.length <= 2_000_000, 'Choose the Expensify CSV (at most 2 MB)');
   const name = typeof filename === 'string' && filename.trim() ? filename.trim().slice(0, 200) : 'expensify.csv';
   const mapping = (config ?? {}) as ExpensifyMapping;
@@ -35,6 +37,16 @@ export function expensifySource(raw: unknown, filename: unknown, config: unknown
   requireThat(!missing.length, `The CSV is missing required columns: ${missing.join(', ')}`);
   requireThat(rows.length <= 2000, 'Import at most 2,000 expenses per file');
   const bytes = new TextEncoder().encode(raw), artifactHash = sha256(bytes);
+  requireThat(bytes.length <= 2_000_000, 'Choose an Expensify CSV of at most 2 MB');
+  requireThat(files === undefined || (Array.isArray(files) && files.length <= 50), 'Add at most 50 receipt files per import');
+  const receipts = new Map<string, ReturnType<typeof receiptBytes>>();
+  for (const f of (files ?? []) as Data[]) {
+    const parsed = receiptBytes(f);
+    requireThat(!receipts.has(parsed.name), 'Each receipt filename must be unique');
+    requireThat(parsed.name !== name, 'The report CSV and receipt files need distinct filenames');
+    receipts.set(parsed.name, parsed);
+  }
+  const used = new Set<string>();
   const diagnostics: Diagnostic[] = [], expenses = new Map<string, Data>(), reports = new Map<string, Data>();
   const unknownColumns = headers.filter(h => !REQUIRED.includes(h) && !OPTIONAL.includes(h));
   if (unknownColumns.length) diagnostics.push({ severity: 'warning', code: 'IGNORED_COLUMNS', message: `Columns kept in the original file but not mapped: ${unknownColumns.join(', ')}` });
@@ -50,6 +62,9 @@ export function expensifySource(raw: unknown, filename: unknown, config: unknown
     if (!date) fail('BAD_DATE', `created "${r.created}" is not a ${mapping.date} date`);
     if (amount === null || amount === 0) fail('BAD_AMOUNT', `amount "${r.amount}" must be a positive amount like 12.50 (credits and refunds are not imported)`);
     if (r.currency.trim().toUpperCase() !== currency) fail('OTHER_CURRENCY', `currency ${r.currency} is not this business's ${currency}`);
+    const receiptName = (r.receiptFilename ?? '').trim(), receipt = receipts.get(receiptName);
+    if (files !== undefined && receiptName && !receipt) fail('MISSING_RECEIPT', `Receipt ${receiptName} was not added`);
+    if (receipt) used.add(receiptName);
     const status = r.status.trim();
     statuses.add(status);
     if (!HISTORY_STATUSES.includes(mapping.statuses[status])) fail('UNMAPPED_STATUS', `report status "${status}" is not mapped`);
@@ -63,21 +78,22 @@ export function expensifySource(raw: unknown, filename: unknown, config: unknown
       source: 'expensify', transactionId: transaction, report, employee: r.accountEmail.trim().toLowerCase(), date, merchant: r.merchant.trim(), amountMinor: amount, currency,
       category: (r.category ?? '').trim(), glCode: (r.categoryGlCode ?? '').trim(), tag: (r.tag ?? '').trim(), comment: (r.comment ?? '').trim(),
       reimbursable: yes(r.reimbursable), billable: yes(r.billable), distance: yes(r.isDistance) ? { count: (r['units.count'] ?? '').trim(), rate: (r['units.rate'] ?? '').trim() } : null,
-      receipt: { id: (r.receiptID ?? '').trim(), filename: (r.receiptFilename ?? '').trim(), url: (r['receiptObject.url'] ?? '').trim() },
+      receipt: { id: (r.receiptID ?? '').trim(), filename: (r.receiptFilename ?? '').trim(), url: (r['receiptObject.url'] ?? '').trim(), ...(receipt ? { name: receipt.name, sha256: sha256(receipt.bytes), size: receipt.bytes.length, mediaType: receipt.media } : {}) },
       mappedStatus: mapping.statuses[status] ?? null,
     } });
   });
   const records: SourceRecord[] = [];
   for (const [id, report] of reports) records.push({ namespace: NAMESPACE, kind: 'report', sourceId: id, payload: report.head, payloadHash: sha256(canonicalJson(report.head)), artifactHash, location: report.location });
   for (const [id, expense] of expenses) records.push({ namespace: NAMESPACE, kind: 'expense', sourceId: id, payload: expense.payload, payloadHash: sha256(canonicalJson(expense.payload)), artifactHash, location: expense.location });
+  for (const name of receipts.keys()) if (!used.has(name)) diagnostics.push({ severity: 'warning', code: 'UNUSED_RECEIPT', message: `Receipt ${name} is not named by an expense and is not imported` });
   const blocked = diagnostics.some(d => d.severity === 'error');
   const values = new Map<string, Data>();
   for (const [id, report] of reports) values.set('report:' + id, { source: 'expensify', reportId: id, name: report.head.reportName, employee: report.head.accountEmail.toLowerCase(), manager: report.head.managerEmail.toLowerCase(), sourceStatus: report.head.status, status: mapping.statuses[report.head.status] ?? null, submitted: report.head.submitted, approved: report.head.approved, reimbursed: report.head.reimbursed, totalMinor: report.total, expenses: report.expenses, currency });
   for (const [id, expense] of expenses) values.set('expense:' + id, expense.value);
-  const source: SourceBundle = { diagnostics, artifacts: [{ name, sha256: artifactHash, size: bytes.length, original: { status: 'available', base64: btoa(Array.from(bytes, b => String.fromCharCode(b)).join('')) } }], records };
+  const source: SourceBundle = { diagnostics, artifacts: [{ name, sha256: artifactHash, size: bytes.length, original: { status: 'available', base64: btoa(Array.from(bytes, b => String.fromCharCode(b)).join('')) } }, ...[...receipts.values()].filter(r => used.has(r.name)).map(r => ({ name: r.name, sha256: sha256(r.bytes), size: r.bytes.length, original: { status: 'available' as const, base64: btoa(Array.from(r.bytes, b => String.fromCharCode(b)).join('')) } }))], records };
   const importMapping: ImportMapping = {
-    version: sha256(canonicalJson({ kit: 'expensify-report-template-v1', date: mapping.date, statuses: mapping.statuses, currency })),
+    version: sha256(canonicalJson({ kit: 'expensify-report-template-v1', date: mapping.date, statuses: mapping.statuses, currency, receipts: [...receipts.values()].filter(r => used.has(r.name)).map(r => ({ name: r.name, sha256: sha256(r.bytes) })) })),
     map: record => blocked ? { effects: [], rejection: 'Resolve the file errors before importing' } : { effects: [{ targetKind: record.kind, targetId: `expensify:${record.kind}:${record.sourceId}`, value: values.get(`${record.kind}:${record.sourceId}`)! }] },
   };
-  return { source, mapping: importMapping, summary: { reports: reports.size, expenses: expenses.size, totalMinor: [...reports.values()].reduce((n, r) => n + r.total, 0), statuses: [...statuses], unmappedStatuses: [...statuses].filter(s => !HISTORY_STATUSES.includes(mapping.statuses[s])), errors: diagnostics.filter(d => d.severity === 'error').map(d => d.message), warnings: diagnostics.filter(d => d.severity === 'warning').map(d => d.message) } };
+  return { source, mapping: importMapping, summary: { receipts: used.size, reports: reports.size, expenses: expenses.size, totalMinor: [...reports.values()].reduce((n, r) => n + r.total, 0), statuses: [...statuses], unmappedStatuses: [...statuses].filter(s => !HISTORY_STATUSES.includes(mapping.statuses[s])), errors: diagnostics.filter(d => d.severity === 'error').map(d => d.message), warnings: diagnostics.filter(d => d.severity === 'warning').map(d => d.message) } };
 }

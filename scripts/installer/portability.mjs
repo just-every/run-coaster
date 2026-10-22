@@ -49,6 +49,7 @@ export async function validateCoasterArchive(read, manifest) {
   for (const d of decisions) check(revisions.some(r => r.claim_id === d.claim_id && r.revision === d.revision), 'decision_revision');
   for (const b of batches) check(b.total_minor === batchClaims.filter(x => x.batch_id === b.id).reduce((n, x) => n + x.amount_minor, 0), 'batch_total');
   for (const k of keys) check(batchClaims.some(x => x.batch_id === k.batch_id && x.claim_id === k.claim_id), 'reimbursement_key');
+  if((await read('c_import_card_undo')).length)throw new PortabilityError('coaster_import_card_undo',409);
   const cards=await read('c_cards'), charges=await read('c_card_charges'), files=await read('c_statement_files'), events=await read('c_events');
   for(const card of cards) check(/^\d{4}$/.test(card.last4),'card_last_four');
   const undone=await read('c_card_charge_undo_history');

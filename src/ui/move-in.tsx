@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { call, day, money, plural, type D } from './api';
+import { call, day, fileBase64, money, plural, type D } from './api';
 import { Choice, Empty, PageHead, Section } from './parts';
 import { Work } from './shell';
 import type { ViewProps } from './claims';
@@ -16,10 +16,11 @@ const GUESS: Record<string, string> = { open: 'open', processing: 'submitted', a
 /** The Expensify move-in kit: preview writes nothing, import applies exactly what was previewed, undo reverses it. */
 export function MoveIn({ state, reload }: ViewProps) {
   const [file, setFile] = useState<{ name: string; csv: string }>(), [date, setDate] = useState('YYYY-MM-DD'), [statuses, setStatuses] = useState<Record<string, string>>({});
+  const [receipts, setReceipts] = useState<D[]>([]);
   const [preview, setPreview] = useState<D>(), [jobs, setJobs] = useState<D>(), [cutover, setCutover] = useState<D>(), [error, setError] = useState(''), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
   const refresh = async () => { const [imports, report] = await Promise.all([call('import'), call('import/cutover')]); setJobs(imports); setCutover(report); await reload(); };
   useEffect(() => { refresh().catch(e => setError(e.message)); }, []);
-  const input = () => ({ csv: file?.csv, filename: file?.name, mapping: { date, statuses } });
+  const input = () => ({ csv: file?.csv, filename: file?.name, mapping: { date, statuses }, receipts });
   async function run(work: () => Promise<void>) { setBusy(true); setError(''); setNotice(''); try { await work(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }
   async function look(mapping = statuses) {
     const result = await call('import/preview', { ...input(), mapping: { date, statuses: mapping } });
@@ -37,6 +38,7 @@ export function MoveIn({ state, reload }: ViewProps) {
           <p className="muted">Build the export with the <a href="https://integrations.expensify.com/Integration-Server/doc/export_report_template.html" target="_blank" rel="noreferrer">Expensify export template</a>, then choose the file. Preview writes nothing; import applies exactly what you previewed.</p>
           <div className="record-form">
             <label className="field field-wide"><span className="field-label">Expensify CSV</span><input type="file" accept=".csv,text/csv" onChange={async e => { const f = e.target.files?.[0]; setPreview(undefined); if (f) setFile({ name: f.name, csv: await f.text() }); }} /></label>
+            <label className="field field-wide"><span className="field-label">Expensify receipt files</span><input type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" onChange={async e => { setPreview(undefined); setReceipts(await Promise.all([...(e.target.files ?? [])].map(async f => ({ name: f.name, base64: await fileBase64(f) })))); }} /></label>
             <Choice label="Dates in the file" value={date} onChange={(e: any) => { setDate(e.target.value); setPreview(undefined); }}><option value="YYYY-MM-DD">2026-03-31</option><option value="MM/DD/YYYY">03/31/2026</option><option value="DD/MM/YYYY">31/03/2026</option></Choice>
             <div className="form-end"><button className="button primary" disabled={!file || busy} onClick={() => run(() => look())}>Preview</button></div>
           </div>
@@ -44,7 +46,7 @@ export function MoveIn({ state, reload }: ViewProps) {
           {notice && <p className="reconciled" role="status">{notice}</p>}
           {s && <div className="preview">
             <h3>Preview · nothing imported yet</h3>
-            <p>{s.reports} reports · {s.expenses} expenses · {money(s.totalMinor, currency)}</p>
+            <p>{s.reports} reports · {s.expenses} expenses · {s.receipts} receipts · {money(s.totalMinor, currency)}</p>
             <div className="record-form">{s.statuses.map((status: string) => <Choice key={status} label={`Expensify “${status}” becomes`} value={statuses[status] ?? ''} onChange={(e: any) => setStatuses({ ...statuses, [status]: e.target.value })}><option value="">Choose…</option>{HISTORY.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Choice>)}</div>
             <div className="actions"><button className="button" disabled={busy} onClick={() => run(() => look())}>Preview again with this mapping</button>
             <button className="button primary" disabled={busy || s.errors.length > 0} onClick={() => run(async () => { const r = await call('import/commit', { ...input(), fingerprint: preview!.fingerprint }); setNotice(r.job.state === 'completed' ? `Imported ${plural(s.reports, 'report')} with ${plural(s.expenses, 'expense')}.` : `Imported ${r.job.checkpoint} of ${r.job.total} records; resume to finish.`); setPreview(undefined); await refresh(); })}>Import {plural(s.reports, 'report')}</button></div>
@@ -62,9 +64,10 @@ export function MoveIn({ state, reload }: ViewProps) {
       </div>
       <Section title="Imported history" label="Imported history">
         {jobs?.history.filter((h: D) => h.kind === 'report').length ? <table className="plain"><thead><tr><th>Report</th><th>Employee</th><th>Status</th><th className="figure">Total</th></tr></thead><tbody>
-          {jobs.history.filter((h: D) => h.kind === 'report').map((r: D) => <tr key={r.id}><td>{r.name}</td><td>{r.employee}</td><td>{HISTORY.find(([v]) => v === r.status)?.[1] ?? r.status}{r.reimbursed ? ` · ${day(r.reimbursed)}` : ''}</td><td className="figure">{money(r.totalMinor, r.currency)}</td></tr>)}
+          {jobs.history.filter((h: D) => h.kind === 'report').map((r: D) => <tr key={r.id}><td>{r.name}{jobs.history.filter((h: D) => h.source === 'expensify' && h.kind === 'expense' && h.report === r.reportId && h.receipt?.sha256).map((e: D) => <small className="split-line" key={e.id}>{e.merchant} · {e.receipt.name} · receipt retained</small>)}</td><td>{r.employee}</td><td>{HISTORY.find(([v]) => v === r.status)?.[1] ?? r.status}{r.reimbursed ? ` · ${day(r.reimbursed)}` : ''}</td><td className="figure">{money(r.totalMinor, r.currency)}</td></tr>)}
         </tbody></table> : <Empty title="No imported reports">Reports you import from Expensify appear here, read-only.</Empty>}
       </Section>
+      <EmburseConfiguration expensify state={state} onImported={refresh} />
       <CutoverReport report={cutover} />
       <CardHistory kind="card" history={jobs?.history ?? []} currency={currency} onImported={refresh} />
       <EmburseConfiguration state={state} onImported={refresh} />

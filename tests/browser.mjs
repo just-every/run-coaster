@@ -14,7 +14,7 @@ import { perDiemJourney } from './browser-per-diem.mjs'
 import { cutoverJourney, cutoverCarryJourney } from './browser-cutover.mjs'
 import { captureJourney, assertRestoredInbox, expandedReasonJourney } from './browser-capture.mjs'
 import { captureFiles } from './fixtures/capture-files.mjs'
-import { concurJourney } from './browser-concur.mjs'
+import { concurJourney, expensifyJourney } from './browser-concur.mjs'
 import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/coaster-browser-proof')
@@ -52,6 +52,7 @@ try {
   await ownerScreens(owner, server.origin, 390, evidence, shots, false)
   for (const width of [1440, 390]) journeys.push(await perDiemJourney(browser, root, server.origin, owner, width, evidence, shots))
   for (const width of [1440, 390]) await concurJourney(owner, server.origin, width, evidence, shots)
+  for (const width of [1440, 390]) await expensifyJourney(owner, server.origin, width, evidence, shots)
   for (const width of [1440, 390]) { await cutoverJourney(owner, server.origin, width, evidence, shots); await cutoverCarryJourney(browser, root, owner, server.origin, width, evidence, shots) }
   const captureInputs = await captureFiles()
   for (const width of [1440, 390]) await captureJourney(browser, root, server.origin, width, evidence, shots, captureInputs.files)

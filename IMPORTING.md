@@ -368,3 +368,80 @@ credit (`"credit"` with the refunded `charge` or a `note`). `POST .../close` wri
 card liability ledger once; the answer's `ledger` shows the card account equal to the statement balance. Owner and finance act;
 admins, auditors, bookkeepers and card admins read (`GET /api/coaster/statements/reconciliations`). A card's charges from one file go on one draft report named for the card and
 the statement period. Fixtures: `tests/fixtures/statements/reconcile-september.ofx` and `reconcile-earlier.qfx`.
+
+## Complete Expensify export set (MOVE-001)
+
+Import **Expensify policy JSON** on Move in, then the report-template CSV and
+**Expensify receipt files**. This is a file move-in: The native Coaster importer never asks for or retains Integration Server
+credentials and makes no requests to Expensify.
+The report-template CSV is the output of Expensify's documented
+[Integration Server export template](https://integrations.expensify.com/Integration-Server/doc/export_report_template.html).
+An operator can produce it through Integration Server, download the receipt
+images it names, and import those exact outputs here. Open and closed reports
+remain read-only history; the separate cutover door handles payable carry-over.
+
+Translate the exported policy's people, approvers, categories and rules into
+the reviewed members/categories/chains/policies envelope documented above for
+Concur. Choose `source: "expensify"`, retain opaque source UUIDs and explicitly
+map existing native identities. New people are inactive, with no invitation or
+access; existing people retain their roles. Rules are additive company-wide
+POLICY-001 rules, never a replacement of the owner floor. Unsupported scopes or
+rule properties block commit and are named in preview. Undo appends a compensating
+policy version and preserves any later policy edit.
+
+The envelope additionally accepts:
+
+```json
+{
+  "tags": [{"key": "<random tag UUID>", "name": "Client: synthetic-coaster-1"}],
+  "cards": [{"key": "<random card UUID>", "issuer": "Synthetic Coaster",
+             "last4": "1101", "employee": "<member row UUID>"}]
+}
+```
+
+Tags become choices in the native **Expensify tags** dimension. A card names an
+explicit member row, never an inferred name or address, and stores only its last
+four. The cardholder must be activated before statement imports can use it.
+Banking fields and full card numbers in configuration are refused before retention.
+Preview lists counts, mappings, policy rules and unmapped fields; no write occurs.
+Commit echoes its exact crosswalk and fingerprint. Undo removes only unused,
+unchanged rows; charges, native coding, frozen revisions and later edits preserve
+the required configuration and are explained in the undo report. Assignment and
+import actions append numbered history lines.
+
+Add the receipt files whose names equal `receiptFilename` in the report CSV.
+Every named file must be present when the receipt-file set is supplied; unused
+files are named in preview and left out. The expense stores the original's name,
+media type, size and SHA-256, and import status returns the exact retained bytes.
+A URL in the CSV is provenance, never fetched. Limits: 2 MB / 2,000 report lines,
+50 images at 1.5 MB each and 8 MB per request; configuration allows 500 entries
+per kind and 20 policies. Synthetic public-door evidence is in
+`tests/coaster-import-configuration.test.mjs`; no owner's actual Expensify export
+or account was used.
+
+### Optional Integration Server export command
+
+The host operator may explicitly prepare source files using:
+
+```sh
+node scripts/expensify/export.mjs --consent --reports REPORT_IDS --policies POLICY_IDS --template report-template.ftl --output private-new-export
+```
+
+Supply `EXPENSIFY_PARTNER_USER_ID` and `EXPENSIFY_PARTNER_USER_SECRET` only through
+a private process environment, never command arguments. Without `--consent` the
+command shows the notice and makes no request. It sends credentials and selected
+IDs only to the fixed HTTPS Integration Server endpoint, refusing redirects,
+with no retry. The only jobs are report file export, download and policy get;
+there is no update, mark-as-exported or email action. It requests categories,
+report fields, tags, tax and employees, saving `reports.csv` and
+`source-policy.json` in a new private directory. Translate the source policy to
+the reviewed configuration envelope and add locally downloaded receipt images;
+the command never guesses mappings or fetches receipt URLs. Authentication
+errors leave no output directory and print no provider body. Native owner
+review is still required before any import changes Coaster.
+
+Conservative default pending ct (sx-coaster-c40): this optional source-preparation
+command runs only on explicit host-operator consent, retains no credential and
+has no scheduled execution. The native importer remains native-session owner-only.
+No real Integration Server account was exercised; network-edge fixtures prove
+its documented jobs. DATA-001 carries this explicit external flow.

@@ -292,3 +292,15 @@ charge can supply its own MCC to the original’s empty coding fields; receipt
 metadata and fixture labels never invent one. These are native
 statement-file and upload doors: no issuer-feed integration or CAPTURE-003
 image-reading result is claimed. Those forms retain their own obligations.
+
+## Expensify export set (MOVE-001)
+
+`POST import/preview|commit` accepts `source: "expensify"` and either the
+reviewed `configuration` with `mapping.crosswalk`, or report-template `csv`,
+`filename`, `mapping: {date, statuses}` and optional `receipts: [{name, base64}]`.
+Configuration adds `tags` and `cards` as documented in IMPORTING.md. Preview
+returns counts, errors, unmapped warnings, a crosswalk and a fingerprint; commit
+echoes them. Native-session owner authority is required, including for undo and
+original-byte status reads. Exported Integration Server report CSVs use this
+same file door; the native import API has no credential custody or outbound Integration Server call.
+The separate explicitly consented host command is documented in IMPORTING.md.

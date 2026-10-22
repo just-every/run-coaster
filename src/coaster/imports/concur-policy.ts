@@ -14,11 +14,11 @@ export const policyKind = 'concur-policy';
 export const policyCount = "(SELECT COUNT(*) FROM c_concur_policy_imports)";
 
 /** The translated envelope has only company-wide POLICY-001 rules. Unsupported source scopes/rules block adoption. */
-export async function concurConfiguration(db: D1Database, raw: unknown, crosswalk: unknown, timezone: string) {
+export async function concurConfiguration(db: D1Database, raw: unknown, crosswalk: unknown, timezone: string, namespace: 'concur' | 'expensify' = 'concur') {
   const input = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Data;
   refuseConcurConfigurationData(input);
   requireThat(input && Array.isArray(input.policies ?? []) && (input.policies ?? []).length <= 20, 'Choose a Concur configuration with at most 20 policies');
-  const base = await configurationSource(db, 'concur', raw, crosswalk), errors = base.summary.errors;
+  const base = await configurationSource(db, namespace, raw, crosswalk), errors = base.summary.errors;
   const policies = (input.policies ?? []) as Data[], known = await categories(db), current = await policyOn(db, localDay(timezone));
   for (const c of input.categories ?? []) if (!known.some(n => n.id === base.summary.crosswalk[c.key])) known.push({ id: base.summary.crosswalk[c.key], name: c.name, account_code: c.accountCode, tax_code: c.taxCode, limit_minor: null, active: 1, receipt_always: 0, per_person_limit_minor: null, required_fields: [] });
   const imported: Data[] = [];
@@ -35,16 +35,16 @@ export async function concurConfiguration(db: D1Database, raw: unknown, crosswal
   const rules = [...new Map([...(current?.rules ?? []), ...imported].map(r => [canonicalJson(r), r])).values()];
   if (rules.length > 50 || rules.filter(r => r.kind === 'deadline').length > 1) errors.push('The merged Concur policy must have at most 50 rules and one deadline');
   if (new Set(policies.map(p => p.key)).size !== policies.length) errors.push('Each Concur policy needs a distinct opaque UUID key');
-  base.source.artifacts[0].name = 'concur-configuration.json';
-  for (const r of base.source.records) r.location.artifact = 'concur-configuration.json';
+  base.source.artifacts[0].name = `${namespace}-configuration.json`;
+  for (const r of base.source.records) r.location.artifact = `${namespace}-configuration.json`;
   base.summary.warnings = base.summary.warnings.filter(w => !/policies kept/.test(w));
   const policyValue = { rules, beforeRules: current?.rules ?? [], names: policies.map(p => p.name), effectiveFrom: localDay(timezone) };
   if (policies.length) {
-    const payload = { policies }, record: SourceRecord = { namespace: 'concur', kind: policyKind, sourceId: policies[0].key, payload, payloadHash: sha256(canonicalJson(payload)), artifactHash: base.source.artifacts[0].sha256, location: { artifact: 'concur-configuration.json' } };
+    const payload = { policies }, record: SourceRecord = { namespace, kind: policyKind, sourceId: policies[0].key, payload, payloadHash: sha256(canonicalJson(payload)), artifactHash: base.source.artifacts[0].sha256, location: { artifact: `${namespace}-configuration.json` } };
     base.source.records.push(record);
   }
   const map = base.mapping.map;
-  base.mapping = { version: sha256(canonicalJson({ kit: 'concur-configuration-v1', native: base.mapping.version, policyValue })), map: r => errors.length ? { effects: [], rejection: 'Resolve the Concur configuration errors before importing' } : r.kind === policyKind ? { effects: [{ targetKind: policyKind, targetId: `concur:policy:${r.sourceId}`, value: policyValue }] } : map(r) };
+  base.mapping = { version: sha256(canonicalJson({ kit: 'concur-configuration-v1', native: base.mapping.version, policyValue })), map: r => errors.length ? { effects: [], rejection: 'Resolve the Concur configuration errors before importing' } : r.kind === policyKind ? { effects: [{ targetKind: policyKind, targetId: `${namespace}:policy:${r.sourceId}`, value: policyValue }] } : map(r) };
   base.source.diagnostics = errors.map(message => ({ severity: 'error', code: 'CONCUR_CONFIGURATION', message }));
   return { ...base, summary: { ...base.summary, policies: policies.length, policyRules: imported.length } };
 }

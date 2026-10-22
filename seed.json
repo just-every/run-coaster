@@ -147,6 +147,17 @@
         "No names, email addresses, amounts, receipt bytes, comments, expense bodies or secrets in event payloads; delivery retains HTTP status, never response bodies"
       ],
       "adapters": []
+    },
+    {
+      "id": "expensify-source-export",
+      "required": false,
+      "requiredWhen": "The host operator explicitly invokes scripts/expensify/export.mjs with --consent; never from the native importer or a schedule",
+      "why": "Read-only MOVE-001 source preparation, conservative explicit-consent default awaiting ct. No report updates, export marking or email actions.",
+      "data": [
+        "Partner user ID and secret from the private process environment, selected report/policy IDs and the chosen report template sent only to the fixed HTTPS Expensify Integration Server endpoint; redirects refused",
+        "The generated CSV filename is sent back for download; returned reports and policy metadata are kept only in a new private local directory; credentials and provider error bodies are never retained or logged"
+      ],
+      "adapters": []
     }
   ],
   "env": [],
