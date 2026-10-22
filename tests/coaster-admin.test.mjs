@@ -1,5 +1,6 @@
 // ADMIN-001 people, roles, departments and the permission matrix, through the public HTTP API with real native
 // sessions, workerd and D1. The matrix journey reads the role permission matrix out of CONTRACT.md itself.
+import { createHash, generateKeyPairSync } from 'node:crypto'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -23,6 +24,7 @@ async function submitted(h, cookie, title, amount, category, extra) {
 const decide = (h, cookie, c, extra = {}, status = 200) => h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', acknowledge: true, ...extra }, cookie, status)
 const tables = ['c_events', 'c_members', 'c_categories', 'c_policies', 'c_budgets', 'c_cards', 'c_claims', 'c_items', 'c_batches', 'c_approval_workflows', 'c_approval_rules', 'c_departments', 'c_mileage_rates', 'c_allowances',
   'c_escalation_chains', 'c_card_match_rules', 'c_statement_files', 'c_card_charges', 'c_delegates', 'c_requests', 'c_advances', 'c_agent_keys', 'c_proposals', 'c_coding_dimensions', 'c_coding_values', 'c_category_dimensions', 'c_coding_refreshes', 'c_qbo_oauth_states', 'c_qbo_connections',
+  'c_receipt_reading_settings', 'c_receipt_readings', 'c_receipt_reading_match_defaults', 'c_program_feeds', 'c_program_deliveries',
   'c_auto_coding_rules', 'c_auto_coding_contexts', 'c_auto_coding_suggestions', 'c_auto_coding_feedback', 'c_auto_coding_observations', 'c_auto_coding_flags']
 const snapshot = h => h.db.prepare(`SELECT ${tables.map(t => `(SELECT COUNT(*) FROM ${t}) AS ${t}`).join(',')}`).first()
 
@@ -68,7 +70,11 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
   const range = 'from=2026-01-01&to=2026-12-31'
   const connectQbo = async () => { const start = await h.post('accounting/qbo/connect', { consent: true }); assert.equal((await h.send(qbo.callback(start.authorizationUrl), undefined, h.owner)).status, 303) }
   const codingDimension = async () => (await h.post('coding/dimensions', { version: (await h.get('coding')).version, name: `synthetic-coaster-${1000 + ++n}`, kind: 'tag' })).saved
+  const feedConfig = { consent: true, host: '8.8.8.8', port: 22, username: 'synthetic-coaster-9000', privateKey: generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey.export({ type: 'sec1', format: 'pem' }).toString(), hostKeyFingerprint: 'SHA256:' + createHash('sha256').update('synthetic-coaster-9001').digest('base64').replace(/=+$/, ''), directory: '/synthetic-coaster-9002', issuer: 'Matrix card program', category: t.c.office, intervalMinutes: 60, mapping: { dateFormat: 'YYYY-MM-DD', sign: 'purchases-positive', postedDate: 'Date', transactionId: 'Transaction', description: 'Merchant', amount: 'Amount', card: 'Card', sequence: 'Sequence' } }
   const doors = [
+    { row: 'Business settings', call: async who => send('settings/receipt-reading', { version: (await h.get('settings/receipt-reading')).version, enabled: false, consent: false }, who) },
+    { row: 'Connect feeds', call: who => send('feeds/program', feedConfig, who) },
+    { row: 'Connect feeds', prepare: () => h.post('feeds/program', feedConfig), call: (who, feed) => send(`feeds/program/${feed.id}/disconnect`, { version: feed.version, consent: true }, who) },
     { row: 'Business settings', call: async who => send('coding/dimensions', { version: (await h.get('coding')).version, name: `synthetic-coaster-${1000 + ++n}`, kind: 'tag' }, who) },
     { row: 'Business settings', prepare: codingDimension, call: async (who, dimension) => send('coding/values', { version: (await h.get('coding')).version, dimension, name: `synthetic-coaster-${1000 + ++n}` }, who) },
     { row: 'Business settings', prepare: codingDimension, call: async (who, dimension) => send('coding/requirements', { version: (await h.get('coding')).version, category: t.c.office, dimensions: [{ dimension, required: false }] }, who) },

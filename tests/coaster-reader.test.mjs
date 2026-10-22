@@ -93,5 +93,13 @@ test('Receipt reader authority survives neither delegate revocation nor terminal
   const disposed=await upload(h,t.sam,1007);await h.post(`receipt-inbox/${disposed.id}/discard`,{expectedSequence:0,reason:'synthetic-coaster-5002'},t.sam)
   await h.post(`receipt-inbox/${disposed.id}/reading`,{expectedSequence:1,expectedReadingSequence:0,consent:true},t.sam,409)
   const originalBytes=await h.mf.dispatchFetch(h.origin+`/api/coaster/receipt-inbox/${disposed.id}`,{headers:{cookie:t.sam}});assert.equal(originalBytes.status,200)
+  const notice=(await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===disposed.id).matchChoice.notice
+  await h.post('settings/receipt-reading/matching',{version:0,enabled:true,consent:true,notice},t.sam)
+  await h.post('settings/members',{email:'sam@harbourfinch.example',name:'Sam',employee:true,active:false})
+  const erased=await h.post('settings/members/erase',{email:'sam@harbourfinch.example'})
+  const rows=(await h.db.prepare('SELECT actor_email,on_behalf_of FROM c_receipt_readings WHERE receipt_id=?').bind(original.id).all()).results
+  assert.equal(rows[0].on_behalf_of,erased.retained.subject,'private reading provenance follows the original opaque owner')
+  assert.ok(!JSON.stringify(rows).includes('sam@harbourfinch.example'))
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_receipt_reading_match_defaults WHERE employee_email=?').bind('sam@harbourfinch.example').first()).n,0,'erasure removes personal standing matching authority')
  }finally{release?.();await h.close()}
 })

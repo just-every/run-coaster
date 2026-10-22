@@ -10,8 +10,9 @@ assert.ok(process.env.OPENAI_API_KEY,'A provider key must be injected by the aut
 assert.ok(Number.isInteger(limit)&&limit>0&&limit<=manifest.receipts.length)
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),fieldNames=['merchant','date','total','subtotal','salesTax','tip','currency','last4','lineItems']
 const comparable=(name,value)=>name==='lineItems'&&Array.isArray(value)?value.map(({description,quantity,amount})=>({description,quantity,amount})):value
-const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-6002'},aiEdge:request=>{const headers=new Headers(request.headers);headers.set('authorization','Bearer '+process.env.OPENAI_API_KEY);return fetch(new Request(request,{headers}))}})
-const result={model,commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),at:new Date().toISOString(),corpusCount:manifest.receipts.length,evaluated:0,complete:false,confidentWrong:0,unflaggedDifferent:0,missingConfidentPrefill:0,rates:{},usage:{input_tokens:0,output_tokens:0,total_tokens:0},receipts:[]}
+const providerResponses=[]
+const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-6002'},aiEdge:async request=>{const headers=new Headers(request.headers);headers.set('authorization','Bearer '+process.env.OPENAI_API_KEY);const response=await fetch(request.url,{method:request.method,headers,body:await request.arrayBuffer(),redirect:'manual'});const summary=await response.clone().json();providerResponses.push({status:response.status,state:summary.status??null,errorCode:summary.error?.code??null,errorType:summary.error?.type??null,param:summary.error?.param??null,outputTypes:summary.output?.map(row=>row.type)??[]});return response}})
+const result={model,commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),at:new Date().toISOString(),providerResponses,corpusCount:manifest.receipts.length,evaluated:0,complete:false,confidentWrong:0,unflaggedDifferent:0,missingConfidentPrefill:0,rates:{},usage:{input_tokens:0,output_tokens:0,total_tokens:0},receipts:[]}
 try {
  const team=await agency(h)
  await h.post('settings/receipt-reading',{version:0,enabled:true,consent:true,threshold:.95,model})
