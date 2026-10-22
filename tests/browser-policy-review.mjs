@@ -84,6 +84,11 @@ export async function policyAgentScreens(browser,root,server,evidence){
    const cards=await statement('rule',[['Lunch','40.00','2026-10-02'],['Flagged Dinner','40.00','2026-10-20']]);await server.scheduled();const cardClaim=await submitMixed(cards,'Flagged Dinner');assert.equal(cardClaim.claim.status,'submitted');assert.equal(cardClaim.revisions[0].snapshot.expenseApprovals[0].actor,`rule v${rule.version}`);
    await manager.page.goto(origin+`/app#/approvals/${cardClaim.claim.id}`);await manager.page.reload();await review.getByText(`Approved by rule v${rule.version}`,{exact:true}).waitFor();await shot(manager.page,'card-rule-mixed-review',review);
    await finance.page.goto(origin+'/app#/batches');await finance.page.reload();const sample=finance.page.getByRole('region',{name:'Audit sample',exact:true});await sample.getByText(new RegExp(`rule v${rule.version}.*expense approval`)).waitFor();await shot(finance.page,'card-expense-audit-sample',sample);
+   const sampled=sample.locator('li').filter({has:finance.page.locator(`a[href="#/approvals/${cardClaim.claim.id}"]`)}),finding=`Synthetic Coaster ${width}: card statement and receipt agree`;
+   await sampled.getByLabel('Expense outcome',{exact:true}).selectOption('clean');await sampled.getByLabel('Expense finding',{exact:true}).fill(finding);
+   const [findingResponse]=await Promise.all([finance.page.waitForResponse(r=>r.url().endsWith('/audit-samples/finding')&&r.request().method()==='POST'),sampled.getByRole('button',{name:'Record expense finding',exact:true}).click()]);assert.equal(findingResponse.status(),200,await findingResponse.text());
+   await sampled.getByText(new RegExp(finding)).waitFor();await finance.page.reload();await sampled.getByText(new RegExp(finding)).waitFor();assert.equal(await sampled.getByRole('button',{name:'Record expense finding',exact:true}).count(),0);
+   await shot(finance.page,'card-expense-audit-finding',sample);
    await api(owner.context,origin,'settings/approval-rule',{enabled:false});
   }finally{await owner.context.close();await employee.context.close();await manager.context.close();await finance.context.close();}
  }
@@ -99,6 +104,7 @@ export async function policyReviewArchive(root){
   assert.ok(before.some(r=>r.table==='c_approval_envelopes'));
   assert.ok(before.some(r=>r.table==='c_revisions'&&JSON.parse(r.row.snapshot).expenseApprovals?.length));
   assert.ok(before.some(r=>r.table==='c_events'&&r.row.action==='policy-review-feedback'));
+  assert.ok(before.some(r=>r.table==='c_events'&&r.row.action==='expense-audit-finding-recorded'));
   destination=await fresh();await command(destination,['install']);await command(destination,['setup','--owner-email','owner@harbourfinch.example','--port',String(await freePort())]);
   await mkdir(join(destination,'exports'),{recursive:true});await copyFile(archive,join(destination,'exports/policy-agent.rer'));
   await command(destination,['export','--output','exports/empty.rer']);const empty=rows(await records(join(destination,'exports/empty.rer')));
