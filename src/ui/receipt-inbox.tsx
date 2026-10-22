@@ -3,6 +3,7 @@ import { acting, apiHref, call, type D } from './api';
 import { Badge, Details, Empty, Field, Form, Section } from './parts';
 import { ReceiptCardMatch } from './receipt-card-match';
 import { ReceiptAttachment } from './receipt-attachment';
+import { ReceiptCoding } from './receipt-coding';
 
 const formats = 'image/jpeg,image/png,image/webp,image/heic,application/pdf';
 const bytes = (size: number) => `${size.toLocaleString()} bytes`;
@@ -49,6 +50,7 @@ export function ReceiptInbox({ state, onChanged }: { state: D; onChanged: () => 
       <Details label="File provenance"><dl><dt>Size and format</dt><dd>{bytes(receipt.size)} · {receipt.mediaType}</dd><dt>Uploaded by</dt><dd>{receipt.uploadedBy}</dd><dt>Received</dt><dd>{receipt.uploadedAt}</dd><dt>Source</dt><dd>{receipt.source}</dd><dt>SHA-256</dt><dd className="receipt-fingerprint">{receipt.sha256}</dd></dl><ol>{receipt.history.map((event: D) => <li key={event.sequence} value={event.sequence}>{event.state.replaceAll('-', ' ')} · {event.at} · {event.actorEmail}{event.onBehalfOf ? ` for ${event.onBehalfOf}` : ''} · {event.channel}{event.reason ? ` · ${event.reason}` : ''}</li>)}</ol></Details>
       {receipt.disposition === 'active' && <ReceiptAttachment key={`${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} claims={state.claims} employee={state.actor.email} reload={reload} />}
       {receipt.disposition === 'active' && <ReceiptCardMatch key={`match:${receipt.id}:${receipt.lifecycleSequence}`} receipt={receipt} currency={state.business?.currency??'USD'} reload={reload} />}
+      {receipt.disposition === 'active' && !state.actor.delegate && <ReceiptCoding receipt={receipt} state={state} reload={reload} />}
       {receipt.disposition === 'active' && receipt.lifecycle.length > 0 && <Details label="Private receipt history"><ReceiptLifecycle receipt={receipt} receipts={receipts} /></Details>}
       {receipt.disposition === 'active' ? !receipt.attachment && <>
         <Details label={`Discard ${receipt.name}`}><p>The original and your reason stay in your private history. This cannot be undone.</p><Form label="Discard receipt" onSubmit={async values => { await call(`receipt-inbox/${receipt.id}/discard`, { reason: values.reason, expectedSequence: receipt.lifecycleSequence }); await reload(); }}><Field label="Reason" name="reason" type="textarea" maxLength={1000} /></Form></Details>

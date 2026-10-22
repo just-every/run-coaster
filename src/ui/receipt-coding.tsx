@@ -1,0 +1,55 @@
+import { useState } from 'react';
+import { call, type D } from './api';
+import { codingSource } from './automatic-coding';
+import { Field, Form } from './parts';
+import { CodingFields } from './coding';
+
+/** Receipt coding stays in its employee's private inbox until attached and submitted normally. */
+export function ReceiptCoding({ receipt, state, reload }: { receipt: D; state: D; reload: () => Promise<unknown> }) {
+  const [data, setData] = useState<D>(), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  async function load() {
+    try { setData(await call(`coding/automatic/suggestions?receipt=${encodeURIComponent(receipt.id)}`)); setError(''); }
+    catch (e) { setError((e as Error).message); }
+  }
+  const current = data?.context;
+  async function decide(suggestion: D, action: string, values?: D) {
+    setBusy(true); setError('');
+    try { await call(`coding/automatic/suggestions/${suggestion.id}/decision`, { contextVersion: data?.contextVersion ?? current?.version ?? 0, action, ...(values ? { values } : {}) }); await load(); await reload(); }
+    catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); }
+  }
+  return <details className="disclosure" onToggle={e => { if (e.currentTarget.open && !data) load(); }}>
+    <summary>Coding for {receipt.name}</summary><div className="disclosure-body">
+      <p className="muted">Enter the merchant you read on this receipt. Coding suggestions use your rules and coding history; the image has not been read automatically. This coding stays in your private inbox.</p>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      {data && <>
+        <Form key={`merchant:${current?.version ?? 0}`} label="Suggest receipt coding" onSubmit={async v => { await call(`coding/automatic/receipts/${receipt.id}`, { version: data.contextVersion ?? current?.version ?? 0, merchant: v.merchant }); await load(); }}>
+          <Field label="Merchant on this receipt" name="merchant" defaultValue={current?.merchant} />
+        </Form>
+        {data.suggestions.map((s: D) => <div className="sub-form" key={s.id}>
+          <h4>{s.status === 'accept' ? 'Accepted coding' : s.status === 'override' ? 'Corrected coding' : 'Suggested coding'}</h4>
+          {(s.evidence ?? []).map((e: D, i: number) => <p className="muted" key={i}>{codingSource(e.source)} · {e.reason}</p>)}
+          <p>{[s.fields.category && state.categories.find((c: D) => c.id === s.fields.category)?.name, ...Object.values(s.fields.dimensions ?? {}).map(id => state.coding.values.find((v: D) => v.id === id)?.name), s.fields.project, s.fields.customer, s.fields.memo].filter(Boolean).join(' · ')}</p>
+          {s.status === 'pending' && <>
+            <button type="button" className="button" disabled={busy} onClick={() => decide(s, 'accept')}>Accept receipt coding</button>
+            <ReceiptCodingCorrection state={state} suggestion={s} onSave={values => decide(s, 'override', values)} />
+          </>}
+        </div>)}
+        {current && !data.suggestions.length && <p>No active rule or repeated coding history suggests a value for this merchant. Enter coding when you add the expense.</p>}
+      </>}
+    </div>
+  </details>;
+}
+
+function ReceiptCodingCorrection({ state, suggestion, onSave }: { state: D; suggestion: D; onSave: (v: D) => Promise<void> }) {
+  const [dimensions, setDimensions] = useState<Record<string,string>>(suggestion.fields.dimensions ?? {});
+  return <details className="disclosure"><summary>Correct receipt coding</summary><div className="disclosure-body">
+    <Form label="Save corrected receipt coding" onSubmit={v => onSave({ category: v.category, dimensions, project: v.project, customer: v.customer, memo: v.memo })}>
+      <Field label="Receipt category" name="category" required={false} defaultValue={suggestion.fields.category} options={state.categories.filter((c: D) => c.active).map((c: D) => ({ value: c.id, label: c.name }))} />
+      <CodingFields catalog={state.coding} categories={[]} value={dimensions} onChange={setDimensions} enforceRequired={false} />
+      <Field label="Receipt project" name="project" required={false} defaultValue={suggestion.fields.project} />
+      <Field label="Receipt customer" name="customer" required={false} defaultValue={suggestion.fields.customer} />
+      <Field label="Receipt memo" name="memo" required={false} defaultValue={suggestion.fields.memo} />
+    </Form>
+  </div></details>;
+}
