@@ -77,8 +77,13 @@ export async function codingScreens(browser, root, origin, evidence) {
       await budgets.getByLabel('Covers', { exact: true }).selectOption('project')
       await budgets.getByLabel('Project or tag', { exact: true }).selectOption(value(salesProject))
       await budgets.getByLabel('Amount', { exact: true }).fill('500.00')
+      await budgets.getByLabel('Owner', { exact: true }).selectOption(PEOPLE.manager)
       await budgets.getByLabel('Project or tag', { exact: true }).scrollIntoViewIfNeeded(); await shot(owner.page, evidence, 'coding-project-budget-form', width)
-      await budgets.getByRole('button', { name: 'Save budget', exact: true }).click()
+      const [budgetResponse] = await Promise.all([
+        owner.page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/coaster/budgets'),
+        budgets.getByRole('button', { name: 'Save budget', exact: true }).click(),
+      ])
+      assert.equal(budgetResponse.status(), 200, await budgetResponse.text())
       await budgets.getByText('Budget saved.', { exact: true }).waitFor()
       const spend = owner.page.locator('section').filter({ has: owner.page.getByRole('heading', { name: 'Spend', exact: true }) }).last()
       await spend.getByLabel('Group by', { exact: true }).selectOption('project')
