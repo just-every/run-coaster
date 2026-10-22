@@ -71,7 +71,7 @@ export function CodingSettings({ state, reload }: { state: D; reload: () => Prom
       </>}
     </div>
     <div className="sub-form"><h3>Import a catalog</h3><Form label="Import coding CSV" onSubmit={async (v,form) => { const file = v.csvFile as File; if (!file?.size) throw new Error('Choose a CSV file.'); await saved('coding/import',{ csv: await file.text() },'Catalog imported.'); form.reset(); }}>
-      <Field label="Coding CSV" name="csvFile" type="file" accept=".csv,text/csv" hint="Headers: dimension,parentDimension,kind,required,value,parentValue,owner. Use exact parent names. Existing native choices update by level, parent and name. A failed row imports nothing." />
+      <Field label="Coding CSV" name="csvFile" type="file" accept=".csv,text/csv" hint="Headers: dimension, parentDimension, kind, required, value, parentValue, owner. Use exact parent names. Existing native choices update by level, parent and name. A failed row imports nothing." />
     </Form></div>
     <div className="sub-form"><h3>Category requirements</h3>
       <Field label="Configure category" name="configureCategory" options={state.categories.filter((c: D) => c.active).map(option)} required={false} value={category} onChange={(e: any) => setCategory(e.target.value)} />
