@@ -1,8 +1,220 @@
 {
   "model": "gpt-6.1-sol",
-  "commit": "a8015fbef7762b492a59b37d5c3e89a667ad387c",
-  "at": "2026-10-22T04:16:50.938Z",
+  "commit": "3b12d8046b4223ede1d30abc53b73138c7e24951",
+  "at": "2026-10-22T04:51:40.692Z",
   "providerResponses": [
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "reasoning",
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "reasoning",
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
+    {
+      "stage": "sending",
+      "method": "POST",
+      "url": "https://api.openai.com/v1/responses"
+    },
+    {
+      "status": 200,
+      "state": "completed",
+      "errorCode": null,
+      "errorType": null,
+      "param": null,
+      "outputTypes": [
+        "message"
+      ]
+    },
     {
       "stage": "sending",
       "method": "POST",
@@ -196,216 +408,7 @@
       "errorType": null,
       "param": null,
       "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
-        "message"
-      ]
-    },
-    {
-      "stage": "sending",
-      "method": "POST",
-      "url": "https://api.openai.com/v1/responses"
-    },
-    {
-      "status": 200,
-      "state": "completed",
-      "errorCode": null,
-      "errorType": null,
-      "param": null,
-      "outputTypes": [
+        "reasoning",
         "message"
       ]
     },
@@ -755,8 +758,8 @@
   },
   "usage": {
     "input_tokens": 125956,
-    "output_tokens": 40320,
-    "total_tokens": 166276
+    "output_tokens": 40154,
+    "total_tokens": 166110
   },
   "receipts": [
     {
