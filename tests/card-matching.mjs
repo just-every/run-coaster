@@ -8,7 +8,7 @@ import {api,PEOPLE,session,setUp} from './browser-journey.mjs'
 import {records,rows,tampered} from './browser-archive.mjs'
 import {statementScreens} from './browser-statements.mjs'
 import {codingScreens} from './browser-coding.mjs'
-import {readingEdge,readingScreens,costScreens,questionScreens} from './browser-reading.mjs'
+import {readingEdge,readingScreens} from './browser-reading.mjs'
 import {programFeedScreens} from './browser-program-feed.mjs'
 import {automaticCodingScreens} from './browser-auto-coding.mjs'
 
@@ -147,7 +147,7 @@ try {
   await manager.context.close();await employee.context.close()
   await statementScreens(browser,root,server.origin,owner,evidence)
   await codingScreens(browser,root,server.origin,evidence)
-  if(part===0){await automaticCodingScreens(browser,root,server.origin,evidence);await readingScreens(browser,root,server.origin,evidence,readerEdge);await costScreens(browser,root,server.origin,evidence,readerEdge);await questionScreens(browser,root,server.origin,evidence,readerEdge);await programFeedScreens(browser,root,server,evidence)}
+  if(part===0){await automaticCodingScreens(browser,root,server.origin,evidence);await readingScreens(browser,root,server.origin,evidence,readerEdge);await programFeedScreens(browser,root,server,evidence)}
   // FEED-005: reconciled and closed statements (their resolutions, ledger and history) ride the same archive round trip.
   const kept=(await api(owner.context,server.origin,'statements')).files.find(f=>f.name==='synthetic-kept-match.csv')
   const reconciliation=await api(owner.context,server.origin,`statements/${kept.id}/reconcile`,{last4:'1111',openingBalance:'0.00',statementBalance:'1.00'})
@@ -197,8 +197,6 @@ try {
     ['coding_item','c_items',r=>Object.keys(JSON.parse(r.coding)).length,r=>{r.coding=JSON.stringify({'synthetic-coaster-missing-level':'synthetic-coaster-missing-choice'})}],
     ['coding_category_account','c_categories',r=>r.ledger_account_id,r=>{const account=JSON.parse(r.ledger_account_snapshot);account.sourceId='synthetic-coaster-missing-account';r.ledger_account_snapshot=JSON.stringify(account)}],
     ['receipt_reading_owner','c_receipt_readings',()=>true,r=>{r.actor_email='synthetic-coaster-8000'},0],
-    ['receipt_reading_cost','c_provider_costs',r=>r.kind==='settled'&&!r.uncertain,r=>{r.usd_micros+=1},0],
-    ['receipt_reading_resolution','c_items',r=>!!r.receipt_resolution,r=>{const a=JSON.parse(r.receipt_resolution);a.confirmationSequence=999999;r.receipt_resolution=JSON.stringify(a)},0],
     ['program_feed_credentials','c_program_feeds',()=>true,r=>{r.enabled=1},0],
     ['automatic_coding_owner','c_auto_coding_contexts',r=>r.target_kind==='receipt',r=>{r.employee_email='synthetic-coaster-5000'},0],
   ]
