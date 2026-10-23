@@ -15,6 +15,9 @@ export const identity: EditionIdentity = {
   // An installed instance serves the Lobby at /.
   installedHome: 'lobby',
   theme: '/rer-theme.css',
+  // Linked before the theme: the theme declares the faces, and this file holds the rest of the look (Base's other
+  // --rer-* names, Coaster's own tokens and the rules that dress the Lobby and the Run, contract and not-found pages).
+  fonts: '/fonts/fonts.css',
   mark: '/brand/mark.svg',
   accentColor: branding.primaryColor,
 }

@@ -1,5 +1,6 @@
 /* The Coaster app's ground: type, buttons, fields, status pills and quiet utilities. Every colour, face and shadow is a
-   token from /rer-theme.css (owner pick J, 18 Oct 2026). Rules are scoped to .app so Base's own pages keep their look. */
+   token from /fonts/fonts.css or /rer-theme.css (owner pick J, 18 Oct 2026). Rules are scoped to .app so Base's own
+   pages keep their look. */
 body:has(.app) { margin: 0; padding: 0; background: var(--app-grid); background-attachment: fixed; }
 .app { min-height: 100vh; color: var(--ink); font: 15px/1.5 var(--font-body); font-variant-numeric: lining-nums; -webkit-font-smoothing: antialiased; }
 .app *, .app *::before, .app *::after { box-sizing: border-box; }

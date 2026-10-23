@@ -8,7 +8,7 @@
 .hero-copy { position: relative; z-index: 2; width: calc(730 * var(--p)); margin-left: calc(52 * var(--p)); padding: calc(160 * var(--p)) 0 calc(120 * var(--p)); }
 /* A touch more condensed than the section headings so the open word spaces still end the line clear of the receipt. */
 .hero h1 { font-size: calc(86 * var(--p)); font-stretch: 76%; line-height: .99; text-wrap: nowrap; }
-/* rer-theme.css dresses Base's not-found hero with a selector that also matches this page; this one outranks it. */
+/* fonts.css dresses Base's not-found hero with a selector that also matches this page; this one outranks it. */
 .hero .hero-copy h1 { letter-spacing: -.045em; word-spacing: .17em; }
 .hero h1 .h-second { letter-spacing: -.05em; }
 .hero-sub { margin-top: calc(48 * var(--p)); max-width: calc(660 * var(--p)); color: #22262c; font-size: calc(24 * var(--p)); line-height: 1.45; letter-spacing: -.018em; }
