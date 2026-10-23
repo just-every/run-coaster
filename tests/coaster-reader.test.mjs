@@ -154,7 +154,7 @@ test('Receipt disagreements ask one private crop-backed question across the labe
  let activeLabel=await load(1001),first=true
  const h=await harness({bindings:aiBindings,aiEdge:async()=>{const fields=raw(activeLabel);if(first){fields.total.value=(Number(activeLabel.values.total)-Number(activeLabel.values.tip)).toFixed(2);fields.total.confidence=.6;}return response(fields)}})
  try{
-  const t=await agency(h);await h.post('settings/business',{name:'Harbour & Finch Studio',currency:'USD',timezone:'America/Chicago',perDiem:'75',receiptThreshold:''});await enable(h)
+  const t=await agency(h);await h.post('settings/members',{email:'owner@harbourfinch.example',name:'Owner',employee:true,finance:true,approver:'priya@harbourfinch.example'});await h.post('settings/business',{name:'Harbour & Finch Studio',currency:'USD',timezone:'America/Chicago',perDiem:'75',receiptThreshold:''});await enable(h)
   const manifest=JSON.parse(await readFile(folder+'manifest.json','utf8')),seen=new Set();let firstQuestion,firstOriginal,firstReading,firstClaim
   for(const entry of manifest.receipts){
    activeLabel=JSON.parse(await readFile(folder+entry.label,'utf8'));const label=activeLabel.values,original=await upload(h,t.sam,Number(entry.id.replace('synthetic-coaster-','')))
@@ -200,11 +200,19 @@ test('Receipt disagreements ask one private crop-backed question across the labe
   let current=(await h.get('claims/'+firstClaim.id,t.sam)).claim
   const extra=await h.post(`claims/${current.id}/receipts`,{version:current.version,name:'synthetic-coaster-7199.png',base64:(await readFile('tests/fixtures/receipts/bistro.png')).toString('base64')},t.sam);current=extra.claim
   current=await h.post(`claims/${current.id}/items`,{version:current.version,kind:'receipt',date:'2026-08-20',merchant:'synthetic-coaster-7199',amount:'10.00',receipt:extra.receipt,allocations:[{category:t.c.office}]},t.sam)
-  const submitted=await h.post(`claims/${current.id}/submit`,{version:current.version},t.sam)
+  let submitted=await h.post(`claims/${current.id}/submit`,{version:current.version},t.sam)
+  const published=(await h.get('claims/'+current.id,t.morgan)).items.find(i=>i.id===firstQuestion.itemId).receipt_resolution
+  await h.post(`claims/${current.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'returned',reason:'Confirm the receipt comparison once more'},t.priya)
+  activeLabel=await load(1001);first=true;const latest=await h.get(`receipt-inbox/${firstOriginal.id}/reading`,t.sam),refresh=await read(h,firstOriginal.id,t.sam,latest.sequence,1),freshQuestion=refresh.question
+  await h.post(`receipt-inbox/${firstOriginal.id}/question`,{questionId:freshQuestion.id,expectedSequence:1,expectedReadingSequence:refresh.sequence,version:freshQuestion.version,values:{total:activeLabel.values.total,currency:activeLabel.values.currency,tip:activeLabel.values.tip},consent:true},t.sam)
+  assert.equal((await h.get('claims/'+current.id,t.morgan)).items.find(i=>i.id===firstQuestion.itemId).receipt_resolution,published,'a returned claim shares only its last submitted comparison with finance')
+  assert.notEqual((await h.get('claims/'+current.id,t.sam)).items.find(i=>i.id===firstQuestion.itemId).receipt_resolution,published,'the employee sees the new private confirmation')
+  const apiKey=await h.post('public-api/keys',{label:'synthetic-coaster-7188',scopes:['expenses:read']});const projection=await h.send('/api/coaster/public-api/v1/expenses?claimId='+current.id,undefined,'',{authorization:'Bearer '+apiKey.token});assert.equal(projection.status,200);assert.ok(projection.value.data.every(i=>!('receipt_resolution' in i)),'expense scope never exposes private receipt confirmation metadata')
+  current=(await h.get('claims/'+current.id,t.sam)).claim;submitted=await h.post(`claims/${current.id}/submit`,{version:current.version},t.sam)
   const approved=await h.post(`claims/${current.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'approved',acknowledge:true},t.priya)
   let batch=await h.post('batches',{claims:[approved.id]},t.morgan);batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:1000},t.morgan);await h.paid(batch.id,batch.version,{reference:'synthetic-coaster-7199',paidOn:'2026-11-09'},t.morgan)
   const before=await h.get('claims/'+approved.id,t.sam);assert.equal(before.claim.status,'reimbursed')
-  await h.post(`receipt-inbox/${firstOriginal.id}/question`,{questionId:firstQuestion.id,expectedSequence:1,expectedReadingSequence:firstReading.sequence,version:firstQuestion.version,values:{total:'99.00'},consent:true},t.sam,409)
+  await h.post(`receipt-inbox/${firstOriginal.id}/question`,{questionId:freshQuestion.id,expectedSequence:1,expectedReadingSequence:(await h.get(`receipt-inbox/${firstOriginal.id}/reading`,t.sam)).sequence,version:before.claim.version,values:{total:'99.00',currency:'USD'},consent:true},t.sam,409)
   assert.deepEqual(await h.get('claims/'+approved.id,t.sam),before,'an answered or non-editable expense is never changed')
  }finally{await h.close()}
 })

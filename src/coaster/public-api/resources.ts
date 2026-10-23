@@ -15,7 +15,7 @@ export async function draftActor(db:D1Database,a:Actor,id:string):Promise<Actor>
 }
 export async function expenses(db:D1Database,a:Actor,claimId:string) {
   const c=await loadClaim(db,claimId);visible(a,c);
-  return (await claimItems(db,c.id)).map(({receipt_sha256,receipt_name,receipt_media,receipt_size,card_match_basis,...item})=>item);
+  return (await claimItems(db,c.id)).map(({receipt_sha256,receipt_name,receipt_media,receipt_size,card_match_basis,receipt_resolution,...item})=>item);
 }
 export async function oneExpense(db:D1Database,a:Actor,id:string) {
   const row=await db.prepare('SELECT claim_id FROM c_items WHERE id=?').bind(id).first<{claim_id:string}>();

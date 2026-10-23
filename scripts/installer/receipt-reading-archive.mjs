@@ -4,7 +4,7 @@ import { PortabilityError } from '@runeditrun/rer/modules/portability';
 export async function validateReceiptReadingArchive(read) {
   const [settings, readings, defaults, originals] = await Promise.all(['c_receipt_reading_settings', 'c_receipt_readings', 'c_receipt_reading_match_defaults', 'c_capture_receipts'].map(read));
   const check = value => { if (!value) throw new PortabilityError('coaster_receipt_reading', 409); };
-  if (!settings.length) { check(!readings.length && !defaults.length); return; }
+  if (!settings.length) { check(!readings.length && !defaults.length && !(await read('c_provider_cost_settings')).length && !(await read('c_provider_costs')).length); return; }
   const versions = new Map(settings.map(row => [row.version, row])), receipts = new Map(originals.map(row => [row.id, row]));
   for (const row of settings) check(Number.isSafeInteger(row.version) && row.version >= 0 && [0, 1].includes(row.enabled) && row.threshold >= 0.9 && row.threshold <= 1 && typeof row.model === 'string');
   check(new Set(settings.map(row => row.version)).size === settings.length && settings.every((_, i) => versions.has(i)));

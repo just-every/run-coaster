@@ -69,9 +69,11 @@ try {
   await investigation.locator('summary').first().click()
   await investigation.getByRole('link',{name:'Download evidence pack'}).first().waitFor()
   assert.ok((await investigation.innerText()).includes('No employee is contacted'))
-  const account=page.locator('summary[data-tooltip="Account menu"]');await page.keyboard.press('Tab');await account.focus();assert.ok(await account.evaluate(el=>el===document.activeElement))
-  assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').visibility),'visible')
-  assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').transitionDelay),'0s')
+  const account=page.locator('summary[data-tooltip="Account menu"]');
+  if(width===390){
+   await account.evaluate(el=>el.blur());await page.mouse.move(0,0);await account.hover();assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').visibility),'hidden');await page.waitForTimeout(150);assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').visibility),'hidden');await page.waitForTimeout(200);assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').visibility),'visible');
+   await page.keyboard.press('Tab');await account.focus();assert.ok(await account.evaluate(el=>el===document.activeElement));assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').visibility),'visible');assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').transitionDelay),'0s');
+  }else assert.equal(await account.isVisible(),false,'the desktop shell has no account icon control');
   await screenshot('investigation-pack')
 
   for(const person of [employee,finance,manager])await person.context.close()
