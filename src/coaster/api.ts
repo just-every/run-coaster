@@ -1,3 +1,4 @@
+import { investigations, investigationOutcome, investigationFile } from './investigations';
 import { suggestReadingCoding } from './receipts/reading-coding';
 import { programFeedApi } from './feeds';
 import { readingSettings, saveReadingSettings, setReadingMatchDefault, readReceipt, readingDetail, correctReading } from './receipts/reading';
@@ -97,6 +98,9 @@ const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) =
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
 
 api.route('/api/coaster/feeds', programFeedApi);
+api.get('/api/coaster/investigations', as(async(a,c)=>investigations(db(c),a)));
+api.post('/api/coaster/investigations/:id/outcome', as(async(a,c)=>investigationOutcome(db(c),a,param(c,'id'),await body(c))));
+api.get('/api/coaster/investigations/:id/download', as(async(a,c)=>investigationFile(db(c),a,param(c,'id'),runtimeBindings(c.env).COASTER_RECEIPTS)));
 
 api.get('/api/coaster/settings/cash-draft-window', as(async (a, c) => cashWindow(db(c), a)));
 api.post('/api/coaster/settings/cash-draft-window/preview', as(async (a, c) => previewCashWindow(db(c), a, await body(c))));

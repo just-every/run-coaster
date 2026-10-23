@@ -10,6 +10,7 @@ import { matches, type ViewProps } from './claims';
 import { BatchDownloads, Exports } from './exports';
 import { ExceptionQueue } from './exception-queue';
 import { AccountablePlan } from './accountable-plan';
+import { Investigations } from './investigations';
 import { CashAdvances } from './advances';
 
 const batchStatus = (b: D) => b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed';
@@ -62,6 +63,7 @@ export function Batches({ state, reload, id, query }: ViewProps) {
         </table></div> : <Empty title="No batches yet">Choose approved claims above to start one.</Empty>}
       </Section>
       <ExceptionQueue state={state} />
+      {state.actor.roles.finance && <Investigations state={state} />}
       {state.actor.roles.finance && <CashAdvances state={state} reload={reload} mode="finance" />}
       <AccountablePlan state={state} />
       <Exports state={state} reload={reload} />
@@ -74,7 +76,7 @@ function BatchPanel({ id, reload, names, templates }: { id: string; reload: () =
   const load = useCallback(async () => { try { setDetail(await call(`batches/${id}`)); } catch (e) { setError((e as Error).message); } }, [id]);
   useEffect(() => { load(); }, [load]);
   const done = async () => { await Promise.all([load(), reload()]); };
-  const close = <a className="panel-close" href="#/batches" aria-label="Back to batches"><Icon name="cross" /></a>;
+  const close = <a className="panel-close" data-tooltip="Back to batches" href="#/batches" aria-label="Back to batches"><Icon name="cross" /></a>;
   if (!detail) return <Side className="side detail" label="Batch">{error ? <><div className="panel-head"><h2>Batch</h2>{close}</div><p role="alert">{error}</p></> : <p className="muted">Opening batch…</p>}</Side>;
   const { batch, claims, lines, people } = detail, c = batch.currency;
   const linesTotal = lines.reduce((n: number, l: D) => n + l.amountMinor, 0), peopleTotal = people.reduce((n: number, p: D) => n + p.amountMinor, 0);

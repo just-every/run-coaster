@@ -44,7 +44,7 @@ export function Topbar({ state, query, onSearch, onNewClaim, onActing }: { state
     <label className="search"><Icon name="search" /><span className="visually-hidden">Search claims</span><input type="search" placeholder="Find a person, claim title or number" value={query} onChange={e => onSearch(e.target.value)} /></label>
     <p className="today" aria-label="Today"><span>{day(now.toISOString())}</span><span>{clock(now)}</span></p>
     {onNewClaim && <button className="button primary" onClick={onNewClaim}><Icon name="plus-circle" />New claim</button>}
-    <details className="account-menu" ref={menu}><summary aria-label={`${initials(name)}, signed in as ${state.actor.email}`}><Initials name={name} me /></summary>
+    <details className="account-menu" ref={menu}><summary data-tooltip="Account menu" aria-label={`${initials(name)}, signed in as ${state.actor.email}`}><Initials name={name} me /></summary>
       <div className="account-card"><p>{name}</p><small>{state.actor.email}</small><small>{roleWords(state.actor)}</small>{state.business && <small>{state.business.name}</small>}
         {delegate && <small>Acting as {delegate.name}, {delegate.level === 'full' ? 'Full' : 'Submit only'} delegate</small>}
         {(delegate || workFor.length > 0) && <div className="act-for"><small>Work as a delegate for</small>

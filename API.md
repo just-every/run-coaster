@@ -325,3 +325,7 @@ over retained explicit feedback; no unanswered or automatic decision is counted.
 `GET exceptions` adds `expenseSamples`. `POST audit-samples/finding` also accepts
 `item` for an independently sampled expense, with the existing outcome/finding
 fields. Finance records one append-only finding and cannot audit its own expense.
+
+## Finance investigation packs (AGENT-006)
+
+Native finance sessions use `GET investigations` for connected POLICY-002 evidence from submitted revisions, `GET investigations/:id/download` for a ZIP containing the record manifest and exact retained originals, and `POST investigations/:id/outcome` with `{outcome: "explained"|"needs-follow-up", note}` to record a human outcome. Private drafts and unmatched originals never enter a pack. These doors send no external request and do not change claims, holds or payments. Pack identity binds its evidence; recording twice refuses, and finance cannot record an outcome on its own expenses.
