@@ -238,6 +238,19 @@ test('COA-009 finance batches approved claims, reviews reconciled totals, export
   assert.deepEqual(events.filter(e => e.startsWith('batch-')), ['batch-created', 'batch-approved', 'batch-exported', 'batch-exported', 'batch-released', 'batch-reimbursed'])
 }))
 
+test('COA-009 a finance member acting as another finance member\'s delegate cannot review a batch holding their own claim', () => withAgency(async (h, t) => {
+  const JORDAN = 'jordan@harbourfinch.example'
+  const own = await approve(h, t.priya, await submit(h, t.morgan, await claim(h, t.morgan, 'Finance offsite', [{ kind: 'receipt', date: '2026-05-08', merchant: 'Uber', amount: '20.10', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' }])))
+  const batch = await h.post('batches', { claims: [own.id] }, t.jordan)
+  const review = { version: batch.version, expectedTotal: batch.total_minor }
+  await h.post(`batches/${batch.id}/approve`, review, t.morgan, 403)
+  await h.post('delegates', { delegate: 'morgan@harbourfinch.example', level: 'full' }, t.jordan)
+  const delegated = await h.send(`/api/coaster/batches/${batch.id}/approve`, review, t.morgan, { 'x-coaster-acting-for': JORDAN })
+  assert.equal(delegated.status, 403, 'acting for someone else never makes a person the independent reviewer of their own claim')
+  const reviewed = await h.post(`batches/${batch.id}/approve`, review, t.jordan)
+  assert.deepEqual([reviewed.status, reviewed.reviewed_by], ['approved', JORDAN])
+}))
+
 test('PAY-004 the owner sets dual release over $5,000 and a Friday schedule; a $7,200 batch waits for a second releaser, own-claim and stale-sign-in releases are refused, and batch, payment and ledger totals agree', () => withAgency(async (h, t) => {
   await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'USD', timezone: 'America/Chicago' })
   await h.post('settings/payment-controls', { dualReleaseOver: '5000.00', payWeekday: 'Friday' }, t.jordan, 403)

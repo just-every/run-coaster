@@ -129,13 +129,14 @@ export async function removeFromBatch(db: D1Database, actor: Actor, id: string, 
   return loadBatch(db, id);
 }
 
-/** Review locks the batch: the reviewer confirms the reconciled total and may not review their own claims. */
+/** Review locks the batch: the reviewer confirms the reconciled total and may not review their own claims, nor, as a
+ * delegate (ADMIN-005), those of the person they act for. */
 export async function approveBatch(db: D1Database, actor: Actor, id: string, b: Data) {
   need(actor, 'finance');
   requireThat(actor.kind === 'person', 'Only a person reviews a batch', 403);
   const batch = await loadBatch(db, id);
   requireThat(batch.status === 'draft' && b.version === batch.version, 'This batch changed or is already reviewed; reload', 409);
-  const sum = await db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(bc.amount_minor),0) AS total, SUM(c.employee_email=?) AS own FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id WHERE bc.batch_id=?').bind(actor.email, id).first<{ n: number; total: number; own: number }>();
+  const sum = await db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(bc.amount_minor),0) AS total, SUM(c.employee_email IN (?,?)) AS own FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id WHERE bc.batch_id=?').bind(actor.email, actor.delegate?.email ?? actor.email, id).first<{ n: number; total: number; own: number }>();
   requireThat(sum && sum.n > 0, 'An empty batch cannot be reviewed', 409);
   requireThat(!sum.own, 'Someone else in finance must review a batch holding your own claim', 403);
   requireThat(sum.total === batch.total_minor && b.expectedTotal === batch.total_minor, 'The total you reviewed does not match the batch; reload and review again', 409);
