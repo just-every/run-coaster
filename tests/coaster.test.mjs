@@ -1619,6 +1619,33 @@ test('CLAIM-009 finance pays a monthly stipend to every employee and caps a year
   assert.deepEqual((await h.get('allowances', t.jordan)).all.map(a => a.name).sort(), ['Home office', 'Phone stipend'])
 }))
 
+test('CLAIM-009 two expenses saved at the same moment against one cap are never reimbursed past it', async () => {
+  // Both saves are held at the D1 edge once they have read what is left of the cap, until both have read it.
+  let held = false, arrived = 0, bothRead
+  const together = new Promise(resolve => { bothRead = resolve })
+  const h = await harness({ d1Barrier: async request => {
+    if (held && request.url.endsWith('/after-allowance-read')) { if (++arrived === 2) bothRead(); await Promise.race([together, new Promise(resolve => setTimeout(resolve, 10_000))]) }
+    return new Response('open')
+  } })
+  try {
+    const t = await agency(h)
+    const cap = (await h.post('allowances', { name: 'Software', type: 'cap', period: 'monthly', amount: '100.00', startsOn: '2026-01-01' }, t.jordan)).all.find(a => a.name === 'Software')
+    // Finance's merchant rule codes the expense, so the employee sends no coding of their own.
+    await h.post('coding/automatic/rules', { version: (await h.get('coding/automatic/rules', t.morgan)).version, scope: 'finance', merchant: 'Figma', coding: { category: t.c.office }, active: true }, t.morgan)
+    const expense = { kind: 'receipt', date: '2026-08-03', merchant: 'Figma', amount: '80.00', allowance: cap.id }
+    const drafts = [await h.post('claims', { title: 'Design seat' }, t.sam), await h.post('claims', { title: 'Second design seat' }, t.sam)]
+    held = true
+    const saves = await Promise.all(drafts.map(c => h.send(`/api/coaster/claims/${c.id}/items`, { version: c.version, ...expense }, t.sam)))
+    held = false
+    assert.equal(arrived, 2, 'both saves read the same balance')
+    assert.deepEqual(saves.map(r => r.status).sort(), [200, 409], 'the save that read a balance already spent is refused')
+    const refused = drafts[saves.findIndex(r => r.status === 409)]
+    const repriced = await h.post(`claims/${refused.id}/items`, { version: refused.version, ...expense }, t.sam)
+    assert.deepEqual((await h.get(`claims/${repriced.id}`, t.sam)).items.map(i => [i.amount_minor, i.claimed_minor]), [[2000, 8000]], 'saved again, it is reimbursed only what is left and keeps its over-allowance')
+    assert.equal((await h.get('allowances?day=2026-08-20', t.sam)).mine.find(a => a.name === 'Software').remaining_minor, 0)
+  } finally { await h.close() }
+})
+
 test('AUTO-001 expenses file themselves into a report by month or trip and submit on the owner\'s weekly schedule; an expense missing its receipt stays behind with its reminder', () => withAgency(async (h, t) => {
   const SAM = 'sam@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
   await h.post('settings/business', { name: 'Harbour & Finch Studio', timezone: 'America/Chicago', perDiem: '75.00', receiptThreshold: '75.00' })

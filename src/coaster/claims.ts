@@ -106,7 +106,8 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
   const coding = await checkedCoding(db,[item]);
   item = coding.items[0];
   // A purchase claimed against a cap is reimbursed up to what is left of it (CLAIM-009).
-  if (b.allowance) item = await capToAllowance(db, claim.employee_email, item, b.allowance, typeof b.item === 'string' ? b.item : null);
+  const allowance = b.allowance ? await capToAllowance(db, claim.employee_email, item, b.allowance, typeof b.item === 'string' ? b.item : null) : null;
+  if (allowance) item = allowance.item;
   for (const a of item.attendees ?? []) if (a.email) requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=?').bind(a.email).first(), `${a.name} is not a Coaster member; add them as a guest`);
   const statements: D1PreparedStatement[] = [];
   let itemId: string = proposedId, position: number;
@@ -137,7 +138,7 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
     if(Object.keys(flatten(human)).length)statements.push(...humanObservation(db,automatic.target,human,item.spent_on));
   }
   statements.push(...insertItem(db, claim.id, itemId, position, item, receiptId), claimTotal(db, claim.id), event(db, actor, b.item ? 'expense-changed' : 'expense-added', { claim: claim.id }, { item: itemId, merchant: item.merchant, amountMinor: item.amount_minor, receipt: receiptId, request: item.request_id, allowance: item.allowance_id ?? null, claimedMinor: item.claimed_minor ?? null }));
-  await commit(db, all(authority(actor, 'employee'), coding.guard, ...(automatic?[automatic.guard]:[]), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
+  await commit(db, all(authority(actor, 'employee'), coding.guard, ...(automatic?[automatic.guard]:[]), ...(allowance ? [allowance.guard] : []), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
   return loadClaim(db, id);
 }
 

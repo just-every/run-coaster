@@ -1,4 +1,4 @@
-import { all, authority, commit, need } from './session';
+import { all, authority, commit, need, type Sql } from './session';
 import { event, ruleEvent } from './events';
 import { business, requireBusiness } from './settings';
 import { periodOf } from './budgets';
@@ -90,14 +90,17 @@ export async function stopRecurring(db: D1Database, actor: Actor, id: string) {
 
 /** What a person has already claimed against a cap in one period: every expense against it on their claims that are not
  * rejected (drafts included), other than the expense being saved. */
+const claimedSql = "SELECT COALESCE(SUM(i.amount_minor),0) AS n FROM c_items i JOIN c_claims c ON c.id=i.claim_id WHERE i.allowance_id=? AND c.employee_email=? AND i.spent_on BETWEEN ? AND ? AND c.status<>'rejected' AND i.id<>?";
 async function claimedAgainst(db: D1Database, allowance: string, employee: string, from: string, to: string, except: string | null) {
-  return (await db.prepare("SELECT COALESCE(SUM(i.amount_minor),0) AS n FROM c_items i JOIN c_claims c ON c.id=i.claim_id WHERE i.allowance_id=? AND c.employee_email=? AND i.spent_on BETWEEN ? AND ? AND c.status<>'rejected' AND i.id<>?").bind(allowance, employee, from, to, except ?? '').first<{ n: number }>())!.n;
+  return (await db.prepare(claimedSql).bind(allowance, employee, from, to, except ?? '').first<{ n: number }>())!.n;
 }
 
 /** A purchase claimed against a cap is reimbursed up to what is left of it for the expense date's period, taken when the
  * expense is saved. Above that, the expense keeps the receipt's amount as claimed and is reimbursed only what is left: the
- * excess comes off its last categorized part first, its sales tax stays, and it is flagged as an exception (over-allowance). */
-export async function capToAllowance(db: D1Database, employee: string, item: ItemInput, allowanceId: unknown, itemId: string | null): Promise<ItemInput> {
+ * excess comes off its last categorized part first, its sales tax stays, and it is flagged as an exception (over-allowance).
+ * The guard holds the save to what is left: it writes only while the period's claims against the cap, with this expense,
+ * still fit, so of two saves that read the same balance the second is refused. */
+export async function capToAllowance(db: D1Database, employee: string, item: ItemInput, allowanceId: unknown, itemId: string | null): Promise<{ item: ItemInput; guard: Sql }> {
   requireThat(item.kind === 'receipt', 'Only a purchase with its receipt is claimed against an allowance');
   requireThat(typeof allowanceId === 'string', 'Allowance not found', 404);
   const cap = await db.prepare("SELECT * FROM c_allowances WHERE id=?1 AND type='cap' AND stopped_at IS NULL AND (member_email IS NULL OR member_email=?2) AND (department_id IS NULL OR department_id=(SELECT department_id FROM c_members WHERE email=?2))").bind(allowanceId, employee).first<Allowance>();
@@ -105,13 +108,14 @@ export async function capToAllowance(db: D1Database, employee: string, item: Ite
   requireThat(item.spent_on >= cap.starts_on, `${cap.name} starts on ${cap.starts_on}`);
   const p = periodOf(item.spent_on, cap.period), left = cap.amount_minor - await claimedAgainst(db, cap.id, employee, p.from, p.to, itemId);
   const currency = (await requireBusiness(db)).currency;
+  const within = (saved: ItemInput) => ({ item: saved, guard: { sql: `(${claimedSql})+?<=?`, params: [cap.id, employee, p.from, p.to, itemId ?? '', saved.amount_minor, cap.amount_minor] } });
   requireThat(left > 0, `Nothing is left of ${cap.name} for ${p.key}`);
-  if (item.amount_minor <= left) return { ...item, allowance_id: cap.id, claimed_minor: null };
+  if (item.amount_minor <= left) return within({ ...item, allowance_id: cap.id, claimed_minor: null });
   requireThat(left > item.sales_tax_minor, `Only ${money(left, currency)} is left of ${cap.name} for ${p.key}, which does not cover this expense's sales tax`);
   let excess = item.amount_minor - left;
   const parts = [...item.allocations];
   for (let i = parts.length - 1; i >= 0 && excess > 0; i--) { const cut = Math.min(excess, parts[i].amount_minor); parts[i] = { ...parts[i], amount_minor: parts[i].amount_minor - cut }; excess -= cut; }
-  return { ...item, amount_minor: left, claimed_minor: item.amount_minor, allowance_id: cap.id, allocations: parts.filter(a => a.amount_minor > 0) };
+  return within({ ...item, amount_minor: left, claimed_minor: item.amount_minor, allowance_id: cap.id, allocations: parts.filter(a => a.amount_minor > 0) });
 }
 
 /** The exception a capped expense raises, naming what was claimed, what was left and what is not reimbursed. */
