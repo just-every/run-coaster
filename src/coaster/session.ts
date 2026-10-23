@@ -41,8 +41,9 @@ export const sha256Hex = async (bytes: Uint8Array | string) => [...new Uint8Arra
 
 /** A key acts only while the person who made it can still sign in: deactivating their account stops it at once. */
 const activeAccount = "EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=k.member_email AND o.status='active')";
-/** SQL true unless the sign-in account of `address` (an SQL expression) is deactivated. A delegate acts for someone only
- * until their account is deactivated (ADMIN-005); a member added without an account of their own can still be acted for. */
+/** SQL true unless the sign-in account of `address` (an SQL expression) is deactivated. A delegate acts for someone
+ * (ADMIN-005) and a scheduled report reaches them (REPORT-002) only until then; a member added without an account of
+ * their own is not refused by it. */
 export const notDeactivated = (address: string) => `NOT EXISTS(SELECT 1 FROM oa_operators acct WHERE lower(acct.email)=${address} AND acct.status='inactive')`;
 
 /** An agent key from `Authorization: Bearer`, acting for the person who made it. */

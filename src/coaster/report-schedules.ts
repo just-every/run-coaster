@@ -1,4 +1,4 @@
-import { commit, authority, need } from './session';
+import { commit, authority, need, notDeactivated } from './session';
 import { event, ruleEvent } from './events';
 import { business } from './settings';
 import { REPORTS, isReport, localDate, reportCsv, runReport } from './reports';
@@ -12,8 +12,9 @@ export const CADENCES = { 'last-business-day': 'Last US business day of each mon
 const SEND_HOUR = 8;
 
 const owner = "EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=? AND o.role='owner' AND o.status='active')";
-/** Only people who may run reports receive them: active finance members, auditors and the owner. */
-const readsReports = async (db: D1Database, address: string) => !!await db.prepare(`SELECT 1 WHERE EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND (is_finance=1 OR is_auditor=1)) OR ${owner}`).bind(address, address).first();
+/** Only people who may run reports receive them: active finance members and auditors whose sign-in account is not
+ * deactivated, and the owner. Each delivery checks its recipients again just before it is sent. */
+const readsReports = async (db: D1Database, address: string) => !!await db.prepare(`SELECT 1 WHERE EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND (is_finance=1 OR is_auditor=1) AND ${notDeactivated('c_members.email')}) OR ${owner}`).bind(address, address).first();
 
 export async function reportSchedules(db: D1Database) {
   const { results } = await db.prepare('SELECT s.*,(SELECT MAX(delivered_at) FROM c_report_deliveries d WHERE d.schedule_id=s.id) AS last_delivered_at FROM c_report_schedules s ORDER BY s.created_at').all<Data>();

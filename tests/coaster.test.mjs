@@ -1238,6 +1238,17 @@ test('REPORT-002 finance runs reimbursement aging, approval cycle time, receipt 
   assert.deepEqual(await tick('2027-06-30', 9), [], 'a stopped schedule sends nothing')
 }))
 
+test('REPORT-002 a scheduled report with its figures stops reaching a recipient once their sign-in account is deactivated', () => withAgency(async (h, t) => {
+  const JORDAN = 'jordan@harbourfinch.example', MORGAN = 'morgan@harbourfinch.example'
+  await h.post('report-schedules', { report: 'unsubmitted', cadence: 'first-business-day', recipients: `${JORDAN}, ${MORGAN}`, includeFigures: true })
+  await deactivateAccount(h, MORGAN)
+  const before = h.messages.length
+  // 09:17 on Tuesday 1 December 2026 in Sydney, the first business day of the month.
+  await (await h.mf.getWorker()).scheduled({ scheduledTime: new Date('2026-11-30T22:17:00Z'), cron: '17 * * * *' })
+  const sent = h.messages.slice(before).filter(m => m.subject === 'Unsubmitted spend for accruals: 2026-11-01 to 2026-11-30')
+  assert.deepEqual(sent.map(m => [m.to, m.attachments.length]), [[[JORDAN], 1]], 'only recipients who can still sign in receive the figures')
+}))
+
 test('ACCT-005 a batch and a period export as CSV and XLSX through a saved column template and as QuickBooks Desktop IIF, naming each receipt by hash and link', () => withAgency(async (h, t) => {
   const one = await claim(h, t.sam, 'Perth pitch', [{ kind: 'receipt', date: '2026-06-04', merchant: 'Qantas', amount: '412.00', allocations: [{ category: t.c.travel, amount: '400.00' }, { category: t.c.meals, amount: '12.00' }], receiptFixture: 'hotel' }])
   const two = await claim(h, t.alex, 'Studio paper', [{ kind: 'receipt', date: '2026-06-05', merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' }])
