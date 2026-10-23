@@ -116,9 +116,9 @@ test('Receipt reader authority survives neither delegate revocation nor terminal
 
 test('Owner sees per-page USD corpus usage and an atomic monthly cap pauses reading and coding while manual expenses work',async()=>{
  let activeLabel=await load(1001),calls=0
- const h=await harness({bindings:aiBindings,aiEdge:async()=>{calls++;return response(raw(activeLabel))}})
+ const h=await harness({bindings:aiBindings,aiEdge:async()=>{calls++;const body=await response(raw(activeLabel)).json();body.usage={input_tokens:100000,output_tokens:6250,total_tokens:106250};return Response.json(body)}})
  try{
-  const t=await agency(h),model='gpt-4.1-2025-04-14',pricing={version:0,model,inputPerMillion:'2',outputPerMillion:'8',reservePerPage:'0.01',monthlyCap:'20'}
+  const t=await agency(h),model='gpt-4.1-2025-04-14',pricing={version:0,model,inputPerMillion:'2',outputPerMillion:'8',reservePerPage:'0.25',monthlyCap:'20'}
   assert.equal((await h.get('settings/provider-costs')).settings,null)
   for(const who of [t.sam,t.morgan,t.priya]){await h.get('settings/provider-costs',who,403);await h.post('settings/provider-costs',pricing,who,403)}
   await h.post('settings/provider-costs',pricing);await enable(h)
@@ -126,15 +126,18 @@ test('Owner sees per-page USD corpus usage and an atomic monthly cap pauses read
   for(const entry of manifest.receipts){
    activeLabel=JSON.parse(await readFile(folder+entry.label,'utf8'))
    const original=await upload(h,t.sam,Number(entry.id.replace('synthetic-coaster-',''))),d=await read(h,original.id,t.sam),row=d.history.at(-1)
-   assert.equal(row.kind,'read');assert.equal(row.usage.cost.currency,'USD');assert.equal(row.usage.cost.usdMicros,1000);assert.equal(row.usage.cost.pages,row.usage.pages);assert.equal(row.usage.cost.perPageUsdMicros,1000/row.usage.pages);attempts.push(row.attemptId);pages+=row.usage.pages
+   assert.equal(row.kind,'read');assert.equal(row.usage.cost.currency,'USD');assert.equal(row.usage.cost.usdMicros,250000);assert.equal(row.usage.cost.pages,row.usage.pages);assert.equal(row.usage.cost.perPageUsdMicros,250000/row.usage.pages);attempts.push(row.attemptId);pages+=row.usage.pages
   }
-  let costs=await h.get('settings/provider-costs');assert.equal(costs.attempts.length,manifest.receipts.length);assert.equal(costs.usedUsdMicros,manifest.receipts.length*1000)
+  let costs=await h.get('settings/provider-costs');assert.equal(costs.attempts.length,manifest.receipts.length);assert.equal(costs.usedUsdMicros,manifest.receipts.length*250000)
   assert.deepEqual(costs.attempts.map(r=>r.attempt_id).sort(),attempts.sort(),'the owner usage ledger names every corpus reading attempt')
   assert.equal(costs.attempts.reduce((n,r)=>n+r.pages,0),pages)
   assert.ok(!JSON.stringify(costs).includes('sam@harbourfinch.example'));assert.ok(!JSON.stringify(costs).includes(activeLabel.values.merchant))
-  const cap=(costs.usedUsdMicros+1000)/1e6
-  await h.post('settings/provider-costs',{...pricing,version:1,reservePerPage:'0.001',monthlyCap:String(cap)})
-  activeLabel=await load(1001);const a=await upload(h,t.sam),b=await upload(h,t.sam,1002),before=calls
+  // Keep the original $20 cap. Synthetic metered usage costs USD 0.25 per request.
+  const cap=20;activeLabel=await load(1001);const fuel=await upload(h,t.sam);let fuelSequence=0
+  const extra=(20000000-costs.usedUsdMicros)/250000-1;assert.ok(Number.isInteger(extra)&&extra>0)
+  for(let i=0;i<extra;i++){const d=await read(h,fuel.id,t.sam,fuelSequence);assert.equal(d.history.at(-1).usage.cost.usdMicros,250000);fuelSequence=d.sequence}
+  costs=await h.get('settings/provider-costs');assert.equal(costs.settings.monthlyCap,20);assert.equal(costs.usedUsdMicros,19750000)
+  const a=await upload(h,t.sam),b=await upload(h,t.sam,1002),before=calls
   const answers=await Promise.all([read(h,a.id,t.sam),read(h,b.id,t.sam)])
   assert.equal(calls,before+1,'two concurrent attempts cannot both spend the last reservation')
   assert.equal(answers.filter(d=>d.history.at(-1).kind==='read').length,1)
