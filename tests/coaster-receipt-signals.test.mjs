@@ -261,6 +261,8 @@ test('Finance investigates related split and edited receipts across employees wi
   assert.equal((await h.send('/api/coaster/investigations',undefined,'',{authorization:'Bearer '+key.token})).status,401)
   const file=await h.send(`/api/coaster/investigations/${pack.id}/download`,undefined,t.morgan)
   assert.equal(file.status,200);assert.match(file.headers.get('content-type'),/zip/)
+  const rawDownload=await h.mf.dispatchFetch(h.origin+`/api/coaster/investigations/${pack.id}/download`,{headers:{cookie:t.morgan}}),archive=Buffer.from(await rawDownload.arrayBuffer())
+  assert.ok(archive.includes(Buffer.from('evidence.json')));assert.ok(archive.includes(makeReceipt(record)),'the public ZIP contains the exact original image bytes')
   assert.equal(h.messages.length,messages);assert.equal(h.outbound.length,outbound)
   assert.deepEqual(await h.get(`claims/${edited.id}`,t.morgan),before)
   const outcome={outcome:'explained',note:'Supplier originals checked; separate purchases confirmed.'}

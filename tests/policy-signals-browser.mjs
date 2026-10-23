@@ -69,7 +69,7 @@ try {
   await investigation.locator('summary').first().click()
   await investigation.getByRole('link',{name:'Download evidence pack'}).first().waitFor()
   assert.ok((await investigation.innerText()).includes('No employee is contacted'))
-  const account=page.locator('summary[data-tooltip="Account menu"]');await account.focus()
+  const account=page.locator('summary[data-tooltip="Account menu"]');await account.focus();await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');assert.ok(await account.evaluate(el=>el===document.activeElement))
   assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').visibility),'visible')
   assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').transitionDelay),'0s')
   await screenshot('investigation-pack')

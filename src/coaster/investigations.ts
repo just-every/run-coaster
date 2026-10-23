@@ -26,7 +26,7 @@ export async function investigations(db:D1Database,a:Actor) {
   if(visited.has(r.item))continue;
   const ids=new Set<string>(),todo=[r.item];while(todo.length){const id=todo.pop()!;if(ids.has(id))continue;ids.add(id);visited.add(id);todo.push(...links.get(id)!);}
   const related=records.filter(r=>ids.has(r.item)).sort((a,b)=>a.item.localeCompare(b.item));
-  const id=await sha256Hex(JSON.stringify(related));
+  const id=await sha256Hex(JSON.stringify(related.map(r=>[r.claim,r.revision,r.item,r.receipt?.sha256??null,r.signals.map((s:Data)=>s.code)])));
   packs.push({id,label:'Possible, needs finance review',records:related,employees:[...new Set(related.map(r=>r.employee))],from:related.map(r=>r.date).sort()[0],through:related.map(r=>r.date).sort().at(-1),outcome:outcomes.find(o=>o.pack===id)??null});
  }
  return {packs,boundary:'Submitted evidence only. No employee contact, payment hold or conclusion of wrongdoing. Finance records its own outcome.'};
