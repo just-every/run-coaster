@@ -19,7 +19,7 @@ export function ProviderCosts(){
     <Field label="USD per million output tokens" name="outputPerMillion" inputMode="decimal" defaultValue={s?.outputPerMillion}/>
     <Field label="USD reservation per page" name="reservePerPage" inputMode="decimal" defaultValue={s?.reservePerPage??'0.10'}/>
     <Field label="Monthly USD cap" name="monthlyCap" inputMode="decimal" required={false} defaultValue={s?.monthlyCap??''} hint="Empty means no cap; zero pauses optional AI processing"/>
-    <p>Before each request, the cap includes settled usage and outstanding reservations. A final metered charge may exceed its reservation and pauses later requests. An uncertain attempt keeps its reservation. Core claims and manual coding keep working.</p>
+    <p className="field-wide">Before each request, the cap includes settled usage and outstanding reservations. A final metered charge may exceed its reservation and pauses later requests. An uncertain attempt keeps its reservation. Core claims and manual coding keep working.</p>
    </Form>
    <Details label="Per-page provider usage"><p>{data.basis}</p><ul className="ruled-list">{data.attempts.map((r:D)=><li key={r.attempt_id} style={{overflowWrap:'anywhere'}}><strong>{r.feature} · {r.pages} {r.pages===1?'page':'pages'} · {usd(r.usd_micros)}</strong><p>{usd(r.usd_micros/r.pages)} per page · {r.model} · pricing v{r.settings_version} · {r.uncertain?'reserved estimate, usage uncertain':`${r.input_tokens} input / ${r.output_tokens} output tokens`} · {r.at}</p><small>Attempt {r.attempt_id}</small></li>)}</ul></Details>
   </>}

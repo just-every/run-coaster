@@ -16,7 +16,7 @@ export function ReceiptQuestion({question:q,receipt,after}:{question:D;receipt:D
   <Form label="Confirm receipt answer" onSubmit={async v=>{const {consent,...values}=v;await call(`receipt-inbox/${receipt.id}/question`,{questionId:q.id,expectedSequence:receipt.lifecycleSequence,expectedReadingSequence:q.readingSequence,version:q.version,values:Object.fromEntries(Object.entries(values).filter(([,v])=>v!=='')),consent});await after();}}>
    {[...q.conflicts,...['total','currency'].filter(key=>!q.conflicts.some((c:D)=>c.field===key)).map(field=>({field,read:q.receiptValues[field]}))].map((c:D)=><Field key={c.field} label={`Confirmed receipt ${c.field}`} name={c.field} defaultValue={c.read} />)}
    {q.conflicts.some((c:D)=>c.field==='total')&&<Field label="Confirmed receipt tip" name="tip" required={false} hint="Enter only a tip you can see on the original"/>}
-   <p>{q.notice}</p><Field type="checkbox" name="consent" label="I checked these values and authorize saving them on this expense"/>
+   <p className="field-wide">{q.notice}</p><Field type="checkbox" name="consent" label="I checked these values and authorize saving them on this expense"/>
   </Form>
   <p>Leave this unanswered to keep every expense value unchanged.</p>
  </section>;

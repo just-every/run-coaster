@@ -19,7 +19,7 @@ export function Investigations({state}:{state:D}){
    </li>)}</ul>
    {p.outcome?<p role="status">{p.outcome.outcome==='explained'?'Explained':'Needs follow-up'} · {p.outcome.note} · {state.names[p.outcome.by]??p.outcome.by} · {moment(p.outcome.at)}</p>:<Form label="Record investigation outcome" onSubmit={async v=>setData(await call(`investigations/${p.id}/outcome`,v))}>
     <Field label="Finance outcome" name="outcome" options={[{value:'explained',label:'Explained'},{value:'needs-follow-up',label:'Needs follow-up'}]}/><Field label="Finance outcome note" name="note" type="textarea"/>
-    <p>Recording an outcome sends no message and changes no expense or payment. Any follow-up is a separate human decision.</p>
+    <p className="field-wide">Recording an outcome sends no message and changes no expense or payment. Any follow-up is a separate human decision.</p>
    </Form>}
   </Details>)}
  </Section>;
