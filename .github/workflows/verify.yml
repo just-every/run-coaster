@@ -350,7 +350,9 @@ jobs:
       - run: pnpm run deps
       - run: bash scripts/ci/install-browser.sh
       - name: Provider costs, private receipt questions and archive integrity
-        run: node tests/browser-reading.mjs
+        run: |
+          node tests/browser-reading.mjs
+          node tests/browser-agents.mjs
         env:
           COASTER_EVIDENCE: ${{ runner.temp }}/receipt-agent-proof
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
