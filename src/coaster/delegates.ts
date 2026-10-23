@@ -1,4 +1,4 @@
-import { all, authority, commit, rolesFrom, type Sql } from './session';
+import { all, authority, commit, notDeactivated, rolesFrom, type Sql } from './session';
 import { can, needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { operatorMail } from '../mail.server.mjs';
@@ -66,11 +66,12 @@ export async function delegateGrants(db: D1Database, actor: Actor) {
 
 /** The signed-in person acting as a delegate: the actor becomes the granting person, with roles narrowed by the
  * grant's level (Submit only: their own expenses; Full: their whole row, the owner's included), and names the delegate.
- * Their bank details, delegates, agent keys and sign-in stay theirs alone: those handlers refuse any delegate. */
+ * Their bank details, delegates, agent keys and sign-in stay theirs alone: those handlers refuse any delegate. The grant
+ * ends with the granting person's membership or the deactivation of their sign-in account. */
 export async function actingAs(db: D1Database, person: Actor, value: string): Promise<Actor> {
   requireThat(person.kind === 'person', 'Only a person acts as a delegate', 403);
   const grantor = email(value, 'Acting for');
-  const grant = await db.prepare("SELECT g.id,g.level,m.name,m.is_employee,m.is_manager,m.is_finance,m.is_auditor,m.is_admin,m.is_card_admin,m.is_bookkeeper,EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=g.grantor_email AND o.role='owner' AND o.status='active') AS is_owner FROM c_delegates g JOIN c_members m ON m.email=g.grantor_email AND m.active=1 JOIN c_members d ON d.email=g.delegate_email AND d.active=1 WHERE g.grantor_email=? AND g.delegate_email=? AND g.revoked_at IS NULL").bind(grantor, person.email).first<Data>();
+  const grant = await db.prepare(`SELECT g.id,g.level,m.name,m.is_employee,m.is_manager,m.is_finance,m.is_auditor,m.is_admin,m.is_card_admin,m.is_bookkeeper,EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=g.grantor_email AND o.role='owner' AND o.status='active') AS is_owner FROM c_delegates g JOIN c_members m ON m.email=g.grantor_email AND m.active=1 JOIN c_members d ON d.email=g.delegate_email AND d.active=1 WHERE g.grantor_email=? AND g.delegate_email=? AND g.revoked_at IS NULL AND ${notDeactivated('g.grantor_email')}`).bind(grantor, person.email).first<Data>();
   requireThat(grant, 'You are not a delegate for that person, or the access has ended', 403);
   const full = grant.level === 'full', owner = grant.is_owner === 1;
   return { ...person, email: grantor, name: grant.name, roles: rolesFrom(grant, owner, full),

@@ -32,6 +32,12 @@ const central = (day, hour) => {
 }
 const submit = (h, cookie, d) => h.post(`claims/${d.claim.id}/submit`, { version: d.claim.version }, cookie)
 const approve = async (h, cookie, c, extra = {}) => h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', ...extra }, cookie)
+/** The owner deactivates a person's sign-in account through Base's account administration. */
+async function deactivateAccount(h, email) {
+  const operators = (await h.send('/auth/operators', undefined, h.owner)).value
+  const account = (Array.isArray(operators) ? operators : operators.operators).find(o => o.email === email)
+  assert.equal((await h.send('/auth/operator/status', { operatorId: account.id, status: 'inactive' }, h.owner)).status, 200)
+}
 
 test('COA-001 the owner sets up the business, categories and people; nobody else can', () => withAgency(async (h, t) => {
   const state = await h.get('state')
@@ -661,6 +667,18 @@ test('ADMIN-005 a delegate prepares and submits in someone else\'s name on their
   const forOwner = (path, body) => h.send('/api/coaster/' + path, body, t.jordan, { 'x-coaster-acting-for': 'owner@harbourfinch.example' }).then(r => r.status)
   assert.equal(await forOwner('settings/categories', { name: 'Gifts', accountCode: '6600', taxCode: 'GST' }), 200, 'a Full delegate has the whole row of the person they act for')
   assert.deepEqual([await forOwner('delegates', { delegate: 'alex@harbourfinch.example', level: 'full' }), await forOwner('agent-keys', { label: 'Owner agent' })], [403, 403], 'but never their delegates or keys')
+}))
+
+test('ADMIN-005 a Full delegate of a finance member is refused once that member\'s sign-in account is deactivated', () => withAgency(async (h, t) => {
+  const MORGAN = 'morgan@harbourfinch.example'
+  const taxi = await approve(h, t.priya, await submit(h, t.sam, await claim(h, t.sam, 'Client taxi', [{ kind: 'receipt', date: '2026-05-13', merchant: 'Taxi', amount: '22.00', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' }])))
+  const batch = await h.post('batches', { claims: [taxi.id] }, t.jordan)
+  await h.post('delegates', { delegate: 'alex@harbourfinch.example', level: 'full' }, t.morgan)
+  const forMorgan = (path, body) => h.send('/api/coaster/' + path, body, t.alex, { 'x-coaster-acting-for': MORGAN }).then(r => r.status)
+  assert.equal(await forMorgan('reports/aging'), 200, 'the delegate reads reports in the finance member\'s row')
+  await deactivateAccount(h, MORGAN)
+  assert.deepEqual([await forMorgan('reports/aging'), await forMorgan(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: batch.total_minor })], [403, 403], 'a deactivated sign-in account ends the access its delegates hold')
+  assert.equal((await h.get(`batches/${batch.id}`, t.jordan)).batch.status, 'draft', 'refused with no write')
 }))
 
 test('CLAIM-007 a three-night folio is itemized into categorized parts, a dinner\'s attendees meet a per-person limit, and a blank required field blocks submission by name', () => withAgency(async (h, t) => {

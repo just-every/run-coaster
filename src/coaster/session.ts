@@ -41,6 +41,9 @@ export const sha256Hex = async (bytes: Uint8Array | string) => [...new Uint8Arra
 
 /** A key acts only while the person who made it can still sign in: deactivating their account stops it at once. */
 const activeAccount = "EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=k.member_email AND o.status='active')";
+/** SQL true unless the sign-in account of `address` (an SQL expression) is deactivated. A delegate acts for someone only
+ * until their account is deactivated (ADMIN-005); a member added without an account of their own can still be acted for. */
+export const notDeactivated = (address: string) => `NOT EXISTS(SELECT 1 FROM oa_operators acct WHERE lower(acct.email)=${address} AND acct.status='inactive')`;
 
 /** An agent key from `Authorization: Bearer`, acting for the person who made it. */
 export async function agent(request: Request, original: Bindings): Promise<Actor> {
@@ -69,11 +72,12 @@ export function authority(actor: Actor, role?: Role | Role[]): Sql {
   }
   const session = 'EXISTS(SELECT 1 FROM oa_sessions se JOIN oa_operators o ON o.id=se.operator_id WHERE se.id=? AND o.id=? AND o.version=se.operator_version AND o.status=\'active\' AND se.revoked_at IS NULL AND se.expires_at>unixepoch()*1000';
   if (actor.delegate) {
-    // The delegate's own session, their live grant with both people active, and the granting person's role at the grant's
-    // level: Submit only covers their own expenses, Full their whole row (the owner's included).
+    // The delegate's own session, their live grant with both people active and the granting person's account not
+    // deactivated, and the granting person's role at the grant's level: Submit only covers their own expenses, Full their
+    // whole row (the owner's included).
     const owner = "EXISTS(SELECT 1 FROM oa_operators go WHERE lower(go.email)=g.grantor_email AND go.role='owner' AND go.status='active')";
     const level = !roles.length ? '' : roles.length === 1 && roles[0] === 'employee' ? ` AND (${holds('employee', 'gm')} OR ${owner})` : ` AND g.level='full' AND (${[...(others.length ? [orMember('gm')] : []), owner].join(' OR ')})`;
-    return { sql: `${session}) AND EXISTS(SELECT 1 FROM c_delegates g JOIN c_members gm ON gm.email=g.grantor_email AND gm.active=1 JOIN c_members dm ON dm.email=g.delegate_email AND dm.active=1 WHERE g.id=? AND g.revoked_at IS NULL${level})`, params: [actor.session, actor.operatorId, actor.delegate.grant] };
+    return { sql: `${session}) AND EXISTS(SELECT 1 FROM c_delegates g JOIN c_members gm ON gm.email=g.grantor_email AND gm.active=1 JOIN c_members dm ON dm.email=g.delegate_email AND dm.active=1 WHERE g.id=? AND g.revoked_at IS NULL AND ${notDeactivated('g.grantor_email')}${level})`, params: [actor.session, actor.operatorId, actor.delegate.grant] };
   }
   if (!roles.length) return { sql: session + ')', params: [actor.session, actor.operatorId] };
   if (ownerOnly) return { sql: session + " AND o.role='owner')", params: [actor.session, actor.operatorId] };
