@@ -8,7 +8,7 @@ import {api,PEOPLE,session,setUp} from './browser-journey.mjs'
 import {records,rows,tampered} from './browser-archive.mjs'
 import {statementScreens} from './browser-statements.mjs'
 import {codingScreens} from './browser-coding.mjs'
-import {readingEdge,readingScreens} from './browser-reading.mjs'
+import {readingEdge,readingScreens,costScreens,questionScreens} from './browser-reading.mjs'
 import {programFeedScreens} from './browser-program-feed.mjs'
 import {automaticCodingScreens} from './browser-auto-coding.mjs'
 
@@ -147,7 +147,7 @@ try {
   await manager.context.close();await employee.context.close()
   await statementScreens(browser,root,server.origin,owner,evidence)
   await codingScreens(browser,root,server.origin,evidence)
-  if(part===0){await automaticCodingScreens(browser,root,server.origin,evidence);await readingScreens(browser,root,server.origin,evidence,readerEdge);await programFeedScreens(browser,root,server,evidence)}
+  if(part===0){await automaticCodingScreens(browser,root,server.origin,evidence);await readingScreens(browser,root,server.origin,evidence,readerEdge);await costScreens(browser,root,server.origin,evidence,readerEdge);await questionScreens(browser,root,server.origin,evidence,readerEdge);await programFeedScreens(browser,root,server,evidence)}
   // FEED-005: reconciled and closed statements (their resolutions, ledger and history) ride the same archive round trip.
   const kept=(await api(owner.context,server.origin,'statements')).files.find(f=>f.name==='synthetic-kept-match.csv')
   const reconciliation=await api(owner.context,server.origin,`statements/${kept.id}/reconcile`,{last4:'1111',openingBalance:'0.00',statementBalance:'1.00'})

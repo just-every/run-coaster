@@ -1,3 +1,4 @@
+import { receiptQuestions } from './receipts/questions';
 import { authority, commit } from './session';
 import { event, ruleEvent } from './events';
 import { business, requireBusiness, type Business } from './settings';
@@ -23,8 +24,10 @@ export async function openItems(db: D1Database, settings: Business): Promise<Ope
     db.prepare("SELECT id,number,title,approver_email,revision FROM c_claims WHERE status='submitted' AND approver_email IS NOT NULL"),
   ]);
   const tasks=await db.prepare("SELECT t.*,c.number,c.title FROM c_workflow_tasks t JOIN c_claims c ON t.kind='claim' AND c.id=t.record_id AND c.revision=t.revision WHERE c.status='submitted' AND t.status='waiting'").all<Data>();
+  const agentQuestions=await receiptQuestions(db);
   const rows = (r: D1Result) => r.results as Data[];
   return [
+    ...agentQuestions.map(q=>({key:`receipt-question:${q.id}`,person:q.employee,claim:q.claimId,number:q.claimNumber,title:q.title,action:'Answer your private receipt question'})),
     ...rows(receipts).map(r => ({ key: `receipt:${r.id}`, person: r.employee_email, claim: r.claim, number: r.number, title: r.title, action: `Attach the receipt for ${r.merchant}` })),
     ...rows(unsubmitted).map(r => ({ key: `unsubmitted:${r.id}:${r.revision}`, person: r.employee_email, claim: r.id, number: r.number, title: r.title, action: `Submit ${claimNumber(r.number)}` })),
     ...rows(held).map(r => ({ key: `held:${r.id}`, person: r.employee_email, claim: r.id, number: r.number, title: r.title, action: `Answer the hold on ${claimNumber(r.number)}` })),
@@ -85,5 +88,5 @@ async function remind(env: Bindings, mail: ReturnType<typeof operatorMail>, item
   const link = `${env.AUTH_ORIGIN}/app#/claims/${item.claim}`;
   const words = `${item.action} “${item.title}”: it has waited ${age} business ${age === 1 ? 'day' : 'days'}. Open it in Coaster: ${link}`;
   const sent = mail ? await mail.send({ deliveryId: `reminder-${item.key}-${step}`, from: env.MAIL_FROM ?? '', to: [item.person], subject: `Reminder: ${item.action}`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
-  await ruleEvent(db, 'reminder', 'reminder-sent', { claim: item.claim }, { item: item.key, step, to: item.person, businessDays: age, mail: sent?.status ?? 'mail not set up' }).run();
+  await ruleEvent(db, 'reminder', 'reminder-sent', { claim: item.claim }, { item: item.key.startsWith('receipt-question:')?'private-employee-task':item.key, step, to: item.person, businessDays: age, mail: sent?.status ?? 'mail not set up' }).run();
 }

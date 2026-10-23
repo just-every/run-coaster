@@ -65,7 +65,7 @@ export function insertClaim(db: D1Database, id: string, employee: string, title:
 
 export function insertItem(db: D1Database, claimId: string, itemId: string, position: number, item: ItemInput, receiptId: string | null) {
   return [
-    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id,allowance_id,claimed_minor,billable,customer,project,original_minor,original_currency,fx_rate,fx_date,fx_source,original_sales_tax_minor,per_diem,card_charge_id,coding) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null, item.allowance_id ?? null, item.claimed_minor ?? null, item.billable ? 1 : 0, item.customer ?? '', item.project ?? '', item.original_minor ?? null, item.original_currency ?? '', item.fx_rate ?? '', item.fx_date ?? '', item.fx_source ?? '', item.original_sales_tax_minor ?? null, item.per_diem ? JSON.stringify(item.per_diem) : '', item.card_charge_id ?? null, JSON.stringify(item.coding ?? {})),
+    db.prepare('INSERT INTO c_items(id,claim_id,position,kind,spent_on,merchant,description,amount_minor,distance_hundredths,days,rate_thousandths,receipt_id,explanation,sales_tax_minor,sales_tax_account,sales_tax_code,attendees,fields,request_id,allowance_id,claimed_minor,billable,customer,project,original_minor,original_currency,fx_rate,fx_date,fx_source,original_sales_tax_minor,per_diem,card_charge_id,coding,receipt_resolution) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(itemId, claimId, position, item.kind, item.spent_on, item.merchant, item.description, item.amount_minor, item.distance_hundredths, item.days, item.rate_thousandths, receiptId, item.explanation, item.sales_tax_minor, item.sales_tax_account, item.sales_tax_code, JSON.stringify(item.attendees ?? []), JSON.stringify(item.fields ?? {}), item.request_id ?? null, item.allowance_id ?? null, item.claimed_minor ?? null, item.billable ? 1 : 0, item.customer ?? '', item.project ?? '', item.original_minor ?? null, item.original_currency ?? '', item.fx_rate ?? '', item.fx_date ?? '', item.fx_source ?? '', item.original_sales_tax_minor ?? null, item.per_diem ? JSON.stringify(item.per_diem) : '', item.card_charge_id ?? null, JSON.stringify(item.coding ?? {}),item.receipt_resolution??null),
     ...item.allocations.map((a: Allocation, i) => db.prepare('INSERT INTO c_allocations(item_id,position,category_id,cost_centre,amount_minor,description,original_minor) VALUES(?,?,?,?,?,?,?)').bind(itemId, i, a.category_id, a.cost_centre, a.amount_minor, a.description ?? '', a.original_minor ?? null)),
   ];
 }
@@ -111,7 +111,7 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
   const statements: D1PreparedStatement[] = [];
   let itemId: string = proposedId, position: number;
   if (b.item) {
-    const existing = await db.prepare('SELECT i.id,i.position,i.receipt_id,i.card_charge_id,a.capture_receipt_id FROM c_items i LEFT JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=?').bind(b.item, claim.id).first<{ id: string; position: number; receipt_id: string | null; card_charge_id: string | null; capture_receipt_id: string | null }>();
+    const existing = await db.prepare('SELECT i.id,i.position,i.receipt_id,i.card_charge_id,i.receipt_resolution,a.capture_receipt_id FROM c_items i LEFT JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=?').bind(b.item, claim.id).first<{ id: string; position: number; receipt_id: string | null; card_charge_id: string | null; receipt_resolution: string | null; capture_receipt_id: string | null }>();
     requireThat(existing, 'Expense not found on this claim', 404);
     if (existing.card_charge_id) {
       // Statement facts never change by any route (FEED-004); coding, memo, attendees and receipt stay editable.
@@ -122,6 +122,7 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
     }
     requireThat(!existing.capture_receipt_id || (receiptId === existing.receipt_id && item.kind === 'receipt'), 'Detach the inbox receipt before replacing it or changing its type', 409);
     itemId = existing.id; position = existing.position;
+    if(receiptId===existing.receipt_id)item={...item,receipt_resolution:existing.receipt_resolution};
     statements.push(db.prepare('DELETE FROM c_items WHERE id=?').bind(itemId));
   } else {
     const count = await db.prepare('SELECT COUNT(*) AS n, COALESCE(MAX(position),-1) AS last FROM c_items WHERE claim_id=?').bind(claim.id).first<{ n: number; last: number }>();

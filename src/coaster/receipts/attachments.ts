@@ -26,7 +26,7 @@ export async function changeAttachment(db: D1Database, actor: Actor, id: string,
   const alias = uid();
   const statements: D1PreparedStatement[] = detach ? [] : [db.prepare(`INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at,capture_receipt_id)
     SELECT ?,?,owner_email,name,media_type,size,sha256,X'',source,uploaded_by,uploaded_at,id FROM c_capture_receipts WHERE id=?`).bind(alias,claim.id,id)];
-  statements.push(db.prepare('UPDATE c_items SET receipt_id=? WHERE id=? AND claim_id=?').bind(detach ? null : alias,item.id,claim.id),
+  statements.push(db.prepare('UPDATE c_items SET receipt_id=?,receipt_resolution=NULL WHERE id=? AND claim_id=?').bind(detach ? null : alias,item.id,claim.id),
     db.prepare(`INSERT INTO c_capture_lifecycle(receipt_id,sequence,kind,reason,claim_id,item_id,at,actor_email,on_behalf_of,channel) VALUES(?,?,?,'',?,?,?,?,?,'app')`)
       .bind(id,sequence+1,detach?'detached':'attached',claim.id,item.id,at,actor.delegate?.email??actor.email,actor.delegate?actor.email:null),claimTotal(db,claim.id));
   if (item.card_charge_id) {

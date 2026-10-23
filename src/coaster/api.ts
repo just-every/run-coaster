@@ -1,3 +1,5 @@
+import { receiptQuestion, answerReceiptQuestion } from './receipts/questions';
+import { providerCosts, saveProviderCosts } from './provider-costs';
 import { investigations, investigationOutcome, investigationFile } from './investigations';
 import { suggestReadingCoding } from './receipts/reading-coding';
 import { programFeedApi } from './feeds';
@@ -98,6 +100,8 @@ const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) =
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
 
 api.route('/api/coaster/feeds', programFeedApi);
+api.get('/api/coaster/settings/provider-costs', as(async(a,c)=>providerCosts(db(c),a)));
+api.post('/api/coaster/settings/provider-costs', as(async(a,c)=>saveProviderCosts(db(c),a,await body(c))));
 api.get('/api/coaster/investigations', as(async(a,c)=>investigations(db(c),a)));
 api.post('/api/coaster/investigations/:id/outcome', as(async(a,c)=>investigationOutcome(db(c),a,param(c,'id'),await body(c))));
 api.get('/api/coaster/investigations/:id/download', as(async(a,c)=>investigationFile(db(c),a,param(c,'id'),runtimeBindings(c.env).COASTER_RECEIPTS)));
@@ -120,6 +124,8 @@ api.post('/api/coaster/receipt-inbox/:id/reading', as(async (a, c) => readReceip
 api.post('/api/coaster/receipt-inbox/:id/reading/coding', as(async (a, c) => suggestReadingCoding(runtimeBindings(c.env), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/receipt-inbox/:id/reading/corrections', as(async (a, c) => correctReading(db(c), a, param(c, 'id'), await body(c))));
 
+api.get('/api/coaster/receipt-inbox/:id/question', as(async(a,c)=>{ await readingDetail(db(c),a,param(c,'id')); return {question:await receiptQuestion(db(c),param(c,'id'))}; }));
+api.post('/api/coaster/receipt-inbox/:id/question', as(async(a,c)=>answerReceiptQuestion(db(c),a,param(c,'id'),await body(c))));
 api.get('/api/coaster/receipt-inbox', as(async (a, c) => listInbox(db(c), a)));
 api.post('/api/coaster/receipt-inbox', as(async (a, c) => receiveReceipt(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, c.req.raw)));
 api.post('/api/coaster/receipt-inbox/:id/discard', as(async (a, c) => discardReceipt(db(c), a, param(c, 'id'), await body(c))));

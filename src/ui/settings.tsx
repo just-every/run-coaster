@@ -1,3 +1,4 @@
+import { ProviderCosts } from './provider-costs';
 import { CaptureWindow } from './capture-window';
 import { WorkflowEditor } from './workflow-editor';
 import { useState } from 'react';
@@ -79,6 +80,7 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <QuickBooks state={state} />}
     {b && !state.actor.delegate && (admin || roles.finance) && <ProgramFeed state={state} />}
+    {b && owner && !state.actor.delegate && <ProviderCosts />}
     {b && admin && !state.actor.delegate && <ReceiptReadingSettings />}
     {b && admin && <CodingSettings state={state} reload={reload} />}
     {b && !auditorOnly && <AutomaticCoding state={state} />}

@@ -1,3 +1,4 @@
+import { ReceiptQuestion } from './receipt-question';
 import { useState } from 'react';
 import { apiHref, call, type D } from './api';
 import { Details, Field, Form, Section } from './parts';
@@ -11,6 +12,7 @@ export function ReceiptReadingSettings() {
   const [data, setData] = useState<D>(), [error, setError] = useState('');
   async function load() { try { setData(await call('settings/receipt-reading')); setError(''); } catch (e) { setError((e as Error).message); } }
   return <Section title="Receipt reading">
+    <p>Review provider costs in USD and the owner’s optional monthly cap before enabling reading.</p>
     <p>Reading sends the original receipt to the configured AI provider. It stays off until an owner or admin enables it, and each employee chooses whether to read each original. Reading does not submit expenses or authorize payment.</p>
     {!data && <button className="button" onClick={load}>Manage receipt reading</button>}
     {error && <p className="form-error" role="alert">{error}</p>}
@@ -37,6 +39,7 @@ export function ReceiptReading({ receipt, state, reload }: { receipt: D; state: 
       <Form label={data.sequence ? 'Read receipt again' : 'Read receipt'} onSubmit={async values => { setData(await call(`receipt-inbox/${receipt.id}/reading`, { ...sequence, consent: values.consent })); await reload(); }}>
         <Field label="I authorize sending this original to the configured AI provider for receipt reading and coding suggestions" name="consent" type="checkbox" />
       </Form>
+      {data.question && <ReceiptQuestion question={data.question} receipt={receipt} after={async()=>{await load();await reload();}} />}
       {data.fields && <ReadingFields fields={data.fields} receipt={receipt} />}
       {data.fields && <Form label="Suggest coding from this reading" onSubmit={async values => { const current = await call(`coding/automatic/suggestions?receipt=${encodeURIComponent(receipt.id)}`); setCoding(await call(`receipt-inbox/${receipt.id}/reading/coding`, { ...sequence, contextVersion: current.contextVersion, consent: values.consent })); await reload(); }}><Field label="I authorize using the reviewed merchant and line items with the configured AI provider for coding suggestions" name="consent" type="checkbox" /></Form>}
       {coding && <p role="status">{coding.status}: {coding.reason}. {coding.codingSuggestions?.length ? 'Open receipt coding below to accept or correct the suggestion.' : ''}</p>}

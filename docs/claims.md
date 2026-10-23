@@ -56,3 +56,7 @@ Choose **Submit for approval**. The claim goes to your approving manager as revi
 If your manager returns it, the claim shows **Returned** and their reason. Change or remove the expenses, attach the right receipt, and choose **Resubmit for approval**. It goes back as the next revision. The earlier revision, its receipts and the decision stay under **Earlier revisions and receipts** and in the history.
 
 Next: [Approving claims](/docs/approvals).
+
+If a read receipt and its attached card charge disagree, open the private receipt reading to answer one question. Check the source crop and both values, then explicitly confirm the receipt total, currency and any conflicting fields. You can leave it unanswered without changing the expense. The posted card amount stays unchanged; the confirmed comparison appears with the expense after submission, while the original reading and its source regions remain in your private history. A live delegate can answer for you. Unanswered questions follow the normal reminder schedule.
+
+The owner can review optional AI costs in Settings before enabling receipt reading. USD estimates use the provider-reported tokens and the exact model rates the owner enters. The monthly cap includes reading and coding, settled usage and outstanding reservations. If reading pauses, enter expense details manually. Provider invoices remain authoritative; uncertain requests retain their reservation and a final charge above its reservation can pause later requests.

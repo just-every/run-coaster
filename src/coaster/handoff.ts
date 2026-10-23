@@ -46,7 +46,7 @@ export async function handOver(db: D1Database, actor: Actor, from: string, to: s
     if (row.capture_receipt_id) {
       const rid = row.capture_receipt_id as string, seq = row.sequence as number;
       statements.push(
-        db.prepare('UPDATE c_items SET receipt_id=NULL WHERE id=? AND claim_id=?').bind(row.id, row.claim_id),
+        db.prepare('UPDATE c_items SET receipt_id=NULL,receipt_resolution=NULL WHERE id=? AND claim_id=?').bind(row.id, row.claim_id),
         db.prepare("INSERT INTO c_capture_lifecycle(receipt_id,sequence,kind,reason,claim_id,item_id,at,actor_email,on_behalf_of,channel) VALUES(?,?,'detached','',?,?,?,?,NULL,'app')").bind(rid, seq + 1, row.claim_id, row.id, at, by),
         db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,transaction_key,sequence) SELECT ?,id,transaction_key,? FROM c_card_charges WHERE id=?').bind(rid, seq + 1, row.card_charge_id),
         privateMatchLine(db, rid, seq + 2, 'match-withdrawn', by, null),

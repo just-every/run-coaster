@@ -32,5 +32,5 @@ export async function escalate(env: Bindings, settings: Business, mail: MailSend
   const link = `${env.AUTH_ORIGIN}/app#/claims/${item.claim}`;
   const words = `${item.person} has not done this for ${age} business days: ${item.action} “${item.title}”. Open it in Coaster: ${link}`;
   const sent = to.length && mail ? await mail.send({ deliveryId: `escalation-${item.key}-${level}`, from: env.MAIL_FROM ?? '', to, subject: `Escalated: ${item.action}`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
-  await ruleEvent(db, 'escalation', 'escalated', { claim: item.claim }, { item: item.key, level, to, ...(chain ? { chain: { department: chain.department_id || null, version: chain.version, step: step!.kind } } : {}), owedBy: item.person, businessDays: age, mail: !to.length ? 'nobody to escalate to' : sent?.status ?? 'mail not set up' }).run();
+  await ruleEvent(db, 'escalation', 'escalated', { claim: item.claim }, { item: item.key.startsWith('receipt-question:')?'private-employee-task':item.key, level, to, ...(chain ? { chain: { department: chain.department_id || null, version: chain.version, step: step!.kind } } : {}), owedBy: item.person, businessDays: age, mail: !to.length ? 'nobody to escalate to' : sent?.status ?? 'mail not set up' }).run();
 }

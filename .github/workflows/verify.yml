@@ -309,3 +309,23 @@ jobs:
           POLICY_REVIEW_RESULT: ${{ needs.policy_review.result }}
           CARD_MATCHING_RESULT: ${{ needs.card_matching.result }}
         run: test "$APP_RESULT" = success && test "$COASTER_FLOWS_RESULT" = success && test "$BROWSER_RESULT" = success && test "$CAPTURE_RESULT" = success && test "$ACCESSIBILITY_RESULT" = success && test "$CASH_DRAFT_RESULT" = success && test "$POLICY_SIGNALS_RESULT" = success && test "$CARD_MATCHING_RESULT" = success && test "$POLICY_REVIEW_RESULT" = success
+
+  receipt_agent_corpus:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - name: Exact-candidate corpus costs and receipt questions outside push Verify
+        run: node --test --test-name-pattern='Owner sees|Receipt disagreements' tests/coaster-reader.test.mjs

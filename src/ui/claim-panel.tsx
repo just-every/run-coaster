@@ -18,7 +18,7 @@ function Receipt({ item }: { item: D }) {
   if (item.kind === 'per_diem') return <span className="receipt" title="Per diem"><Icon name="calendar" /><span className="visually-hidden">Per diem</span></span>;
   if (!item.receipt_id) return <span className="receipt missing" title="No receipt"><Icon name="receipt" /><span className="visually-hidden">No receipt</span></span>;
   const image = String(item.receipt_media).startsWith('image/') && item.receipt_media !== 'image/heic';
-  return <a className="receipt" href={apiHref(`receipts/${item.receipt_id}?inline=1`)} target="_blank" rel="noreferrer" aria-label={`Open receipt ${item.receipt_name}`}>
+  return <a className="receipt" data-tooltip="Open receipt" href={apiHref(`receipts/${item.receipt_id}?inline=1`)} target="_blank" rel="noreferrer" aria-label={`Open receipt ${item.receipt_name}`}>
     {image ? <img src={apiHref(`receipts/${item.receipt_id}?inline=1`)} alt="" loading="lazy" /> : <span className="receipt-file">PDF</span>}
   </a>;
 }
@@ -57,7 +57,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   // Show the saved claim (and its new version) before closing the form, so the next action never uses a stale version.
   const done = async () => { await Promise.all([load(), reload()]); setEditing(null); };
   // The claim a screen opens on by itself has nothing to close back to.
-  const close = closable && <a className="panel-close" href={`#/${back}`} aria-label={`Back to ${back === 'approvals' ? 'approvals' : 'claims'}`}><Icon name="cross" /></a>;
+  const close = closable && <a className="panel-close" data-tooltip="Back to claims" href={`#/${back}`} aria-label={`Back to ${back === 'approvals' ? 'approvals' : 'claims'}`}><Icon name="cross" /></a>;
   if (error && !detail) return <Side className="side detail" label="Claim"><div className="panel-head"><h2>Claim</h2>{close}</div><p role="alert">{error}</p></Side>;
   if (!detail) return <Side className="side detail" label="Claim"><p className="muted">Opening claim…</p></Side>;
   const { claim, items, exceptions } = detail, me = state.actor.email, currency = claim.currency;
@@ -112,7 +112,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         const flags = exceptions.filter((x: D) => x.item === item.id);
         return <li className="line" key={item.id}>
           <Receipt item={item} />
-          <div className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}{matchBasis(item) && <p className="muted">{matchBasis(item)}</p>}
+          <div className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}{matchBasis(item) && <p className="muted">{matchBasis(item)}</p>}{item.receipt_resolution&&<p className="muted">Receipt answer confirmed: {JSON.parse(item.receipt_resolution).receiptTotal} {JSON.parse(item.receipt_resolution).receiptCurrency}. Posted card amount unchanged.</p>}
             {conversion(item, currency) && <span className="split-line">{money(item.amount_minor, currency)} · {conversion(item, currency)}</span>}
             {item.per_diem && <PerDiemBreakdown trip={item.per_diem} />}
             {(item.customer || item.project) && <span className="split-line">{billing(item)}</span>}

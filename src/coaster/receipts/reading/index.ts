@@ -1,3 +1,4 @@
+import { reserveProviderCost, settleProviderCost } from '../../provider-costs';
 import { applyReadingMatchDefault } from './standing';
 import { all, authority, commit, type Sql } from '../../session';
 import { now, requireThat, uid, type Actor, type Data } from '../../types';
@@ -22,14 +23,17 @@ export async function readReceipt(env:ReaderBindings,a:Actor,id:string,b:Data) {
   const settings=(await currentSettings(db))!;requireThat(settings.enabled,'Receipt reading is disabled; ask an owner or admin to review and enable it',409);
   const attempt=uid(),sequence=latest?.sequence??0,base=originalStill(a,r,b.expectedSequence,sequence),live=all(authority(a,'employee'),base,settingsStill(settings.version));
   await commit(db,live,[readingLine(db,a,r,sequence+1,'started',attempt,settings.version,settings.model,{},{consent:true,notice:READING_CONSENT}),captureState(db,a,id,'reading','This person consented to one AI reading attempt')]);
+  let reservation:Awaited<ReturnType<typeof reserveProviderCost>>=null;
   let fields:Fields|{}={},usage:Data={},model=settings.model,pages=1,failure:{code:string;message:string}|null=null;
   try {
     const input=await receiptInput(await originalBytes(receiptBucket(env.COASTER_RECEIPTS),r as {object_key:string;sha256:string;size:number}),r.media_type);pages=input.pages;
     const permitted=all(originalStill(a,{...r,state_sequence:r.state_sequence+1},b.expectedSequence,sequence+1),settingsStill(settings.version));
     requireThat(await db.prepare(`SELECT 1 AS ok WHERE ${permitted.sql}`).bind(...permitted.params).first(),'Receipt access or processing consent changed; reload',409);
+    reservation=await reserveProviderCost(db,all(authority(a,'employee'),permitted), 'receipt-reading',settings.model,pages,attempt);
     const result=await invokeReader(env,settings.model,input.content);model=result.model;usage={...result.usage,pages};
     fields=normalizeReading(result.raw,settings.threshold,pages,await crossSources(db,id));
   } catch(error) {failure=readerFailure(error);}
+  const cost=await settleProviderCost(db,reservation,usage);if(cost)usage.cost=cost;
   const state=failure?'needs-attention':Object.values(fields).some(f=>f.review)?'needs-attention':'read';
   await commit(db,all(authority(a,'employee'),originalStill(a,{...r,state_sequence:r.state_sequence+1},b.expectedSequence,sequence+1),settingsStill(settings.version)),[
     readingLine(db,a,r,sequence+2,failure?'failed':'read',attempt,settings.version,model,fields,{...usage,pages},failure?.code??''),
