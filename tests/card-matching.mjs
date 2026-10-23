@@ -197,6 +197,8 @@ try {
     ['coding_item','c_items',r=>Object.keys(JSON.parse(r.coding)).length,r=>{r.coding=JSON.stringify({'synthetic-coaster-missing-level':'synthetic-coaster-missing-choice'})}],
     ['coding_category_account','c_categories',r=>r.ledger_account_id,r=>{const account=JSON.parse(r.ledger_account_snapshot);account.sourceId='synthetic-coaster-missing-account';r.ledger_account_snapshot=JSON.stringify(account)}],
     ['receipt_reading_owner','c_receipt_readings',()=>true,r=>{r.actor_email='synthetic-coaster-8000'},0],
+    ['receipt_reading_cost','c_provider_costs',r=>r.kind==='settled'&&!r.uncertain,r=>{r.usd_micros+=1},0],
+    ['receipt_reading_resolution','c_items',r=>!!r.receipt_resolution,r=>{const a=JSON.parse(r.receipt_resolution);a.confirmationSequence=999999;r.receipt_resolution=JSON.stringify(a)},0],
     ['program_feed_credentials','c_program_feeds',()=>true,r=>{r.enabled=1},0],
     ['automatic_coding_owner','c_auto_coding_contexts',r=>r.target_kind==='receipt',r=>{r.employee_email='synthetic-coaster-5000'},0],
   ]
