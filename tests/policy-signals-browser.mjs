@@ -75,6 +75,7 @@ try {
    await page.keyboard.press('Tab');await account.focus();assert.ok(await account.evaluate(el=>el===document.activeElement));assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').visibility),'visible');assert.equal(await account.evaluate(el=>getComputedStyle(el,'::after').transitionDelay),'0s');
   }else assert.equal(await account.isVisible(),false,'the desktop shell has no account icon control');
   await screenshot('investigation-pack')
+  await investigation.locator('details[open]').first().screenshot({path:join(evidence,`investigation-pack-detail-${width}.png`)})
 
   for(const person of [employee,finance,manager])await person.context.close()
  }
