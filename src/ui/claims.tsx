@@ -4,7 +4,7 @@ import { Choice, Empty, Field, Form, PageHead, Tiles } from './parts';
 import { Icon } from './icons';
 import { ClaimPanel } from './claim-panel';
 import { ClaimsTable } from './claims-table';
-import { AgentStrip } from './proposals';
+import { AgentStrip, PrepareNativeWork } from './proposals';
 import { SpendRequests } from './requests';
 import { CashAdvances } from './advances';
 import { ReceiptInbox } from './receipt-inbox';
@@ -20,7 +20,7 @@ export const matches = (c: D, query: string) => `${claimNumber(c.number)} ${c.ti
 
 function NewClaim({ reload, onClose }: { reload: () => Promise<D>; onClose: () => void }) {
   return <Side className="side" label="New claim">
-    <div className="panel-head"><h2>New claim</h2><button type="button" className="panel-close button-reset" onClick={onClose} aria-label="Close new claim"><Icon name="cross" /></button></div>
+    <div className="panel-head"><h2>New claim</h2><button type="button" className="panel-close button-reset" onClick={onClose} data-tooltip="Close new claim" aria-label="Close new claim"><Icon name="cross" /></button></div>
     <p className="panel-date">Name it for the trip or project, then add each expense with its receipt.</p>
     <Form label="Start claim" className="record-form-inline" onSubmit={async v => { const claim = await call('claims', { title: v.title }); await reload(); onClose(); go('claims', claim.id); }} secondary={<button type="button" className="button" onClick={onClose}>Cancel</button>}>
       <Field label="Claim title" name="title" placeholder="Denver client trip" autoFocus />
@@ -56,7 +56,8 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
       { label: 'Approved', value: approved.length, note: `${paid.length} reimbursed · ${money(sum(approved), state.business.currency)}` },
       { label: 'Waiting for approval', value: waiting.length, note: money(sum(waiting), state.business.currency), wash: true },
     ]} />
-    {state.actor.roles.employee && <AgentStrip proposals={proposals} reload={reload} idle={<><strong>Agents:</strong> nothing prepared for you right now. An agent with your key turns receipts into draft claims here for you to accept; it never submits, approves or pays. <a href="#/settings">Agent keys</a></>} />}
+    {state.actor.roles.employee && <AgentStrip proposals={proposals} reload={reload} currency={state.business.currency} idle={<><strong>Agents:</strong> nothing prepared for you right now. An agent with your key turns receipts into draft claims here for you to accept; it never submits, approves or pays. <a href="#/settings">Agent keys</a></>} />}
+    <PrepareNativeWork state={state} reload={reload} />
     {shown.length
       ? <ClaimsTable claims={shown} selected={open} view="claims" label="Claims" foot={<>
           <span>Showing {shown.length} of {plural(scoped.length, 'claim')}{query ? ` matching “${query.trim()}”` : ''}</span>

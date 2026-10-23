@@ -1,3 +1,4 @@
+import { acceptPreparation } from './agents/preparations';
 import { all, authority, commit, need, sha256Hex } from './session';
 import { event } from './events';
 import { categories, pricedItem } from './items';
@@ -91,6 +92,7 @@ const open = (id: string) => ({ sql: "EXISTS(SELECT 1 FROM c_proposals WHERE id=
 /** Accepting turns the proposal into the person's own draft claim or draft batch, recording who accepted it. */
 export async function acceptProposal(db: D1Database, actor: Actor, id: string) {
   const p = await mine(db, actor, id), at = now();
+  if (p.payload.preparation) return acceptPreparation(db, actor, p);
   if (p.kind === 'batch') {
     const batch = await createBatch(db, actor, { claims: p.payload.claims }, p.agent_label);
     await commit(db, all(authority(actor, 'finance'), open(id)), [
@@ -116,6 +118,7 @@ export async function acceptProposal(db: D1Database, actor: Actor, id: string) {
 
 export async function declineProposal(db: D1Database, actor: Actor, id: string, b: Data) {
   const p = await mine(db, actor, id);
+  if (p.payload.preparation) requireThat(!actor.delegate, 'Review this work in your own native session', 403);
   await commit(db, all(authority(actor), open(id)), [
     db.prepare("UPDATE c_proposals SET status='declined',decided_by=?,decided_at=? WHERE id=?").bind(actor.email, now(), id),
     event(db, actor, 'proposal-declined', {}, { proposal: id, agent: p.agent_label, reason: optionalText(b.reason, 'Reason', 500) }),

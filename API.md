@@ -335,3 +335,30 @@ Native finance sessions use `GET investigations` for connected POLICY-002 eviden
 Native owners read or version model rates with `GET/POST settings/provider-costs` (`version`, `model`, `inputPerMillion`, `outputPerMillion`, `reservePerPage`, `monthlyCap`; empty cap is unlimited, zero pauses optional AI). Costs are USD estimates from reported tokens. The monthly check includes settled estimates and outstanding reservations for both reading and coding. Unknown outcomes retain their reservation; metered overruns are fully recorded and stop later requests. Manual claims and coding remain available. Pricing and anonymous usage round-trip in the installation archive.
 
 The employee or live delegate reads `GET receipt-inbox/:id/question` and confirms with `POST` carrying `{questionId, expectedSequence, expectedReadingSequence, version, values, consent:true}`. `values` must explicitly confirm total, currency and every conflicting field (tip, subtotal and sales tax can also be confirmed with a total conflict). One current question shows the reading, posted card values and original source regions. Confirmation atomically appends private reading history and records the confirmed comparison on an editable expense. It never changes the card statement amount, submits or pays. Questions stop when answered or no longer editable; FOLLOWUP-001 uses its business-day reminder schedule.
+
+## Native preparation proposals
+
+These doors require the recipient's own native session and refuse agent keys and
+acting delegates. They prepare cited proposals in the existing workspace; only
+that person accepts or declines through the existing proposal decision doors.
+
+- `POST /api/coaster/preparations/close` with `{from,to}`: owner-only month-end checklist,
+  within one calendar month, pending department amounts and cutoff, visible
+  missing evidence, pending approval, native reconciliation and unverified ledger
+  clearance on recorded payments. Acceptance records review only. Input changes
+  invalidate the checklist. No ledger entry, batch or outbound chase is created.
+- `POST /api/coaster/preparations/trip` with `{title,from,to,claims:[id]}`: the employee's own
+  never-submitted manual drafts, at most 20 sources and 50 expenses. Acceptance
+  moves the selected existing items and native receipt references atomically into
+  one draft, preserving their ids and evidence and recalculating source totals.
+  Automatic reports, card expenses, allowance and advance links and private inbox
+  attachments stay in their current workflow. Stale sources refuse acceptance.
+- `POST /api/coaster/preparations/expenses/:id`: the employee's editable claim, cited coding
+  proposals from the existing CODE-002 engine, current receipt fingerprints and
+  policy issues. Acceptance records review and returns that original draft; it
+  applies no coding, links no new receipt and never submits. Existing coding
+  overrides that still disagree with current advice stop this plan for human correction.
+
+Payloads include `preparation`, source citations and freshness bindings. They are
+stored as ordinary COA-010 proposals and follow their archive and erasure rules.
+No provider connection or new outbound data flow is introduced.

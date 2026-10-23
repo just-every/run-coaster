@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { batchNumber, batchStage, batchWords, call, claimNumber, day, exceptionWords, money, moment, plural, shortDay, today, type D } from './api';
 import { Badge, Empty, Field, Form, Initials, PageHead, Section, Tiles, Warning } from './parts';
 import { Icon } from './icons';
-import { AgentStrip } from './proposals';
+import { AgentStrip, PrepareNativeWork } from './proposals';
 import { describe } from './history';
 import { Side, Work } from './shell';
 import { go } from './app';
@@ -34,7 +34,8 @@ export function Batches({ state, reload, id, query }: ViewProps) {
       { label: 'Paid', value: paid.length, note: paid[0] ? `Last paid ${shortDay(paid[0].paid_on)} · ${money(sum(paid), currency)}` : 'None yet' },
       { label: 'Approved and ready', value: ready.length, note: money(sum(ready), currency), wash: true },
     ]} />
-    <AgentStrip proposals={proposals} reload={reload} claims={state.claims} />
+    <AgentStrip proposals={proposals} reload={reload} currency={state.business.currency} claims={state.claims} />
+    <PrepareNativeWork state={state} reload={reload} close />
     <div className="cards">
       <Section title={`Approved and ready · ${ready.length}`} label="Ready to batch">
         {ready.length ? <Form label={`Create batch · ${money(total, currency)}`} onSubmit={async () => { const batch = await call('batches', { claims: chosen }); setChosen([]); await reload(); go('batches', batch.id); }}>
