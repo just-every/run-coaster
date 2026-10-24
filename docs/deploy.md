@@ -12,7 +12,7 @@ The dry run checks the deployment and builds Coaster locally. It makes no reques
 
 - A Cloudflare account, and an API token for it. Coaster reads `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` from your environment; never put them in a file in the repository.
 - A mail provider for real sign-in and invitation emails. Choose Resend, SendGrid or Cloudflare Email Sending and verify your sender address with that provider.
-- Set `MAIL_PROVIDER` and `MAIL_FROM` in `deploy.json` under `vars`, then commit that public configuration before deploying. Both are declared deployment inputs in `packaging.json`. For Cloudflare Email Sending, also set `MAIL_ACCOUNT_ID`.
+- Choose `MAIL_PROVIDER` in `deploy.json` under `vars`. Supply `MAIL_FROM` through the deployment environment using the sender address verified by your provider; it is a required deployment input, with no fixed sender in the repository. Both names are declared in `packaging.json`. For Cloudflare Email Sending, also supply `MAIL_ACCOUNT_ID`.
 - Required private inputs: `SESSION_SECRET`, `SETUP_TOKEN` and `INSTALLATION_KEY`. The direct mail provider also needs `MAIL_API_KEY`; keep these in private setup inputs or the target secret store. Never commit them. Managed hosting supplies the RER mail relay URL and its private credential.
 - The owner's email address. Coaster keeps its session and setup secrets privately.
 
