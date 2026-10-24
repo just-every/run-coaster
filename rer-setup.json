@@ -173,9 +173,14 @@
         {
           "value": "cloudflare",
           "label": "Cloudflare Email Sending"
+        },
+        {
+          "value": "development",
+          "label": "Local development outbox"
         }
       ],
-      "group": "mail"
+      "group": "mail",
+      "help": "Local setup uses its outbox. Hosted installations require RER managed mail or a configured direct provider."
     },
     {
       "name": "MAIL_FROM",

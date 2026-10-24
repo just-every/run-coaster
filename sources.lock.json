@@ -794,11 +794,11 @@
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "ca2ae6c7bf5bbbef3d2c7b3003d8f53ea7ef8e0e34e40fc0951711292032667b",
+      "sha256": "0543a419e3803b9c19d885063994ad344cd38007f036e3d2710cc632e882f39c",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "041a6a8d0f62d3f9aedc8db1569f10feaf295d450e7f00e15232514cf6558b89",
+      "sha256": "e4951a9877a04be51ac5766e35125f8b07e918bc8bd17987f56e2893e67d7c76",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -978,7 +978,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "872cb3b94f7f51991493ef1caee37b2ca6eb228d908ba9f3d26f2d27aec96d90",
+      "sha256": "df2e95863b5cd5072b44b7609d28321006dc5a0ed2e0b241d0987e158ddef9d8",
       "executable": false
     },
     "scripts/installer/portability.mjs": {
@@ -1050,7 +1050,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "de438cd5113bf9c6a1d2dd8138b583969a12d0da64c38e95057ab675c72e8176",
+      "sha256": "94001da0dc26b58d4ac352b9998451fc5b65985dab130925fe85a53b6261f238",
       "executable": false
     },
     "src/base/contract-filter.ts": {
