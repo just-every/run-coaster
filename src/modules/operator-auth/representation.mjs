@@ -65,7 +65,7 @@ function preference(accepted, type, subtype) {
 }
 
 /**
- * RFC 9110 Accept negotiation for the auth HTML/JSON surfaces. Equal quality
+ * RFC 9110 Accept negotiation for the auth HTML and JSON surfaces. Equal quality
  * prefers specificity, then header order. No preference (absent or wildcard),
  * malformed fields, or no acceptable representation retain the non-HTML route
  * default. Request Content-Type never overrides the response preference.

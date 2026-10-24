@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "just-every/run-coaster",
-  "manifest": "1a11eaa04df0961bb86823c5bd893ef53ac259ab40bdf41c792c8f4721c0e5da",
+  "manifest": "be60b717c4b180ba9ed06b01975bae496989dbaf572202dd13154eb9103959d1",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -189,7 +189,8 @@
           "VERIFY-WORKFLOW.md",
           "src/base/contract-style.ts",
           "src/modules/mail/README.md",
-          "src/modules/operator-auth/docs/vite-spa.md"
+          "src/modules/operator-auth/docs/vite-spa.md",
+          "src/modules/operator-auth/representation.mjs"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
@@ -199,7 +200,8 @@
             "export/VERIFY-WORKFLOW.md",
             "foundation/runtime/contract-style.ts",
             "modules/mail/README.md",
-            "modules/operator-auth/docs/vite-spa.md"
+            "modules/operator-auth/docs/vite-spa.md",
+            "modules/operator-auth/representation.mjs"
           ]
         },
         "mappings": [
@@ -218,13 +220,17 @@
           {
             "path": "src/modules/operator-auth/docs/vite-spa.md",
             "originPath": "modules/operator-auth/docs/vite-spa.md"
+          },
+          {
+            "path": "src/modules/operator-auth/representation.mjs",
+            "originPath": "modules/operator-auth/representation.mjs"
           }
         ]
       },
       "baseline": {
-        "key": "00807a4e9aa61db0229438eb8b51bd69b41a2c8ddd8f1505f9cc8f393377d49e",
-        "digest": "dd6741d797d0f6997aaae4433d60e5e15f6210860862772cc40ea392899c32d3",
-        "sha256": "34e2991e723a5a4386fc8e0de492889e12da102540152af8cced942a718a62c5"
+        "key": "893f3470b01df805f12e1f692673ae3c8ed13eb621e9ccfb361c729f57c35998",
+        "digest": "5f81e080ddae1d7441fc6c99ca11057c0ffe1c09ac22d864a02b1c54bbb82633",
+        "sha256": "b37879869eec0e2188a5f06dde304753558e0cc5d106551b79b2b25f575b89be"
       }
     }
   ],
@@ -270,7 +276,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "ea02a4e9ce809fe835817fe7603d3e17c8aed9b69c9b43616df3abbe4bf814f0",
+      "sha256": "5ce8a0561ed97615697457f026d6a91f706a735acf705964abc10a1a4d0614a1",
       "executable": false
     },
     "CONTRACT.md": {
@@ -342,7 +348,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "1a11eaa04df0961bb86823c5bd893ef53ac259ab40bdf41c792c8f4721c0e5da",
+      "sha256": "be60b717c4b180ba9ed06b01975bae496989dbaf572202dd13154eb9103959d1",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -3538,7 +3544,7 @@
       "executable": false
     },
     "src/modules/operator-auth/representation.mjs": {
-      "sha256": "206c3ae542e00687c2ee6c09a2e3466827c7eb58a97d10779cbeca1af945dcb3",
+      "sha256": "4dc602fe73ce6fa83ade350ca4bd8a1b86dfa96e743598eb7379d2382de8445f",
       "executable": false
     },
     "src/modules/operator-auth/routes.mjs": {

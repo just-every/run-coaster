@@ -184,7 +184,8 @@
           "VERIFY-WORKFLOW.md",
           "src/base/contract-style.ts",
           "src/modules/mail/README.md",
-          "src/modules/operator-auth/docs/vite-spa.md"
+          "src/modules/operator-auth/docs/vite-spa.md",
+          "src/modules/operator-auth/representation.mjs"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
@@ -194,7 +195,8 @@
             "export/VERIFY-WORKFLOW.md",
             "foundation/runtime/contract-style.ts",
             "modules/mail/README.md",
-            "modules/operator-auth/docs/vite-spa.md"
+            "modules/operator-auth/docs/vite-spa.md",
+            "modules/operator-auth/representation.mjs"
           ]
         },
         "mappings": [
@@ -213,6 +215,10 @@
           {
             "path": "src/modules/operator-auth/docs/vite-spa.md",
             "originPath": "modules/operator-auth/docs/vite-spa.md"
+          },
+          {
+            "path": "src/modules/operator-auth/representation.mjs",
+            "originPath": "modules/operator-auth/representation.mjs"
           }
         ]
       }

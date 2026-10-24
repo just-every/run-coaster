@@ -4871,17 +4871,6 @@
       }
     },
     {
-      "path": "src/modules/operator-auth/representation.mjs",
-      "originPath": "modules/operator-auth/representation.mjs",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/operator-auth/representation.mjs": "206c3ae542e00687c2ee6c09a2e3466827c7eb58a97d10779cbeca1af945dcb3"
-      },
-      "modes": {
-        "src/modules/operator-auth/representation.mjs": "100644"
-      }
-    },
-    {
       "path": "src/modules/operator-auth/routes.mjs",
       "originPath": "modules/operator-auth/routes.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
