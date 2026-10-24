@@ -270,7 +270,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "b294c2615999d869ac352f28dac372598b606e21c736be04b2d5a4321c22e18b",
+      "sha256": "93e821b4bbadbdfb055a35c7cfa02a031a8b8a9a135e41ae29f971996becaed9",
       "executable": false
     },
     "CONTRACT.md": {
@@ -1186,7 +1186,7 @@
       "executable": false
     },
     "src/base/run-site.ts": {
-      "sha256": "882ae74d0ec50bcbf13a2ac722420ba8e7d464c7619ad592fe02f987877e0aa2",
+      "sha256": "bdd2ac1de93944afe1a97d0f96b252c95c9a7635b33be6d1841bf551a0b1103d",
       "executable": false
     },
     "src/base/seed-contract.d.mts": {

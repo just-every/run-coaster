@@ -703,17 +703,6 @@
       }
     },
     {
-      "path": "src/base/run-site.ts",
-      "originPath": "foundation/runtime/run-site.ts",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/base/run-site.ts": "882ae74d0ec50bcbf13a2ac722420ba8e7d464c7619ad592fe02f987877e0aa2"
-      },
-      "modes": {
-        "src/base/run-site.ts": "100644"
-      }
-    },
-    {
       "path": "src/base/seed-contract.d.mts",
       "originPath": "foundation/runtime/seed-contract.d.mts",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
