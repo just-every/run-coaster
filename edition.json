@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "id": "just-every/run-coaster",
+  "toolchain": {
+    "id": "runeditrun/edition-authoring",
+    "version": "1.1.0"
+  },
+  "parent": null,
+  "components": [
+    {
+      "id": "runeditrun/base",
+      "role": "foundation",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/auth.server.ts",
+          "src/mail.server.mjs",
+          "src/server.dev.ts",
+          "scripts/delivery/base/setup-manifest.mjs",
+          "scripts/delivery/base/capabilities.mjs",
+          "scripts/delivery/base/generators/validation.mjs",
+          "scripts/delivery/base/payloads.mjs",
+          "scripts/delivery/base/sql-statements.mjs",
+          "scripts/edition-authoring/cli.mjs",
+          "scripts/edition-authoring/manifest.mjs",
+          "src/modules/dependencies/README.md",
+          "src/modules/dependencies/sealing.mjs",
+          "src/modules/dependencies/store.mjs",
+          "src/modules/import-kit/CONTRACT.md",
+          "src/modules/import-kit/README.md",
+          "src/modules/import-kit/src/d1/README.md",
+          "src/modules/import-kit/src/d1/reversal-journal.ts",
+          "src/modules/import-kit/src/door/ADOPTING.md",
+          "src/modules/import-kit/src/door/refusals.ts",
+          "src/modules/import-kit/src/provenance/credentials.ts",
+          "src/modules/operator-auth/README.md",
+          "src/modules/operator-auth/SCHEDULED-POLICY.md",
+          "scripts/installer/local.mjs"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+          "path": ".",
+          "paths": [
+            "foundation/template/src/auth.server.ts",
+            "foundation/template/src/mail.server.mjs",
+            "foundation/template/src/server.dev.ts",
+            "modules/delivery-producer/setup-manifest.mjs",
+            "edition-authoring/cli.mjs",
+            "edition-authoring/manifest.mjs",
+            "modules/delivery-producer/capabilities.mjs",
+            "modules/delivery-producer/generators/validation.mjs",
+            "modules/delivery-producer/payloads.mjs",
+            "modules/delivery-producer/sql-statements.mjs",
+            "modules/dependencies/README.md",
+            "modules/dependencies/sealing.mjs",
+            "modules/dependencies/store.mjs",
+            "modules/import-kit/CONTRACT.md",
+            "modules/import-kit/README.md",
+            "modules/import-kit/src/d1/README.md",
+            "modules/import-kit/src/d1/reversal-journal.ts",
+            "modules/import-kit/src/door/ADOPTING.md",
+            "modules/import-kit/src/door/refusals.ts",
+            "modules/import-kit/src/provenance/credentials.ts",
+            "modules/operator-auth/README.md",
+            "modules/operator-auth/SCHEDULED-POLICY.md",
+            "foundation/template/scripts/installer/local.mjs"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "src/auth.server.ts",
+            "originPath": "foundation/template/src/auth.server.ts"
+          },
+          {
+            "path": "src/mail.server.mjs",
+            "originPath": "foundation/template/src/mail.server.mjs"
+          },
+          {
+            "path": "src/server.dev.ts",
+            "originPath": "foundation/template/src/server.dev.ts"
+          },
+          {
+            "path": "scripts/delivery/base/setup-manifest.mjs",
+            "originPath": "modules/delivery-producer/setup-manifest.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/capabilities.mjs",
+            "originPath": "modules/delivery-producer/capabilities.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/generators/validation.mjs",
+            "originPath": "modules/delivery-producer/generators/validation.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/payloads.mjs",
+            "originPath": "modules/delivery-producer/payloads.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/sql-statements.mjs",
+            "originPath": "modules/delivery-producer/sql-statements.mjs"
+          },
+          {
+            "path": "scripts/edition-authoring/cli.mjs",
+            "originPath": "edition-authoring/cli.mjs"
+          },
+          {
+            "path": "scripts/edition-authoring/manifest.mjs",
+            "originPath": "edition-authoring/manifest.mjs"
+          },
+          {
+            "path": "src/modules/dependencies/README.md",
+            "originPath": "modules/dependencies/README.md"
+          },
+          {
+            "path": "src/modules/dependencies/sealing.mjs",
+            "originPath": "modules/dependencies/sealing.mjs"
+          },
+          {
+            "path": "src/modules/dependencies/store.mjs",
+            "originPath": "modules/dependencies/store.mjs"
+          },
+          {
+            "path": "src/modules/import-kit/CONTRACT.md",
+            "originPath": "modules/import-kit/CONTRACT.md"
+          },
+          {
+            "path": "src/modules/import-kit/README.md",
+            "originPath": "modules/import-kit/README.md"
+          },
+          {
+            "path": "src/modules/import-kit/src/d1/README.md",
+            "originPath": "modules/import-kit/src/d1/README.md"
+          },
+          {
+            "path": "src/modules/import-kit/src/d1/reversal-journal.ts",
+            "originPath": "modules/import-kit/src/d1/reversal-journal.ts"
+          },
+          {
+            "path": "src/modules/import-kit/src/door/ADOPTING.md",
+            "originPath": "modules/import-kit/src/door/ADOPTING.md"
+          },
+          {
+            "path": "src/modules/import-kit/src/door/refusals.ts",
+            "originPath": "modules/import-kit/src/door/refusals.ts"
+          },
+          {
+            "path": "src/modules/import-kit/src/provenance/credentials.ts",
+            "originPath": "modules/import-kit/src/provenance/credentials.ts"
+          },
+          {
+            "path": "src/modules/operator-auth/README.md",
+            "originPath": "modules/operator-auth/README.md"
+          },
+          {
+            "path": "src/modules/operator-auth/SCHEDULED-POLICY.md",
+            "originPath": "modules/operator-auth/SCHEDULED-POLICY.md"
+          },
+          {
+            "path": "scripts/installer/local.mjs",
+            "originPath": "foundation/template/scripts/installer/local.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "just-every/run-coaster",
+      "role": "edition",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/coaster",
+          "src/ui",
+          "package.json"
+        ]
+      }
+    },
+    {
+      "id": "just-every/coaster-public-source",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "VERIFY-WORKFLOW.md",
+          "src/base/contract-style.ts",
+          "src/modules/mail/README.md",
+          "src/modules/operator-auth/docs/vite-spa.md",
+          "src/modules/operator-auth/representation.mjs"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+          "path": ".",
+          "paths": [
+            "export/VERIFY-WORKFLOW.md",
+            "foundation/runtime/contract-style.ts",
+            "modules/mail/README.md",
+            "modules/operator-auth/docs/vite-spa.md",
+            "modules/operator-auth/representation.mjs"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "VERIFY-WORKFLOW.md",
+            "originPath": "export/VERIFY-WORKFLOW.md"
+          },
+          {
+            "path": "src/base/contract-style.ts",
+            "originPath": "foundation/runtime/contract-style.ts"
+          },
+          {
+            "path": "src/modules/mail/README.md",
+            "originPath": "modules/mail/README.md"
+          },
+          {
+            "path": "src/modules/operator-auth/docs/vite-spa.md",
+            "originPath": "modules/operator-auth/docs/vite-spa.md"
+          },
+          {
+            "path": "src/modules/operator-auth/representation.mjs",
+            "originPath": "modules/operator-auth/representation.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "just-every/coaster-auth-conformance-note",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/operator-auth/conformance/README.md"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+          "path": ".",
+          "paths": [
+            "modules/operator-auth/conformance/README.md"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "src/modules/operator-auth/conformance/README.md",
+            "originPath": "modules/operator-auth/conformance/README.md"
+          }
+        ]
+      }
+    }
+  ]
+}
