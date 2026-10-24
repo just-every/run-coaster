@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "73853011606edb0eb3d6a47840d24790bb3f2dab9e818cb2fe44f416a615b6e4",
+      "sha256": "f7baff398c9101e1328a3f3a54dcbcf59c6c28a3c54730472520a9246f342982",
       "executable": false
     },
     ".gitignore": {
@@ -4160,7 +4160,7 @@
       "executable": false
     },
     "tests/browser-archive.mjs": {
-      "sha256": "fd755789dc10e56d8a8507da4a2400fce62ff2e1d5293101646a9a04b9722a9c",
+      "sha256": "7fbc39e70debb0684cf392f3c51f2bfbafa69f21d39f121880e7b88725aafa16",
       "executable": false
     },
     "tests/browser-attachments.mjs": {
@@ -4220,7 +4220,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "54754f7260c62e1ca5822dbef33bff84afda4d3c43417bbfd650185224b18f3f",
+      "sha256": "61227e6619ce81584e98c62f1635259d352200bff45d97d74b2e88ad488c9e4d",
       "executable": false
     },
     "tests/capture-cash.mjs": {

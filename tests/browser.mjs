@@ -20,6 +20,10 @@ import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows }
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/coaster-browser-proof')
 await mkdir(evidence, { recursive: true })
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+const archiveSlice = process.env.COASTER_ARCHIVE_REFUSALS ?? '0/1'
+assert.match(archiveSlice, /^\d+\/[1-9]\d*$/, 'archive refusal slice is part/of')
+const [part, of] = archiveSlice.split('/').map(Number)
+assert.ok(Number.isSafeInteger(part) && Number.isSafeInteger(of) && part < of, 'archive refusal slice is in range')
 let root, second, server, browser
 const shots = [], journeys = []
 const launch = () => chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
@@ -113,7 +117,7 @@ try {
   assert.match(corrupt, /Keep the original archive until recovery succeeds/)
   await command(second, ['export', '--output', 'exports/after-corrupt.rer'])
   assert.deepEqual(rows(await records(join(second, 'exports/after-corrupt.rer'))), beforeCorrupt, 'a damaged archive restores nothing and writes no data')
-  await rejectInconsistentArchives(second, archive)
+  await rejectInconsistentArchives(second, archive, { part, of })
   await copyFile(archive, join(second, 'exports/installation.rer'))
   await copyFile(later, join(second, 'exports/after-erasure.rer'))
   assert.match(await command(second, ['import', '--input', 'exports/installation.rer', '--journal', 'exports/after-erasure.rer', '--yes'], { expected: 4 }), /erasure_epoch/, 'the archive made before the erasure is refused, naming the erasure')

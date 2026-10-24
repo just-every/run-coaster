@@ -23,7 +23,7 @@ export async function tampered(archive, table, change, pick = () => true) {
   return input.map(r => JSON.stringify(r)).join('\n') + '\n'
 }
 
-export async function rejectInconsistentArchives(root, archive) {
+export async function rejectInconsistentArchives(root, archive, { part = 0, of = 1 } = {}) {
   await command(root, ['export', '--output', 'exports/empty-before.rer'])
   const empty = rows(await records(join(root, 'exports/empty-before.rer')))
   const cases = {
@@ -33,7 +33,7 @@ export async function rejectInconsistentArchives(root, archive) {
     capture_reason: ['c_capture_lifecycle', row => { row.reason = 'x'.repeat(1001) }, row => row.kind === 'discarded'],
     decision_revision: ['c_decisions', row => { row.revision += 7 }],
   }
-  for (const [code, [table, change, pick]] of Object.entries(cases)) {
+  for (const [code, [table, change, pick]] of Object.entries(cases).filter((_, index) => index % of === part)) {
     await writeFile(join(root, `exports/${code}.rer`), await tampered(archive, table, change, pick), { mode: 0o600 })
     const log = await command(root, ['import', '--input', `exports/${code}.rer`, '--yes'], { expected: 4 })
     assert.match(log, new RegExp('coaster_' + code), `restore refused ${code}`)

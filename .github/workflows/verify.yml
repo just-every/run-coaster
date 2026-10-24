@@ -59,6 +59,10 @@ jobs:
   browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        refusals: ['0/2', '1/2']
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -83,10 +87,11 @@ jobs:
         run: node tests/browser.mjs
         env:
           COASTER_EVIDENCE: ${{ runner.temp }}/coaster-proof
+          COASTER_ARCHIVE_REFUSALS: ${{ matrix.refusals }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: coaster-browser-proof
+          name: coaster-browser-proof-${{ strategy.job-index }}
           path: ${{ runner.temp }}/coaster-proof
 
   capture:
