@@ -270,7 +270,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "93e821b4bbadbdfb055a35c7cfa02a031a8b8a9a135e41ae29f971996becaed9",
+      "sha256": "ea02a4e9ce809fe835817fe7603d3e17c8aed9b69c9b43616df3abbe4bf814f0",
       "executable": false
     },
     "CONTRACT.md": {
@@ -778,7 +778,7 @@
       "executable": false
     },
     "public/fonts/fonts.css": {
-      "sha256": "a0c22813a33a934bf20ee8d48a527b8162b144a9e770465182f90a42a88ff228",
+      "sha256": "6da472614d04a9f7bb7b8649259367d063fdaae7836297301b7181f5e918c644",
       "executable": false
     },
     "public/fonts/inter/inter-latin-ext-wght-normal.woff2": {
@@ -1186,7 +1186,7 @@
       "executable": false
     },
     "src/base/run-site.ts": {
-      "sha256": "bdd2ac1de93944afe1a97d0f96b252c95c9a7635b33be6d1841bf551a0b1103d",
+      "sha256": "882ae74d0ec50bcbf13a2ac722420ba8e7d464c7619ad592fe02f987877e0aa2",
       "executable": false
     },
     "src/base/seed-contract.d.mts": {

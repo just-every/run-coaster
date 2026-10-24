@@ -703,6 +703,17 @@
       }
     },
     {
+      "path": "src/base/run-site.ts",
+      "originPath": "foundation/runtime/run-site.ts",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/base/run-site.ts": "882ae74d0ec50bcbf13a2ac722420ba8e7d464c7619ad592fe02f987877e0aa2"
+      },
+      "modes": {
+        "src/base/run-site.ts": "100644"
+      }
+    },
+    {
       "path": "src/base/seed-contract.d.mts",
       "originPath": "foundation/runtime/seed-contract.d.mts",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -2506,17 +2517,6 @@
       }
     },
     {
-      "path": "src/modules/import-kit/src/door/README.md",
-      "originPath": "modules/import-kit/src/door/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/import-kit/src/door/README.md": "98f650890e5380191bf4b236d72debb9c2c93aae603500ec3b58b81d98ceb904"
-      },
-      "modes": {
-        "src/modules/import-kit/src/door/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/import-kit/src/door/admission.ts",
       "originPath": "modules/import-kit/src/door/admission.ts",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -2657,6 +2657,17 @@
       },
       "modes": {
         "src/modules/import-kit/src/door/protocol.ts": "100644"
+      }
+    },
+    {
+      "path": "src/modules/import-kit/src/door/README.md",
+      "originPath": "modules/import-kit/src/door/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/import-kit/src/door/README.md": "98f650890e5380191bf4b236d72debb9c2c93aae603500ec3b58b81d98ceb904"
+      },
+      "modes": {
+        "src/modules/import-kit/src/door/README.md": "100644"
       }
     },
     {
@@ -2913,17 +2924,6 @@
       }
     },
     {
-      "path": "src/modules/import-kit/src/readers/README.md",
-      "originPath": "modules/import-kit/src/readers/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/import-kit/src/readers/README.md": "a219b8979a5a94f7d4be3ad62b4be8c4ef822c70496ce03f8a41928c825ae74e"
-      },
-      "modes": {
-        "src/modules/import-kit/src/readers/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/import-kit/src/readers/api-policy.ts",
       "originPath": "modules/import-kit/src/readers/api-policy.ts",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3020,6 +3020,17 @@
       },
       "modes": {
         "src/modules/import-kit/src/readers/original.ts": "100644"
+      }
+    },
+    {
+      "path": "src/modules/import-kit/src/readers/README.md",
+      "originPath": "modules/import-kit/src/readers/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/import-kit/src/readers/README.md": "a219b8979a5a94f7d4be3ad62b4be8c4ef822c70496ce03f8a41928c825ae74e"
+      },
+      "modes": {
+        "src/modules/import-kit/src/readers/README.md": "100644"
       }
     },
     {
@@ -3188,17 +3199,6 @@
       }
     },
     {
-      "path": "src/modules/mail/LICENSE",
-      "originPath": "modules/mail/LICENSE",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/mail/LICENSE": "2f5076ef027045b9e0e72df8aa61ca8551e54b1877d531656d6e7985b2c32324"
-      },
-      "modes": {
-        "src/modules/mail/LICENSE": "100644"
-      }
-    },
-    {
       "path": "src/modules/mail/doctor.mjs",
       "originPath": "modules/mail/doctor.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3218,6 +3218,17 @@
       },
       "modes": {
         "src/modules/mail/index.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/mail/LICENSE",
+      "originPath": "modules/mail/LICENSE",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/mail/LICENSE": "2f5076ef027045b9e0e72df8aa61ca8551e54b1877d531656d6e7985b2c32324"
+      },
+      "modes": {
+        "src/modules/mail/LICENSE": "100644"
       }
     },
     {
@@ -3265,17 +3276,6 @@
       }
     },
     {
-      "path": "src/modules/mail/src/adapters/cloudflare/README.md",
-      "originPath": "modules/mail/src/adapters/cloudflare/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/mail/src/adapters/cloudflare/README.md": "80531ce460180b853b7db0480b4ff3d4f919fa5ccc119f71255fb1ac13485c5a"
-      },
-      "modes": {
-        "src/modules/mail/src/adapters/cloudflare/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/mail/src/adapters/cloudflare/headers.mjs",
       "originPath": "modules/mail/src/adapters/cloudflare/headers.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3298,6 +3298,17 @@
       }
     },
     {
+      "path": "src/modules/mail/src/adapters/cloudflare/README.md",
+      "originPath": "modules/mail/src/adapters/cloudflare/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/mail/src/adapters/cloudflare/README.md": "80531ce460180b853b7db0480b4ff3d4f919fa5ccc119f71255fb1ac13485c5a"
+      },
+      "modes": {
+        "src/modules/mail/src/adapters/cloudflare/README.md": "100644"
+      }
+    },
+    {
       "path": "src/modules/mail/src/adapters/cloudflare/response.mjs",
       "originPath": "modules/mail/src/adapters/cloudflare/response.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3306,17 +3317,6 @@
       },
       "modes": {
         "src/modules/mail/src/adapters/cloudflare/response.mjs": "100644"
-      }
-    },
-    {
-      "path": "src/modules/mail/src/adapters/messaging/README.md",
-      "originPath": "modules/mail/src/adapters/messaging/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/mail/src/adapters/messaging/README.md": "b9dcfc5aeeb1ee2118486efa584b790cee9f77e1c7c95036d6ff99e48df317db"
-      },
-      "modes": {
-        "src/modules/mail/src/adapters/messaging/README.md": "100644"
       }
     },
     {
@@ -3361,6 +3361,17 @@
       },
       "modes": {
         "src/modules/mail/src/adapters/messaging/jws.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/mail/src/adapters/messaging/README.md",
+      "originPath": "modules/mail/src/adapters/messaging/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/mail/src/adapters/messaging/README.md": "b9dcfc5aeeb1ee2118486efa584b790cee9f77e1c7c95036d6ff99e48df317db"
+      },
+      "modes": {
+        "src/modules/mail/src/adapters/messaging/README.md": "100644"
       }
     },
     {
@@ -3419,17 +3430,6 @@
       }
     },
     {
-      "path": "src/modules/mail/src/adapters/resend/README.md",
-      "originPath": "modules/mail/src/adapters/resend/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/mail/src/adapters/resend/README.md": "07487907a351cde380774bed9b1f7b8d387f55f19be02990a521e25bdb09d468"
-      },
-      "modes": {
-        "src/modules/mail/src/adapters/resend/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/mail/src/adapters/resend/index.mjs",
       "originPath": "modules/mail/src/adapters/resend/index.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3438,6 +3438,17 @@
       },
       "modes": {
         "src/modules/mail/src/adapters/resend/index.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/mail/src/adapters/resend/README.md",
+      "originPath": "modules/mail/src/adapters/resend/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/mail/src/adapters/resend/README.md": "07487907a351cde380774bed9b1f7b8d387f55f19be02990a521e25bdb09d468"
+      },
+      "modes": {
+        "src/modules/mail/src/adapters/resend/README.md": "100644"
       }
     },
     {
@@ -3474,17 +3485,6 @@
       }
     },
     {
-      "path": "src/modules/mail/src/adapters/sendgrid/README.md",
-      "originPath": "modules/mail/src/adapters/sendgrid/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/mail/src/adapters/sendgrid/README.md": "37a03786dd7cbc6d114a344389daa828334967642574f939df35219b094ad536"
-      },
-      "modes": {
-        "src/modules/mail/src/adapters/sendgrid/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/mail/src/adapters/sendgrid/index.mjs",
       "originPath": "modules/mail/src/adapters/sendgrid/index.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3493,6 +3493,17 @@
       },
       "modes": {
         "src/modules/mail/src/adapters/sendgrid/index.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/mail/src/adapters/sendgrid/README.md",
+      "originPath": "modules/mail/src/adapters/sendgrid/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/mail/src/adapters/sendgrid/README.md": "37a03786dd7cbc6d114a344389daa828334967642574f939df35219b094ad536"
+      },
+      "modes": {
+        "src/modules/mail/src/adapters/sendgrid/README.md": "100644"
       }
     },
     {
@@ -3584,17 +3595,6 @@
       }
     },
     {
-      "path": "src/modules/mail/src/doctor/README.md",
-      "originPath": "modules/mail/src/doctor/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/mail/src/doctor/README.md": "03fbc37879c24a39d864147142b3474ade2f3611a3bc9343be214f2280619e14"
-      },
-      "modes": {
-        "src/modules/mail/src/doctor/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/mail/src/doctor/common.mjs",
       "originPath": "modules/mail/src/doctor/common.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3639,6 +3639,17 @@
       }
     },
     {
+      "path": "src/modules/mail/src/doctor/README.md",
+      "originPath": "modules/mail/src/doctor/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/mail/src/doctor/README.md": "03fbc37879c24a39d864147142b3474ade2f3611a3bc9343be214f2280619e14"
+      },
+      "modes": {
+        "src/modules/mail/src/doctor/README.md": "100644"
+      }
+    },
+    {
       "path": "src/modules/mail/src/doctor/receive.mjs",
       "originPath": "modules/mail/src/doctor/receive.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3658,17 +3669,6 @@
       },
       "modes": {
         "src/modules/mail/src/doctor/records.mjs": "100644"
-      }
-    },
-    {
-      "path": "src/modules/mail/src/events/README.md",
-      "originPath": "modules/mail/src/events/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/mail/src/events/README.md": "31ca618acfcff4a9303772b31cf6ab4cec0c45d80e4ffb4eb5e1bbc8b97d8def"
-      },
-      "modes": {
-        "src/modules/mail/src/events/README.md": "100644"
       }
     },
     {
@@ -3716,6 +3716,17 @@
       }
     },
     {
+      "path": "src/modules/mail/src/events/README.md",
+      "originPath": "modules/mail/src/events/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/mail/src/events/README.md": "31ca618acfcff4a9303772b31cf6ab4cec0c45d80e4ffb4eb5e1bbc8b97d8def"
+      },
+      "modes": {
+        "src/modules/mail/src/events/README.md": "100644"
+      }
+    },
+    {
       "path": "src/modules/mail/src/events/storage.mjs",
       "originPath": "modules/mail/src/events/storage.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -3735,17 +3746,6 @@
       },
       "modes": {
         "src/modules/mail/src/events/verify.mjs": "100644"
-      }
-    },
-    {
-      "path": "src/modules/mail/src/inbound/README.md",
-      "originPath": "modules/mail/src/inbound/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/mail/src/inbound/README.md": "19f1c3448ae767095f257e2aa0bef8e19e94bd9d00fe0cd7515fb4d0d9f53eff"
-      },
-      "modes": {
-        "src/modules/mail/src/inbound/README.md": "100644"
       }
     },
     {
@@ -3801,6 +3801,17 @@
       },
       "modes": {
         "src/modules/mail/src/inbound/multipart.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/mail/src/inbound/README.md",
+      "originPath": "modules/mail/src/inbound/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/mail/src/inbound/README.md": "19f1c3448ae767095f257e2aa0bef8e19e94bd9d00fe0cd7515fb4d0d9f53eff"
+      },
+      "modes": {
+        "src/modules/mail/src/inbound/README.md": "100644"
       }
     },
     {
@@ -4244,17 +4255,6 @@
       }
     },
     {
-      "path": "src/modules/operator-auth/conformance/README.md",
-      "originPath": "modules/operator-auth/conformance/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/operator-auth/conformance/README.md": "e8701354df0890f30629c6f4d965ba2503f6a4ef9cc696f37f93038608d7cd26"
-      },
-      "modes": {
-        "src/modules/operator-auth/conformance/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/operator-auth/conformance/index.d.mts",
       "originPath": "modules/operator-auth/conformance/index.d.mts",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -4285,6 +4285,17 @@
       },
       "modes": {
         "src/modules/operator-auth/conformance/presentation.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/operator-auth/conformance/README.md",
+      "originPath": "modules/operator-auth/conformance/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/operator-auth/conformance/README.md": "e8701354df0890f30629c6f4d965ba2503f6a4ef9cc696f37f93038608d7cd26"
+      },
+      "modes": {
+        "src/modules/operator-auth/conformance/README.md": "100644"
       }
     },
     {
@@ -4420,17 +4431,6 @@
       }
     },
     {
-      "path": "src/modules/operator-auth/docs/README.md",
-      "originPath": "modules/operator-auth/docs/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/operator-auth/docs/README.md": "fb67546feb7e63ef53608e88bf8a937abb3db31d497291734c5e7c99ac70e649"
-      },
-      "modes": {
-        "src/modules/operator-auth/docs/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/operator-auth/docs/native-accounts.md",
       "originPath": "modules/operator-auth/docs/native-accounts.md",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -4439,6 +4439,17 @@
       },
       "modes": {
         "src/modules/operator-auth/docs/native-accounts.md": "100644"
+      }
+    },
+    {
+      "path": "src/modules/operator-auth/docs/README.md",
+      "originPath": "modules/operator-auth/docs/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/operator-auth/docs/README.md": "fb67546feb7e63ef53608e88bf8a937abb3db31d497291734c5e7c99ac70e649"
+      },
+      "modes": {
+        "src/modules/operator-auth/docs/README.md": "100644"
       }
     },
     {
@@ -4596,17 +4607,6 @@
       }
     },
     {
-      "path": "src/modules/operator-auth/identity/oidc/README.md",
-      "originPath": "modules/operator-auth/identity/oidc/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/operator-auth/identity/oidc/README.md": "5e03d2ef26aee1b96ef658c3dda90fe2b4781417ff1c9f32dff0d56105f7472b"
-      },
-      "modes": {
-        "src/modules/operator-auth/identity/oidc/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/operator-auth/identity/oidc/aes-gcm.mjs",
       "originPath": "modules/operator-auth/identity/oidc/aes-gcm.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
@@ -4714,6 +4714,17 @@
       },
       "modes": {
         "src/modules/operator-auth/identity/oidc/presets.mjs": "100644"
+      }
+    },
+    {
+      "path": "src/modules/operator-auth/identity/oidc/README.md",
+      "originPath": "modules/operator-auth/identity/oidc/README.md",
+      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+      "files": {
+        "src/modules/operator-auth/identity/oidc/README.md": "5e03d2ef26aee1b96ef658c3dda90fe2b4781417ff1c9f32dff0d56105f7472b"
+      },
+      "modes": {
+        "src/modules/operator-auth/identity/oidc/README.md": "100644"
       }
     },
     {
