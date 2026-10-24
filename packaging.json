@@ -43,10 +43,10 @@
         "QBO_ENVIRONMENT",
         "AI_ENABLED",
         "AI_MODEL",
-        "AI_BASE_URL"
+        "AI_BASE_URL",
+        "OWNER_EMAIL"
       ],
       "secretNames": [
-        "OWNER_EMAIL",
         "SESSION_SECRET",
         "SETUP_TOKEN"
       ],
