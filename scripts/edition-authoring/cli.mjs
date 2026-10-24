@@ -25,7 +25,7 @@ function resolve(retain = false, diagnostics = false) {
   const components = [];
   for (const component of recipe.components) {
     const selected = component.source;
-    if (selected.workspace) throw Error('Retain workspace edits by promotion or commit and exact revision selection before locking/release');
+    if (selected.workspace) throw Error('Retain workspace edits by promotion or commit and exact revision selection before locking or release');
     const reference = selected.kind === 'git' ? selected : selected.origin;
     const baseline = reference ? snapshot(root, reference, retain) : null;
     if (selected.kind === 'git') merge(files, selected.destination, baseline.files);
@@ -52,7 +52,7 @@ function resolve(retain = false, diagnostics = false) {
 function check() {
   const expected = JSON.parse(fs.readFileSync(path.join(root, 'sources.lock.json'), 'utf8'));
   const actual = resolve();
-  if (json(expected) !== json(actual)) throw Error('Stale lock or source/tool integrity mismatch; run changes to inspect intentional edits before lock');
+  if (json(expected) !== json(actual)) throw Error('Stale lock or source or tool integrity mismatch; run changes to inspect intentional edits before lock');
   return actual;
 }
 function materialize(destination) {

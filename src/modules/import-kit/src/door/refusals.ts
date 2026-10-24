@@ -33,7 +33,7 @@ const credentialCodes = new Set(['CREDENTIAL_IN_SOURCE_DATA', 'CREDENTIAL_IN_DUR
 
 /** A reader or bundle-check refusal as a named 4xx: `source_credential` (422)
  * naming the field kind, `source_<code>` (422), or 413 for a size bound. Details
- * carry a fixed reason and the row/pointer, never a source value. Anything else
+ * carry a fixed reason and the row or pointer, never a source value. Anything else
  * (an adapter, guard or storage failure) is not a source refusal. */
 export function sourceRefusal(error: unknown): DoorError | undefined {
   if (!(error instanceof Error)) return undefined;

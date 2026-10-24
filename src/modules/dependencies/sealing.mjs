@@ -30,7 +30,7 @@ export async function openDependencyKey(config, contract, raw, { currentOnly = f
  requireInstallationKey(config);
  let value;try { value = JSON.parse(raw); } catch { fail(); }
  // Only a complete legacy private JWK is upgradeable. An envelope, even a
- // malformed/unknown one, can never take the legacy plaintext branch.
+ // malformed or unknown one, can never take the legacy plaintext branch.
  if (value && !['version','iv','ciphertext'].some(k => Object.hasOwn(value,k)) && privateJwk(value)) {
   if (currentOnly || !allowPlaintext) fail();
   return { key: value, reseal: true };

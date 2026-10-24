@@ -2,7 +2,7 @@ import type { ImportJob } from '../types.ts';
 import type { D1ReversalPolicyConversion } from './undo-types.ts';
 
 /** Conversion is its own durable fence increment, never an edit to an earlier
- * apply/reversal batch. Account for that one gap at its recorded position. */
+ * apply or reversal batch. Account for that one gap at its recorded position. */
 export function validateReversalJournal(job: ImportJob, batches: any[], applyFence: number, conversion?: D1ReversalPolicyConversion): void {
   const action = ['undoing','undone'].includes(job.state) ? 'undo' : 'rollback';
   let expectedFence = applyFence + 1;

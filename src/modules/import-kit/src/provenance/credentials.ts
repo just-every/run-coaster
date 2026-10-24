@@ -126,7 +126,7 @@ function namedTuples(list: readonly unknown[]): Map<number, string> {
   list.forEach((item, index) => tuples.set(index, (item as [string, unknown])[0]));
   return tuples;
 }
-/** Null, an empty string or a mask/placeholder where a credential would go is not a credential. */
+/** Null, an empty string or a mask or placeholder where a credential would go is not a credential. */
 export function credentialPlaceholder(value: unknown): boolean {
   return value === null || (typeof value === 'string'
     && /^(?:\s*|[*\u2022\u25CF\u00B7x#_.-]{1,64}|[<[({]?\s*(?:redacted|hidden|masked|removed|omitted|none|null|n\/a|placeholder)\s*[>\])}]?)$/i.test(value));

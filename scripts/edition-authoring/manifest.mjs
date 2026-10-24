@@ -19,7 +19,7 @@ export function origin(value) {
 }
 export function manifest(root) {
   const recipe = JSON.parse(fs.readFileSync(path.join(root, 'edition.json'), 'utf8'));
-  if (recipe.schemaVersion !== 1 || !identity.test(recipe.id)) throw Error('Invalid edition identity/schema');
+  if (recipe.schemaVersion !== 1 || !identity.test(recipe.id)) throw Error('Invalid edition identity or schema');
   if (recipe.toolchain?.id !== 'runeditrun/edition-authoring' || recipe.toolchain.version !== VERSION) throw Error('Unsupported independently pinned toolchain');
   if (recipe.parent) origin(recipe.parent);
   if (!Array.isArray(recipe.components)) throw Error('Components required');
@@ -27,7 +27,7 @@ export function manifest(root) {
   const paths = [];
   let foundations = 0;
   for (const component of recipe.components) {
-    if (!identity.test(component.id) || ids.has(component.id)) throw Error('Duplicate/invalid publisher-qualified component');
+    if (!identity.test(component.id) || ids.has(component.id)) throw Error('Duplicate or invalid publisher-qualified component');
     ids.add(component.id);
     if (!['edition', 'module', 'family', 'foundation'].includes(component.role)) throw Error('Invalid component role');
     if (component.role === 'foundation') foundations++;

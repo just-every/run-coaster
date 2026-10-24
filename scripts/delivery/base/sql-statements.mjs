@@ -1,5 +1,5 @@
 // SQLite's complete-statement state machine recognizes trigger terminators as
-// ; END ;, so CASE ... END and quoted/commented semicolons cannot end a trigger.
+// ; END ;, so CASE ... END and quoted or commented semicolons cannot end a trigger.
 // https://github.com/sqlite/sqlite/blob/master/src/complete.c (public domain)
 const transitions = [
   [1, 0, 2, 3, 4, 2, 2, 2],

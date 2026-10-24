@@ -55,7 +55,7 @@ export function dependencyStore(db, config = {}) {
    db.prepare('UPDATE rer_dependency_keys SET private_key=? WHERE interface=? AND private_key=?').bind(await sealDependencyKey(config, contract, value.key), contract, row.private_key),
    finishUpgrade(db, state.current),
   ]);
-  // Use the persisted winner if unlink/replacement raced our CAS.
+  // Use the persisted winner if unlink or replacement raced our CAS.
   return readKey(contract);
  }
  return {

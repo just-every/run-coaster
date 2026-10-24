@@ -13,8 +13,8 @@ export const MAX_ARTIFACT_ENTRIES = 2048;
 export const MAX_ARTIFACT_ARCHIVE_BYTES = 64 * 1024 * 1024;
 export const MODULE_TYPES = new Set(['esm', 'commonjs', 'text', 'buffer', 'compiled-wasm']);
 
-// Preserve Lamp/HappyToHelp's MIME values. Standard additional formats cover
-// Orbit's jpeg/zip/txt and binary media; unknown extensions remain opaque bytes.
+// Preserve Lamp or HappyToHelp's MIME values. Standard additional formats cover
+// Orbit's jpeg or zip or txt and binary media; unknown extensions remain opaque bytes.
 const mimeTypes = Object.freeze({ js: 'application/javascript', mjs: 'application/javascript', css: 'text/css', html: 'text/html', json: 'application/json', svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', ico: 'image/x-icon', woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf', mp4: 'video/mp4', zip: 'application/zip', txt: 'text/plain', wasm: 'application/wasm', gif: 'image/gif', avif: 'image/avif', pdf: 'application/pdf', webm: 'video/webm', mp3: 'audio/mpeg', ogg: 'audio/ogg', wav: 'audio/wav' });
 export function mimeType(name) {
   const extension = extname(name).slice(1).toLowerCase();
