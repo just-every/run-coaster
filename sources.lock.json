@@ -1052,7 +1052,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "bbce09d1cd35c265784766bbc976ff30f99bdf33619aeb8d99d54e902e9aefe4",
+      "sha256": "c0e7f0681d37d74ba1baf27a2ead891822e6409eb85c966a1a7ab66076b5914a",
       "executable": false
     },
     "src/auth.server.ts": {
