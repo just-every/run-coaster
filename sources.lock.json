@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "just-every/run-coaster",
-  "manifest": "97c99ee35b9744c8a9a9e2bfacf8b8e9709d1655521272b9cf35abd53858f632",
+  "manifest": "5eda12c58d9f05297e6a64e9cec6f5012cf395b89f6427da79ce865a504647bd",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -35,7 +35,8 @@
           "src/modules/import-kit/src/door/refusals.ts",
           "src/modules/import-kit/src/provenance/credentials.ts",
           "src/modules/operator-auth/README.md",
-          "src/modules/operator-auth/SCHEDULED-POLICY.md"
+          "src/modules/operator-auth/SCHEDULED-POLICY.md",
+          "scripts/installer/local.mjs"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
@@ -63,7 +64,8 @@
             "modules/import-kit/src/door/refusals.ts",
             "modules/import-kit/src/provenance/credentials.ts",
             "modules/operator-auth/README.md",
-            "modules/operator-auth/SCHEDULED-POLICY.md"
+            "modules/operator-auth/SCHEDULED-POLICY.md",
+            "foundation/template/scripts/installer/local.mjs"
           ]
         },
         "mappings": [
@@ -154,13 +156,17 @@
           {
             "path": "src/modules/operator-auth/SCHEDULED-POLICY.md",
             "originPath": "modules/operator-auth/SCHEDULED-POLICY.md"
+          },
+          {
+            "path": "scripts/installer/local.mjs",
+            "originPath": "foundation/template/scripts/installer/local.mjs"
           }
         ]
       },
       "baseline": {
-        "key": "08291e2aa0d9e0584da8249ef2dc25b946283a7a6f2b1213898026ba0891e25d",
-        "digest": "d311e14c420c148285f307dd26e3c99fa47dc9123d6655342110c9e3ba92910b",
-        "sha256": "83a2167873116a10c671af14e3b8123245ef423a547a63340a8131362f313a83"
+        "key": "8c4ae2f1f49cc4cf92f16486ccccdb0d5adbb6e972213b70069b677135eba1f0",
+        "digest": "2b2ba43f2979be35ab14c0b64c136701393828fd97378818c05ee8511650b6d4",
+        "sha256": "1bf3c2cd9f7701c5a72647ea439c862f03f35214233d22b5a6e902affdf469a8"
       }
     },
     {
@@ -290,7 +296,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "97c99ee35b9744c8a9a9e2bfacf8b8e9709d1655521272b9cf35abd53858f632",
+      "sha256": "5eda12c58d9f05297e6a64e9cec6f5012cf395b89f6427da79ce865a504647bd",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
