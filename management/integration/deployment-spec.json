@@ -466,6 +466,12 @@
       "name": "0075_scheduled_policy.sql",
       "sha256": "377fa07ed05a95b64385af865b66d695c127a1086c0d85fe093c3eb5bebf3ebe",
       "sql": "-- Apply as a NEW numbered migration. Authority and audit are durable, not sessions.\nCREATE TABLE IF NOT EXISTS oa_policy_approvals (\n id TEXT PRIMARY KEY, policy_id TEXT NOT NULL, version_hash TEXT NOT NULL,\n definition TEXT NOT NULL, actions TEXT NOT NULL,\n owner_id TEXT NOT NULL REFERENCES oa_operators(id), owner_version INTEGER NOT NULL,\n approved_at INTEGER NOT NULL, revoked_at INTEGER,\n session_kind TEXT NOT NULL, revoke_reason TEXT\n);\nCREATE UNIQUE INDEX IF NOT EXISTS oa_policy_live ON oa_policy_approvals(policy_id) WHERE revoked_at IS NULL;\nCREATE TABLE IF NOT EXISTS oa_policy_runs (\n id TEXT PRIMARY KEY, policy_id TEXT NOT NULL, version_hash TEXT,\n approval_id TEXT REFERENCES oa_policy_approvals(id), approved_by TEXT,\n started_at INTEGER NOT NULL, finished_at INTEGER,\n status TEXT NOT NULL CHECK(status IN ('running','completed','refused','failed')), error TEXT,\n admitted INTEGER NOT NULL DEFAULT 0, repeats INTEGER NOT NULL DEFAULT 1, last_seen_at INTEGER\n);\nCREATE INDEX IF NOT EXISTS oa_policy_runs_time ON oa_policy_runs(started_at DESC);\nCREATE INDEX IF NOT EXISTS oa_policy_action_run ON oa_auth_audit(CASE WHEN json_valid(value) THEN json_extract(value,'$.runId') END,action);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0076_dependency_keys_sealed.sql",
+      "sha256": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a",
+      "sql": "ALTER TABLE rer_dependency_installation ADD COLUMN keys_sealed INTEGER NOT NULL DEFAULT 0 CHECK(keys_sealed IN (0,1));\n-- Nonsecret version history lets restored rows name an unavailable retired key\n-- without confusing ciphertext tampering or a wrong current secret with restore.\nALTER TABLE rer_dependency_installation ADD COLUMN key_ids TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(key_ids) AND json_type(key_ids)='array');\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -489,13 +495,15 @@
   },
   "secretNames": [
     "SESSION_SECRET",
-    "SETUP_TOKEN"
+    "SETUP_TOKEN",
+    "INSTALLATION_KEY"
   ],
   "optionalSecretNames": [
     "MAIL_API_KEY",
     "QBO_CLIENT_ID",
     "QBO_CLIENT_SECRET",
-    "AI_API_KEY"
+    "AI_API_KEY",
+    "INSTALLATION_KEY_PREVIOUS"
   ],
   "schedules": [
     "17 * * * *"

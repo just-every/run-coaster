@@ -211,6 +211,17 @@
       }
     },
     {
+      "path": "migrations/core/0076_dependency_keys_sealed.sql",
+      "originPath": "modules/dependencies/schema/keys-sealed.sql",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "migrations/core/0076_dependency_keys_sealed.sql": "9c8fa5f94c48a230f326cd4d666cbc2bd1e7d5a18327b89e65b339ac6a533d9a"
+      },
+      "modes": {
+        "migrations/core/0076_dependency_keys_sealed.sql": "100644"
+      }
+    },
+    {
       "path": "scripts/delivery/base/artifact.mjs",
       "originPath": "modules/delivery-producer/artifact.mjs",
       "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
