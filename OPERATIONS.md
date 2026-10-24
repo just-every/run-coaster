@@ -67,3 +67,20 @@ instructions under `node_modules/@runeditrun/rer/modules/deploy-kit`; account sc
 resource ownership, migrations, receipt and health checks are defined there.
 Local validation does not prove hosted acceptance, provider delivery or remote
 health.
+
+## Hosted installation artifact
+
+The source policy is `packaging.json`. Run `pnpm run build`, then
+`pnpm delivery:spec` to refresh the committed import specification;
+`pnpm check:deployment-spec` checks it against the real build.
+`node scripts/delivery/base/cli.mjs package --config packaging.json --output rer-package`
+produces the descriptor, dispatch-only Managed workflow and schema-2 artifact.
+`node scripts/delivery/base/cli.mjs artifact --config packaging.json` produces
+the artifact alone. Generated package and artifact directories are disposable.
+
+Managed hosting assigns the `rer` mail provider, sender, relay URL and private
+installation key. Assisted hosting asks for a verified sender and credentials
+for the selected Resend, SendGrid or Cloudflare provider; Cloudflare also needs
+its account ID. Local development continues to use its private outbox. Never
+put provider credentials in source or build output. Provider delivery still
+requires qualification through the configured provider boundary.

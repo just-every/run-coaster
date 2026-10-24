@@ -60,7 +60,7 @@ export async function rejectCaptureLifecycleArchives(root, archive, { part = 0, 
     expanded_overflow: row => { row.reason = expanded.row.reason + 'x' },
     fake_tokens: row => { row.reason = 'Former member 00000000'.repeat(60) },
     untrimmed: row => { row.reason = ' needs trimming ' },
-    // A self-declared marker sealed into the manifest and every lifecycle row: Base refuses the foreign column before staging.
+    // A self-declared marker sealed into the manifest and every lifecycle row: Base refuses its migration-derived schema before staging.
     forged_marker: (row, input) => {
       input[0].tables.find(t => t.name === 'c_capture_lifecycle').columns.push({ name: 'reason_redacted', notnull: 0, pk: 0, type: 'INTEGER' });
       for (const item of rows(input)) if (item.table === 'c_capture_lifecycle') item.row.reason_redacted = 0;
@@ -87,8 +87,8 @@ export async function rejectCaptureLifecycleArchives(root, archive, { part = 0, 
   for (const [name, change] of Object.entries(cases).filter((_, index) => index % of === part)) {
     const kind = name.startsWith('merge_') ? 'merged' : name.startsWith('discard_') ? 'discarded' : undefined;
     await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change, row => !kind || row.kind === kind), { mode: 0o600 });
-    const log = await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: name === 'forged_marker' ? 1 : 4 });
-    assert.match(log, name === 'forged_marker' ? /column_inventory/ : /coaster_capture_(history|reason|merge|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
+    const log = await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: 4 });
+    assert.match(log, name === 'forged_marker' ? /schema_mismatch/ : /coaster_capture_(history|reason|merge|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
     assert.ok(!log.includes('finance@dev.localhost') && !log.includes('Sam Taylor'), 'refusal never echoes identity or reason text');
   }
   await command(root, ['export', '--output', 'exports/lifecycle-after.rer']);

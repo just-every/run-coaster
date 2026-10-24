@@ -71,10 +71,10 @@ try {
   assert.equal((await fetch(server.origin + '/health')).status, 200)
   assert.equal((await fetch(server.origin + '/api/coaster/state')).status, 401)
   await server.close(); server = undefined
-  // Deploy refuses an installation whose owner cannot sign in; this owner has configured Resend (deploy.json). The dry
+  // Deploy refuses an installation whose owner cannot sign in; this owner supplies the Resend sender input. The dry
   // run builds and checks everything local, then, with no Cloudflare credentials, refuses rather than claim it read the
   // target's secrets (rer 0.2.58): what it still needs is only those credentials, never the owner's sign-in mail.
-  const dry = await command(root, ['deploy', '--dry-run'], { expected: 3, env: { MAIL_API_KEY: 'synthetic-test-mail-api-key' } })
+  const dry = await command(root, ['deploy', '--dry-run'], { expected: 3, env: { MAIL_API_KEY: 'synthetic-test-mail-api-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.com>' } })
   assert.match(dry, /Your application is built/)
   assert.match(dry, /cannot read the target secret bindings without Cloudflare credentials/)
   assert.doesNotMatch(dry.slice(dry.indexOf('Needed for a real deploy')), /sign-in mail|MAIL_API_KEY/)
@@ -105,7 +105,14 @@ try {
   await mkdir(join(second, 'exports'), { recursive: true })
   const bytes = await readFile(archive)
   await writeFile(join(second, 'exports/corrupt.rer'), Buffer.concat([bytes.subarray(0, Math.floor(bytes.length / 2)), Buffer.from('\ncorrupt\n')]), { mode: 0o600 })
-  assert.match(await command(second, ['import', '--input', 'exports/corrupt.rer', '--yes'], { expected: 2 }), /archive_json/)
+  await command(second, ['export', '--output', 'exports/before-corrupt.rer'])
+  const beforeCorrupt = rows(await records(join(second, 'exports/before-corrupt.rer')))
+  const corrupt = await command(second, ['import', '--input', 'exports/corrupt.rer', '--yes'], { expected: 2 })
+  assert.match(corrupt, /Restore refused: the archive is damaged or incomplete/)
+  assert.match(corrupt, /Re-export from the original installation with rer export --output/)
+  assert.match(corrupt, /Keep the original archive until recovery succeeds/)
+  await command(second, ['export', '--output', 'exports/after-corrupt.rer'])
+  assert.deepEqual(rows(await records(join(second, 'exports/after-corrupt.rer'))), beforeCorrupt, 'a damaged archive restores nothing and writes no data')
   await rejectInconsistentArchives(second, archive)
   await copyFile(archive, join(second, 'exports/installation.rer'))
   await copyFile(later, join(second, 'exports/after-erasure.rer'))

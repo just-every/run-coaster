@@ -1,6 +1,6 @@
 {
   "name": "@expenses/coaster",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -33,7 +33,9 @@
     "rer": "rer",
     "test:coaster": "node tests/coaster-suite.mjs",
     "test:browser": "node tests/browser.mjs",
-    "test:site": "node --test tests/site/*.test.mjs"
+    "test:site": "node --test tests/site/*.test.mjs",
+    "delivery:spec": "node scripts/build-deployment-spec.mjs",
+    "check:deployment-spec": "node scripts/build-deployment-spec.mjs --check"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "1.1.1",
@@ -54,7 +56,7 @@
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
     "@playwright/test": "1.63.0",
-    "@runeditrun/rer": "0.2.62",
+    "@runeditrun/rer": "0.2.80",
     "@types/node": "22.18.6",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
