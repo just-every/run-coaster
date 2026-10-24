@@ -374,7 +374,7 @@ Every capability claim the homepage (run-coaster.com, `src/site/landing/`) state
 | 47 | 12 | People from Gusto, approvers, categories → QuickBooks, tags, rules, 21,870 receipt images, 38 Amex cards | MOVE-001, ADMIN-002 | missing |
 | 48 | 12 | Nothing paid twice (47 overlapping charges, 0 doubled; open reports reimbursable once) | MOVE-005 | partial |
 | 49 | 12 | `npx -y @runeditrun/rer dev just-every/run-coaster` starts Coaster on your computer | COA-013 | partial |
-| 50 | 12 | "Also moves in from SAP Concur, Emburse, Ramp, Brex and Navan" | MOVE-002, MOVE-003, MOVE-004 | done |
+| 50 | 12 | Synthetic export imports cover SAP Concur, Emburse, Ramp, Brex and Navan | MOVE-002, MOVE-003, MOVE-004 | done |
 | 51 | 13 Closing | "100% free and open source. MIT licensed." | OWN | done |
 
 ## Status

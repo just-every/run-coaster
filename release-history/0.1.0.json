@@ -1,0 +1,4 @@
+{
+  "version": "0.1.0",
+  "publicReleaseNotes": "First public release of Coaster: employee expense claims with receipt evidence, manager approval, duplicate-safe reimbursement batches, an accounting CSV and an Expensify move-in kit, on the owner's own Cloudflare account."
+}
