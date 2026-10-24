@@ -11,7 +11,7 @@
 .mv-lights i { width: calc(15 * var(--p)); height: calc(15 * var(--p)); border-radius: 50%; background: #ff5f57; }
 .mv-lights i:nth-child(2) { background: #febc2e; }
 .mv-lights i:nth-child(3) { background: #28c840; }
-.mv-term pre { margin: calc(18 * var(--p)) 0 0; overflow-x: auto; font: 500 calc(19 * var(--p))/1.75 var(--font-mono); white-space: pre; }
+.mv-term pre { margin: calc(18 * var(--p)) 0 0; overflow-x: auto; font: 500 calc(19 * var(--p))/1.75 var(--font-mono); white-space: pre-wrap; }
 .mv-prompt { color: #9aa1ab; }
 .mv-comment { color: #8fd07c; }
 .mv-also { margin-top: calc(32 * var(--p)); color: var(--soft); font-size: calc(18.5 * var(--p)); }

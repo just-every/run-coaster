@@ -10,6 +10,12 @@
           "summary": "How a claim goes from receipt to reimbursed, who does what, and what Coaster keeps."
         },
         {
+          "slug": "getting-started",
+          "title": "Getting started",
+          "file": "getting-started.md",
+          "summary": "Start Coaster on your computer with one line, open it signed in, then stop and start it again."
+        },
+        {
           "slug": "install",
           "title": "Run Coaster on your computer",
           "file": "install.md",

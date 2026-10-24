@@ -13,7 +13,18 @@ const ROWS: [string, string, 'ok' | 'review'][] = [
   ['Overlapping Amex charges Sep 28–30', '47 · 0 doubled', 'ok'],
 ];
 
-const START = 'npx -y @runeditrun/rer dev just-every/run-coaster';
+// The one start line every Run Edit Run page shows (the Copy button copies it), and the alternative for people who already have Node.
+const START = 'curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-coaster';
+const ALTERNATIVE = 'Already have Node 22 or later? npx -y @runeditrun/rer dev just-every/run-coaster';
+
+/** A command that wraps only between words, keeping the installer's `install.sh | sh` together. */
+function words(line: string) {
+  return line.split(/(\S*install\.sh \| sh|\S+)/).map((part, index) => {
+    const pipe = /^(.*\/)(install\.sh \| sh)$/.exec(part);
+    if (pipe) return <span key={index}><span className="nowrap">{pipe[1]}</span><wbr /><span className="nowrap">{pipe[2]}</span></span>;
+    return part.trim() ? <span key={index} className="nowrap">{part}</span> : part;
+  });
+}
 
 /** Page 12: how Tallgrass moved off Expensify, and the one line that starts Coaster on your own computer. */
 export function MoveIn() {
@@ -24,7 +35,7 @@ export function MoveIn() {
         <div className="mv-term" role="group" aria-label="Start Coaster on your computer" data-copy={START}>
           <p className="mv-lights" aria-hidden="true"><i /><i /><i /></p>
           <button className="docs-copy mv-copy-btn" type="button" hidden>Copy</button>
-          <pre><code><span className="mv-prompt" aria-hidden="true">$ </span>npx -y @runeditrun/rer dev <span className="nowrap">just-every/run-coaster</span>{'\n'}<span className="mv-comment"># clones, installs and starts Coaster on your computer</span></code></pre>
+          <pre><code><span className="mv-prompt" aria-hidden="true">$ </span>{words(START)}{'\n'}<span className="mv-comment"># {words('installs rer, then gets and starts Coaster on your computer')}</span>{'\n'}<span className="mv-comment"># {words(ALTERNATIVE)}</span></code></pre>
         </div>
         <p className="mv-also">Also moves in from SAP Concur, Emburse, Ramp, Brex and Navan.</p>
       </div>
