@@ -11,6 +11,6 @@ export function portableResourceCapability(plan) {
 }
 export function assertPortableResourceSupport(plan) {
   const capability = portableResourceCapability(plan);
-  if (!capability.complete) throw Error(`Complete portable export/restore unavailable for ${capability.unsupportedResources.map(row => `${row.binding} (${row.kind}): ${row.reason}`).join('; ')}`);
+  if (!capability.complete) throw Error(`Complete portable export and restore unavailable for ${capability.unsupportedResources.map(row => `${row.binding} (${row.kind}): ${row.reason}`).join('; ')}`);
   return capability;
 }

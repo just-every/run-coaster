@@ -17,13 +17,13 @@ export function string(value, label, max) {
 
 export function repository(value) {
   const name = string(value, 'source repository', 200);
-  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(name)) throw new Error('Source repository must be owner/repo');
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(name)) throw new Error('Source repository must name the owner and repository separated by a slash');
   return name;
 }
 
 /** Descriptor document form; integration repository() remains an internal key. */
 export function sourceRepository(value) {
-  const invalid = () => new Error('sourceRepository must be https://github.com/<owner>/<repo> (legacy owner/repo is also accepted)');
+  const invalid = () => new Error('sourceRepository must be https://github.com/<owner>/<repo> (legacy repository shorthand is also accepted)');
   if (typeof value !== 'string' || value !== value.trim()) throw invalid();
   const url = /^https:\/\/github\.com\/([^/]+\/[^/]+)$/i.exec(value);
   const identity = url ? url[1].replace(/\.git$/i, '') : value;
