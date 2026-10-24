@@ -6254,7 +6254,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "73bf713049b938f9f843495fa486c5242ed51b376b6b1ff625b433a0c4cc5c03",
+      "sha256": "6bbeb0fe47b7c3767c3d07b376714d537ae12d405d2f225c03304c6354819d7c",
       "executable": false
     },
     "tests/identity-provider.mjs": {
