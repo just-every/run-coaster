@@ -174,6 +174,48 @@
           "package.json"
         ]
       }
+    },
+    {
+      "id": "just-every/coaster-public-source",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "VERIFY-WORKFLOW.md",
+          "src/base/contract-style.ts",
+          "src/modules/mail/README.md",
+          "src/modules/operator-auth/docs/vite-spa.md"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+          "path": ".",
+          "paths": [
+            "export/VERIFY-WORKFLOW.md",
+            "foundation/runtime/contract-style.ts",
+            "modules/mail/README.md",
+            "modules/operator-auth/docs/vite-spa.md"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "VERIFY-WORKFLOW.md",
+            "originPath": "export/VERIFY-WORKFLOW.md"
+          },
+          {
+            "path": "src/base/contract-style.ts",
+            "originPath": "foundation/runtime/contract-style.ts"
+          },
+          {
+            "path": "src/modules/mail/README.md",
+            "originPath": "modules/mail/README.md"
+          },
+          {
+            "path": "src/modules/operator-auth/docs/vite-spa.md",
+            "originPath": "modules/operator-auth/docs/vite-spa.md"
+          }
+        ]
+      }
     }
   ]
 }
