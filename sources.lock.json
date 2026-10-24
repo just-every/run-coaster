@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "just-every/run-coaster",
-  "manifest": "be60b717c4b180ba9ed06b01975bae496989dbaf572202dd13154eb9103959d1",
+  "manifest": "ef9fc62bec285740727dc929efcb4cb8ac098d464932a4b33b486244e22c025e",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -232,6 +232,34 @@
         "digest": "5f81e080ddae1d7441fc6c99ca11057c0ffe1c09ac22d864a02b1c54bbb82633",
         "sha256": "b37879869eec0e2188a5f06dde304753558e0cc5d106551b79b2b25f575b89be"
       }
+    },
+    {
+      "id": "just-every/coaster-auth-conformance-note",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/operator-auth/conformance/README.md"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+          "path": ".",
+          "paths": [
+            "modules/operator-auth/conformance/README.md"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "src/modules/operator-auth/conformance/README.md",
+            "originPath": "modules/operator-auth/conformance/README.md"
+          }
+        ]
+      },
+      "baseline": {
+        "key": "03a6571e2dad0634598e5a6f0ab8f0fced0be4964bb8f834403b3e1d250a8c78",
+        "digest": "7dc517b4addf01f74c22598ecdb365d4104521e05dad404ad7a811f68fb3e607",
+        "sha256": "c30c4ebb8782fdc46b8a941266575102f37b82074b9888504133e71c605f4e83"
+      }
     }
   ],
   "files": {
@@ -276,7 +304,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "8dbdad513ac97714669239a1bc3a93f574155563fac8c9cf611b87f7cf1e9253",
+      "sha256": "7f780ddfe8df2acf4b172279da5249b04f57e8cd22a427b47298aee1b6d61663",
       "executable": false
     },
     "CONTRACT.md": {
@@ -348,7 +376,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "be60b717c4b180ba9ed06b01975bae496989dbaf572202dd13154eb9103959d1",
+      "sha256": "ef9fc62bec285740727dc929efcb4cb8ac098d464932a4b33b486244e22c025e",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -3324,7 +3352,7 @@
       "executable": false
     },
     "src/modules/operator-auth/conformance/README.md": {
-      "sha256": "e8701354df0890f30629c6f4d965ba2503f6a4ef9cc696f37f93038608d7cd26",
+      "sha256": "70f6899c03dc98a4441546d4154134c557148e92213dea299fde6abebba9f257",
       "executable": false
     },
     "src/modules/operator-auth/crypto.mjs": {
@@ -4188,7 +4216,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "5579e0ccdbd8af15749c712e320624922dfa614b0364fadfaa4f7ae8aef52b9d",
+      "sha256": "54754f7260c62e1ca5822dbef33bff84afda4d3c43417bbfd650185224b18f3f",
       "executable": false
     },
     "tests/capture-cash.mjs": {

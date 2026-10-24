@@ -4297,17 +4297,6 @@
       }
     },
     {
-      "path": "src/modules/operator-auth/conformance/README.md",
-      "originPath": "modules/operator-auth/conformance/README.md",
-      "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-      "files": {
-        "src/modules/operator-auth/conformance/README.md": "e8701354df0890f30629c6f4d965ba2503f6a4ef9cc696f37f93038608d7cd26"
-      },
-      "modes": {
-        "src/modules/operator-auth/conformance/README.md": "100644"
-      }
-    },
-    {
       "path": "src/modules/operator-auth/crypto.mjs",
       "originPath": "modules/operator-auth/crypto.mjs",
       "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",

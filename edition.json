@@ -222,6 +222,30 @@
           }
         ]
       }
+    },
+    {
+      "id": "just-every/coaster-auth-conformance-note",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/operator-auth/conformance/README.md"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+          "path": ".",
+          "paths": [
+            "modules/operator-auth/conformance/README.md"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "src/modules/operator-auth/conformance/README.md",
+            "originPath": "modules/operator-auth/conformance/README.md"
+          }
+        ]
+      }
     }
   ]
 }
