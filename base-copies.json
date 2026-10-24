@@ -318,6 +318,15 @@
       },
       "modes": {
         "scripts/delivery/base/generators/validation.mjs": "100644"
+      },
+      "adapted": {
+        "scripts/delivery/base/generators/validation.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "scripts/delivery/base/generators/validation.mjs": {
+          "sha256": "8fbb3e39ca6f2a4511c47bbd16957df63a81b633c90a3dd6b1436c2f22014d95",
+          "mode": "100644"
+        }
       }
     },
     {
