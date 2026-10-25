@@ -292,7 +292,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "8c89ffcd16878b85b4ab02fc0d2b729f50a1a41da905baad4e55454c0a50df4c",
+      "sha256": "e8e0d86658afcc207e2bd219d6871b565a58c107177ca079a7971b5767595573",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -312,7 +312,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d8fe6e92a5b26d907331640255193b30610e3ede99cdb2f8849dbe13081ae7d2",
+      "sha256": "51b47c5df89f4afa7d2285022ec6b4be7544ff9d2fabe86dd517952cdebfe332",
       "executable": false
     },
     "DEMO.md": {
@@ -1280,7 +1280,7 @@
       "executable": false
     },
     "src/coaster/accounting/desktop/index.ts": {
-      "sha256": "f5093ac0809ccb62548309902b621fcf40f61d4c41e1c974922fbc139bce23bf",
+      "sha256": "63aa10ce5b73d6038fd7ebcaf8bf974e744b688fe972620cd15415857f84026e",
       "executable": false
     },
     "src/coaster/accounting/desktop/posting.ts": {
@@ -1288,7 +1288,7 @@
       "executable": false
     },
     "src/coaster/accounting/desktop/xml.ts": {
-      "sha256": "7a3fff8734313487bcbe1262fea96a6eb4870b0a0e2938994b22985a42bae5e6",
+      "sha256": "7e97db833073569e2f271aa9a350e1178ed6c570e208ef3fef5885b7bc3708c9",
       "executable": false
     },
     "src/coaster/accounting/qbo/catalog.ts": {
@@ -1336,7 +1336,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "2a1fd6a19b144f9f25a0adf77750019a29bc0b3364105ab66804154f1bb253fa",
+      "sha256": "576922f68f882a6b897fd675dc33d2bfb00bb577aa73a4b05a0a5eda71d7f041",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -4216,7 +4216,7 @@
       "executable": false
     },
     "tests/browser-desktop.mjs": {
-      "sha256": "f2c6d93a633352a73ab6f688dfe3c0b4c6b048720d63ddf35c6101090d553554",
+      "sha256": "e78d69a4fdc4d1b352fe46c19bd9d1925e6bfb12ab33fdc53211eaeffec93d2e",
       "executable": false
     },
     "tests/browser-journey.mjs": {
@@ -4352,7 +4352,7 @@
       "executable": false
     },
     "tests/coaster-qbo.test.mjs": {
-      "sha256": "86eaf51356b8fb586d711bc4ad6d7d84aea1bcff0ce5f45cda41cec8aef0cafe",
+      "sha256": "708f5c7ef0f44bdf66da28631aabd4fa1fb686e266503f991ebe1dc473f8356d",
       "executable": false
     },
     "tests/coaster-reader.test.mjs": {
@@ -5916,7 +5916,7 @@
       "executable": false
     },
     "tests/fixtures/desktop.mjs": {
-      "sha256": "dd6b9f8508cc40c6525d07ae2437760f0f010c38b3cff9f86965d005763670d5",
+      "sha256": "5b766595d2e53dd04b8f6083a2c1ae070a93e4292f197df1019b01dcc33f2543",
       "executable": false
     },
     "tests/fixtures/expensify-cutover.csv": {

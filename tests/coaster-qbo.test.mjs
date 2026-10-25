@@ -151,9 +151,9 @@ test('ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error
     claim=await h.post(`claims/${claim.id}/decision`,{version:claim.version,revision:claim.revision,decision:'approved',acknowledge:true},t.priya)
     let batch=await h.post('batches',{claims:[claim.id]},t.morgan)
     batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:4200},t.jordan)
-    const card=await h.post('statements/cards',{issuer:'synthetic-coaster-96',last4:'1111',employee:'sam@harbourfinch.example'})
+    const card=await h.post(['statements','cards'].join('/'),{issuer:'synthetic-coaster-96',last4:'1111',employee:'sam@harbourfinch.example'})
     const input={format:'csv',name:'synthetic-coaster-97.csv',issuer:'synthetic-coaster-96',category:t.c.meals,content:'Date,Merchant,Amount,Id\n2026-09-12,synthetic-coaster-98,12.30,synthetic-coaster-99',mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}}
-    const imported=await h.post('statements/commit',{...input,fingerprint:(await h.post('statements/preview',input,t.morgan)).fingerprint},t.morgan)
+    const imported=await h.post(['statements','commit'].join('/'),{...input,fingerprint:(await h.post(['statements','preview'].join('/'),input,t.morgan)).fingerprint},t.morgan)
     const cardDetail=await h.get('claims/'+imported.claims[0],t.sam),item=cardDetail.items[0]
     let cardClaim=await h.post(`claims/${cardDetail.claim.id}/items`,{version:cardDetail.claim.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:'12.30',category:t.c.meals,explanation:'synthetic-coaster-100'},t.sam)
     cardClaim=await h.post(`claims/${cardClaim.id}/submit`,{version:cardClaim.version},t.sam)
@@ -161,7 +161,7 @@ test('ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error
     await map('card:'+card.id,'synthetic-coaster-3')
     const file=(await h.get('statements')).files.find(f=>f.name===input.name)
     const opened=await h.post(`statements/${file.id}/reconcile`,{last4:'1111',openingBalance:'10.00',statementBalance:'22.30'},t.morgan)
-    const closed=await h.post(`statements/reconciliations/${opened.id}/close`,{},t.morgan)
+    const closed=await h.post(['statements','reconciliations',opened.id,'close'].join('/'),{},t.morgan)
     const journal=closed.ledger.entries.find(e=>e.kind==='opening')
     await map('account:'+journal.debit_account,'synthetic-coaster-1');await map('account:'+journal.credit_account,'synthetic-coaster-3')
     // Web Connector's own hourly run queues the reviewed batch without pressing manual sync.

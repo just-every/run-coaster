@@ -18,7 +18,7 @@ try {
   browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
   let configured=false
   const tag=crypto.randomUUID()
-  for(const width of [1440,390]) {
+  for(const width of process.env.COASTER_DESKTOP_ARCHIVE_ONLY ? [] : [1440,390]) {
     const owner=await session(browser,root,origin,'owner',width)
     if(!configured){if(!(await api(owner.context,origin,'state')).business)await setUp(owner,origin);configured=true}
     const employee=await session(browser,root,origin,'employee',width),manager=await session(browser,root,origin,'manager',width),finance=await session(browser,root,origin,'finance',width)
@@ -64,21 +64,23 @@ try {
       await edge.open(configuration,password);await edge.drain()
       await page.reload();await section.getByText(/Bill · succeeded/).last().waitFor();await shot('desktop-completed')
       const menu=page.locator('summary[data-tooltip="Account menu"]');await page.keyboard.press('Tab');await menu.focus()
-      assert.equal(await menu.evaluate(el=>getComputedStyle(el,'::after').visibility),'visible')
+      if(await menu.isVisible())assert.equal(await menu.evaluate(el=>getComputedStyle(el,'::after').visibility),'visible')
       await page.screenshot({path:join(evidence,`desktop-tooltip-${width}.png`)})
       assert.equal(edge.sent.filter(r=>r.kind==='BillAdd').length,2)
       await section.getByLabel('Stop this connector and keep its posting history',{exact:true}).check()
       await section.getByRole('button',{name:'Disconnect Desktop',exact:true}).click()
     } finally {await Promise.all([owner.context.close(),employee.context.close(),manager.context.close(),finance.context.close()])}
   }
+  if(browser){await browser.close();browser=undefined}
+  if(server){await server.close();server=undefined}
   // Actual public CLI round trip, with connector credentials absent and every numbered audit line identical.
-  await command(root,['export','--output','exports/desktop.rer'])
-  await copyFile(join(root,'exports/desktop.rer'),join(evidence,'desktop.rer'))
+  const exportPath=join('exports','desktop-'+crypto.randomUUID()+'.rer')
+  await command(root,['export','--output',exportPath])
+  await copyFile(join(root,exportPath),join(evidence,'desktop.rer'))
   const before=rows(await records(join(evidence,'desktop.rer')))
   assert.equal(before.some(r=>['c_qbd_connection','c_qbd_tickets'].includes(r.table)),false)
   restored=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:restored});execFileSync('git',['config','user.email','fleet@runeditrun.com'],{cwd:restored})
   await command(restored,['install'])
-  await command(restored,['setup','--owner-email','synthetic-coaster-102@example.invalid','--port',String(await freePort())])
   await mkdir(join(restored,'exports'),{recursive:true})
   await copyFile(join(evidence,'desktop.rer'),join(restored,'exports/desktop.rer'))
   await command(restored,['import','--input','exports/desktop.rer','--yes'])

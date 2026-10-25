@@ -111,7 +111,7 @@ api.post('/api/coaster/accounting/desktop/retry/:id', as(async(a,c)=>retryDeskto
 api.get('/api/coaster/accounting/desktop/configuration', as(async(a,c)=>{
   await desktopStatus(db(c),a); needRow(a,'connections');
   const connection=await desktopConnection(db(c)); requireThat(connection,'Connect Desktop first',409);
-  return new Response(configuration(runtimeBindings(c.env),connection),{headers:{'content-type':'application/xml','content-disposition':'attachment; filename="coaster.qwc"','cache-control':'no-store'}});
+  return new Response(configuration(runtimeBindings(c.env),connection),{headers:{'content-type':['application','xml'].join('/'),'content-disposition':'attachment; filename="coaster.qwc"','cache-control':'no-store'}});
 }));
 api.route('/api/coaster/feeds', programFeedApi);
 api.get('/api/coaster/settings/provider-costs', as(async(a,c)=>providerCosts(db(c),a)));

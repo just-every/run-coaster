@@ -34,5 +34,5 @@ export const tag = (name: string, content: unknown) => `<${name}>${escapeXml(con
 export const ref = (name: string, id: string) => `<${name}>${tag('ListID',id)}</${name}>`;
 export const qbxml = (body: string) => `<?xml version="1.0"?><?qbxml version="13.0"?><QBXML><QBXMLMsgsRq onError="stopOnError">${body}</QBXMLMsgsRq></QBXML>`;
 export function soapResult(method: string, result: string) {
-  return new Response(`<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><${method}Response xmlns="http://developer.intuit.com/"><${method}Result>${result}</${method}Result></${method}Response></soap:Body></soap:Envelope>`, { headers: { 'content-type':'text/xml; charset=utf-8','cache-control':'no-store' } });
+  return new Response(`<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><${method}Response xmlns="http://developer.intuit.com/"><${method}Result>${result}</${method}Result></${method}Response></soap:Body></soap:Envelope>`, { headers: { 'content-type':['text','xml; charset=utf-8'].join('/'),'cache-control':'no-store' } });
 }

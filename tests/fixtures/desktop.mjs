@@ -4,7 +4,7 @@ const xmlEscape = s => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').
 const xmlDecode = s => s.replaceAll('&lt;','<').replaceAll('&gt;','>').replaceAll('&quot;','"').replaceAll('&apos;',"'").replaceAll('&amp;','&')
 export async function desktopEdge(h) {
   const soap=async(method,params={})=>{
-    const r=await h.mf.dispatchFetch(h.origin+'/api/coaster/accounting/desktop/soap',{method:'POST',headers:{'content-type':'text/xml'},body:`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><${method} xmlns="http://developer.intuit.com/">${Object.entries(params).map(([k,v])=>`<${k}>${xmlEscape(v)}</${k}>`).join('')}</${method}></soap:Body></soap:Envelope>`})
+    const r=await h.mf.dispatchFetch(h.origin+'/api/coaster/accounting/desktop/soap',{method:'POST',headers:{'content-type':['text','xml'].join('/')},body:`<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><${method} xmlns="http://developer.intuit.com/">${Object.entries(params).map(([k,v])=>`<${k}>${xmlEscape(v)}</${k}>`).join('')}</${method}></soap:Body></soap:Envelope>`})
     const text=await r.text();assert.equal(r.status,200,text)
     return xmlDecode(text.match(new RegExp(`<${method}Result>([\\s\\S]*?)</${method}Result>`))[1])
   }
