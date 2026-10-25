@@ -1956,7 +1956,7 @@
       "executable": false
     },
     "src/mail.server.mjs": {
-      "sha256": "f34bc28e60f414d33dc7277802facf156910a1262590aefbf9b5351000d90f68",
+      "sha256": "5a602d25d647e49b5dc6759f08c290056d30112c90ceed69013638a8c27661d6",
       "executable": false
     },
     "src/modules/ai/client.mjs": {
