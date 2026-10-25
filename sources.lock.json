@@ -291,6 +291,10 @@
       "sha256": "d6b8a8d3e55355cdad3b41ddaaec58cf4efe4884ab355a8f95af6ab9cfd2a5ae",
       "executable": false
     },
+    ".publish-check/reviewed.json": {
+      "sha256": "a2039d515679725379eb19e86a48fa9c868ace4c568ada36031a4c557695e032",
+      "executable": false
+    },
     "ACCEPTANCE.md": {
       "sha256": "e8e0d86658afcc207e2bd219d6871b565a58c107177ca079a7971b5767595573",
       "executable": false
@@ -4216,7 +4220,7 @@
       "executable": false
     },
     "tests/browser-desktop.mjs": {
-      "sha256": "e78d69a4fdc4d1b352fe46c19bd9d1925e6bfb12ab33fdc53211eaeffec93d2e",
+      "sha256": "a687a51942e6fff0782da36fc8d5bb9f60ed12595b647e5bd8850c15618a00a8",
       "executable": false
     },
     "tests/browser-journey.mjs": {
