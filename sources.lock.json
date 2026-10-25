@@ -6432,7 +6432,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "cf2c79d41d1ed711db8cd88fa8047c0ac1c2aa298bb332ce0a8a68947e904588",
+      "sha256": "aa6b9b2ac8b8124fd6e0e0be01352ca422b7db90fa95ca161b7a10ae321bb76c",
       "executable": false
     },
     "tests/semantic-coding-quality.mjs": {
