@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "findings": [
+    {
+      "rule": "hygiene.email",
+      "path": "tests/browser-desktop.mjs",
+      "blob": "251893fc99652af9fe76f8315549285ce550fab3",
+      "reason": "Exact historical browser fixture: the only non-example mailbox sets the disposable checkout Git author identity; it sends no mail and contains no personal address or credential. Current fixture now uses fleet@example.test. Retain these unpublished ancestors without rewriting history.",
+      "reviewer": "pr-coaster-scan-triage-1",
+      "date": "2026-10-25"
+    },
+    {
+      "rule": "hygiene.email",
+      "path": "tests/browser-desktop.mjs",
+      "blob": "1b6b43f0a65550f565e2ed08bd77377cabd520cf",
+      "reason": "Exact historical browser fixture: the only non-example mailbox sets the disposable checkout Git author identity; it sends no mail and contains no personal address or credential. Current fixture now uses fleet@example.test. Retain these unpublished ancestors without rewriting history.",
+      "reviewer": "pr-coaster-scan-triage-1",
+      "date": "2026-10-25"
+    },
+    {
+      "rule": "hygiene.email",
+      "path": "tests/browser-desktop.mjs",
+      "blob": "ab0574b627c6c89d996fade5e9a9d873a94fc85c",
+      "reason": "Exact historical browser fixture: the only non-example mailbox sets the disposable checkout Git author identity; it sends no mail and contains no personal address or credential. Current fixture now uses fleet@example.test. Retain these unpublished ancestors without rewriting history.",
+      "reviewer": "pr-coaster-scan-triage-1",
+      "date": "2026-10-25"
+    }
+  ]
+}

@@ -14,7 +14,7 @@ await mkdir(evidence,{recursive:true})
 let root=process.env.COASTER_DESKTOP_ROOT,origin=process.env.COASTER_DESKTOP_ORIGIN,server,browser,restored
 const external=!!root
 try {
-  if(!root){root=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root});execFileSync('git',['config','user.email','fleet@runeditrun.com'],{cwd:root});server=await start(root,await freePort());origin=server.origin}
+  if(!root){root=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root});execFileSync('git',['config','user.email','fleet@example.test'],{cwd:root});server=await start(root,await freePort());origin=server.origin}
   browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
   let configured=false
   const tag=crypto.randomUUID()
@@ -79,7 +79,7 @@ try {
   await copyFile(join(root,exportPath),join(evidence,'desktop.rer'))
   const before=rows(await records(join(evidence,'desktop.rer')))
   assert.equal(before.some(r=>['c_qbd_connection','c_qbd_tickets'].includes(r.table)),false)
-  restored=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:restored});execFileSync('git',['config','user.email','fleet@runeditrun.com'],{cwd:restored})
+  restored=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:restored});execFileSync('git',['config','user.email','fleet@example.test'],{cwd:restored})
   await command(restored,['install'])
   await mkdir(join(restored,'exports'),{recursive:true})
   await copyFile(join(evidence,'desktop.rer'),join(restored,'exports/desktop.rer'))
