@@ -130,6 +130,12 @@ test('ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error
     const unchanged=async(run)=>{const before=await h.db.prepare('SELECT count(*) AS n FROM c_events').first();await run();assert.deepEqual(await h.db.prepare('SELECT count(*) AS n FROM c_events').first(),before)}
     await unchanged(()=>h.post(root+'/connect',{consent:true,company:'C:\\synthetic-coaster-1.QBW'},book,403))
     await unchanged(()=>h.post(root+'/sync',{},admin,403))
+    for(const [n,role] of [[111,'employee'],[112,'manager'],[113,'auditor'],[114,'cardAdmin']]) {
+      const denied=await h.person(`synthetic-coaster-${n}@example.invalid`,{[role]:true})
+      await unchanged(()=>h.post(root+'/connect',{consent:true,company:'C:\\synthetic-coaster-1.QBW'},denied,403))
+      await unchanged(()=>h.post(root+'/sync',{},denied,403))
+      await unchanged(()=>h.post(root+'/mappings',{name:'payable',kind:'Account',listId:'synthetic-coaster-2'},denied,403))
+    }
     await h.post(root+'/connect',{company:'C:\\synthetic-coaster-1.QBW'},admin,400)
     const connected=await h.post(root+'/connect',{consent:true,company:'C:\\synthetic-coaster-1.QBW'},admin)
     assert.match(connected.configuration,/<RunEveryNMinutes>60/);assert.ok(!connected.configuration.includes(connected.password))
@@ -164,6 +170,7 @@ test('ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error
     assert.match(edge.sent.find(r=>r.kind==='JournalEntryAdd').request,/<Amount>10.00<\/Amount>/)
     assert.equal(edge.sent.filter(r=>r.kind==='JournalEntryAdd').length,1,'purchase lines already represented by card charges are not journaled again')
     state=await h.get(root,book);const failed=state.requests.find(r=>r.kind==='BillAdd');assert.equal(failed.status,'failed');assert.equal(failed.message,'Account is inactive')
+    await unchanged(()=>h.post(root+'/retry/'+failed.id,{},admin,403))
     const before=edge.sent.length
     await h.post(root+'/retry/'+failed.id,{},book)
     // Continue through the protocol; only the explicitly failed financial request is retried.
@@ -175,6 +182,9 @@ test('ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error
     await edge.open(connected.configuration,connected.password);await edge.drain()
     assert.equal(edge.sent.filter(r=>r.kind==='BillPaymentCheckAdd').length,1);assert.match(edge.sent.find(r=>r.kind==='BillPaymentCheckAdd').request,/<PaymentAmount>42.00<\/PaymentAmount>/)
     await edge.open(connected.configuration,connected.password);await edge.drain();assert.equal(edge.sent.filter(r=>r.kind==='BillPaymentCheckAdd').length,1)
+    assert.equal(edge.sent.filter(r=>r.kind==='CreditCardChargeAdd').length,1)
+    assert.equal(edge.sent.filter(r=>r.kind==='JournalEntryAdd').length,1)
+    for(const method of ['PUT','PATCH','DELETE']) {const response=await h.mf.dispatchFetch(h.origin+'/api/coaster/history',{method,headers:{cookie:h.owner,origin:h.origin}});assert.equal(response.status,404)}
     const lines=(await h.get('history')).lines.filter(l=>l.action.startsWith('desktop-'))
     assert.ok(lines.some(l=>l.action==='desktop-connected'&&l.actor_email==='synthetic-coaster-90@example.invalid'))
     assert.ok(lines.some(l=>l.action==='desktop-sync-started'&&l.channel==='schedule'))
@@ -183,6 +193,12 @@ test('ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error
     await assert.rejects(()=>h.db.prepare("DELETE FROM c_events WHERE action='desktop-connected'").run(),/permanent/)
     await h.post(root+'/disconnect',{},admin)
     assert.equal((await h.get(root,book)).connected,false)
+    await h.post(root+'/connect',{consent:true,company:'C:\\different.QBW'},h.owner,409)
+    for(const allowed of [h.owner,t.morgan]) {
+      await h.post(root+'/connect',{consent:true,company:'C:\\synthetic-coaster-1.QBW'},allowed)
+      await h.post(root+'/sync',{},allowed)
+      await h.post(root+'/disconnect',{},allowed)
+    }
     assert.match(await edge.soap('authenticate',{strUserName:connected.configuration.match(/<UserName>(.*?)<\/UserName>/)[1],strPassword:connected.password}),/nvu/)
   } finally {await h.close()}
 })

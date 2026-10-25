@@ -358,6 +358,7 @@ jobs:
         run: |
           node tests/browser-reading.mjs
           node tests/browser-agents.mjs
+          node tests/browser-desktop.mjs
         env:
           COASTER_EVIDENCE: ${{ runner.temp }}/receipt-agent-proof
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

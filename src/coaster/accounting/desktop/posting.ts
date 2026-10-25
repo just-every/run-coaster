@@ -12,7 +12,7 @@ export async function preparePosting(db: D1Database) {
     for(const person of people) {
       const source=`bill:${batch.id}:${person.email}`,own=lines.filter(l=>l.employee===person.email);
       requireThat(own.reduce((n,l)=>n+l.amountMinor,0)===person.amountMinor,'Employee bill does not reconcile',409);
-      add(source,'BillAdd',{ employee:person.email,date:batch.reviewed_at.slice(0,10),lines:own,total:person.amountMinor,batch:batch.id,currency:batch.currency });
+      add(source,'BillAdd',{ employee:person.email,date:batch.reviewed_at.slice(0,10),lines:own.map(l=>({account:l.account,amountMinor:l.amountMinor,merchant:l.merchant,description:l.description,costCentre:l.costCentre})),total:person.amountMinor,batch:batch.id,currency:batch.currency });
       const posted=await db.prepare("SELECT txn_id FROM c_qbd_requests WHERE source=? AND status='succeeded'").bind(source).first<{txn_id:string}>();
       if(batch.status==='reimbursed' && posted) add(`payment:${batch.id}:${person.email}`,'BillPaymentCheckAdd',{employee:person.email,date:batch.paid_on,txn:posted.txn_id,total:person.amountMinor,reference:batch.paid_reference,currency:batch.currency});
     }
@@ -24,7 +24,7 @@ export async function preparePosting(db: D1Database) {
     const lines=item.allocations.map((p:Data)=>({account:p.account_code,amountMinor:p.amount_minor,costCentre:p.cost_centre,description:item.description,merchant:item.merchant}));
     if(item.sales_tax_minor) lines.push({account:item.sales_tax_account,amountMinor:item.sales_tax_minor,costCentre:'',description:'Sales tax',merchant:item.merchant});
     requireThat(lines.reduce((n:number,l:Data)=>n+l.amountMinor,0)===item.amount_minor,'Card accounting lines do not equal the charge',409);
-    add('card:'+item.card_charge_id,'CreditCardChargeAdd',{card:charge.card_id,date:item.spent_on,lines,total:item.amount_minor});
+    add('card:'+item.card_charge_id,'CreditCardChargeAdd',{card:charge.card_id,claim:claim.id,revision:claim.revision,date:item.spent_on,lines,total:item.amount_minor});
   }
   // Purchase lines are already posted as card charges; journals carry only the remaining statement entries.
   for(const line of (await db.prepare("SELECT * FROM c_card_ledger WHERE kind<>'purchase' ORDER BY posted_at,seq").all<Data>()).results)
@@ -41,6 +41,7 @@ export async function renderPosting(db:D1Database,row:Data) {
   const line=async (l:Data) => {
     return `<ExpenseLineAdd>${r('AccountRef',await mapped(db,'account:'+l.account))}${t('Amount',decimal(l.amountMinor))}${t('Memo',(l.merchant+' '+l.description).slice(0,4095))}${l.costCentre?r('ClassRef',await mapped(db,'class:'+l.costCentre,'Class')):''}</ExpenseLineAdd>`;
   };
+  if(row.kind==='CreditCardChargeAdd') requireThat(await db.prepare("SELECT 1 FROM c_claims WHERE id=? AND revision=? AND status IN('approved','batched','reimbursed')").bind(p.claim,p.revision).first(),'The card claim changed after it was queued; reconcile before posting',409);
   let body='';
   if(row.kind==='BillAdd') body=`<BillAdd>${r('VendorRef',await mapped(db,'vendor:'+p.employee,'Vendor'))}${r('APAccountRef',await mapped(db,'payable'))}${t('TxnDate',p.date)}${t('RefNumber',row.id.replaceAll('-','').slice(0,20))}${t('Memo','Coaster batch '+p.batch)}${(await Promise.all(p.lines.map(line))).join('')}</BillAdd>`;
   else if(row.kind==='CreditCardChargeAdd') body=`<CreditCardChargeAdd>${r('AccountRef',await mapped(db,'card:'+p.card))}${t('TxnDate',p.date)}${t('RefNumber',row.id.replaceAll('-','').slice(0,11))}${t('Memo','Coaster '+row.source)}${(await Promise.all(p.lines.map(line))).join('')}</CreditCardChargeAdd>`;

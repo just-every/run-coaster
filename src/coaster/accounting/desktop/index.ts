@@ -14,7 +14,13 @@ export const catalogKinds = ['Account','Class','Customer','Vendor','Employee'];
 export async function desktopStatus(db: D1Database, a: Actor) {
   nativeAuthority(a, can(a,'connections') ? 'connections' : 'sync');
   const c = await connection(db);
-  return { connected: !!c, company: c?.company ?? '', catalog: (await db.prepare('SELECT * FROM c_qbd_catalog ORDER BY kind,name').all()).results,
+  const accounts=(await db.prepare('SELECT DISTINCT account_code FROM c_categories ORDER BY account_code').all<{account_code:string}>()).results;
+  const people=(await db.prepare('SELECT email,name FROM c_members ORDER BY name').all<{email:string;name:string}>()).results;
+  const cards=(await db.prepare('SELECT id,issuer,last4 FROM c_cards ORDER BY issuer,last4').all<{id:string;issuer:string;last4:string}>()).results;
+  const journal=(await db.prepare('SELECT debit_account AS name FROM c_card_ledger UNION SELECT credit_account AS name FROM c_card_ledger').all<{name:string}>()).results;
+  const classes=(await db.prepare("SELECT DISTINCT cost_centre FROM c_allocations WHERE cost_centre<>''").all<{cost_centre:string}>()).results;
+  const options=[{value:'payable',label:'Accounts payable'},{value:'bank',label:'Recorded payment bank account'},...accounts.map(x=>({value:'account:'+x.account_code,label:'Expense account '+(x.account_code||'(default)')})),...people.map(x=>({value:'vendor:'+x.email,label:'Vendor for '+x.name})),...cards.map(x=>({value:'card:'+x.id,label:x.issuer+' ····'+x.last4})),...journal.map(x=>({value:'account:'+x.name,label:x.name})),...classes.map(x=>({value:'class:'+x.cost_centre,label:'Class '+x.cost_centre}))];
+  return { mappingOptions:options, connected: !!c, company: c?.company ?? '', catalog: (await db.prepare('SELECT * FROM c_qbd_catalog ORDER BY kind,name').all()).results,
     mappings: (await db.prepare('SELECT * FROM c_qbd_mappings ORDER BY name').all()).results,
     requests: (await db.prepare('SELECT id,source,kind,status,message,txn_id,attempts,created_at,completed_at FROM c_qbd_requests ORDER BY created_at,id LIMIT 500').all()).results };
 }
