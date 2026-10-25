@@ -14,7 +14,7 @@ await mkdir(evidence,{recursive:true})
 let root=process.env.COASTER_DESKTOP_ROOT,origin=process.env.COASTER_DESKTOP_ORIGIN,server,browser,restored
 const external=!!root
 try {
-  if(!root){root=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root});execFileSync('git',['config','user.email','fleet@example.test'],{cwd:root});server=await start(root,await freePort());origin=server.origin}
+  if(!root){root=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root});execFileSync('git',['config','user.email','fleet@example.test'],{cwd:root});await command(root,['install']);server=await start(root,await freePort());origin=server.origin}
   browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
   let configured=false
   const tag=crypto.randomUUID()
@@ -79,6 +79,14 @@ try {
   await copyFile(join(root,exportPath),join(evidence,'desktop.rer'))
   const before=rows(await records(join(evidence,'desktop.rer')))
   assert.equal(before.some(r=>['c_qbd_connection','c_qbd_tickets'].includes(r.table)),false)
+  const desktopHistory=before.filter(r=>r.table==='c_events'&&r.row.action.startsWith('desktop-')).map(r=>r.row).sort((a,b)=>a.seq-b.seq)
+  for(const action of ['desktop-connected','desktop-sync-queued','desktop-sync-started','desktop-sync-error','desktop-retry-queued','desktop-sync-completed','desktop-disconnected'])
+    assert.ok(desktopHistory.some(row=>row.action===action),`archive retains ${action}`)
+  assert.ok(desktopHistory.every((row,index)=>row.at&&row.actor_email&&(!index||row.seq>desktopHistory[index-1].seq)),'numbered connector history retains time, actor and order')
+  assert.ok(desktopHistory.some(row=>JSON.parse(row.detail).channel==='schedule'),'scheduled sync attribution survives export')
+  for(const table of ['c_qbd_identity','c_qbd_catalog','c_qbd_mappings','c_qbd_requests'])
+    assert.ok(before.some(r=>r.table===table),`archive retains ${table}`)
+  assert.ok(before.some(r=>r.table==='c_qbd_requests'&&r.row.kind==='BillAdd'&&r.row.status==='succeeded'&&r.row.attempts===2),'archive retains the failed request and its successful isolated retry')
   restored=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:restored});execFileSync('git',['config','user.email','fleet@example.test'],{cwd:restored})
   await command(restored,['install'])
   await mkdir(join(restored,'exports'),{recursive:true})
@@ -86,7 +94,9 @@ try {
   await command(restored,['import','--input','exports/desktop.rer','--yes'])
   await command(restored,['export','--output','exports/desktop-restored.rer'])
   await copyFile(join(restored,'exports/desktop-restored.rer'),join(evidence,'desktop-restored.rer'))
-  assert.deepEqual(rows(await records(join(evidence,'desktop-restored.rer'))),before)
+  const after=rows(await records(join(evidence,'desktop-restored.rer')))
+  assert.deepEqual(after.filter(r=>r.table==='c_events'&&r.row.action.startsWith('desktop-')).map(r=>r.row).sort((a,b)=>a.seq-b.seq),desktopHistory,'CLI restore preserves every connector setup and sync history field exactly')
+  assert.deepEqual(after,before,'CLI restore preserves all portable records exactly')
   console.log('Desktop configuration, catalog, mapping, posting error and isolated retry at 1440 and 390; exact CLI archive round trip passed')
 } finally {
   if(browser)await browser.close()

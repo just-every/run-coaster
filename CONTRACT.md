@@ -384,8 +384,8 @@ Judged from the code and tests at commit `c4548b1e7794604eea0b4d33274771a4529c3c
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 13 | 0 | 0 | 13 |
-| Target and push further | 45 | 18 | 27 | 90 |
-| All | 58 | 18 | 27 | 103 |
+| Target and push further | 46 | 17 | 27 | 90 |
+| All | 59 | 17 | 27 | 103 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -455,7 +455,7 @@ Judged from the code and tests at commit `c4548b1e7794604eea0b4d33274771a4529c3c
 | `ACCT-004` | NetSuite and Sage Intacct | target | missing |  | No NetSuite or Sage Intacct connection. |
 | `ACCT-005` | Exports alongside live sync | target | done | `src/coaster/exports.ts`; `src/coaster/xlsx.ts`; `migrations/core/0025_export_templates.sql`; `src/ui/exports.tsx`; `tests/coaster.test.mjs` (ACCT-005) |  |
 | `ACCT-006` | Posting integrity and close | target | missing |  | No sync, so no error queue, period locks or reversals. |
-| `ACCT-007` | QuickBooks Desktop connection | target | partial | `tests/coaster-qbo.test.mjs` (ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error retry use the native role fences and immutable audit history); `tests/browser-desktop.mjs` (configuration, catalog, mapping, posting and retry at 1440 and 390; CLI archive round trip); `DESKTOP.md` | Native SOAP catalog, bills, card charges, recorded bill payments, balanced journals, replay prevention, isolated QuickBooks retry, role refusals and the 1440 and 390 native screens are proved. Exact fresh-installation CLI archive round trip remains unproved: the development archive was refused for schema mismatch after the local migration changed before publication. ACCT-001 and ACCT-006 remain separate obligations. |
+| `ACCT-007` | QuickBooks Desktop connection | target | done | `tests/coaster-qbo.test.mjs` (ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error retry use the native role fences and immutable audit history: all five catalogs, bills, card charges, recorded bill payments, balanced journals, replay, isolated QuickBooks retry, role refusals and immutable ordered history); `tests/browser-desktop.mjs` (configuration, catalog, mapping, failed and successful posting at 1440 and 390; fresh-installation CLI export, empty-destination restore and re-export preserve every portable record and every connector setup and sync history field exactly); `DESKTOP.md` | None. The accepted network-edge Desktop proof does not complete ACCT-001 or ACCT-006. |
 | `REPORT-001` | Spend analytics | target | done | `src/coaster/spend.ts`; `migrations/core/0031_spend_views.sql`; `src/ui/spend.tsx`; `tests/coaster.test.mjs` (REPORT-001) |  |
 | `REPORT-002` | Operational and compliance reports | target | done | `src/coaster/reports.ts`; `src/coaster/report-schedules.ts`; `src/coaster/business-days.ts`; `migrations/core/0028_report_schedules.sql`; `src/ui/reports.tsx`; `tests/coaster.test.mjs` (REPORT-002) |  |
 | `REPORT-003` | Searchable audit history and auditor access | target | done | `src/coaster/audit.ts`; `src/coaster/zip.ts`; `src/coaster/session.ts`; `src/ui/audit.tsx`; `tests/coaster.test.mjs` (REPORT-003) |  |
