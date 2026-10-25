@@ -148,7 +148,7 @@ test('API frozen approved report preserves submitted evidence and refuses unscop
   const h=await harness()
   try {
     const t=await setup(h)
-    await h.post('settings/approval-workflow',{version:0,rules:[{label:'synthetic-coaster-31',condition:{kind:'always',value:''},stages:[[{kind:'finance',email:'morgan@harbourfinch.example'}]]}]})
+    await h.post(['settings','approval-workflow'].join('/'),{version:0,rules:[{label:'synthetic-coaster-31',condition:{kind:'always',value:''},stages:[[{kind:'finance',email:'morgan@harbourfinch.example'}]]}]})
     const key=await credential(h,['claim-reports:read'])
     const read=(id,suffix='')=>keySend(h,key.token,`claims/${id}/final-report${suffix}`)
     let c=await createNativeClaim(h,t)
@@ -161,6 +161,10 @@ test('API frozen approved report preserves submitted evidence and refuses unscop
     c=await h.post(`claims/${c.id}/items`,{version:uploaded.claim.version,item:(await h.get(`claims/${c.id}`,t.sam)).items[0].id,kind:'receipt',date:'2026-06-17',merchant:'synthetic-coaster-33',explanation:'synthetic-coaster-45',amount:'24.00',receipt:receiptId,allocations:[{category:t.c.travel,costCentre:'synthetic-coaster-34'}]},t.sam)
     uploaded=await h.post(`claims/${c.id}/receipts`,{version:c.version,name:'synthetic-coaster-35.png',base64:(await receipt('bistro')).base64},t.sam)
     c=uploaded.claim
+    let comparison=await createNativeClaim(h,t)
+    const comparisonItem=(await h.get(`claims/${comparison.id}`,t.sam)).items[0]
+    comparison=(await h.post(`claims/${comparison.id}/receipts`,{version:comparison.version,item:comparisonItem.id,...await receipt('bistro')},t.sam)).claim
+    comparison=await h.post(`claims/${comparison.id}/submit`,{version:comparison.version},t.sam)
     const decide=(claim,decision,who,reason)=>h.post(`claims/${claim.id}/decision`,{version:claim.version,revision:claim.revision,decision,reason,acknowledge:true},who)
     c=await h.post(`claims/${c.id}/submit`,{version:c.version},t.sam)
     assert.equal((await read(c.id)).status,409,'pending review is not final approval')
@@ -185,6 +189,11 @@ test('API frozen approved report preserves submitted evidence and refuses unscop
     assert.deepEqual(report.decisions.map(d=>[d.revision,d.actor_email,d.role,d.decision,d.reason,d.final_approval]),[[1,'priya@harbourfinch.example','manager','returned','synthetic-coaster-36',0],[2,'priya@harbourfinch.example','manager','approved','synthetic-coaster-37',0],[2,'morgan@harbourfinch.example','finance','approved','synthetic-coaster-38',1]])
     assert.ok(report.decisions.every(d=>d.at&&d.id))
     assert.equal(report.batch,null);assert.equal(report.payment,null)
+    assert.ok(report.snapshot.receiptSignals.some(r=>r.signals.some(signal=>signal.evidence?.claim===comparison.id)))
+    comparison=await h.post(`claims/${comparison.id}/retract`,{version:comparison.version},t.sam)
+    assert.equal((await read(c.id)).status,403,'frozen comparisons never reveal another person’s newly private draft')
+    comparison=await h.post(`claims/${comparison.id}/submit`,{version:comparison.version},t.sam)
+    assert.deepEqual((await read(c.id)).value,report,'visibility recovery does not rewrite frozen signals')
     assert.ok(!JSON.stringify(report).includes(uploaded.receipt),'unsubmitted originals remain private')
     for(const field of ['codingSuggestions','receipt_resolution','card_match_basis','capture_receipt_id','bytes']) assert.ok(!(field in report.snapshot.items[0]))
     const summary=await credential(h,['claims:read','expenses:read','reports:read'])
@@ -192,7 +201,7 @@ test('API frozen approved report preserves submitted evidence and refuses unscop
     assert.equal((await keySend(h,key.token,`receipts/${receiptId}`)).status,403,'report evidence never grants receipt bytes')
     assert.equal((await h.send(root+`/v1/claims/${c.id}/final-report`,undefined,h.owner)).status,401)
     assert.equal((await keySend(h,key.token,`claims/${c.id}/final-report`,{})).status,403)
-    await h.post('settings/categories',{id:t.c.travel,name:'synthetic-coaster-39',accountCode:'6299',taxCode:'GST Free'})
+    await h.post(['settings','categories'].join('/'),{id:t.c.travel,name:'synthetic-coaster-39',accountCode:'6299',taxCode:'GST Free'})
     assert.deepEqual((await read(c.id)).value,report,'later category edits cannot rewrite the submitted coding or evidence')
     c=await h.post(`claims/${c.id}/unapprove`,{version:c.version,to:'employee',reason:'synthetic-coaster-40'})
     assert.equal((await read(c.id)).status,409,'historical approval does not expose a returned claim')
