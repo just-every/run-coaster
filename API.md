@@ -181,6 +181,7 @@ Public resource routes are relative to `/api/coaster/public-api/v1`:
 | Scope | Routes / behavior |
 |---|---|
 | `claims:read` | `GET /claims`, `GET /claims/:id`: native visible claim summaries. Does not return nested expenses, receipts, decisions, history or people records. Native draft privacy still applies. |
+| `claim-reports:read` | `GET /claims/:id/final-report?revision=N`: approved submitted evidence for PURSE INTAKE-006, under current native visibility; explicit separate grant, no receipt bytes. See below. |
 | `claims:write` | `POST /claims {title}`; `POST /claims/:id/title {version,title}`. Own drafts only. |
 | `expenses:read` | `GET /expenses?claimId=ID`, `GET /expenses/:id`: native visible expenses and allocation coding, with receipt identifiers but no receipt bytes or file metadata. |
 | `expenses:write` | `POST /expenses {claimId,version,...native item fields}`; `POST /expenses/:id {version,...native item fields}`; `POST /expenses/:id/remove {version}`. An existing own draft is required; no claim is created as a side effect of invalid expense input. Native item validation, immutable card facts, allocation rules and exact version checks apply. Responses include `{claim}` with its updated version. |
@@ -196,6 +197,66 @@ Collection results use `{data,nextOffset}`. Optional `offset` starts at zero;
 `limit` defaults to 50 and is at most 100. Reads use the current native role and
 record visibility. Unsupported resource actions refuse. Normal JSON errors
 carry the same 4xx semantics as native handlers; stale writes return 409.
+
+### Frozen approved report for PURSE INTAKE-006
+
+The consumer is **PURSE INTAKE-006 automatic fetch**. The owner explicitly
+names `claim-reports:read` when minting a key or granting OAuth consent; no
+existing scope implies it. The current owner-only, self-bound, expiring grant
+and revocation rules apply unchanged. No new credential principal exists.
+
+`GET /api/coaster/public-api/v1/claims/:id/final-report` requires current native
+claim visibility and status `approved`, `batched` or `reimbursed`, with final
+approval evidence for the current revision. Draft, returned, rejected and
+pending claims refuse with 409 (a natively invisible claim refuses with 403).
+Missing scope refuses with 403; expired or revoked credentials with 401.
+Optional `revision=N` must equal the current approved revision or returns 409;
+it never retrieves an obsolete approval after unapproval or later correction.
+A frozen comparison or split that names a claim now outside native visibility
+refuses the whole report with 403 rather than rewriting its frozen signals.
+Reads return `Cache-Control: no-store` and perform no write or outbound action.
+
+The JSON response contains:
+
+- `claim`: id, number, employee email and **current** status.
+- `revision`, `submitted_by`, `submitted_at`, and `snapshot_sha256`: SHA-256 of
+  the exact retained snapshot JSON bytes, identifying the immutable revision.
+- `snapshot`: the frozen submission's title, currency, total, policy version,
+  approval route, exceptions, policy review, receipt signals, individual expense
+  approvals and split or reopen evidence when present. `items` contains the
+  captured expense facts, splits with category name, account and tax codes,
+  amounts and cost centre, explicit coding ids and captured dimension labels,
+  and each referenced receipt's id, name, media type, size and SHA-256. These
+  are projected from that exact stored revision, never recalculated using
+  today's expense, category, policy, receipt reader or detector state.
+- `decisions`: every submitted decision through this revision, in recorded
+  order, with id, revision, step, decision, reason, approver `actor_email`,
+  `on_behalf_of`, `at`, approval `role` and `final_approval`. Role is the recorded
+  workflow task's manager or finance authority; ordinary and imported-chain
+  reviews use manager authority. Automatic sources are labelled `rule` or
+  `policy-agent`, never presented as human approvers. Intermediate chain and
+  workflow decisions are not labelled final.
+- `batch`: null, or batch id, number, current status, currency, this claim's
+  revision and net payable `amount_minor`, creation, review and release actors
+  and times. It never includes other batch claims or the batch total.
+- `payment`: null, or `{source:"external-recording",reference,paid_on,recorded_by}`
+  for a payment recorded outside Coaster. This does not assert provider settlement.
+
+The snapshot projection deliberately excludes coding suggestion context, private
+receipt confirmations, inbox ids, readings, questions, lifecycle history,
+private notes, storage keys and original bytes. It includes only referenced
+submitted receipt metadata; unattached originals remain private. Receipt
+signals and policy review retain their frozen advisory meaning, including
+unavailable checks; neither is an authenticity or approval grant. Evidence
+absent from an older revision stays absent rather than being reconstructed.
+The snapshot digest describes the retained source JSON, not the projected JSON.
+Later batch or payment recording changes only the response's current sections;
+later native correction creates a new revision and leaves earlier submission
+facts unchanged. Existing erasure and retention rules still govern availability.
+`receipts:read` remains the only public byte door. No submission, approval,
+release, payment, handoff or automatic fetch is performed by this endpoint.
+API-001 remains PARTIAL pending ct ratification of this conservative read grant
+and the standing credential and webhook default, and Base-held hostname egress.
 
 ### Consented signed webhooks
 
@@ -244,8 +305,8 @@ Credentials, OAuth registrations/codes, subscriptions and pending deliveries
 are excluded from installation archives; exported native audit history stays.
 
 Evidence: `tests/coaster-api.test.mjs` covers scoped key preparation and scope
-refusal/resource reads, OAuth consent/redirect/PKCE/single use, and signed
-approval/payment notifications with retries and revocation at the outbound
+refusals and resource reads, the frozen approved report, OAuth consent, exact
+redirect, PKCE and code single use, and signed approval and payment notifications with retries and revocation at the outbound
 network edge. API-001 remains partial pending authority policy review, domain
 egress support, and any wider OAuth consent experience required by that policy.
 

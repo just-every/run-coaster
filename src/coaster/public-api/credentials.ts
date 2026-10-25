@@ -4,7 +4,7 @@ import { event } from '../events';
 import { can } from '../permissions';
 import { now, requireThat, text, uid, type Actor, type Data } from '../types';
 
-export const SCOPES = ['expenses:read','expenses:write','receipts:read','receipts:write','claims:read','claims:write','cards:read','batches:read','payments:read','people:read','reports:read'] as const;
+export const SCOPES = ['expenses:read','expenses:write','receipts:read','receipts:write','claims:read','claims:write','claim-reports:read','cards:read','batches:read','payments:read','people:read','reports:read'] as const;
 export { accessSnapshot, liveIdentity } from './identity';
 import { accessSnapshot, liveIdentity } from './identity';
 export const randomSecret = (prefix: string) => prefix + btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');

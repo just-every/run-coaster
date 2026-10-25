@@ -9,6 +9,7 @@ import { requireThat, type Actor, type Data } from '../types';
 import { authenticate, createKey, nativeOwner, revokeKey } from './credentials';
 import { authorize, exchange, registerClient, revokeClient } from './oauth';
 import * as resources from './resources';
+import { finalReport } from './final-report';
 import { createSubscription, revokeSubscription, subscriptions } from './webhooks';
 
 type C=Context<{Bindings:Bindings}>;
@@ -52,6 +53,7 @@ publicApi.post('/webhooks/:id/revoke',native((a,c)=>revokeSubscription(db(c),a,i
 
 publicApi.get('/v1/claims',scoped('claims:read',async(a,c)=>resources.page(await resources.visibleClaims(db(c),a),c.req.query())));
 publicApi.get('/v1/claims/:id',scoped('claims:read',(a,c)=>resources.oneClaim(db(c),a,id(c))));
+publicApi.get('/v1/claims/:id/final-report',scoped('claim-reports:read',(a,c)=>finalReport(db(c),a,id(c),c.req.query('revision'))));
 publicApi.post('/v1/claims',scoped('claims:write',async(a,c)=>resources.claimSummary(await createClaim(db(c),a,await body(c)))));
 publicApi.post('/v1/claims/:id/title',scoped('claims:write',async(a,c)=>resources.claimSummary(await renameClaim(db(c),await resources.draftActor(db(c),a,id(c)),id(c),await body(c)))));
 publicApi.get('/v1/expenses',scoped('expenses:read',async(a,c)=>{
