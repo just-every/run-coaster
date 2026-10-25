@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5c7b8e026daee07568ae0cc410c3325f8a905f7fbb92a88593368933382d3f19",
+      "sha256": "2ab31a6cf0b4a191d3ecf8eee35d4dc9e90124c4bc89db9d4584e92e1fc7220f",
       "executable": false
     },
     "DEMO.md": {
@@ -1748,7 +1748,7 @@
       "executable": false
     },
     "src/coaster/public-api/final-report.ts": {
-      "sha256": "18e1d28b87e0f9d3db2fce38a6a99f10027dfa73bf4aa2f3eaeb13c1a35d2056",
+      "sha256": "a6ba2437f2b66102b05b35da5fafb337f960fbe6aa938de7d80df00ae96b593a",
       "executable": false
     },
     "src/coaster/public-api/identity.ts": {

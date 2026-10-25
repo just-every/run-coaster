@@ -52,10 +52,11 @@ export async function finalReport(db: D1Database, actor: Actor, id: string, revi
       FROM c_batch_claims bc JOIN c_batches b ON b.id=bc.batch_id WHERE bc.claim_id=? AND bc.revision=? AND b.id=?`).bind(id, claim.revision, claim.batch_id),
     db.prepare('SELECT version FROM c_claims WHERE id=?').bind(id),
   ]);
-  requireThat(current.results[0]?.version === claim.version, 'The claim changed; reload its approved report', 409);
+  requireThat((current.results as Data[])[0]?.version === claim.version, 'The claim changed; reload its approved report', 409);
   const row = revisions.results[0] as Data | undefined;
   requireThat(row, 'Submitted revision missing', 409);
-  requireThat(decisions.results.some((d: Data) => d.revision === claim.revision && d.final_approval === 1), 'Final approval evidence missing', 409);
+  const decisionRows = decisions.results as Data[];
+  requireThat(decisionRows.some(d => d.revision === claim.revision && d.final_approval === 1), 'Final approval evidence missing', 409);
   const snapshot = JSON.parse(row.snapshot);
   await visibleReferences(db, actor, snapshot, id);
   const batch = batches.results[0] as Data | undefined;
@@ -63,7 +64,7 @@ export async function finalReport(db: D1Database, actor: Actor, id: string, revi
     claim: { id: claim.id, number: claim.number, employee_email: claim.employee_email, status: claim.status },
     revision: row.revision, submitted_by: row.submitted_by, submitted_at: row.submitted_at,
     snapshot_sha256: await sha256Hex(row.snapshot), snapshot: frozenSnapshot(snapshot),
-    decisions: decisions.results,
+    decisions: decisionRows,
     batch: batch ? fields(batch, 'id number status currency revision amount_minor created_by created_at reviewed_by reviewed_at released_by released_at') : null,
     payment: batch?.paid_reference ? { source: 'external-recording', reference: batch.paid_reference, paid_on: batch.paid_on, recorded_by: batch.paid_by } : null,
   };
