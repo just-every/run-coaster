@@ -50,10 +50,11 @@ const ADDRESS: [string, string[]][] = [
   ['c_approval_envelopes',['set_by']], ['c_cards', ['employee_email', 'assigned_by']], ['c_card_charges', ['employee_email']], ['c_card_charge_undo_history', ['employee_email']], ['c_statement_files', ['imported_by', 'undone_by']],
   ['c_card_statements', ['opened_by', 'closed_by']], ['c_card_statement_resolutions', ['resolved_by']],
   ['c_departments', ['head_email', 'created_by']], ['c_escalation_chains', ['set_by']], ['c_card_handoffs', ['from_email', 'to_email', 'by_email']],
-  ['c_coding_values', ['owner_email']], ['c_qbo_connections', ['connected_by']],
+  ['c_qbd_connection', ['connected_by']], ['c_coding_values', ['owner_email']], ['c_qbo_connections', ['connected_by']],
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
+  ['c_qbd_requests', ['payload']],
   ['c_receipt_readings', ['fields_json']],
   ['c_auto_coding_rules',['fields']], ['c_auto_coding_contexts',['values_json']], ['c_auto_coding_suggestions',['fields','evidence']], ['c_auto_coding_feedback',['values_json']], ['c_auto_coding_observations',['fields']],
   ['c_approval_workflows',['rules']], ['c_requests',['workflow']],
@@ -156,6 +157,8 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     // Text that embeds the address: a receipt-less expense's reimbursement key and an agent's "<label> for <address>" upload.
     sql("UPDATE c_reimbursement_keys SET key='expense:'||?||substr(key,length(?)+9) WHERE substr(key,1,length(?)+9)='expense:'||?||'|'", subject, address, address, address),
     sql("UPDATE c_receipts SET uploaded_by=substr(uploaded_by,1,length(uploaded_by)-length(?))||? WHERE source='agent' AND substr(uploaded_by,-(length(?)+5))=' for '||?", address, subject, address, address),
+    sql("UPDATE c_qbd_requests SET source=replace(source,?,?) WHERE instr(source,?)>0",address,subject,address),
+    sql("UPDATE c_qbd_mappings SET name='vendor:'||? WHERE name='vendor:'||?",subject,address),
     // Kept, under the label: every column holding their address, and their address inside JSON.
     sql(`INSERT INTO c_capture_lifecycle(receipt_id,sequence,kind,reason,at,actor_email,on_behalf_of,channel)
       SELECT r.id,(SELECT MAX(sequence)+1 FROM c_capture_lifecycle WHERE receipt_id=r.id),'match-withdrawn','',?,?,r.owner_email,'app'

@@ -1,3 +1,4 @@
+import { Desktop } from './desktop';
 import { ProviderCosts } from './provider-costs';
 import { CaptureWindow } from './capture-window';
 import { WorkflowEditor } from './workflow-editor';
@@ -78,7 +79,7 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Escalate after (business days)" name="escalateAfter" inputMode="numeric" required={false} defaultValue={b.escalation_days == null ? '' : String(b.escalation_days)} hint="After the last reminder, to the person's manager, then the same again to finance; empty turns escalation off" />
       </Form>
     </Section>}
-    {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <QuickBooks state={state} />}
+    {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <><QuickBooks state={state} /><Desktop state={state} /></>}
     {b && !state.actor.delegate && (admin || roles.finance) && <ProgramFeed state={state} />}
     {b && owner && !state.actor.delegate && <ProviderCosts />}
     {b && admin && !state.actor.delegate && <ReceiptReadingSettings />}

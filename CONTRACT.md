@@ -455,7 +455,7 @@ Judged from the code and tests at commit `c4548b1e7794604eea0b4d33274771a4529c3c
 | `ACCT-004` | NetSuite and Sage Intacct | target | missing |  | No NetSuite or Sage Intacct connection. |
 | `ACCT-005` | Exports alongside live sync | target | done | `src/coaster/exports.ts`; `src/coaster/xlsx.ts`; `migrations/core/0025_export_templates.sql`; `src/ui/exports.tsx`; `tests/coaster.test.mjs` (ACCT-005) |  |
 | `ACCT-006` | Posting integrity and close | target | missing |  | No sync, so no error queue, period locks or reversals. |
-| `ACCT-007` | QuickBooks Desktop connection | target | missing |  | No QuickBooks Desktop connector. |
+| `ACCT-007` | QuickBooks Desktop connection | target | partial | `tests/coaster-qbo.test.mjs` (ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error retry use the native role fences and immutable audit history); `tests/browser-desktop.mjs` (configuration, catalog, mapping, posting and retry at 1440 and 390; CLI archive round trip); `DESKTOP.md` | Native connector and HTTP posting proof implemented; browser and exact archive proof pending. |
 | `REPORT-001` | Spend analytics | target | done | `src/coaster/spend.ts`; `migrations/core/0031_spend_views.sql`; `src/ui/spend.tsx`; `tests/coaster.test.mjs` (REPORT-001) |  |
 | `REPORT-002` | Operational and compliance reports | target | done | `src/coaster/reports.ts`; `src/coaster/report-schedules.ts`; `src/coaster/business-days.ts`; `migrations/core/0028_report_schedules.sql`; `src/ui/reports.tsx`; `tests/coaster.test.mjs` (REPORT-002) |  |
 | `REPORT-003` | Searchable audit history and auditor access | target | done | `src/coaster/audit.ts`; `src/coaster/zip.ts`; `src/coaster/session.ts`; `src/ui/audit.tsx`; `tests/coaster.test.mjs` (REPORT-003) |  |

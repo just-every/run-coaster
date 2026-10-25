@@ -158,6 +158,19 @@
         "The generated CSV filename is sent back for download; returned reports and policy metadata are kept only in a new private local directory; credentials and provider error bodies are never retained or logged"
       ],
       "adapters": []
+    },
+    {
+      "id": "quickbooks-desktop-connector",
+      "required": false,
+      "requiredWhen": "An owner, admin or finance person explicitly authorizes the original company file and installs its Web Connector configuration",
+      "why": "The scheduled Web Connector reads accounting catalogs and receives queued approved expenses, recorded payments and balanced statement journals. Disconnect stops future sessions.",
+      "data": [
+        "Generated configuration with installation URL and random connector identity; a one-time password is entered privately into Web Connector and stored only as a hash in Coaster",
+        "Accounts, classes, customers, vendors and employees from the connected Desktop company",
+        "Consented qbXML responses carry account references, expense dates, amounts and descriptions, employee vendor references, recorded payment references and journal entries; no private receipt original is sent",
+        "Password hashes and live tickets are excluded from installation archives; request identities and ordered audit history are retained"
+      ],
+      "adapters": []
     }
   ],
   "env": [],

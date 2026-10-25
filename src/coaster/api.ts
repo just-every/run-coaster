@@ -1,3 +1,4 @@
+import { desktopStatus, connectDesktop, disconnectDesktop, syncDesktop, retryDesktop, mapDesktop, desktopSoap, configuration, connection as desktopConnection } from './accounting/desktop';
 import { prepareClose, prepareTrip, prepareExpense } from './agents/preparations';
 import { receiptQuestion, answerReceiptQuestion } from './receipts/questions';
 import { providerCosts, saveProviderCosts } from './provider-costs';
@@ -100,6 +101,18 @@ const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) =
 };
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
 
+api.post('/api/coaster/accounting/desktop/soap', c => desktopSoap(runtimeBindings(c.env),c.req.raw));
+api.get('/api/coaster/accounting/desktop', as(async(a,c)=>desktopStatus(db(c),a)));
+api.post('/api/coaster/accounting/desktop/connect', as(async(a,c)=>connectDesktop(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/accounting/desktop/disconnect', as(async(a,c)=>disconnectDesktop(db(c),a)));
+api.post('/api/coaster/accounting/desktop/sync', as(async(a,c)=>syncDesktop(db(c),a)));
+api.post('/api/coaster/accounting/desktop/mappings', as(async(a,c)=>mapDesktop(db(c),a,await body(c))));
+api.post('/api/coaster/accounting/desktop/retry/:id', as(async(a,c)=>retryDesktop(db(c),a,param(c,'id'))));
+api.get('/api/coaster/accounting/desktop/configuration', as(async(a,c)=>{
+  await desktopStatus(db(c),a); needRow(a,'connections');
+  const connection=await desktopConnection(db(c)); requireThat(connection,'Connect Desktop first',409);
+  return new Response(configuration(runtimeBindings(c.env),connection),{headers:{'content-type':'application/xml','content-disposition':'attachment; filename="coaster.qwc"','cache-control':'no-store'}});
+}));
 api.route('/api/coaster/feeds', programFeedApi);
 api.get('/api/coaster/settings/provider-costs', as(async(a,c)=>providerCosts(db(c),a)));
 api.post('/api/coaster/settings/provider-costs', as(async(a,c)=>saveProviderCosts(db(c),a,await body(c))));
