@@ -64,7 +64,7 @@ export function ReceiptInbox({ state, onChanged }: { state: D; onChanged: () => 
   const active = receipts.filter(receipt => receipt.disposition === 'active'), discarded = receipts.filter(receipt => receipt.disposition === 'discarded'), merged = receipts.filter(receipt => receipt.disposition === 'merged');
   return <Section title="Receipt inbox" className="receipt-inbox" label="Receipt inbox">
     <p className="muted">Keep receipts here before you enter their expenses. JPEG, PNG, WebP, HEIC and multi-page PDF, up to 10 MB each. Enter expense details by hand, or explicitly choose receipt reading when your business enables it.</p>
-    <Details><ReceiptEmailAddress /></Details>
+    <Details label="Email receipts"><ReceiptEmailAddress /></Details>
     <div className={`receipt-drop${over ? ' receipt-drop-over' : ''}`} role="group" aria-label="Drop receipt files" aria-busy={busy}
       onDragOver={e => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={e => { e.preventDefault(); setOver(false); upload([...e.dataTransfer.files]); }}>

@@ -61,7 +61,7 @@ function AliasProof({ alias, changed }: { alias: ReceiptAlias; changed: (notice:
 export function ReceiptEmailSettings() {
   const { data, error, load, retry } = useReceiptEmail(), [notice, setNotice] = useState('');
   const changed = async (message: string) => { setNotice(message); await load(); };
-  return <Section title="Receipt email">
+  return <Section title="Receipt email" label="Receipt email">
     <div style={{ fontSize: 14, overflowWrap: 'anywhere' }}>
       <p className="muted">Receipts from your member address or a confirmed alias enter your private inbox. Unknown senders are held for the owner.</p>
       <p role="status" aria-live="polite">{notice}</p>
