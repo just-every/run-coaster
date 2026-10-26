@@ -41,7 +41,7 @@ export async function confirmReceiptAlias(db:D1Database,a:Actor,b:Data) {
  ownSession(a);const address=email(b.email);
  requireThat(Object.keys(b).every(k=>['email','code'].includes(k))&&typeof b.code==='string'&&b.code.length<=100,'Enter the emailed proof code');
  const hash=await sha256Hex(b.code),at=now();
- await commit(db,all(authority(a,'employee'),{sql:'EXISTS(SELECT 1 FROM c_receipt_mail_aliases WHERE email=? AND owner_email=? AND proof_hash=? AND expires_at>? AND confirmed_at IS NULL)',params:[address,a.email,hash,at]}),[db.prepare("UPDATE c_receipt_mail_aliases SET confirmed_at=?,proof_hash='' WHERE email=? AND owner_email=?").bind(at,address,a.email)]);
+ await commit(db,all(authority(a,'employee'),{sql:'EXISTS(SELECT 1 FROM c_receipt_mail_aliases WHERE email=? AND owner_email=? AND proof_hash=? AND expires_at>? AND confirmed_at IS NULL) AND NOT EXISTS(SELECT 1 FROM c_members WHERE email=? AND email<>?)',params:[address,a.email,hash,at,address,a.email]}),[db.prepare("UPDATE c_receipt_mail_aliases SET confirmed_at=?,proof_hash='' WHERE email=? AND owner_email=?").bind(at,address,a.email)]);
  return {confirmed:true};
 }
 export async function removeReceiptAlias(db:D1Database,a:Actor,b:Data) {

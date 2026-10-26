@@ -21,7 +21,7 @@ export async function receiveEmail(message:ForwardableEmailMessage,env:Bindings)
  if(!settings||message.to.toLowerCase()!==settings.address){message.setReject('Receipt address is not enabled');return;}
  const bytes=await rawBytes(message),hash=await sha256Hex(bytes),bucket=receiptBucket(env.COASTER_RECEIPTS);
  if(await db.prepare('SELECT id FROM c_receipt_mail_messages WHERE sha256=?').bind(hash).first())return;
- const sender=message.from.toLowerCase(),owner=await db.prepare(ownerQuery).bind(sender,sender).first<{email:string}>();
+ const sender=message.from.toLowerCase(),owners=(await db.prepare(ownerQuery).bind(sender,sender).all<{email:string}>()).results,owner=owners.length===1?owners[0]:null;
  let subject='',reason=owner?'':'Unknown sender; no inbox assignment',files:Awaited<ReturnType<typeof mailReceiptFiles>>=[];
  try {
   const parsed=await normalizeInbound({provider:'cloudflare',message:{from:sender,to:message.to,headers:message.headers,raw:new Blob([bytes]).stream(),rawSize:bytes.length}},{maxRawBytes:LIMIT,maxBodyBytes:1_000_000,maxAttachments:30,maxAttachmentBytes:10_000_000,maxTotalAttachmentBytes:20_000_000});
@@ -32,7 +32,7 @@ export async function receiveEmail(message:ForwardableEmailMessage,env:Bindings)
  const employee=reason?null:owner!.email,id=uid(),at=now(),key=`receipt-mail/${id}/${hash}`;
  const uploaded:string[]=[],writes:D1PreparedStatement[]=[];
  const configuration:Sql={sql:'EXISTS(SELECT 1 FROM c_receipt_mail_settings WHERE id=1 AND address=? AND version=?)',params:[settings.address,settings.version]};
- const identity:Sql=employee?{sql:`EXISTS(${ownerQuery} AND m.email=?)`,params:[sender,sender,employee]}:{sql:'1',params:[]};
+ const identity:Sql=employee?{sql:`(SELECT COUNT(*) FROM (${ownerQuery}))=1 AND EXISTS(${ownerQuery} AND m.email=?)`,params:[sender,sender,sender,sender,employee]}:{sql:'1',params:[]};
  try {
   await storeReceipt(bucket,key,bytes,'message/rfc822',hash);uploaded.push(key);
   writes.push(db.prepare('INSERT INTO c_receipt_mail_messages(id,sha256,object_key,size,sender,recipient,subject,owner_email,received_at,held_reason) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,hash,key,bytes.length,sender,settings.address,subject,employee,at,reason));
@@ -44,10 +44,12 @@ export async function receiveEmail(message:ForwardableEmailMessage,env:Bindings)
    for(const [sequence,state,reason] of [[1,'received',''],[2,'needs-attention','Forwarded original retained. Enter details or explicitly choose receipt reading.']] as const)
     writes.push(db.prepare("INSERT INTO c_capture_receipt_events(receipt_id,sequence,state,reason,at,actor_email,on_behalf_of,channel) VALUES(?,?,?,?,?,'automation: email intake',?,'app')").bind(receiptId,sequence,state,reason,at,employee));
   }
-  await commit(db,all(configuration,identity,{sql:'NOT EXISTS(SELECT 1 FROM c_receipt_mail_messages WHERE sha256=?)',params:[hash]}),writes);
+  await commit(db,all({sql:`(${configuration.sql}) AND (${identity.sql})`,params:[...configuration.params,...identity.params]}, {sql:'NOT EXISTS(SELECT 1 FROM c_receipt_mail_messages WHERE sha256=?)',params:[hash]}),writes);
  } catch(error){
+  const saved=await db.prepare('SELECT id FROM c_receipt_mail_messages WHERE sha256=?').bind(hash).first<{id:string}>();
+  if(saved?.id===id)return;
   await Promise.all(uploaded.map(objectKey=>bucket.delete(objectKey)));
-  if(await db.prepare('SELECT id FROM c_receipt_mail_messages WHERE sha256=?').bind(hash).first())return;
+  if(saved)return;
   throw error;
  }
 }

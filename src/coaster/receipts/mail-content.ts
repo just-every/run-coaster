@@ -32,6 +32,7 @@ export async function mailReceiptFiles(message: MailReceiptMessage): Promise<Mai
   }
   if (files.length && !message.html?.trim()) return files;
 
+  requireThat(!message.attachments.length || files.length || message.html?.trim(), 'The email has no supported receipt attachment', 422);
   const body = message.html?.trim() ? htmlText(message.html) : printable(message.text ?? '').trim();
   requireThat(body.length <= 100_000, 'The receipt body is too long to render; its source must be held', 422);
   requireThat(body.trim(), 'The email has no supported receipt attachment or readable body', 422);

@@ -1864,11 +1864,11 @@
       "executable": false
     },
     "src/coaster/receipts/mail-content.ts": {
-      "sha256": "440f6fe88c68e2ba98795eea20bf7a0a1cb12f052f23479a6e767f42d686102d",
+      "sha256": "13f103da3b8e074c6884b2542876e49f1b2224558ca60b9bf8cfde9a0f846055",
       "executable": false
     },
     "src/coaster/receipts/mail-intake.ts": {
-      "sha256": "ef249d23b57abc954bae143dc70edb6ab9576d9b150747793df904330dc7b733",
+      "sha256": "4e7c45296674426478811cff4759e9246e94ae5fd699d3a86687b53c5f913b1b",
       "executable": false
     },
     "src/coaster/receipts/mail-parser.d.mts": {
@@ -1880,7 +1880,7 @@
       "executable": false
     },
     "src/coaster/receipts/mail-settings.ts": {
-      "sha256": "537bfa8d0225c1fa7dad86c8cc955efb95ee0bc82adf8deebfbba9b617f06017",
+      "sha256": "596f0248dc997052eff0724744664d062899ef4112eaa426d9dcdf8e00c769cd",
       "executable": false
     },
     "src/coaster/receipts/match-notice.ts": {
