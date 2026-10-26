@@ -38,9 +38,7 @@ function companyTaxValue(requirement) {
   if (requirement.value !== null && requirement.value !== undefined) return requirement.value
   const metadata = requirement.metadata
   if (metadata.options?.length) return (metadata.options.find(o => o.value === false) ?? metadata.options[0]).value
-  // Published Gusto CA registration example, for this fictitious Demo company:
-  // https://support.gusto.com/article/106732676100000/California-registration-and-tax-info
-  if (metadata.type === 'account_number') return '123-4567-8'
+  if (metadata.type === 'account_number') return null
   if (metadata.type === 'tax_rate') {
     if (metadata.validation?.rates?.length) return Number(metadata.validation.rates[0])
     if (metadata.validation?.min !== undefined) return Number(metadata.validation.min)
@@ -98,9 +96,11 @@ export async function provisionEmployeeCompany(call) {
   if (workerStatus.onboarding_status !== 'onboarding_completed') workerStatus = await api(worker + '/onboarding_status', { onboarding_status: 'onboarding_completed' }, 'PUT')
   assert.equal(workerStatus.onboarding_status, 'onboarding_completed')
   const tax = await api(root + '/tax_requirements/CA')
+  console.log(JSON.stringify({ event: 'gusto_demo_tax_fields', fields: tax.requirement_sets.flatMap(set => set.requirements.map(r => ({ key: r.key, label: r.label, metadata: r.metadata, payroll_blocking: r.payroll_blocking, default_value_applied: r.default_value_applied, value: r.value }))) }))
   const requirementSets = tax.requirement_sets.map(set => ({ key: set.key, state: set.state, ...(set.effective_from ? { effective_from: set.effective_from } : {}),
-    requirements: set.requirements.filter(r => r.editable).map(r => ({ key: r.key, value: companyTaxValue(r) })) }))
+    requirements: set.requirements.filter(r => r.editable && (r.payroll_blocking === true || r.value !== null && r.value !== undefined)).map(r => ({ key: r.key, value: companyTaxValue(r) })) })).filter(set => set.requirements.length)
   await api(root + '/tax_requirements/CA', { requirement_sets: requirementSets }, 'PUT')
+  console.log(JSON.stringify({ event: 'gusto_demo_tax_readiness', requirements: await api(root + '/tax_requirements') }))
   const signatory = await api(root + '/signatories', { first_name: 'Test', last_name: 'Signatory', title: 'Owner', phone: '4155550100', birthday: '1980-01-01',
     email: 'synthetic-coaster-signatory@example.com', ssn: '123451776', home_address: address })
   assert.equal(signatory.identity_verification_status, 'Pass', 'Demo signatory must pass before any fictitious signing')

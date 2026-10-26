@@ -1,10 +1,12 @@
 // Live PAY-003 acceptance. Run with held app keys through the approved injector
 // and heavy-slot. Only Gusto Demo receives requests; credentials stay in memory.
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { gustoOrigin, provisionEmployeeCompany, sandboxApi } from './gusto-sandbox-company.mjs'
 import { harness } from './harness.mjs'
 
 const { call, clean } = sandboxApi()
+console.log(JSON.stringify({ event: 'gusto_sandbox_invocation', code_sha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), providerOrigin: gustoOrigin, apiVersion: '2026-06-15' }))
 const nativeRoot = ['payroll', 'gusto'].join('/')
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 async function completed(api, path, phase) {
@@ -59,7 +61,15 @@ async function journey() {
     headers.delete('host'); headers.delete('content-length')
     const response = await fetch(url, { method: request.method, headers, redirect: 'error',
       ...(['GET', 'HEAD'].includes(request.method) ? {} : { body: await request.arrayBuffer() }) })
-    return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers })
+    const bytes = await response.arrayBuffer()
+    if (!response.ok) console.error(clean(JSON.stringify({ event: 'gusto_demo_forward_error', method: request.method, path: url.pathname,
+      status: response.status, body: new TextDecoder().decode(bytes) })))
+    if (response.ok && url.pathname.endsWith('/prepare')) {
+      const payroll = JSON.parse(new TextDecoder().decode(bytes))
+      console.log(JSON.stringify({ event: 'gusto_demo_prepared_shape', payroll: payroll.payroll_uuid, fixed_compensation_types: payroll.fixed_compensation_types,
+        employees: payroll.employee_compensations.map(e => ({ employee: e.employee_uuid, fixed_compensations: e.fixed_compensations, reimbursements: e.reimbursements })) }))
+    }
+    return new Response(bytes, { status: response.status, headers: response.headers })
   } })
   try {
     const { batch, email, claims } = await nativeBatch(h)

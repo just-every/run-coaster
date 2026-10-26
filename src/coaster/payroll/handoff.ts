@@ -52,7 +52,9 @@ export async function sendPayroll(env: Bindings, actor: Actor, id: string, body:
   await commit(env.DB,all(auth,connectionState(c),batchState(id,batch.version),recent),[event(env.DB,actor,'payroll-prepare-requested',{batch:id},{company:c.company_uuid,payroll:next.payroll_uuid})]);
   const payroll = await readPayroll(env,actor,c,next.payroll_uuid,true);
   requireThat(payroll.processed === false && payroll.off_cycle === false && !['calculating','submitting'].includes(payroll.processing_request?.status), 'The payroll is already being processed',409);
-  const expected = compensationPlan(payroll,lines,`Coaster ${batchNumber(batch.number)}`), key=uid(), at=now();
+  const earnings = lines.some(line=>line.taxableMinor>0) ? await request(env,actor,c,`/v1/companies/${c.company_uuid}/earning_types`) : { default: [] };
+  const bonusAvailable = Array.isArray(earnings.default) && earnings.default.some((earning:Data)=>earning.name==='Bonus');
+  const expected = compensationPlan(payroll,lines,`Coaster ${batchNumber(batch.number)}`,bonusAvailable), key=uid(), at=now();
   await commit(env.DB,all(auth,connectionState(c),batchState(id,batch.version),recent),[
     env.DB.prepare("INSERT INTO c_payroll_handoffs(id,batch_id,company_uuid,payroll_uuid,check_date,status,lines,expected,created_by,created_at) VALUES(?,?,?,?,?,'reserved',?,?,?,?)").bind(key,id,c.company_uuid,next.payroll_uuid,payroll.check_date,JSON.stringify(lines.map(({name,...line})=>line)),JSON.stringify(await Promise.all(expected.map(compensationEvidence))),actor.email,at),
     env.DB.prepare('UPDATE c_batches SET version=version+1 WHERE id=?').bind(id),

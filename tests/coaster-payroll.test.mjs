@@ -56,6 +56,7 @@ test('Payroll preserves the reviewed split, waits for exact provider confirmatio
 
 test('Payroll refuses unauthorized handoffs and recovers a lost provider acknowledgement without another payment write',async()=>{
   const edge=gustoFixture(),h=await harness({gustoEdge:r=>edge.fetch(r)});
+  edge.payroll.employee_compensations[0].fixed_compensations=edge.payroll.employee_compensations[0].fixed_compensations.filter(f=>f.name!=='Bonus');
   try {
     const t=await payrollBatch(h),root=['payroll','gusto'].join('/');
     const admin=await h.person('synthetic-coaster-130@example.invalid',{admin:true});
@@ -85,6 +86,10 @@ test('Payroll refuses unauthorized handoffs and recovers a lost provider acknowl
     assert.equal(edge.writes.length,0,'connection withdrawal after provider preparation prevents the payment update');
     assert.equal((await h.get(path)).handoff,null);
     await connectFixture(h,edge,t.memberEmail);
+    edge.earnings={default:[],custom:[]};
+    await h.post(path,body,h.owner,409);
+    assert.equal(edge.writes.length,0,'a taxable earning is never invented outside the provider catalog');
+    edge.earnings={default:[{name:'Bonus'}],custom:[]};
     edge.lostAck=true;
     await h.post(path,body,h.owner,502);
     assert.equal((await h.get(path)).handoff.status,'reserved');
@@ -99,6 +104,7 @@ test('Payroll refuses unauthorized handoffs and recovers a lost provider acknowl
     edge.payroll={...edge.payroll,processed:true};
     assert.equal((await h.post(path+'/confirm',{})).confirmed,true);
     assert.equal(edge.writes.length,1,'reconnection reconciles the original reserved effect');
+    assert.equal(edge.payroll.employee_compensations[0].fixed_compensations.find(f=>f.name==='Bonus').amount,'12.00','a provider-listed earning can be added without inventing a job allocation');
   } finally {await h.close();}
 });
 

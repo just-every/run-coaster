@@ -18,7 +18,7 @@ export async function payrollLines(env: Bindings, batch: Batch): Promise<Payroll
 }
 
 /** Preserve existing payroll amounts. A versioned update touches only the selected employees. */
-export function compensationPlan(payroll: Data, lines: PayrollLine[], reference: string) {
+export function compensationPlan(payroll: Data, lines: PayrollLine[], reference: string, bonusAvailable: boolean) {
   requireThat(Array.isArray(payroll.employee_compensations), 'Prepare the Gusto run before adding amounts', 409);
   return lines.map(line => {
     const employee = payroll.employee_compensations.find((e: Data) => e.employee_uuid === line.employeeUuid);
@@ -30,8 +30,9 @@ export function compensationPlan(payroll: Data, lines: PayrollLine[], reference:
     const fixed = employee.fixed_compensations.map((f: Data) => ({ ...f }));
     if (line.taxableMinor) {
       const bonus = fixed.find((f: Data) => f.name === 'Bonus');
-      requireThat(bonus && typeof bonus.job_uuid === 'string', 'This employee needs a taxable Bonus earning on the next Gusto payroll', 409);
-      bonus.amount = dollars(cents(bonus.amount) + line.taxableMinor);
+      requireThat(bonusAvailable, 'The Gusto company does not offer the taxable Bonus earning required by this batch', 409);
+      if (bonus) bonus.amount = dollars(cents(bonus.amount) + line.taxableMinor);
+      else fixed.push({ name: 'Bonus', amount: dollars(line.taxableMinor) });
     }
     return { employee_uuid: line.employeeUuid, version: employee.version, excluded: false, payment_method: employee.payment_method, fixed_compensations: fixed, reimbursements };
   });
@@ -40,7 +41,7 @@ const sorted = (values: Data[]) => values.map(value => JSON.stringify(value)).so
 /** Provider-generated reimbursement UUIDs and compensation versions may change; financial evidence may not. */
 export async function compensationEvidence(row: Data) {
   const refunds = (row.reimbursements ?? []).map((r: Data) => ({ amount: cents(r.amount), description: r.description ?? '' }));
-  const fixed = (row.fixed_compensations ?? []).filter((f: Data) => cents(f.amount) !== 0).map((f: Data) => ({ name: f.name, job: f.job_uuid, amount: cents(f.amount) }));
+  const fixed = (row.fixed_compensations ?? []).filter((f: Data) => cents(f.amount) !== 0).map((f: Data) => ({ name: f.name, amount: cents(f.amount) }));
   return { employee_uuid: row.employee_uuid, payment_method: row.payment_method, reimbursementMinor: refunds.reduce((sum: number,r: Data)=>sum+r.amount,0), reimbursementDigest: await sha256Hex(JSON.stringify(sorted(refunds))), fixedDigest: await sha256Hex(JSON.stringify(sorted(fixed))) };
 }
 export async function sameCompensation(actual: Data, expected: Data) {

@@ -8,12 +8,13 @@ export const gustoFixture = () => {
     fixed_compensations:[{name:'Bonus',amount:'3.00',job_uuid:'synthetic-coaster-105'},{name:'Salary',amount:'1000.00',job_uuid:'synthetic-coaster-105'}],
   }]};
   const writes=[];
-  const fixture={company,employee,payrollId,writes,employees:[{uuid:employee,first_name:'Sam',last_name:'Taylor',email:'sam@harbourfinch.example',terminated:false}],lostAck:false,hold:null,get payroll(){return payroll;},set payroll(value){payroll=value;},async fetch(request){
+  const fixture={company,employee,payrollId,writes,earnings:{default:[{name:'Bonus'}],custom:[]},employees:[{uuid:employee,first_name:'Sam',last_name:'Taylor',email:'sam@harbourfinch.example',terminated:false}],lostAck:false,hold:null,get payroll(){return payroll;},set payroll(value){payroll=value;},async fetch(request){
     const url=new URL(request.url),path=url.pathname;
     assert.equal(url.origin,'https://api.gusto-demo.com');
     if(fixture.hold)await fixture.hold(request);
     if(path===`/v1/companies/${company}`)return Response.json({uuid:company,name:'Harbour and Finch sandbox'});
     if(path.endsWith('/employees'))return Response.json(fixture.employees.slice((Number(url.searchParams.get('page')??1)-1)*100,Number(url.searchParams.get('page')??1)*100));
+    if(path.endsWith('/earning_types'))return Response.json(fixture.earnings);
     if(path.endsWith('/payrolls'))return Response.json([payroll]);
     const page=()=>({...payroll,employee_compensations:payroll.employee_compensations.slice((Number(url.searchParams.get('page')??1)-1)*100,Number(url.searchParams.get('page')??1)*100)});
     if(path.endsWith('/prepare'))return Response.json(page());
