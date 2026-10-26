@@ -4316,11 +4316,11 @@
       "executable": false
     },
     "tests/browser-email-questions.mjs": {
-      "sha256": "4f3265d6b4adc4211d82621227ff3b45542ace3c2f20d938c4f51c719b968d94",
+      "sha256": "79241ff269afd961723c503c19948b2ad0776c084737257487307b937340bb33",
       "executable": false
     },
     "tests/browser-email.mjs": {
-      "sha256": "8387171afaa255158dab2bbda0e1437cd16d68a53f4941c956b62480a2ddd8d1",
+      "sha256": "e3f8913b3cc25c347a3f88248ee5610b5789104f4db349af16a9479113d12b2f",
       "executable": false
     },
     "tests/browser-journey.mjs": {
