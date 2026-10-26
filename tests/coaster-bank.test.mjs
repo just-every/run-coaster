@@ -42,6 +42,7 @@ test('Employees add a bank account by instant verification and another by micro-
     await h.post('bank/verify', { id: pending.account.id, amounts: [32, 45] }, t.employee, 404);
     const verified = await h.post('bank/verify', { id: pending.account.id, amounts: [32, 45] }, t.finance);
     assert.deepEqual([verified.status, verified.account.method, verified.account.last4], ['active', 'microdeposit', '6789']);
+    await h.post('bank/complete', { provider: 'stripe', setupIntent: pending.start.setupIntent }, t.finance, 409);
 
     // Only tokens and the last four are held: the full numbers never reach Coaster, and tokens are sealed.
     const stored = await everything(h), outbound = JSON.stringify(h.outbound.map(r => r.body));

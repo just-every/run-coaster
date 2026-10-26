@@ -152,6 +152,8 @@ function stripeDraft(intent: Data, method: Account['method'], ref: string): Draf
 /** Makes the account the person's one active account. Replacing one is the change PAY-002 protects: the old account's token is discarded, payments are held for the cooling-off period, and the address of record is told. */
 async function activate(env: Bindings, actor: Actor, member: Member, draft: Draft, pending?: Account) {
   const previous = await accountOf(env.DB, actor.email, 'active'), id = pending?.id ?? uid(), at = now(), days = await holdDays(env.DB);
+  // Replaying a completed setup must not read as a change of account.
+  if (previous) requireThat((await unsealDraft(env, previous)).token !== draft.token, 'That account is already your active account', 409);
   const holdUntil = previous ? new Date(Date.parse(at) + days * 86_400_000).toISOString() : null;
   const state: Sql = all(nativeSelf(actor), recentSignIn(actor), previous
     ? { sql: "EXISTS(SELECT 1 FROM c_bank_accounts WHERE id=? AND state='active')", params: [previous.id] }
