@@ -48,8 +48,12 @@ async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge,
   const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], outboundService: edge, ...(d1Barrier ? { serviceBindings: { DB_GATE: d1Barrier } } : {}), d1Databases: { DB: databaseId ?? 'coaster' }, r2Buckets: { COASTER_RECEIPTS: 'coaster-receipts' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', INSTALLATION_KEY: Buffer.from('synthetic-coaster-1').toString('hex').padEnd(64, '0'), SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'synthetic-local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'resend', MAIL_API_KEY: 'test-mail-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>', ...(identityProvider ? { IDENTITY_PROVIDER: identityProvider } : {}), ...(typeof bindings === 'function' ? bindings(origin) : bindings) } }), resourcePersistencePath: dir })
   try {
     const db = await mf.getD1Database('DB')
-    for (const file of (await readdir('migrations/core')).filter(f => f.endsWith('.sql')).sort())
-      await db.batch(unstable_splitSqlQuery(await readFile('migrations/core/' + file, 'utf8')).map(sql => db.prepare(sql)))
+    if (persistencePath) await db.prepare('CREATE TABLE d1_migrations(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)').run()
+    for (const file of (await readdir('migrations/core')).filter(f => f.endsWith('.sql')).sort()) {
+      const statements = unstable_splitSqlQuery(await readFile('migrations/core/' + file, 'utf8')).map(sql => db.prepare(sql))
+      if (persistencePath) statements.push(db.prepare('INSERT INTO d1_migrations(name) VALUES(?)').bind(file))
+      await db.batch(statements)
+    }
     const send = async (path, body, cookie = '', headers = {}) => {
       const response = await mf.dispatchFetch(origin + path, { method: body === undefined ? 'GET' : 'POST', headers: { host: new URL(origin).host, origin, 'content-type': 'application/json', cookie, ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), redirect: 'manual' })
       const text = await response.text()

@@ -30,6 +30,9 @@ async function journey(width) {
       const path = join(evidence, `${width}-${name}.png`);
       await section.screenshot({ path });
       shots.push(path);
+      const screen = join(evidence, `${width}-${name}-screen.png`);
+      await page.screenshot({ path: screen, fullPage: true });
+      shots.push(screen);
     };
     const submit = async (scope, label, path) => {
       const response = page.waitForResponse(reply => reply.url() === h.origin + '/api/coaster/' + path && reply.request().method() === 'POST');

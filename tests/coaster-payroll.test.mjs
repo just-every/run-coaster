@@ -42,6 +42,13 @@ test('Payroll preserves the reviewed split, waits for exact provider confirmatio
     await assert.rejects(h.db.prepare('DELETE FROM c_events WHERE seq=?').bind(history[0].seq).run(),/history is permanent/);
     await assert.rejects(h.db.prepare("UPDATE c_payroll_handoffs SET lines='[]'").run(),/immutable/);
     assert.equal(edge.writes.length,1);
+    await h.post('settings/members',{email:t.memberEmail,name:'Sam Taylor',employee:true,active:false});
+    const erased=await h.post('settings/members/erase',{email:t.memberEmail});
+    const retained=await h.db.prepare('SELECT * FROM c_payroll_handoffs').first();
+    assert.ok(!retained.lines.includes(t.memberEmail));
+    assert.equal(JSON.parse(retained.lines)[0].email,erased.retained.subject);
+    assert.deepEqual([retained.status,JSON.parse(retained.lines)[0].reimbursementMinor,JSON.parse(retained.lines)[0].taxableMinor],['confirmed',1000,1200]);
+    assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_gusto_employees').first()).n,0,'erasure drops payroll identity mappings');
   } finally {await h.close();}
 });
 

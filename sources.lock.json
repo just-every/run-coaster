@@ -723,6 +723,10 @@
       "sha256": "cc45c55fbeaa907719442609e9bc674baed8b251abedf72a7ce2b04391a213d6",
       "executable": false
     },
+    "migrations/core/0079_gusto_payroll.sql": {
+      "sha256": "6464492b9866f2f97e8a5fe59c035375c311f1c65e5dbafd5806d5b10b25cb9d",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -1101,6 +1105,10 @@
     },
     "scripts/installer/local.mjs": {
       "sha256": "df2e95863b5cd5072b44b7609d28321006dc5a0ed2e0b241d0987e158ddef9d8",
+      "executable": false
+    },
+    "scripts/installer/payroll-archive.mjs": {
+      "sha256": "0a598cab4c08f37b5e19246d19b568ff70ac24c04d612f7fb31b680e179f9926",
       "executable": false
     },
     "scripts/installer/portability.mjs": {
@@ -1661,6 +1669,26 @@
     },
     "src/coaster/mileage.ts": {
       "sha256": "b43fe354fd4bb807610629e313852fe7794194ccba878f257dc91f9af6d448f2",
+      "executable": false
+    },
+    "src/coaster/payroll/connection.ts": {
+      "sha256": "d9b25135cc1618613224b41b9e5c0ebe3db0fe70a145e192c2c22a86744febed",
+      "executable": false
+    },
+    "src/coaster/payroll/handoff.ts": {
+      "sha256": "63c5d3de26b95d80266962e564298a39c741981fa7d8cee2ddb38658714c0002",
+      "executable": false
+    },
+    "src/coaster/payroll/lines.ts": {
+      "sha256": "68db30061024c5a939edc6d285eba6e566b60672cf46ac2e75609eb1a231068d",
+      "executable": false
+    },
+    "src/coaster/payroll/model.ts": {
+      "sha256": "d5f6f3f97ddca7c9b935671d571d320e1298fdb06ed063dcbdde8066bda00b97",
+      "executable": false
+    },
+    "src/coaster/payroll/network.ts": {
+      "sha256": "c9ccfbf5dd7b8811ba6151bdb4e71ee75c889922e9dfb811a20bbcd154439020",
       "executable": false
     },
     "src/coaster/pdf-assets.d.ts": {
@@ -4075,6 +4103,10 @@
       "sha256": "4faa4fbb183ab76d23ebcac6864c51c02b4c3a0155fdb24f1894a97c2de101c3",
       "executable": false
     },
+    "src/ui/payroll.tsx": {
+      "sha256": "d11af58c845692ff0f430128e0c94c4d0e9f64ed969907331916528f356f7692",
+      "executable": false
+    },
     "src/ui/per-diem.tsx": {
       "sha256": "3bde5c68d1007e3d4ab9c982266d700dd9c3f548ad9f53d27b8d3b4f4666c6d7",
       "executable": false
@@ -4231,6 +4263,10 @@
       "sha256": "38c4ae7c627376cf5c59e8d7edac72afd39179d52fc38fdc788ae46d521acc4b",
       "executable": false
     },
+    "tests/browser-payroll.mjs": {
+      "sha256": "37ca6f5069592dbc8f1aca57a9bdd5d0b8a4292226ee49c3abfa23ad3da8ca99",
+      "executable": false
+    },
     "tests/browser-per-diem.mjs": {
       "sha256": "5e1ece8b8018c6a445640b332fa5df0bb5618e5e0315ea15bdb0c3671444aae5",
       "executable": false
@@ -4337,6 +4373,10 @@
     },
     "tests/coaster-import-configuration.test.mjs": {
       "sha256": "bf520898db7dd5dc79dd94a4a63fdb0602108f7ddc5788d675211e554fac95d0",
+      "executable": false
+    },
+    "tests/coaster-payroll.test.mjs": {
+      "sha256": "681944b5eb7d594a1f691cd9a8efd8b3e719c7e9e5cc442414263e6f7dfb2743",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -5943,6 +5983,10 @@
       "sha256": "18f1a56a5eceef2e8b7d8ad490a9b6453888a60fbf5950c2f5386bc179789567",
       "executable": false
     },
+    "tests/fixtures/payroll.mjs": {
+      "sha256": "7d81a924123bdacde5b2ccdb2bfeefb115f9bff2fc95e57850d3c56246d26d45",
+      "executable": false
+    },
     "tests/fixtures/policy-review/synthetic-coaster-6001.png": {
       "sha256": "5b5dd3f09cb992c122323e469426b5aeea016a9a495fd8e39707bb29f6f78f82",
       "executable": false
@@ -6439,8 +6483,16 @@
       "sha256": "67adffe3376f010da7bb5b4dd80f99190d48f285ebad94511197743cf055fbfe",
       "executable": false
     },
+    "tests/gusto-sandbox-company.mjs": {
+      "sha256": "b0afb74c600fa519236470d0a3a2fee0741e85b2186be7883caaf3d217a95462",
+      "executable": false
+    },
+    "tests/gusto-sandbox.mjs": {
+      "sha256": "987a12ef389ee2bffc5b1fa3000e8fe1f4a45e0ee931f9c0103b9fb0081fce87",
+      "executable": false
+    },
     "tests/harness.mjs": {
-      "sha256": "25535fb391fb9a6c3aebf10ad6ced229efcbf5f60e6abe771ebbfd92e037aa2d",
+      "sha256": "71a7a65b6eadd0fc6be9a3329cb7df3b24f02fa2c2ca8b3d40bd9eb5f7dfcb1f",
       "executable": false
     },
     "tests/identity-provider.mjs": {
@@ -6453,6 +6505,14 @@
     },
     "tests/incremental-typecheck.test.mjs": {
       "sha256": "a11d6b89e7219137540c7052683c5f4d9ba7ddf16f66d34c1f56ae34029c0a95",
+      "executable": false
+    },
+    "tests/payroll-browser-runtime.mjs": {
+      "sha256": "e8e4a3e7d3072306d853c9fac448411f22e9a8b61c6d2a015b095b2f129666ff",
+      "executable": false
+    },
+    "tests/payroll-kit.mjs": {
+      "sha256": "7e641fd641bc989c3ccf5dfa920890548105d1d0fcddd82c774a204a721f35ce",
       "executable": false
     },
     "tests/policy-signals-browser.mjs": {
