@@ -60,7 +60,7 @@ export async function completeBank(env: Bindings, actor: Actor, b: Data) {
   nativeSelf(actor); await requireRecentSignIn(env.DB, actor);
   const member = await memberOf(env, actor), provider = providerOf(b.provider), c = await credentials(env, provider);
   requireThat(!await accountOf(env.DB, actor.email, 'pending'), 'Finish or cancel your pending bank account first', 409);
-  if (provider === 'plaid') return activate(env, actor, member, await plaidDraft(c, providerId(b.publicToken, 'Plaid public token'), providerId(b.accountId, 'Plaid account')));
+  if (provider === 'plaid') return activate(env, actor, member, await plaidDraft(c, providerId(b.publicToken, 'Plaid public token'), b.accountId === undefined ? undefined : providerId(b.accountId, 'Plaid account')));
   const intent = await setupIntent(c, member, providerId(b.setupIntent, 'Stripe setup'));
   const draft = stripeDraft(intent, intent.status === 'succeeded' ? 'instant' : 'microdeposit', providerId(b.setupIntent, 'Stripe setup'));
   if (intent.status === 'succeeded') return activate(env, actor, member, draft);
@@ -122,7 +122,8 @@ async function unsealDraft(env: Bindings, a: Account): Promise<Draft> {
   catch { throw new Fault(409, 'This installation cannot read the pending account; cancel it and add it again'); }
 }
 
-async function plaidDraft(c: Credentials, publicToken: string, accountId: string): Promise<Draft> {
+/** Link names the account the person chose; an item holding exactly one checking or savings account needs no choice. */
+async function plaidDraft(c: Credentials, publicToken: string, accountId?: string): Promise<Draft> {
   const exchange = await plaid(c, '/item/public_token/exchange', { public_token: publicToken });
   requireThat(typeof exchange.access_token === 'string' && typeof exchange.item_id === 'string', 'Plaid did not return the connection', 502);
   const refuse = async (message: string): Promise<never> => {
@@ -130,8 +131,10 @@ async function plaidDraft(c: Credentials, publicToken: string, accountId: string
     await plaid(c, '/item/remove', { access_token: exchange.access_token }).catch(() => undefined);
     throw new Fault(409, message);
   };
-  const result = await plaid(c, '/accounts/get', { access_token: exchange.access_token }), account = (result.accounts ?? []).find((a: Data) => a.account_id === accountId), item = result.item ?? {};
-  if (!account || account.type !== 'depository' || !['checking', 'savings'].includes(account.subtype) || !/^\d{4}$/.test(account.mask ?? '')) return refuse('Choose a checking or savings account');
+  const result = await plaid(c, '/accounts/get', { access_token: exchange.access_token }), item = result.item ?? {};
+  const eligible = (result.accounts ?? []).filter((a: Data) => a.type === 'depository' && ['checking', 'savings'].includes(a.subtype) && /^\d{4}$/.test(a.mask ?? ''));
+  const account = accountId ? eligible.find((a: Data) => a.account_id === accountId) : eligible.length === 1 ? eligible[0] : undefined;
+  if (!account) return refuse('Choose a checking or savings account');
   if (!INSTANT_AUTH.has(item.auth_method) || !(item.billed_products ?? []).includes('auth')) return refuse('This bank did not verify the account instantly; add it with micro-deposits instead');
   return { provider: 'plaid', method: 'instant', token: exchange.access_token, ref: exchange.item_id, last4: account.mask, label: `${item.institution_name ?? 'Bank'} · ${account.name ?? 'Account'}` };
 }
