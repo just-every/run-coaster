@@ -423,3 +423,40 @@ that person accepts or declines through the existing proposal decision doors.
 Payloads include `preparation`, source citations and freshness bindings. They are
 stored as ordinary COA-010 proposals and follow their archive and erasure rules.
 No provider connection or new outbound data flow is introduced.
+
+## Gusto sandbox payroll
+
+The owner's own native session can connect a Gusto Demo company under Settings,
+explicitly map each Coaster employee, and authorize a reviewed, released USD
+batch for the next unprocessed regular payroll. Each send requires a sign-in
+from the last ten minutes and refuses the owner's own claims. Existing batch
+review, dual release and reimbursement reservations still apply. Coaster adds
+ordinary amounts to reimbursement lines and each person's actual taxable amount
+to the Gusto Bonus earning. It preserves existing payroll amounts and does not
+submit payroll. The owner completes payroll in Gusto.
+
+- `GET /api/coaster/payroll/gusto` reads the connection and mappings as the owner.
+- `POST /api/coaster/payroll/gusto/connect` requires `company`, a private `token`, and explicit `consent: true`.
+- `POST /api/coaster/payroll/gusto/employees` maps a Coaster `email` to a Gusto `employee` UUID.
+- `POST /api/coaster/payroll/gusto/disconnect` removes the token and mappings.
+- `GET /api/coaster/batches/:id/payroll` reviews the employee splits and handoff. Finance and auditors can read it; only the owner reads available provider runs.
+- `POST /api/coaster/batches/:id/payroll` requires the reviewed batch `version`, the next `payroll` UUID and explicit `consent: true`.
+- `POST /api/coaster/batches/:id/payroll/confirm` reads the original provider run and receipt. It never retransmits amounts.
+
+An accepted update leaves claims batched and unpaid. Only an exact matching
+processed payroll and its reimbursement receipt mark them reimbursed. This
+records provider run confirmation; it does not assert bank settlement. A lost
+response leaves a reserved handoff that must be read back. A rejected or changed
+provider run leaves claims unpaid, with no automatic resend or manual-payment
+override. Disconnect stops further provider access. Restore preserves financial
+handoffs and numbered history, excludes credentials and employee mappings, and
+cannot resume a send. Reconnect the original company explicitly to read back a
+pending handoff. Unrelated salary amounts are not retained: internal financial
+fingerprints allow exact reconciliation.
+
+This first native door is restricted to Gusto Demo. It supports at most 100
+employees in one batch and regular payrolls with separate reimbursement arrays;
+contractors, cash advances that exceed the remaining non-taxable amount,
+off-cycle payrolls, production connection and other providers remain outside
+this implemented slice. The conservative owner-only consent and custody policy
+awaits ct approval under PAY-003.
