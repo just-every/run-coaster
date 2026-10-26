@@ -286,6 +286,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
       - run: bash scripts/ci/install-browser.sh
+      - name: Complete policy-agent coding corpus
+        run: node tests/automatic-coding-quality.mjs --policy-agent
       - name: Policy envelopes, mixed approvals, agreement, revocation and archive authority
         run: node tests/browser-policy-review.mjs
         env:

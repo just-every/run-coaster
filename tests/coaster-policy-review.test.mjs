@@ -139,6 +139,7 @@ test('AGENT-005 owner envelope approves the compliant $60 lunch with receipt/car
  const advice=frozen.policyReview.recommendations.find(r=>r.item===approvals[0].item);assert.equal(advice.evidence.agentEligible,true);assert.equal(advice.evidence.receiptAssessment.method,'retained-reading-agrees');assert.equal(advice.evidence.cardAssessment.matched,true);assert.equal(advice.evidence.codingAssessment.method,'finance-merchant-rule');assert.ok(advice.evidence.codingAssessment.rule);assert.deepEqual(advice.evidence.checksUnavailable,[]);
  assert.ok(frozen.policyReview.recommendations.find(r=>r.item===dinner.id).reasons.some(r=>r.code==='over-limit'));
  assert.equal(h.outbound.length,sent,'policy review makes no new provider call');
+ assert.deepEqual((await h.get('state',t.priya)).reviewerAgreement,{method:'explicit-reviewer-feedback',agreed:0,total:0,percent:null},'automatic decisions and unanswered recommendations never count as agreement');
  assert.ok(!JSON.stringify(frozen).includes('fields_json')&&!JSON.stringify(frozen).includes(a.id)&&!JSON.stringify(frozen).includes(b.id),'submitted assessments expose no private original or reading history');
  for(const cookie of [h.owner,t.sam,t.morgan,auditor])await h.post(`claims/${c.id}/policy-review-feedback`,{version:c.version,revision:c.revision,item:approvals[0].item,agree:true},cookie,403);
  await h.post(`claims/${c.id}/policy-review-feedback`,{version:c.version,revision:c.revision,item:approvals[0].item,agree:true},t.priya);
@@ -194,5 +195,40 @@ test('AGENT-005 a fully evidenced reimbursable lunch completes once on the owner
  const batch=await h.post('batches',{claims:[c.id]},t.morgan),exported=await h.get(`batches/${batch.id}`,t.morgan);assert.equal(batch.total_minor,6000);assert.equal(exported.lines[0].approver,'policy agent v1');assert.equal(exported.lines[0].amountMinor,6000);
  const frozen=d.revisions[0].snapshot;await h.post(`claims/${c.id}/unapprove`,{version:(await h.get(`claims/${c.id}`,t.morgan)).claim.version,to:'approver',reason:'Human check requested'},t.morgan);
  const reopened=await h.get(`claims/${c.id}`,t.priya);assert.deepEqual(reopened.revisions[0].snapshot,frozen);assert.deepEqual(reopened.revisions.at(-1).snapshot.expenseApprovals,[],'unapproval removes authority from the reopened revision without changing the earlier evidence');
+ }finally{await h.close()}
+})
+
+test('AGENT-005 eligible expenses cannot approve the owner or bypass human workflow and payment gates',async()=>{
+ const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-6500'},aiEdge:async()=>lunchReading()});
+ try{
+  const t=await cardReviewSetup(h);
+  await h.post('settings/members',{email:'owner@harbourfinch.example',name:'Synthetic Coaster owner',employee:true,approver:'priya@harbourfinch.example'});
+  await h.post('settings/receipt-reading',{version:0,enabled:true,threshold:.95,model:'synthetic-coaster-6501',consent:true});
+  await h.post('settings/approval-envelope',{version:0,enabled:true,limit:'100.00',consent:true});
+  async function lunch(cookie,id){
+   const r=await cardOriginal(h,{...t,sam:cookie},id,'Lunch','60.00',true);
+   let c=await h.post('claims',{title:id},cookie);
+   c=await h.post(`claims/${c.id}/items`,{version:c.version,kind:'receipt',date:'2026-10-02',merchant:'Lunch',amount:'60.00',category:t.c.meals},cookie);
+   const item=(await h.get(`claims/${c.id}`,cookie)).items[0],inbox=(await h.get('receipt-inbox',cookie)).receipts.find(o=>o.id===r.id);
+   c=(await h.post(`receipt-inbox/${r.id}/attach`,{expectedSequence:inbox.lifecycleSequence,claimId:c.id,itemId:item.id,version:c.version},cookie)).claim;
+   c=await h.post(`claims/${c.id}/submit`,{version:c.version},cookie);
+   return h.get(`claims/${c.id}`,t.priya);
+  }
+  const own=await lunch(h.owner,'synthetic-coaster-6502');
+  assert.equal(own.revisions[0].snapshot.policyReview.recommendations[0].evidence.agentEligible,true);
+  assert.equal(own.claim.status,'submitted');assert.equal(own.revisions[0].snapshot.expenseApprovals,undefined);assert.deepEqual(own.decisions,[]);
+  await h.post('settings/approval-workflow',{version:0,rules:[{label:'Human finance stage',condition:{kind:'always',value:''},stages:[[{kind:'finance',email:'morgan@harbourfinch.example'}]]}]});
+  const routed=await lunch(t.sam,'synthetic-coaster-6503');
+  assert.equal(routed.revisions[0].snapshot.expenseApprovals[0].source,'agent');
+  assert.equal(routed.claim.status,'submitted');assert.deepEqual(routed.decisions,[]);
+  await h.post('batches',{claims:[routed.claim.id]},t.morgan,409);
+  let c=await h.post(`claims/${routed.claim.id}/decision`,{version:routed.claim.version,revision:routed.claim.revision,decision:'approved'},t.priya);
+  assert.equal(c.status,'submitted');assert.equal(c.approver_email,'morgan@harbourfinch.example');
+  await h.post('batches',{claims:[c.id]},t.morgan,409);
+  c=await h.post(`claims/${c.id}/decision`,{version:c.version,revision:c.revision,decision:'approved'},t.morgan);
+  assert.equal(c.status,'approved');
+  const batch=await h.post('batches',{claims:[c.id]},t.morgan);
+  await h.post(`batches/${batch.id}/release`,{version:batch.version},h.owner,409);
+  assert.equal((await h.get(`batches/${batch.id}`,t.morgan)).batch.released_at,null,'agent approvals do not release an unreviewed batch');
  }finally{await h.close()}
 })
