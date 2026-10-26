@@ -5,7 +5,7 @@ import { event } from '../events';
 import { now, requireThat, uid, type Actor, type Data } from '../types';
 import { connection, connectionState, handoff, nativeOwner, publicHandoff, type Connection, type Handoff } from './model';
 import { authorized, request } from './network';
-import { cents, compensationPlan, payrollLines, sameCompensation } from './lines';
+import { cents, compensationEvidence, compensationPlan, payrollLines, sameCompensation } from './lines';
 
 async function upcoming(env: Bindings, actor: Actor, c: Connection) {
   const result = await request(env, actor, c, `/v1/companies/${c.company_uuid}/payrolls?processing_statuses=unprocessed&per=100`);
@@ -31,7 +31,7 @@ async function readPayroll(env: Bindings, actor: Actor, c: Connection, id: strin
 export async function payrollReview(env: Bindings, actor: Actor, id: string) {
   requireThat(actor.roles.finance || actor.roles.auditor, 'Finance or auditor access required', 403);
   const batch = await loadBatch(env.DB, id), existing = await handoff(env, id), c = await connection(env);
-  return { handoff: publicHandoff(existing), lines: existing ? JSON.parse(existing.lines) : await payrollLines(env,batch), payrolls: actor.roles.owner && !actor.delegate && c && !existing ? await upcoming(env,actor,c) : [] };
+  return { handoff: publicHandoff(existing), lines: existing ? JSON.parse(existing.lines) : await payrollLines(env,batch), payrolls: actor.roles.owner && !actor.delegate && c && !existing ? (await upcoming(env,actor,c)).slice(0,1) : [] };
 }
 const batchState = (id: string, version: number) => ({ sql: "EXISTS(SELECT 1 FROM c_batches WHERE id=? AND version=? AND status='approved' AND released_at IS NOT NULL)", params: [id,version] });
 export async function sendPayroll(env: Bindings, actor: Actor, id: string, body: Data) {
@@ -54,7 +54,7 @@ export async function sendPayroll(env: Bindings, actor: Actor, id: string, body:
   requireThat(payroll.processed === false && payroll.off_cycle === false && !['calculating','submitting'].includes(payroll.processing_request?.status), 'The payroll is already being processed',409);
   const expected = compensationPlan(payroll,lines,`Coaster ${batchNumber(batch.number)}`), key=uid(), at=now();
   await commit(env.DB,all(auth,connectionState(c),batchState(id,batch.version),recent),[
-    env.DB.prepare("INSERT INTO c_payroll_handoffs(id,batch_id,company_uuid,payroll_uuid,check_date,status,lines,expected,created_by,created_at) VALUES(?,?,?,?,?,'reserved',?,?,?,?)").bind(key,id,c.company_uuid,next.payroll_uuid,payroll.check_date,JSON.stringify(lines.map(({name,...line})=>line)),JSON.stringify(expected),actor.email,at),
+    env.DB.prepare("INSERT INTO c_payroll_handoffs(id,batch_id,company_uuid,payroll_uuid,check_date,status,lines,expected,created_by,created_at) VALUES(?,?,?,?,?,'reserved',?,?,?,?)").bind(key,id,c.company_uuid,next.payroll_uuid,payroll.check_date,JSON.stringify(lines.map(({name,...line})=>line)),JSON.stringify(await Promise.all(expected.map(compensationEvidence))),actor.email,at),
     env.DB.prepare('UPDATE c_batches SET version=version+1 WHERE id=?').bind(id),
     event(env.DB,actor,'payroll-handoff-reserved',{batch:id},{handoff:key,company:c.company_uuid,payroll:next.payroll_uuid,consent:true,totalMinor:batch.total_minor}),
   ]);
@@ -75,12 +75,12 @@ export async function confirmPayroll(env: Bindings, actor: Actor, id: string) {
   requireThat(h && c && h.company_uuid===c.company_uuid,'Reconnect the original Gusto company to read this handoff',409);
   if(h.status==='confirmed')return {handoff:publicHandoff(h),confirmed:true};
   const payroll=await readPayroll(env,actor,c,h.payroll_uuid),expected=JSON.parse(h.expected) as Data[];
-  requireThat(payroll.check_date===h.check_date && expected.every(e=>payroll.employee_compensations.some((actual:Data)=>sameCompensation(actual,e))), 'Provider amounts differ from the reserved handoff. Claims remain unpaid; reconcile in Gusto.',409);
+  requireThat(payroll.check_date===h.check_date && (await Promise.all(expected.map(async e => { const actual=payroll.employee_compensations.find((row:Data)=>row.employee_uuid===e.employee_uuid); return actual && await sameCompensation(actual,e); }))).every(Boolean), 'Provider amounts differ from the reserved handoff. Claims remain unpaid; reconcile in Gusto.',409);
   await markSent(env,actor,c,h);
   if(payroll.processed!==true || ['calculating','submitting','processing_failed'].includes(payroll.processing_request?.status))return {handoff:publicHandoff(h),confirmed:false};
   const receipt=await request(env,actor,c,`/v1/payrolls/${h.payroll_uuid}/receipt?per=100`);
   requireThat(receipt.payroll_uuid===h.payroll_uuid && receipt.company_uuid===c.company_uuid && Array.isArray(receipt.employee_compensations), 'Gusto has not supplied the matching processed payroll receipt',409);
-  requireThat(expected.every(e=>receipt.employee_compensations.some((r:Data)=>r.employee_uuid===e.employee_uuid && cents(r.total_reimbursement)===e.reimbursements.reduce((sum:number,r:Data)=>sum+cents(r.amount),0))), 'Gusto receipt reimbursements do not reconcile',409);
+  requireThat(expected.every(e=>receipt.employee_compensations.some((r:Data)=>r.employee_uuid===e.employee_uuid && cents(r.total_reimbursement)===e.reimbursementMinor)), 'Gusto receipt reimbursements do not reconcile',409);
   const at=now(), reference=`Gusto ${h.payroll_uuid}`;
   await commit(env.DB,all(auth,connectionState(c),{sql:"EXISTS(SELECT 1 FROM c_payroll_handoffs WHERE id=? AND status='sent') AND EXISTS(SELECT 1 FROM c_batches WHERE id=? AND status='approved')",params:[h.id,id]}),[
     env.DB.prepare("UPDATE c_payroll_handoffs SET status='confirmed',confirmed_at=? WHERE id=?").bind(at,h.id),

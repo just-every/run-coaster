@@ -16,6 +16,8 @@ test('Payroll preserves the reviewed split, waits for exact provider confirmatio
     batch=await h.post(`batches/${batch.id}/release`,{version:batch.version});
     await h.post(root,{version:batch.version,payroll:edge.payrollId,consent:true});
     assert.equal(edge.writes.length,1);
+    const financialEvidence=(await h.db.prepare('SELECT expected FROM c_payroll_handoffs').first()).expected;
+    assert.ok(!financialEvidence.includes('Salary')&&!financialEvidence.includes('1000.00'),'unrelated salary amounts are not retained');
     const compensation=edge.payroll.employee_compensations[0];
     assert.deepEqual(compensation.reimbursements.map(r=>[r.description,r.amount]),[['Existing reimbursement','2.00'],['Coaster RB-0001','10.00']]);
     assert.deepEqual(compensation.fixed_compensations.map(f=>[f.name,f.amount]),[['Bonus','15.00'],['Salary','1000.00']]);

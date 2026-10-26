@@ -1,4 +1,5 @@
 import type { Bindings } from '../../auth.server';
+import { sha256Hex } from '../session';
 import { batchLines, type Batch } from '../batches';
 import { requireThat, type Data } from '../types';
 import type { PayrollLine } from './model';
@@ -37,8 +38,11 @@ export function compensationPlan(payroll: Data, lines: PayrollLine[], reference:
 }
 const sorted = (values: Data[]) => values.map(value => JSON.stringify(value)).sort();
 /** Provider-generated reimbursement UUIDs and compensation versions may change; financial evidence may not. */
-export function sameCompensation(actual: Data, expected: Data) {
-  const refunds = (row: Data) => sorted((row.reimbursements ?? []).map((r: Data) => ({ amount: cents(r.amount), description: r.description ?? '' })));
-  const fixed = (row: Data) => sorted((row.fixed_compensations ?? []).filter((f: Data) => cents(f.amount) !== 0).map((f: Data) => ({ name: f.name, job: f.job_uuid, amount: cents(f.amount) })));
-  return actual.employee_uuid === expected.employee_uuid && actual.excluded !== true && actual.payment_method === expected.payment_method && JSON.stringify(refunds(actual)) === JSON.stringify(refunds(expected)) && JSON.stringify(fixed(actual)) === JSON.stringify(fixed(expected));
+export async function compensationEvidence(row: Data) {
+  const refunds = (row.reimbursements ?? []).map((r: Data) => ({ amount: cents(r.amount), description: r.description ?? '' }));
+  const fixed = (row.fixed_compensations ?? []).filter((f: Data) => cents(f.amount) !== 0).map((f: Data) => ({ name: f.name, job: f.job_uuid, amount: cents(f.amount) }));
+  return { employee_uuid: row.employee_uuid, payment_method: row.payment_method, reimbursementMinor: refunds.reduce((sum: number,r: Data)=>sum+r.amount,0), reimbursementDigest: await sha256Hex(JSON.stringify(sorted(refunds))), fixedDigest: await sha256Hex(JSON.stringify(sorted(fixed))) };
+}
+export async function sameCompensation(actual: Data, expected: Data) {
+  return actual.excluded !== true && JSON.stringify(await compensationEvidence(actual)) === JSON.stringify(expected);
 }

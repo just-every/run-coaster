@@ -18,6 +18,7 @@ export async function connectPayroll(env: Bindings, actor: Actor, body: Data) {
   requireThat(body.consent === true, 'Explicit consent to connect this Gusto sandbox company is required');
   requireThat(!await connection(env), 'Disconnect the current company before replacing it', 409);
   const company = providerId(body.company), token = text(body.token, 'Gusto sandbox token', 4000);
+  requireThat(await env.DB.prepare(`SELECT (${auth.sql}) AS ok`).bind(...auth.params).first<{ok:number}>().then(row=>row?.ok), 'Your payroll connection authority changed; sign in again', 403);
   const data = await gustoJson(token, `/v1/companies/${company}`);
   requireThat((data.uuid ?? data.company_uuid) === company, 'The token belongs to a different Gusto company', 409);
   await commit(env.DB, all(auth, { sql: 'NOT EXISTS(SELECT 1 FROM c_gusto_connection)', params: [] }), [
