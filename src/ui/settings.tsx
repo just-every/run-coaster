@@ -20,6 +20,7 @@ import { EscalationChains } from './escalation-chains';
 import { CardReconciliation } from './card-reconciliation';
 import { CodingSettings, CategoryAccountField } from './coding';
 import { QuickBooks } from './quickbooks';
+import { PayrollSettings } from './payroll';
 import { AutomaticCoding } from './automatic-coding';
 import { ProgramFeed } from './program-feed';
 import { ReceiptReadingSettings } from './receipt-reading';
@@ -80,6 +81,7 @@ export function Settings({ state, reload }: ViewProps) {
       </Form>
     </Section>}
     {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <><QuickBooks state={state} /><Desktop state={state} /></>}
+    {b && owner && !state.actor.delegate && <PayrollSettings members={state.members} />}
     {b && !state.actor.delegate && (admin || roles.finance) && <ProgramFeed state={state} />}
     {b && owner && !state.actor.delegate && <ProviderCosts />}
     {b && admin && !state.actor.delegate && <ReceiptReadingSettings />}

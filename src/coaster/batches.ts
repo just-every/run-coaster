@@ -187,6 +187,7 @@ export async function markReimbursed(db: D1Database, actor: Actor, id: string, b
   const batch = await loadBatch(db, id);
   requireThat(batch.status === 'approved' && b.version === batch.version, 'Only a reviewed batch can be marked paid; reload', 409);
   requireThat(batch.released_at, 'Release the batch before recording its payment', 409);
+  requireThat(!await db.prepare('SELECT 1 FROM c_payroll_handoffs WHERE batch_id=?').bind(id).first(), 'Read the provider payroll confirmation for this batch; manual payment cannot override a handoff', 409);
   const reference = text(b.reference, 'Payment reference', 200), paidOn = isoDate(b.paidOn, 'Paid on'), at = now();
   await commit(db, all(authority(actor, 'finance'), batchState(id, batch.version, 'approved')), [
     db.prepare("UPDATE c_batches SET status='reimbursed',paid_reference=?,paid_on=?,paid_by=?,version=version+1 WHERE id=?").bind(reference, paidOn, actor.email, id),

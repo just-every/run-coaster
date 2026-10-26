@@ -109,6 +109,7 @@ export async function commit(db: D1Database, condition: Sql, statements: D1Prepa
     if (message.includes('c_reimbursement_keys.key')) throw new Fault(409, 'An exact duplicate expense is already in a reimbursement batch');
     if (message.includes('c_card_charges.transaction_key')) throw new Fault(409, 'A card transaction in this file was imported at the same time; preview again');
     if (message.includes('c_batches.number')) throw new Fault(409, 'Another batch was created at the same time; reload and try again');
+    if (message.includes('c_payroll_handoffs')) throw new Fault(409, 'This batch or payroll already has a reserved handoff; reconcile its original run');
     if (message.includes('c_batch_claims.claim_id')) throw new Fault(409, 'That claim is already in a reimbursement batch');
     throw error;
   }

@@ -12,6 +12,7 @@ import { ExceptionQueue } from './exception-queue';
 import { AccountablePlan } from './accountable-plan';
 import { Investigations } from './investigations';
 import { CashAdvances } from './advances';
+import { PayrollBatch } from './payroll';
 
 const batchStatus = (b: D) => b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed';
 const tone = (b: D) => b.status === 'reimbursed' || batchStage(b) === 'released' ? 'done' : 'wait';
@@ -25,7 +26,7 @@ export function Batches({ state, reload, id, query }: ViewProps) {
   const total = ready.filter((c: D) => chosen.includes(c.id)).reduce((n: number, c: D) => n + c.total_minor, 0);
   const currency = state.business?.currency ?? 'USD';
   const drafts = state.batches.filter((b: D) => b.status === 'draft'), reviewed = state.batches.filter((b: D) => b.status === 'approved'), paid = state.batches.filter((b: D) => b.status === 'reimbursed');
-  const panel = id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} templates={state.exportTemplates} />
+  const panel = id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} templates={state.exportTemplates} owner={state.actor.roles.owner && !state.actor.delegate} />
     : <aside className="side side-empty"><Empty large title="Choose a batch">Review its totals, download the accounting and reimbursement files, and record the payment.</Empty></aside>;
   return <Work panel={panel} wide selected={!!id} className="batches-work">
     <PageHead title="Batches" line={`${plural(ready.length, 'approved claim')} ready to batch, ${plural(drafts.length, 'batch', 'batches')} to review, ${reviewed.length} to release or pay`} />
@@ -72,9 +73,16 @@ export function Batches({ state, reload, id, query }: ViewProps) {
   </Work>;
 }
 
-function BatchPanel({ id, reload, names, templates }: { id: string; reload: () => Promise<D>; names: Record<string, string>; templates: D[] }) {
+function BatchPanel({ id, reload, names, templates, owner }: { id: string; reload: () => Promise<D>; names: Record<string, string>; templates: D[]; owner: boolean }) {
   const [detail, setDetail] = useState<D>(), [error, setError] = useState('');
-  const load = useCallback(async () => { try { setDetail(await call(`batches/${id}`)); } catch (e) { setError((e as Error).message); } }, [id]);
+  const [payroll, setPayroll] = useState<D>(), [payrollError, setPayrollError] = useState('');
+  const load = useCallback(async () => {
+    const [batchResult, payrollResult] = await Promise.allSettled([call(`batches/${id}`), call(`batches/${id}/payroll`)]);
+    if (batchResult.status === 'fulfilled') { setDetail(batchResult.value); setError(''); }
+    else setError((batchResult.reason as Error).message);
+    if (payrollResult.status === 'fulfilled') { setPayroll(payrollResult.value); setPayrollError(''); }
+    else { setPayroll(undefined); setPayrollError((payrollResult.reason as Error).message); }
+  }, [id]);
   useEffect(() => { load(); }, [load]);
   const done = async () => { await Promise.all([load(), reload()]); };
   const close = <a className="panel-close" data-tooltip="Back to batches" href="#/batches" aria-label="Back to batches"><Icon name="cross" /></a>;
@@ -110,7 +118,10 @@ function BatchPanel({ id, reload, names, templates }: { id: string; reload: () =
       <Form label={batch.first_released_by ? 'Second release' : 'Release payment'} className="record-form-inline" onSubmit={async () => { await call(`batches/${id}/release`, { version: batch.version }); await done(); }}>
         <p className="muted field-wide">Releasing needs a sign-in within the last 10 minutes and release access from the owner; nobody releases a batch holding their own claim.</p>
       </Form></section>}
-    {batch.status === 'approved' && batch.released_at && <section className="panel-block" aria-label="Payment"><h3>Record payment</h3><p className="muted">Released by {names[batch.released_by] ?? batch.released_by}{batch.first_released_by ? ` after ${names[batch.first_released_by] ?? batch.first_released_by}` : ''} on {moment(batch.released_at)}.</p><Form label="Record payment" className="record-form-inline" onSubmit={async v => { await call(`batches/${id}/paid`, { version: batch.version, reference: v.reference, paidOn: v.paidOn }); await done(); }}>
+    {owner && <PayrollBatch batch={batch} payroll={payroll} error={payrollError} reload={done} />}
+    {!owner && payroll?.handoff && <p className="muted" role="status">{payroll.handoff.status === 'confirmed' ? 'Gusto sandbox provider confirmed.' : 'Gusto sandbox confirmation pending. Claims remain unpaid; the owner confirms provider payment.'}</p>}
+    {!owner && payrollError && <p className="form-error" role="alert">Payroll handoff could not be checked: {payrollError}</p>}
+    {batch.status === 'approved' && batch.released_at && payroll && !payroll.handoff && <section className="panel-block" aria-label="Payment"><h3>Record payment</h3><p className="muted">Released by {names[batch.released_by] ?? batch.released_by}{batch.first_released_by ? ` after ${names[batch.first_released_by] ?? batch.first_released_by}` : ''} on {moment(batch.released_at)}.</p><Form label="Record payment" className="record-form-inline" onSubmit={async v => { await call(`batches/${id}/paid`, { version: batch.version, reference: v.reference, paidOn: v.paidOn }); await done(); }}>
       <Field label="Payment reference" name="reference" placeholder="Bank batch or ACH reference" />
       <Field label="Paid on" name="paidOn" type="date" defaultValue={today()} />
       <p className="muted field-wide">Coaster does not move money: pay the reimbursements file from your bank, then record it here.</p>

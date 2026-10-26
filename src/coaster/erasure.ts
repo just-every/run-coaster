@@ -14,6 +14,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
+  ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']],
   ['c_program_feeds', ['connected_by']], ['c_receipt_reading_settings', ['set_by']], ['c_receipt_readings', ['actor_email', 'on_behalf_of']],
   ['c_auto_coding_rules',['owner_email','set_by']], ['c_auto_coding_contexts',['employee_email']], ['c_auto_coding_suggestions',['employee_email']], ['c_auto_coding_feedback',['actor_email']], ['c_auto_coding_observations',['employee_email']],
   ['c_workflow_tasks', ['email','on_behalf_of']], ['c_approval_workflows',['created_by']],
@@ -54,6 +55,7 @@ const ADDRESS: [string, string[]][] = [
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
+  ['c_payroll_handoffs', ['lines']],
   ['c_qbd_requests', ['payload']],
   ['c_receipt_readings', ['fields_json']],
   ['c_auto_coding_rules',['fields']], ['c_auto_coding_contexts',['values_json']], ['c_auto_coding_suggestions',['fields','evidence']], ['c_auto_coding_feedback',['values_json']], ['c_auto_coding_observations',['fields']],
@@ -148,6 +150,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql('DELETE FROM c_qbo_oauth_states WHERE actor_email=?', address),
     sql('DELETE FROM c_delegations WHERE approver_email=? OR delegate_email=?', address, address),
     sql('DELETE FROM c_delegates WHERE grantor_email=? OR delegate_email=?', address, address),
+    sql('DELETE FROM c_gusto_employees WHERE email=?', address),
     ...['c_escalations', 'c_reminders'].map(t => sql(`DELETE FROM ${t} WHERE key IN (SELECT key FROM c_reminder_items WHERE person=?)`, address)),
     sql('DELETE FROM c_reminder_items WHERE person=?', address),
     sql('UPDATE c_members SET approver_email=NULL WHERE approver_email=?', address),

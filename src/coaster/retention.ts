@@ -122,7 +122,7 @@ export async function confirmExpiry(db: D1Database, actor: Actor, id: string) {
       ...['c_comments', 'c_items', 'c_receipts', 'c_events'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),
       ...(unit.batch ? [db.prepare('DELETE FROM c_events WHERE batch_id=?').bind(unit.batch)] : []),
       db.prepare(`DELETE FROM c_claims WHERE id ${inClaims}`).bind(list),
-      ...(unit.batch ? [db.prepare('DELETE FROM c_batches WHERE id=?').bind(unit.batch)] : []),
+      ...(unit.batch ? [db.prepare('DELETE FROM c_payroll_handoffs WHERE batch_id=?').bind(unit.batch), db.prepare('DELETE FROM c_batches WHERE id=?').bind(unit.batch)] : []),
     );
     for (const c of current) {
       const own = items.filter(i => i.claim_id === c.id), dates = own.map(i => i.spent_on).sort();

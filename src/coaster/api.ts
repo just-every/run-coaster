@@ -1,3 +1,5 @@
+import { payrollConnection, connectPayroll, disconnectPayroll, mapPayrollEmployee } from './payroll/connection';
+import { payrollReview, sendPayroll, confirmPayroll } from './payroll/handoff';
 import { desktopStatus, connectDesktop, disconnectDesktop, syncDesktop, retryDesktop, mapDesktop, desktopSoap, configuration, connection as desktopConnection } from './accounting/desktop';
 import { prepareClose, prepareTrip, prepareExpense } from './agents/preparations';
 import { receiptQuestion, answerReceiptQuestion } from './receipts/questions';
@@ -328,3 +330,11 @@ api.get('/api/coaster/coding/automatic/suggestions', as(async (a,c)=>suggestions
 api.post('/api/coaster/coding/automatic/suggestions/:id/decision', as(async (a,c)=>decideSuggestion(db(c),a,param(c,'id'),await body(c))));
 api.post('/api/coaster/coding/automatic/receipts/:id', as(async (a,c)=>receiptCoding(db(c),a,param(c,'id'),await body(c))));
 api.get('/api/coaster/coding/automatic/rates', as(async (a,c)=>codingRates(db(c),a)));
+
+api.get('/api/coaster/payroll/gusto', as(async (a,c)=>payrollConnection(runtimeBindings(c.env),a)));
+api.post('/api/coaster/payroll/gusto/connect', as(async (a,c)=>connectPayroll(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/payroll/gusto/disconnect', as(async (a,c)=>disconnectPayroll(runtimeBindings(c.env),a)));
+api.post('/api/coaster/payroll/gusto/employees', as(async (a,c)=>mapPayrollEmployee(runtimeBindings(c.env),a,await body(c))));
+api.get('/api/coaster/batches/:id/payroll', as(async (a,c)=>payrollReview(runtimeBindings(c.env),a,param(c,'id'))));
+api.post('/api/coaster/batches/:id/payroll', as(async (a,c)=>sendPayroll(runtimeBindings(c.env),a,param(c,'id'),await body(c))));
+api.post('/api/coaster/batches/:id/payroll/confirm', as(async (a,c)=>confirmPayroll(runtimeBindings(c.env),a,param(c,'id'))));

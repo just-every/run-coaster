@@ -1104,7 +1104,7 @@
       "executable": false
     },
     "scripts/installer/portability.mjs": {
-      "sha256": "05e4f0ea61134c53e3bb55638327ae9582c71032c63dfabaf60da6e84fb8112a",
+      "sha256": "628ab0bfb7594d3bd68c3984d47969fa3e8fb2a4ac342c62bba4e6578542dc94",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {
@@ -1340,7 +1340,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "576922f68f882a6b897fd675dc33d2bfb00bb577aa73a4b05a0a5eda71d7f041",
+      "sha256": "41bb1cf4f47d5fa56b7e46cda887a3b9a6658ad99af1302e52b8cf8a0ab495e6",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1368,7 +1368,7 @@
       "executable": false
     },
     "src/coaster/batches.ts": {
-      "sha256": "e5c3253f9f4dc8b6464f14ba97eaf3d78e62a1c62eef186f8c7116f15f83c99c",
+      "sha256": "31b6f763c74ce0aa9cb25a3c330343f792996f9903a803e4a0e659d8fbca0d11",
       "executable": false
     },
     "src/coaster/budgets.ts": {
@@ -1512,7 +1512,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "5aa39235cad09366154746c144c6aa3552c96da7f8d28b40a2a6343be191326e",
+      "sha256": "5d010961baf6d1c061fecd1c129ad79ed0fef5aec44bc0c3072d73a25545c471",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -1904,7 +1904,7 @@
       "executable": false
     },
     "src/coaster/retention.ts": {
-      "sha256": "db26c22d7ced5b1d0f9dbc96a64df60bd260c7b0214df9047d3d958b701941ec",
+      "sha256": "e4e7b7713f6c6a994df7b33f29124f24fd108899ffc26028b45a4087c4725536",
       "executable": false
     },
     "src/coaster/reversals.ts": {
@@ -1912,7 +1912,7 @@
       "executable": false
     },
     "src/coaster/session.ts": {
-      "sha256": "372264478d2d4375102576a409aed98e4062cb363f3390995efaf198b6bb9757",
+      "sha256": "78a43b1a79c23e2aebf37b29e0c69517aa353c28f15fbafe15ca91649c9d761f",
       "executable": false
     },
     "src/coaster/settings.ts": {
@@ -3972,7 +3972,7 @@
       "executable": false
     },
     "src/ui/batches.tsx": {
-      "sha256": "524a47b88ab8231b21ba18efc21677eafa12dfa7d578aaf21d32eb5ba87f57e5",
+      "sha256": "319aeece0cf3e28b02a280d8878ca539f40839664216ebb8284f3c633b717657",
       "executable": false
     },
     "src/ui/budgets.tsx": {
@@ -4052,7 +4052,7 @@
       "executable": false
     },
     "src/ui/history.ts": {
-      "sha256": "ff1866bb546ae88f180e6ad682049e479bc963e6d3938db329a935ec05790ce1",
+      "sha256": "adc90eb9532031ea7e88fecf8b6661138562daf7b367cefea6c9d2bbe9537317",
       "executable": false
     },
     "src/ui/icons.tsx": {
@@ -4160,7 +4160,7 @@
       "executable": false
     },
     "src/ui/settings.tsx": {
-      "sha256": "bce4f70cb3382c48ae1f6e15e1963e4cda995b10373eaf7d1f1fb023e0a7423d",
+      "sha256": "31baa4f569453c2f07b4cf5167291888e1b55b1caa61342b793fb9f774c25aa4",
       "executable": false
     },
     "src/ui/shell.tsx": {
@@ -6440,7 +6440,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "6bbeb0fe47b7c3767c3d07b376714d537ae12d405d2f225c03304c6354819d7c",
+      "sha256": "25535fb391fb9a6c3aebf10ad6ced229efcbf5f60e6abe771ebbfd92e037aa2d",
       "executable": false
     },
     "tests/identity-provider.mjs": {
