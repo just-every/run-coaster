@@ -2,6 +2,8 @@ import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmRec
 import { receiptEmailSource } from './receipts/mail-intake';
 import { payrollConnection, connectPayroll, disconnectPayroll, mapPayrollEmployee } from './payroll/connection';
 import { payrollReview, sendPayroll, confirmPayroll } from './payroll/handoff';
+import { bankProviders, connectBankProvider, disconnectBankProvider, setBankHold } from './bank/connection';
+import { bankPeople, cancelBank, completeBank, myBank, refreshBank, startBank, verifyBank } from './bank/accounts';
 import { desktopStatus, connectDesktop, disconnectDesktop, syncDesktop, retryDesktop, mapDesktop, desktopSoap, configuration, connection as desktopConnection } from './accounting/desktop';
 import { prepareClose, prepareTrip, prepareExpense } from './agents/preparations';
 import { receiptQuestion, answerReceiptQuestion } from './receipts/questions';
@@ -345,6 +347,17 @@ api.get('/api/coaster/payroll/gusto', as(async (a,c)=>payrollConnection(runtimeB
 api.post('/api/coaster/payroll/gusto/connect', as(async (a,c)=>connectPayroll(runtimeBindings(c.env),a,await body(c))));
 api.post('/api/coaster/payroll/gusto/disconnect', as(async (a,c)=>disconnectPayroll(runtimeBindings(c.env),a)));
 api.post('/api/coaster/payroll/gusto/employees', as(async (a,c)=>mapPayrollEmployee(runtimeBindings(c.env),a,await body(c))));
+api.get('/api/coaster/bank', as(async (a,c)=>myBank(runtimeBindings(c.env),a)));
+api.get('/api/coaster/bank/people', as(async (a,c)=>bankPeople(runtimeBindings(c.env),a)));
+api.post('/api/coaster/bank/start', as(async (a,c)=>startBank(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/bank/complete', as(async (a,c)=>completeBank(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/bank/verify', as(async (a,c)=>verifyBank(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/bank/refresh', as(async (a,c)=>refreshBank(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/bank/cancel', as(async (a,c)=>cancelBank(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/bank/hold-period', as(async (a,c)=>setBankHold(runtimeBindings(c.env),a,await body(c))));
+api.get('/api/coaster/bank/providers', as(async (a,c)=>bankProviders(runtimeBindings(c.env),a)));
+api.post('/api/coaster/bank/providers/connect', as(async (a,c)=>connectBankProvider(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/bank/providers/disconnect', as(async (a,c)=>disconnectBankProvider(runtimeBindings(c.env),a,await body(c))));
 api.get('/api/coaster/batches/:id/payroll', as(async (a,c)=>payrollReview(runtimeBindings(c.env),a,param(c,'id'))));
 api.post('/api/coaster/batches/:id/payroll', as(async (a,c)=>sendPayroll(runtimeBindings(c.env),a,param(c,'id'),await body(c))));
 api.post('/api/coaster/batches/:id/payroll/confirm', as(async (a,c)=>confirmPayroll(runtimeBindings(c.env),a,param(c,'id'))));

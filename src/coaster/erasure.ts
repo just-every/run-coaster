@@ -15,7 +15,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
   ['c_receipt_mail_messages',['sender','owner_email']], ['c_receipt_mail_settings',['set_by']],
-  ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']],
+  ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']], ['c_bank_providers', ['connected_by']], ['c_bank_settings', ['set_by']],
   ['c_program_feeds', ['connected_by']], ['c_receipt_reading_settings', ['set_by']], ['c_receipt_readings', ['actor_email', 'on_behalf_of']],
   ['c_auto_coding_rules',['owner_email','set_by']], ['c_auto_coding_contexts',['employee_email']], ['c_auto_coding_suggestions',['employee_email']], ['c_auto_coding_feedback',['actor_email']], ['c_auto_coding_observations',['employee_email']],
   ['c_workflow_tasks', ['email','on_behalf_of']], ['c_approval_workflows',['created_by']],
@@ -127,6 +127,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     comments: await count('c_comments WHERE author_email=?', address),
     reminders: await count('c_reminder_items WHERE person=?', address),
     discardReasons: rewrittenReasons.length,
+    bankAccounts: await count('c_bank_accounts WHERE member_email=?', address),
   };
   const retained = { subject, claims: claims.map(c => ({ claim: claimNumber(c.number), status: c.status, totalMinor: c.total_minor })), receiptSha256: receipts, kept: RETAINED };
   const state = sql("EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=0) AND NOT EXISTS(SELECT 1 FROM c_claims WHERE employee_email=? AND status NOT IN ('reimbursed','rejected')) AND NOT EXISTS(SELECT 1 FROM c_legal_holds WHERE released_at IS NULL AND (scope='business' OR (scope='person' AND member_email=?)))", address, address, address);
@@ -155,6 +156,9 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql('DELETE FROM c_delegations WHERE approver_email=? OR delegate_email=?', address, address),
     sql('DELETE FROM c_delegates WHERE grantor_email=? OR delegate_email=?', address, address),
     sql('DELETE FROM c_gusto_employees WHERE email=?', address),
+    // Their bank token and last four (PAY-002); the history lines name only an opaque account id.
+    sql('UPDATE c_bank_accounts SET previous_id=NULL WHERE member_email=?', address),
+    sql('DELETE FROM c_bank_accounts WHERE member_email=?', address),
     ...['c_escalations', 'c_reminders'].map(t => sql(`DELETE FROM ${t} WHERE key IN (SELECT key FROM c_reminder_items WHERE person=?)`, address)),
     sql('DELETE FROM c_reminder_items WHERE person=?', address),
     sql('UPDATE c_members SET approver_email=NULL WHERE approver_email=?', address),

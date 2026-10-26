@@ -3,6 +3,7 @@ import { batchNumber, loadBatch } from '../batches';
 import { all, authority, commit } from '../session';
 import { event } from '../events';
 import { now, requireThat, uid, type Actor, type Data } from '../types';
+import { batchNotHeld, requireBatchNotHeld } from '../bank/holds';
 import { connection, connectionState, handoff, nativeOwner, publicHandoff, type Connection, type Handoff } from './model';
 import { authorized, request } from './network';
 import { cents, compensationEvidence, compensationPlan, payrollLines, sameCompensation } from './lines';
@@ -37,12 +38,14 @@ export async function payrollReview(env: Bindings, actor: Actor, id: string) {
   return { handoff: publicHandoff(existing), lines: existing ? JSON.parse(existing.lines) : await payrollLines(env,batch), payrolls: actor.roles.owner && !actor.delegate && c && !existing ? (await upcoming(env,actor,c)).slice(0,1) : [] };
 }
 const batchState = (id: string, version: number) => ({ sql: "EXISTS(SELECT 1 FROM c_batches WHERE id=? AND version=? AND status='approved' AND released_at IS NOT NULL)", params: [id,version] });
+const sendable = (id: string, version: number) => { const state=batchState(id,version),held=batchNotHeld(id); return { sql: `${state.sql} AND ${held.sql}`, params: [...state.params,...held.params] }; };
 export async function sendPayroll(env: Bindings, actor: Actor, id: string, body: Data) {
   const auth = nativeOwner(actor), batch = await loadBatch(env.DB,id), c = await connection(env);
   requireThat(c, 'Connect Gusto first', 409);
   requireThat(body.consent === true, 'Confirm the exact payroll amounts before sending');
   requireThat(batch.status === 'approved' && batch.released_at && batch.version === body.version && batch.currency === 'USD', 'Review and release this USD batch before sending; reload', 409);
   requireThat(!await handoff(env,id), 'This batch already has a handoff; read back its original run instead of sending again',409);
+  await requireBatchNotHeld(env.DB,id);
   requireThat(!await env.DB.prepare('SELECT 1 FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id WHERE bc.batch_id=? AND c.employee_email=?').bind(id,actor.email).first(), 'Another owner must send a batch holding your own claim',403);
   const recent = { sql: 'EXISTS(SELECT 1 FROM oa_sessions WHERE id=? AND created_at>=unixepoch()*1000-600000)', params: [actor.session] };
   requireThat(await env.DB.prepare(`SELECT (${recent.sql}) AS ok`).bind(...recent.params).first<{ ok: number }>().then(r=>r?.ok), 'Sign in again before sending payroll; a sign-in from the last 10 minutes is required', 401);
@@ -52,13 +55,13 @@ export async function sendPayroll(env: Bindings, actor: Actor, id: string, body:
   const lines = await payrollLines(env,batch);
   requireThat(lines.length>0 && lines.length<=200 && lines.every(l => l.employeeUuid && l.reimbursementMinor>=0 && l.taxableMinor>=0) && lines.reduce((n,l)=>n+l.reimbursementMinor+l.taxableMinor,0)===batch.total_minor, 'Map every employee and reconcile the payroll total first',409);
   // Prepare is an explicit, consented provider operation with its own numbered audit line.
-  await commit(env.DB,all(auth,connectionState(c),batchState(id,batch.version),recent),[event(env.DB,actor,'payroll-prepare-requested',{batch:id},{company:c.company_uuid,payroll:next.payroll_uuid})]);
+  await commit(env.DB,all(auth,connectionState(c),sendable(id,batch.version),recent),[event(env.DB,actor,'payroll-prepare-requested',{batch:id},{company:c.company_uuid,payroll:next.payroll_uuid})]);
   const payroll = await readPayroll(env,actor,c,next.payroll_uuid,true);
   requireThat(payroll.processed === false && payroll.off_cycle === false && !['calculating','submitting'].includes(payroll.processing_request?.status), 'The payroll is already being processed',409);
   const earnings = lines.some(line=>line.taxableMinor>0) ? await request(env,actor,c,`/v1/companies/${c.company_uuid}/earning_types`) : { default: [] };
   const bonusAvailable = Array.isArray(earnings.default) && earnings.default.some((earning:Data)=>earning.name==='Bonus');
   const expected = compensationPlan(payroll,lines,`Coaster ${batchNumber(batch.number)}`,bonusAvailable), key=uid(), at=now();
-  await commit(env.DB,all(auth,connectionState(c),batchState(id,batch.version),recent),[
+  await commit(env.DB,all(auth,connectionState(c),sendable(id,batch.version),recent),[
     env.DB.prepare("INSERT INTO c_payroll_handoffs(id,batch_id,company_uuid,payroll_uuid,check_date,status,lines,expected,created_by,created_at) VALUES(?,?,?,?,?,'reserved',?,?,?,?)").bind(key,id,c.company_uuid,next.payroll_uuid,payroll.check_date,JSON.stringify(lines.map(({name,...line})=>line)),JSON.stringify(await Promise.all(expected.map(compensationEvidence))),actor.email,at),
     env.DB.prepare('UPDATE c_batches SET version=version+1 WHERE id=?').bind(id),
     event(env.DB,actor,'payroll-handoff-reserved',{batch:id},{handoff:key,company:c.company_uuid,payroll:next.payroll_uuid,consent:true,totalMinor:batch.total_minor}),

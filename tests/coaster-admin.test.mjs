@@ -138,9 +138,10 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
     { row: 'Export reports', call: who => send(`reports/aging?${range}`, undefined, who), outside: ['Approver'] },
     { row: 'Export audit packs', call: who => send(`audit-pack?${range}`, undefined, who) },
     { row: 'Read full history', call: who => send('history', undefined, who) },
+    { row: 'See employees\' bank details', call: who => send('bank/people', undefined, who), scoped: { Employee: who => send('bank', undefined, who) } },
   ]
   // Rows whose action has no door in Coaster yet: the clause that adds the door asserts it in its own text and acceptance.
-  const noDoor = { 'Connect payment funding account': 'PAY-001', 'Edit coding on submitted or approved expenses': 'ACCT-006', 'See employees\' bank details': 'PAY-002' }
+  const noDoor = { 'Connect payment funding account': 'PAY-001', 'Edit coding on submitted or approved expenses': 'ACCT-006' }
   const rows = await matrix()
   for (const row of rows) assert.ok(row.label in noDoor || doors.some(d => row.label.startsWith(d.row)), `matrix row "${row.label}" has a door in this journey or is named as having none`)
   for (const label of Object.keys(noDoor)) assert.ok(rows.some(r => r.label === label))
