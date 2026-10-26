@@ -1,8 +1,8 @@
 import { amount, type Actor } from '../../types';
 import { chooseCardMatch } from '../card-matching';
 import { MATCH_NOTICE } from '../match-notice';
-import { ownOriginal, originalStill, latestReading } from './access';
-import { safePrefill } from './normalize';
+import { ownOriginal, originalStill, latestReading, crossSources } from './access';
+import { safePrefill, currentFields } from './normalize';
 import { currentSettings, settingsStill } from './settings';
 import type { Fields } from './model';
 
@@ -12,7 +12,7 @@ export async function applyReadingMatchDefault(db: D1Database, actor: Actor, id:
   if (!choice?.enabled) return;
   const [receipt, latest, settings] = await Promise.all([ownOriginal(db, actor, id), latestReading(db, id), currentSettings(db)]);
   if (!settings?.enabled || !latest || !['read', 'corrected'].includes(latest.kind)) return;
-  const fields = safePrefill(JSON.parse(latest.fields_json) as Fields);
+  const fields = safePrefill(currentFields(JSON.parse(latest.fields_json) as Fields,await crossSources(db,id)));
   if (!fields.merchant || !fields.date || !fields.total || !fields.currency || amount(fields.total, 'Total') <= 0) return;
   const exists = await db.prepare(`SELECT 1 WHERE EXISTS(SELECT 1 FROM c_capture_cash_drafts WHERE receipt_id=?) OR EXISTS(SELECT 1 FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id WHERE r.capture_receipt_id=?) OR EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND kind IN ('discarded','merged','match-details','match-withdrawn'))`).bind(id, id, id).first();
   if (exists) return;

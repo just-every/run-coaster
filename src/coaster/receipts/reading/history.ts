@@ -1,8 +1,8 @@
 import { receiptQuestion } from '../questions';
 import { now, type Actor, type Data } from '../../types';
 import { type Fields, type ReadingRow } from './model';
-import { safePrefill } from './normalize';
-import { ownOriginal } from './access';
+import { safePrefill, currentFields } from './normalize';
+import { ownOriginal, crossSources } from './access';
 import { readerFailure } from './provider';
 import { READING_CONSENT } from './settings';
 export function readingLine(db:D1Database,a:Actor,receipt:Data,sequence:number,kind:ReadingRow['kind'],attempt:string,settings:number,model:string,fields:Fields|{},usage:Data={},error='') {
@@ -10,7 +10,7 @@ export function readingLine(db:D1Database,a:Actor,receipt:Data,sequence:number,k
 }
 export async function readingDetail(db:D1Database,a:Actor,id:string) {
   const r=await ownOriginal(db,a,id),rows=(await db.prepare('SELECT * FROM c_receipt_readings WHERE receipt_id=? ORDER BY sequence').bind(id).all<ReadingRow>()).results,latest=rows.at(-1);
-  const fields=latest&&['read','corrected'].includes(latest.kind)?JSON.parse(latest.fields_json) as Fields:null;
+  const fields=latest&&['read','corrected'].includes(latest.kind)?currentFields(JSON.parse(latest.fields_json) as Fields,await crossSources(db,id)):null;
   const expired=latest?.kind==='started'&&Date.now()-Date.parse(latest.at)>=120000;
   const state=!latest?'needs-attention':latest.kind==='started'?(expired?'needs-attention':'reading'):latest.kind==='failed'||fields&&Object.values(fields).some(f=>f.review)?'needs-attention':'read';
   const choice=await db.prepare('SELECT version,enabled FROM c_receipt_reading_match_defaults WHERE employee_email=? ORDER BY version DESC LIMIT 1').bind(a.email).first<{version:number;enabled:number}>();

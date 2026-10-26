@@ -4,9 +4,19 @@ import { canSee, claimNumber, loadClaim, visible, type Claim } from './claims';
 import { operatorMail } from '../mail.server.mjs';
 import type { Bindings } from '../auth.server';
 import { email, now, requireThat, text, uid, type Actor, type Data } from './types';
+import { questionReplyMail } from './comment-email';
 
 const escape = (s: string) => s.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 const author = (actor: Actor) => actor.delegate?.email ?? actor.email;
+
+/** App and authenticated native email answers write the same comment and history line. */
+export function commentWrites(db: D1Database, actor: Actor, claim: string, c: { id: string; item: string | null; parent: string | null; asks: string | null; parentAsks: string | null; body: string; at: string }) {
+  const action = c.asks ? 'question-asked' : c.parentAsks === actor.email ? 'question-answered' : 'comment-added';
+  return [
+    db.prepare('INSERT INTO c_comments(id,claim_id,item_id,parent_id,author_email,on_behalf_of,asks_email,body,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(c.id, claim, c.item, c.parent, author(actor), actor.delegate ? actor.email : null, c.asks, c.body, c.at),
+    event(db, actor, action, { claim }, { comment: c.id, item: c.item, parent: c.parent, asks: c.asks, body: c.body }),
+  ];
+}
 
 /** Whether this address could open the claim itself: the same rule as canSee, read from the member record. */
 async function seesClaim(db: D1Database, address: string, claim: Claim) {
@@ -55,18 +65,17 @@ export async function addComment(db: D1Database, env: Bindings, actor: Actor, id
     asksName = await seesClaim(db, asks, claim);
     requireThat(asksName, 'Ask someone who can see this claim');
   }
-  const commentId = uid(), at = now(), onBehalfOf = actor.delegate ? actor.email : null;
-  const action = asks ? 'question-asked' : parent?.asks_email && parent.asks_email === actor.email ? 'question-answered' : 'comment-added';
+  const commentId = uid(), at = now();
+  const reply = asks ? await questionReplyMail(db, env, commentId, asks) : null;
   await commit(db, authority(actor), [
-    db.prepare('INSERT INTO c_comments(id,claim_id,item_id,parent_id,author_email,on_behalf_of,asks_email,body,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(commentId, claim.id, item, parent?.id ?? null, author(actor), onBehalfOf, asks, body, at),
-    event(db, actor, action, { claim: claim.id }, { comment: commentId, item, parent: parent?.id ?? null, asks, body }),
+    ...commentWrites(db, actor, claim.id, { id: commentId, item, parent: parent?.id ?? null, asks, parentAsks: parent?.asks_email ?? null, body, at }),
+    ...(reply ? [reply.statement] : []),
   ]);
   let notified: string | null = null;
   if (asks) {
-    // Mail is the channel that exists today; the answer is given in Coaster (NOTIFY-001 adds chat and preferences).
     const mail = operatorMail(env), link = `${env.AUTH_ORIGIN}/app#/claims/${claim.id}`;
-    const words = `${actor.name} asked you about ${claimNumber(claim.number)} “${claim.title}”: “${body}” Answer it in Coaster: ${link}`;
-    const sent = mail ? await mail.send({ deliveryId: commentId, from: env.MAIL_FROM ?? '', to: [asks], subject: `${actor.name} has a question about ${claimNumber(claim.number)}`, text: words, html: `<p>${escape(words.replace(link, ''))}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
+    const words = `${actor.name} asked you about ${claimNumber(claim.number)} “${claim.title}”: “${body}” ${reply ? 'Reply above the quoted message to answer, keeping the subject unchanged. Or answer in Coaster: ' : 'Answer it in Coaster: '}${link}`;
+    const sent = mail ? await mail.send({ deliveryId: commentId, from: env.MAIL_FROM ?? '', to: [asks], subject: `${actor.name} has a question about ${claimNumber(claim.number)}${reply ? ` ${reply.subject}` : ''}`, text: words, html: `<p>${escape(words.replace(link, ''))}<a href="${link}">${link}</a></p>`, ...(reply ? { replyTo: reply.destination } : {}), headers: {} }) : null;
     notified = sent?.status ?? 'mail not set up';
   }
   return { comment: commentId, notified, comments: await claimComments(db, claim.id) };

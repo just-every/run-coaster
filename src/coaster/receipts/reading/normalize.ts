@@ -57,7 +57,7 @@ export function reconcile(fields:Fields,sources:Source[]):Fields {
   // A confident total is unsafe when its explicit components or line items are themselves uncertain.
   if(total!==null&&parts.some(n=>fields[n].value!==null&&fields[n].review)||total!==null&&Array.isArray(fields.lineItems.value)&&fields.lineItems.review)flag(fields,['total'],'A component of the final amount needs review');
   const key=(s:string)=>s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
-  for(const source of sources)for(const name of FIELD_NAMES){const expected=source.values[name],value=fields[name].value;if(expected!==undefined&&typeof value==='string'&&(name==='merchant'?key(value)!==key(expected):value!==expected))flag(fields,[name],`Conflicts with ${source.kind==='card-charge'?'the attached card charge':'the person-confirmed receipt details'}`);}
+  for(const source of sources)for(const name of FIELD_NAMES){const expected=source.values[name],value=fields[name].value;if(expected!==undefined&&typeof value==='string'&&(name==='merchant'?key(value)!==key(expected):value!==expected))flag(fields,[name],`Conflicts with ${source.kind==='card-charge'?'the attached card charge':source.kind==='merchant-email'?'the merchant email body':source.kind==='email-attachment'?'the email attachment':'the person-confirmed receipt details'}`);}
   return fields;
 }
 export function correctedFields(previous:Fields,values:unknown,pages:number,sources:Source[]):Fields {
@@ -71,6 +71,11 @@ export function correctedFields(previous:Fields,values:unknown,pages:number,sour
     fields[field]={value:normalized,observed:typeof normalized==='string'?normalized:null,confidence:normalized===null?0:1,regions:fields[field].regions,review:normalized===null,reasons:normalized===null?['Not supplied']:[],source:'person'};
   }
   return reconcile(fields,sources);
+}
+export function currentFields(fields:Fields,sources:Source[]):Fields {
+  const current=structuredClone(fields);
+  for(const field of Object.values(current)){field.reasons=field.reasons.filter(r=>!r.startsWith('Conflicts with '));field.review=field.reasons.length>0;}
+  return reconcile(current,sources);
 }
 export function safePrefill(fields:Fields) {
   const values:Data={};for(const name of FIELD_NAMES){const field=fields[name];if(!field.review&&field.value!==null)values[name]=field.value;}

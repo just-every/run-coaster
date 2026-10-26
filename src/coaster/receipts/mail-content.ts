@@ -15,7 +15,7 @@ export type MailReceiptMessage = {
   }[];
 };
 
-export type MailReceiptFile = { name: string; bytes: Uint8Array; mediaType: string };
+export type MailReceiptFile = { name: string; bytes: Uint8Array; mediaType: string; origin: 'body' | 'attachment' };
 
 /** Inline parts are receipts too; neither their disposition nor declared MIME decides their type. */
 export async function mailReceiptFiles(message: MailReceiptMessage): Promise<MailReceiptFile[]> {
@@ -28,7 +28,7 @@ export async function mailReceiptFiles(message: MailReceiptMessage): Promise<Mai
       throw error;
     }
     const extension = mediaType === 'application/pdf' ? 'pdf' : mediaType.slice(6).replace('jpeg', 'jpg');
-    files.push({ name: fileName(attachment.filename) || `email-attachment-${index + 1}.${extension}`, bytes: attachment.content.slice(), mediaType });
+    files.push({ name: fileName(attachment.filename) || `email-attachment-${index + 1}.${extension}`, bytes: attachment.content.slice(), mediaType, origin: 'attachment' });
   }
   if (files.length && !message.html?.trim()) return files;
 
@@ -45,7 +45,7 @@ export async function mailReceiptFiles(message: MailReceiptMessage): Promise<Mai
     layout.y -= 10;
   }
   renderText(layout, body, 10);
-  return [...files, { name: `${fileName(subject).replace(/\.pdf$/i, '') || 'email-receipt'}.pdf`, bytes: await layout.finish(), mediaType: 'application/pdf' }];
+  return [...files, { name: `${fileName(subject).replace(/\.pdf$/i, '') || 'email-receipt'}.pdf`, bytes: await layout.finish(), mediaType: 'application/pdf', origin: 'body' }];
 }
 
 function fileName(value: string) {

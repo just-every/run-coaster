@@ -226,3 +226,66 @@ test('Receipt disagreements ask one private crop-backed question across the labe
   assert.deepEqual(await h.get('claims/'+approved.id,t.sam),before,'an answered or non-editable expense is never changed')
  }finally{await h.close()}
 })
+
+test('Merchant email body and attachment readings share one confirmed-only question and retain both exact sources',async()=>{
+ const attachment=await load(2031),body={...attachment,values:{...attachment.values,merchant:'synthetic-coaster-8501',date:'2026-08-04',total:'70.50',salesTax:'5.36',tip:'7.00',currency:'CAD',last4:'4141'}};
+ let selected=attachment;const calls=[];
+ const h=await harness({bindings:aiBindings,aiEdge:async request=>{const input=await request.json();calls.push(input);return response(raw(selected));}});
+ try{
+  const t=await agency(h);await enable(h);
+  const {receiptAddress,receiptMail,deliverMail}=await import('./fixtures/receipt-email.mjs');
+  await h.post('settings/receipt-email',{address:receiptAddress,consent:true});
+  const pdf=await readFile(folder+attachment.file),html=`<h1>${body.values.merchant}</h1><p>${body.values.date}</p><p>Subtotal 58.14; tax 5.36; tip 7.00; total CAD 70.50; card ending 4141</p>`;
+  const message=Buffer.from(receiptMail({subject:'synthetic-coaster-8502',file:{name:attachment.file,bytes:pdf}}).toString().replace('Content-Type: text/plain\r\n\r\nYour receipt is attached.','Content-Type: text/html; charset=UTF-8\r\n\r\n'+html));
+  await deliverMail(h,message);
+  const originals=(await h.get('receipt-inbox',t.sam)).receipts;
+  assert.equal(originals.length,2);assert.equal(calls.length,0,'intake never authorizes external processing');
+  const attachedOriginal=originals.find(r=>r.name===attachment.file),bodyOriginal=originals.find(r=>r.id!==attachedOriginal.id);
+  assert.ok(attachedOriginal&&bodyOriginal);
+  const download=async(id,suffix='')=>{const r=await h.mf.dispatchFetch(h.origin+`/api/coaster/receipt-inbox/${id}${suffix}`,{headers:{cookie:t.sam}});assert.equal(r.status,200);return Buffer.from(await r.arrayBuffer());};
+  assert.deepEqual(await download(attachedOriginal.id),pdf);
+  const bodyPdf=await download(bodyOriginal.id);assert.ok(bodyPdf.length>0);
+  for(const original of originals)assert.deepEqual(await download(original.id,'/source'),message);
+  const attachmentRead=await read(h,attachedOriginal.id,t.sam);assert.equal(attachmentRead.prefill.amount,attachment.values.total);
+  assert.equal(calls.length,1);assert.equal((await h.get(`receipt-inbox/${bodyOriginal.id}/reading`,t.sam)).sequence,0,'reading one original never reads its sibling');
+  selected=body;const bodyRead=await read(h,bodyOriginal.id,t.sam);assert.equal(calls.length,2);
+  assert.ok(!('total' in bodyRead.prefill));assert.ok(!('merchant' in bodyRead.prefill));
+  let detail=await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam);
+  assert.equal(detail.state,'needs-attention');assert.equal(detail.fields.total.review,true);assert.ok(!('total' in detail.prefill));assert.ok(!('amount' in detail.prefill));assert.ok(!('merchant' in detail.prefill),'a later sibling reading invalidates earlier prefill');
+  assert.deepEqual(detail.history[1].fields,attachmentRead.history[1].fields,'dynamic comparison does not overwrite the first reading');
+  await h.get(`receipt-inbox/${bodyOriginal.id}/reading`,t.alex,404);
+  await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,h.owner,404);
+  const issuer='synthetic-coaster-8503';await h.post('statements/cards',{issuer,last4:attachment.values.last4,employee:'sam@harbourfinch.example'});
+  const file={format:'csv',name:'synthetic-coaster-8504.csv',issuer,category:t.c.office,content:`Date,Merchant,Amount,Id\n${attachment.values.date},${attachment.values.merchant},72.50,synthetic-coaster-8504`,mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:attachment.values.last4}};
+  const preview=await h.post('statements/preview',file),job=await h.post('statements/commit',{...file,fingerprint:preview.fingerprint});
+  const claim=await h.get('claims/'+job.claims[0],t.sam),item=claim.items[0];
+  await h.post(`receipt-inbox/${attachedOriginal.id}/attach`,{expectedSequence:0,claimId:claim.claim.id,itemId:item.id,version:claim.claim.version},t.sam);
+  detail=await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam);const q=detail.question;
+  assert.ok(q);assert.equal(new Set(q.conflicts.map(c=>c.field)).size,q.conflicts.length,'each field appears once in the one question');
+  assert.deepEqual(q.conflicts.map(c=>c.field).sort(),['merchant','date','total','salesTax','tip','currency','last4'].sort());
+  for(const conflict of q.conflicts){
+   assert.deepEqual(conflict.regions,region);assert.equal(conflict.read,attachment.values[conflict.field]);
+   assert.equal(conflict.sources.length,1);assert.equal(conflict.sources[0].receiptId,bodyOriginal.id);assert.equal(conflict.sources[0].value,body.values[conflict.field]);assert.deepEqual(conflict.sources[0].regions,region);
+  }
+  assert.equal(q.conflicts.find(c=>c.field==='total').card,'72.50');
+  const before=await h.get('claims/'+claim.claim.id,t.sam);
+  assert.deepEqual((await h.get(`receipt-inbox/${attachedOriginal.id}/question`,t.sam)).question,q);
+  assert.deepEqual(await h.get('claims/'+claim.claim.id,t.sam),before,'an ignored comparison changes no expense');assert.equal(calls.length,2);
+  const values={...Object.fromEntries(q.conflicts.map(c=>[c.field,body.values[c.field]])),total:body.values.total,currency:body.values.currency};
+  const answer={questionId:q.id,expectedSequence:1,expectedReadingSequence:detail.sequence,version:q.version,values,consent:true};
+  await h.post(`receipt-inbox/${attachedOriginal.id}/question`,{...answer,consent:false},t.sam,400);
+  await h.post(`receipt-inbox/${bodyOriginal.id}/reading/corrections`,{expectedSequence:0,expectedReadingSequence:bodyRead.sequence,values:{total:'71.50',tip:'8.00'}},t.sam);
+  await h.post(`receipt-inbox/${attachedOriginal.id}/question`,answer,t.sam,409);
+  assert.deepEqual(await h.get('claims/'+claim.claim.id,t.sam),before,'a stale sibling question cannot commit an expense correction');
+  const fresh=(await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam)).question;
+  await h.post(`receipt-inbox/${attachedOriginal.id}/question`,{...answer,questionId:fresh.id,values:{...values,total:'71.50',tip:'8.00'}},t.sam);
+  const after=await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam);assert.equal(after.question,null);assert.equal(after.fields.total.value,'71.50');assert.equal(after.fields.total.source,'person');assert.deepEqual(after.history[1].fields,attachmentRead.history[1].fields);
+  const resolved=(await h.get('claims/'+claim.claim.id,t.sam)).items.find(i=>i.id===item.id);assert.equal(resolved.amount_minor,7250);assert.equal(resolved.currency,'USD');assert.equal(JSON.parse(resolved.receipt_resolution).receiptTotal,'71.50');assert.equal(JSON.parse(resolved.receipt_resolution).receiptCurrency,'CAD');
+  assert.deepEqual(await download(attachedOriginal.id),pdf);assert.deepEqual(await download(bodyOriginal.id),bodyPdf);for(const original of originals)assert.deepEqual(await download(original.id,'/source'),message);
+  assert.equal(calls.length,2,'comparison, correction and evidence views never start another paid reading');
+  // A terminal sibling stops contributing values, while its unchanged evidence stays private.
+  await h.post(`receipt-inbox/${bodyOriginal.id}/discard`,{expectedSequence:0,reason:'synthetic-coaster-8505'},t.sam);
+  const current=await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam);assert.ok(current.fields.total.reasons.every(reason=>!reason.includes('merchant email')));
+  assert.deepEqual(await download(bodyOriginal.id),bodyPdf);
+ }finally{await h.close();}
+});

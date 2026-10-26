@@ -6,7 +6,7 @@ import { originalBytes, receiptBucket } from '../storage';
 import { expected, latestReading, originalStill, ownOriginal, crossSources, captureState } from './access';
 import { currentSettings, settingsStill, READING_CONSENT } from './settings';
 import { readingDetail, readingLine } from './history';
-import { normalizeReading, correctedFields, safePrefill } from './normalize';
+import { normalizeReading, correctedFields, safePrefill, currentFields } from './normalize';
 import { invokeReader, readerFailure, type ReaderBindings } from './provider';
 import { receiptInput } from './media';
 import { FIELD_NAMES, type Fields, type LineItem } from './model';
@@ -59,7 +59,7 @@ export async function correctReading(db:D1Database,a:Actor,id:string,b:Data) {
 /** Trusted handoff: CODE-002 callers must include this guard in their own exact commit. Never accepts client OCR facts. */
 export async function readingCodingInput(db:D1Database,a:Actor,id:string):Promise<{guard:Sql;receiptId:string;employee:string;merchant:string;lineItems:LineItem[];prefill:Data}> {
   const r=await ownOriginal(db,a,id),latest=await latestReading(db,id);requireThat(latest&&['read','corrected'].includes(latest.kind),'A completed receipt reading is required',409);
-  const fields=JSON.parse(latest.fields_json) as Fields,prefill=safePrefill(fields);
+  const fields=currentFields(JSON.parse(latest.fields_json) as Fields,await crossSources(db,id)),prefill=safePrefill(fields);
   requireThat(typeof prefill.merchant==='string','Confirm the merchant before preparing receipt-based coding',409);
   return {guard:originalStill(a,r,r.lifecycle_sequence,latest.sequence),receiptId:id,employee:a.email,merchant:prefill.merchant,lineItems:prefill.lineItems??[],prefill};
 }

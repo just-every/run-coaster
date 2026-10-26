@@ -5,11 +5,12 @@ import {chromium,expect} from '@playwright/test';
 import {agency,harness} from './harness.mjs';
 import {payrollBrowserRuntime,noOverflow,tooltipProof} from './payroll-browser-runtime.mjs';
 import {receiptAddress,threeMails,receiptMail,deliverMail,aliasCode} from './fixtures/receipt-email.mjs';
+import {emailQuestionScreens} from './browser-email-questions.mjs';
 const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/email-proof');await mkdir(evidence,{recursive:true});
 const attach=await payrollBrowserRuntime(),shots=[];
 const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
 try{for(const width of [1440,390]){
- const h=await harness();let member,owner,delegate;
+ let reading;const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-8500'},aiEdge:async()=>Response.json({status:'completed',model:'gpt-6.1-sol',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(reading)}]}],usage:{input_tokens:10,output_tokens:10,total_tokens:20}})});let member,owner,delegate;
  try{
   const t=await agency(h),errors=[];
   await h.post('settings/receipt-email',{address:receiptAddress,consent:true});
@@ -37,6 +38,8 @@ try{for(const width of [1440,390]){
   for await(const part of stream)parts.push(part);const downloaded=Buffer.concat(parts);assert.ok([...originals,receiptMail({from:alias,subject:'Alias airline receipt'})].some(raw=>raw.equals(downloaded)));
   await capture(delegatePage,'delegate-source',delegatedInbox);
   assert.equal((await h.get('settings/receipt-email')).held.length,1);assert.equal((await h.get('receipt-inbox',t.sam)).receipts.length,4);assert.deepEqual(errors,[]);
+  await emailQuestionScreens({h,t,page,context:member,width,capture,read:value=>{reading=value;}});
+  assert.deepEqual(errors,[]);
  }finally{await member?.close();await owner?.close();await delegate?.close();await h.close();}
 }}finally{await browser.close();}
 console.log(`Receipt email screens passed at 1440 and 390: ${shots.length} screenshots`);

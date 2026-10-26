@@ -739,6 +739,14 @@
       "sha256": "07321be956171252e499da24ff70f7192c997eae94f00876c92f9bedcaa736b7",
       "executable": false
     },
+    "migrations/core/0081_comment_email.sql": {
+      "sha256": "fb6eff7154dc0f8d46594bff9d834d3bcd0cfd0d0bc262def45f8b0235329c71",
+      "executable": false
+    },
+    "migrations/core/0082_receipt_mail_origins.sql": {
+      "sha256": "88c83b0048e049f589b6846ed780d23ac9ce310c35fbedbef06c3e61440bfc4e",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -1120,7 +1128,7 @@
       "executable": false
     },
     "scripts/installer/mail-archive.mjs": {
-      "sha256": "dae07d4301b7eb5e4a31023856e7ce0b51af9bdf828b79c062e7aef0f6657730",
+      "sha256": "cec6ae3af29f1c85d3e200e63acedc391efc9c259d45c50f607c30ef5af2268c",
       "executable": false
     },
     "scripts/installer/payroll-archive.mjs": {
@@ -1515,8 +1523,12 @@
       "sha256": "d395be31cd49c7f101269c4c59f5f59ca9632f68ca1b2f6fffda2b90b84e96b0",
       "executable": false
     },
+    "src/coaster/comment-email.ts": {
+      "sha256": "8a68e26a9cfc9b99b99def07b986ab977954ba934a2f11f81cf62653b3a69c2b",
+      "executable": false
+    },
     "src/coaster/comments.ts": {
-      "sha256": "11b4363513ab67a9a907b30d6db97898513e93cd6052e0801fb3fc5df878a0c6",
+      "sha256": "ddca267b2f8458a48009e90fc66767fb613375ccde48c131724ad0e6ca28f3e1",
       "executable": false
     },
     "src/coaster/decisions.ts": {
@@ -1864,11 +1876,11 @@
       "executable": false
     },
     "src/coaster/receipts/mail-content.ts": {
-      "sha256": "13f103da3b8e074c6884b2542876e49f1b2224558ca60b9bf8cfde9a0f846055",
+      "sha256": "7266c4ca99a5db755c2c7c1ec6ef5053c5057bbef388d790604d14696cd8fe29",
       "executable": false
     },
     "src/coaster/receipts/mail-intake.ts": {
-      "sha256": "4e7c45296674426478811cff4759e9246e94ae5fd699d3a86687b53c5f913b1b",
+      "sha256": "205625ffa19765d4069720909997ea096bd166152322abd839e099525b29fa34",
       "executable": false
     },
     "src/coaster/receipts/mail-parser.d.mts": {
@@ -1888,7 +1900,7 @@
       "executable": false
     },
     "src/coaster/receipts/questions.ts": {
-      "sha256": "02afb545a52b0efbed99193c57817a7cfdea8fcff78cdcc0e9dd2cd9021a781c",
+      "sha256": "4cfa2c74ed280cc5f2401e9bb9660d7ced10d507a79fe618ea2783d76e9e5222",
       "executable": false
     },
     "src/coaster/receipts/reading-coding.ts": {
@@ -1896,15 +1908,19 @@
       "executable": false
     },
     "src/coaster/receipts/reading/access.ts": {
-      "sha256": "19cd1ac1f84cb8615fefc74326f8b6f9fdf82ff84f5fc98d15fcd68f42259f37",
+      "sha256": "4f6de1f11f20b7c6e0650747e96b32b00f78065ebe98644226f6722b1aa29617",
       "executable": false
     },
     "src/coaster/receipts/reading/history.ts": {
-      "sha256": "f610190b947662a1887a7ea3a804326a40c13a2e33aef9a0a5dfb9c3ee40353f",
+      "sha256": "df60f03614ccca4d5ba2aca251d2aa053c130b0b3a37ac2d7884ba69dc0e6784",
       "executable": false
     },
     "src/coaster/receipts/reading/index.ts": {
-      "sha256": "dfecb4cf160d9390d660361c21246dbd280e338a37ddb1ae0cd089d04fd2d569",
+      "sha256": "6d083185304f70a85b6b9ad2b99dc62dfef977ca75b9bda14629c3da6fe6d832",
+      "executable": false
+    },
+    "src/coaster/receipts/reading/mail-sources.ts": {
+      "sha256": "f8afdade787896b9eb6bc714c5495b69c9caa25e6949f73d4d9bf3b7172497ec",
       "executable": false
     },
     "src/coaster/receipts/reading/media.ts": {
@@ -1912,11 +1928,11 @@
       "executable": false
     },
     "src/coaster/receipts/reading/model.ts": {
-      "sha256": "49bba472deaf778e02f7e7c6b7549e0dbec1dec8d59d3e91182d8db1ce0eec2b",
+      "sha256": "6784d7b379962e6dffe9dc04bec038c3dde61ea3e6842bbbce2980aab37523e5",
       "executable": false
     },
     "src/coaster/receipts/reading/normalize.ts": {
-      "sha256": "7aa984bf34558f661d040bcf77fd30a0417ac8b88c8746ed540e8cc46a1fe026",
+      "sha256": "99a5bd87fb8d301d2ca9aa1157cdb6435928bc1d29a89b6e0129227ca9a07888",
       "executable": false
     },
     "src/coaster/receipts/reading/pdf-evidence.ts": {
@@ -1932,7 +1948,7 @@
       "executable": false
     },
     "src/coaster/receipts/reading/standing.ts": {
-      "sha256": "6755f3ed0cf3b183a164dd4def1d420cbf6af1ab5236c20f7a45508fa88ddc53",
+      "sha256": "ff14dacad20c00388cc5c8a514bec4fc1bcd806da303731a372ce493432eb2c4",
       "executable": false
     },
     "src/coaster/receipts/reasons.d.mts": {
@@ -4204,7 +4220,7 @@
       "executable": false
     },
     "src/ui/receipt-question.tsx": {
-      "sha256": "2dfd0d808da997b4a4a561cfdbb59cdb0a01fffda455ae3960b72dd5ee86f754",
+      "sha256": "f819ab19321b330fad124bac447ef6710cbb47763d6cc404ad023674811a4c45",
       "executable": false
     },
     "src/ui/receipt-reading-fields.tsx": {
@@ -4299,8 +4315,12 @@
       "sha256": "85bc8e93e8628a076882e68a703684013aaa1a37a91f63f09639753670f77c98",
       "executable": false
     },
+    "tests/browser-email-questions.mjs": {
+      "sha256": "46eb47c3f3a0690700239b40a37cd25b1f15e3ed638bd2d3f412cc989ba24b24",
+      "executable": false
+    },
     "tests/browser-email.mjs": {
-      "sha256": "bb8a68fc666715ab80a64ee81aaf5a24a9c7c3268947577052e7f2145131a692",
+      "sha256": "8387171afaa255158dab2bbda0e1437cd16d68a53f4941c956b62480a2ddd8d1",
       "executable": false
     },
     "tests/browser-journey.mjs": {
@@ -4448,7 +4468,7 @@
       "executable": false
     },
     "tests/coaster-reader.test.mjs": {
-      "sha256": "5c75a206223223fe82b23d2f38d633e178554294e51f205ff93257f099b3849a",
+      "sha256": "c37470526221f9bf1615fdc1e493512b30192f6bd564830bac3c0d5429ac32f0",
       "executable": false
     },
     "tests/coaster-receipt-signals.test.mjs": {
@@ -4476,7 +4496,7 @@
       "executable": false
     },
     "tests/coaster.test.mjs": {
-      "sha256": "a1361874d40138c6b64376830b0cd05b2dfc2262447bc9c15bcdd6f3515a9351",
+      "sha256": "f60721254c865791de0904df9340d0f4bf2776bad3d2e658cf367fbc69657888",
       "executable": false
     },
     "tests/coding-attachment-quality.mjs": {
@@ -4488,7 +4508,7 @@
       "executable": false
     },
     "tests/email-archive.mjs": {
-      "sha256": "6fb5e948d4743dba1edb99217eaaac73821080453bc200fb06fe22d4ffa9fdb1",
+      "sha256": "130e1b553136de2bcc24997744e5cc23f61fae00e252895ac5d4af95409f6384",
       "executable": false
     },
     "tests/email-link.mjs": {
