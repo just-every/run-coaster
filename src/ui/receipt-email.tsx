@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { call, moment } from './api';
+import { apiHref, call, moment } from './api';
 import { Field, Form, Section } from './parts';
 
 type ReceiptAlias = { email: string; confirmed: boolean };
@@ -33,7 +33,7 @@ export function ReceiptEmailAddress() {
 export function ReceiptEmailProvenance({ source }: { source: ReceiptEmailSource }) {
   return <div style={{ overflowWrap: 'anywhere' }}>
     <p className="muted">Email from {source.from} · {moment(source.receivedAt)}{source.subject ? <> · {source.subject}</> : null}</p>
-    <p><a href={source.sourceUrl} download>Download source message</a></p>
+    <p><a href={apiHref(source.sourceUrl.replace(/^\/api\/coaster\//, ''))} download>Download source message</a></p>
   </div>;
 }
 

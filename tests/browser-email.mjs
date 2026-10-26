@@ -9,7 +9,7 @@ const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/email-proof');await
 const attach=await payrollBrowserRuntime(),shots=[];
 const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
 try{for(const width of [1440,390]){
- const h=await harness();let member,owner;
+ const h=await harness();let member,owner,delegate;
  try{
   const t=await agency(h),errors=[];
   await h.post('settings/receipt-email',{address:receiptAddress,consent:true});
@@ -28,7 +28,15 @@ try{for(const width of [1440,390]){
   await settings.getByLabel(`Confirmation code for ${alias}`).fill(code);await settings.getByRole('button',{name:'Confirm alias',exact:true}).click();await expect(settings.getByText('Alias confirmed. Future receipts from this address can enter your inbox.',{exact:true})).toBeVisible();
   await deliverMail(h,receiptMail({from:alias,subject:'Alias airline receipt'}),alias);await page.goto(h.origin+'/app#/claims');await expect(page.getByRole('link',{name:'Download source message',exact:true})).toHaveCount(4);await capture(page,'alias-landed',page.getByRole('region',{name:'Receipt inbox',exact:true}));
   owner=await browser.newContext({viewport:{width,height:1000},serviceWorkers:'block'});await attach(owner,h);const ownerPage=await owner.newPage();await ownerPage.goto(h.origin+'/app#/settings');const held=ownerPage.getByRole('region',{name:'Receipt email',exact:true});await expect(held.getByText('Held: Unknown sender; no inbox assignment',{exact:true})).toBeVisible();await capture(ownerPage,'owner-held',held);
+  await h.post('delegates',{delegate:'alex@harbourfinch.example',level:'submit'},t.sam);
+  delegate=await browser.newContext({viewport:{width:390,height:1000},serviceWorkers:'block'});await attach(delegate,{...h,owner:t.alex});const delegatePage=await delegate.newPage();
+  await delegatePage.goto(h.origin+'/app#/claims');await delegatePage.locator('.account-menu summary').click();await delegatePage.locator('.account-card').getByRole('button',{name:'sam',exact:true}).click();
+  const delegatedInbox=delegatePage.getByRole('region',{name:'Receipt inbox',exact:true});await expect(delegatedInbox.getByRole('link',{name:'Download source message',exact:true})).toHaveCount(4);
+  await delegatePage.setViewportSize({width,height:1000});
+  const downloadPromise=delegatePage.waitForEvent('download');await delegatedInbox.getByRole('link',{name:'Download source message',exact:true}).first().click();const download=await downloadPromise,stream=await download.createReadStream(),parts=[];
+  for await(const part of stream)parts.push(part);const downloaded=Buffer.concat(parts);assert.ok([...originals,receiptMail({from:alias,subject:'Alias airline receipt'})].some(raw=>raw.equals(downloaded)));
+  await capture(delegatePage,'delegate-source',delegatedInbox);
   assert.equal((await h.get('settings/receipt-email')).held.length,1);assert.equal((await h.get('receipt-inbox',t.sam)).receipts.length,4);assert.deepEqual(errors,[]);
- }finally{await member?.close();await owner?.close();await h.close();}
+ }finally{await member?.close();await owner?.close();await delegate?.close();await h.close();}
 }}finally{await browser.close();}
 console.log(`Receipt email screens passed at 1440 and 390: ${shots.length} screenshots`);

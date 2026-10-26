@@ -650,8 +650,12 @@ test('Unknown and unconfirmed sender mail stays owner-held; native alias proof g
   await h.post('settings/receipt-email/aliases/confirm',{email:alias,code},t.sam,409);
   const next=receiptMail({from:alias,subject:'Confirmed airline receipt'});await deliverMail(h,next,alias);
   assert.equal((await h.get('receipt-inbox',t.sam)).receipts.length,1);assert.equal((await h.get('settings/receipt-email')).held.length,1,'confirmation never assigns old held mail');
-  await h.post('delegates',{delegate:'alex@harbourfinch.example',level:'full'},t.sam);
+  const delegation=await h.post('delegates',{delegate:'alex@harbourfinch.example',level:'full'},t.sam);
+  const assigned=(await h.get('receipt-inbox',t.sam)).receipts[0],delegatedSource=await h.mf.dispatchFetch(h.origin+assigned.emailSource.sourceUrl+'?actingFor='+encodeURIComponent(SAM),{headers:{cookie:t.alex}});
+  assert.equal(delegatedSource.status,200);assert.deepEqual(Buffer.from(await delegatedSource.arrayBuffer()),next);
   assert.equal((await h.send('/api/coaster/settings/receipt-email/aliases',{email:'another@example.net'},t.alex,{'x-coaster-acting-for':SAM})).status,403);
+  await h.post(`delegates/${delegation.id}/revoke`,{},t.sam);
+  assert.equal((await h.mf.dispatchFetch(h.origin+assigned.emailSource.sourceUrl+'?actingFor='+encodeURIComponent(SAM),{headers:{cookie:t.alex}})).status,403);
   await h.post('settings/receipt-email/aliases/remove',{email:alias},t.sam);await deliverMail(h,receiptMail({from:alias,subject:'After revocation'}),alias);
   assert.equal((await h.get('receipt-inbox',t.sam)).receipts.length,1);assert.equal((await h.get('settings/receipt-email')).held.length,2);
   await h.post('settings/receipt-email/aliases',{email:'sam.extra@example.net'},t.sam);
