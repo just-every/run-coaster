@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "e1b77b2a5d9edc11a2628ed65952dc21d6e32502d64cd8cebb0a7379dd27360e",
+      "sha256": "28e2013c9e0389936f9cdb461d0aefc5976756cbcfe38a451bcc5b2a56dcf9a2",
       "executable": false
     },
     ".gitignore": {
@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "e31aaa2bbf203ea3adc4a3dab2fdbc123eed2451cb8050be2756a54be771426b",
+      "sha256": "5a7c7cab938bd223dfa9b6810d8d152fbce6c104cc163cf41a46a2d8ea78b79e",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "81b7a5974a5a74bffd9b73b40b5d013d1d3837465a05304fa876a0f438c67aac",
+      "sha256": "00d994a30e87b1b2dbd9ebf1f99c1f238aab83fdae9ea4db8ee837af655f0d94",
       "executable": false
     },
     "DEMO.md": {
@@ -380,7 +380,7 @@
       "executable": false
     },
     "docs/receipt-email.md": {
-      "sha256": "57afa7a36c97472ef20b0848829d392569650a0a9a443455b0dc7b0f1e996a23",
+      "sha256": "722f8b88be54bfa454ea30c495233c7d55b267319941325048abb86226382ff9",
       "executable": false
     },
     "docs/setup.md": {

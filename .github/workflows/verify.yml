@@ -56,7 +56,7 @@ jobs:
       - name: HTTP flow suite, second half
         run: pnpm run test:coaster
       - run: bash scripts/ci/install-browser.sh
-      - name: Payroll screens and financial archive
+      - name: Forwarded receipts, payroll screens and financial archives
         run: |
           node tests/browser-email.mjs
           node tests/email-archive.mjs
