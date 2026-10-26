@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "45e05d0378852bbf534c8258b07223228b3562df975c8afb3b2983a511a2e4fa",
+      "sha256": "6b9a7e4158e01a8b7c3d741492239d3dc61023066b8cc5ee89e8ef64db095505",
       "executable": false
     },
     ".gitignore": {
@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "13b76e5f587273e784354c44cab585c941648676080ecb03c3e0c6724914c183",
+      "sha256": "60b2db8b6ce5b4b20c992bf45c3595cd58c93772e9e73bdab115d6f12a14a580",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a51d1b9c92de7c0bee26716006568628405fa276db05249301d33da436c51eba",
+      "sha256": "411defdc2499b0358c484c4ffa5202f886aad0689832c7a04208a517457df41c",
       "executable": false
     },
     "DEMO.md": {
@@ -380,7 +380,7 @@
       "executable": false
     },
     "docs/receipt-email.md": {
-      "sha256": "722f8b88be54bfa454ea30c495233c7d55b267319941325048abb86226382ff9",
+      "sha256": "27544fac2ecd73b051ffd981a751da71bc79f5c13dbf3fd142940411db4eeb9d",
       "executable": false
     },
     "docs/setup.md": {
@@ -1880,7 +1880,7 @@
       "executable": false
     },
     "src/coaster/receipts/mail-intake.ts": {
-      "sha256": "956944727383f29f0c1684b262f408737c79da6d6c6d5e88acfd5a627e11ee04",
+      "sha256": "5b832066879be1794f52c73f666906d9334e22508644108b23a72026e59023a9",
       "executable": false
     },
     "src/coaster/receipts/mail-parser.d.mts": {

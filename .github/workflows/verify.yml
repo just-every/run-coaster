@@ -88,7 +88,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
       - run: bash scripts/ci/install-browser.sh
-      - name: Forwarded receipt screens and source-message restore
+      - name: Receipt intake, merchant questions, email answers and exact restoration
         run: |
           node tests/browser-email.mjs
           node tests/email-archive.mjs

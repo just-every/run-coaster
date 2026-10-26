@@ -22,15 +22,15 @@ export async function receiveEmail(message:ForwardableEmailMessage,env:Bindings)
  if(!settings||message.to.toLowerCase()!==settings.address){message.setReject('Receipt address is not enabled');return;}
  const bytes=await rawBytes(message),hash=await sha256Hex(bytes),bucket=receiptBucket(env.COASTER_RECEIPTS);
  const existing=await db.prepare('SELECT id FROM c_receipt_mail_messages WHERE sha256=?').bind(hash).first<{id:string}>();
+ if(existing)return;
  const sender=message.from.toLowerCase(),owners=(await db.prepare(ownerQuery).bind(sender,sender).all<{email:string}>()).results,owner=owners.length===1?owners[0]:null;
  let subject='',reason=owner?'':'Unknown sender; no inbox assignment',files:Awaited<ReturnType<typeof mailReceiptFiles>>=[],parsed:Awaited<ReturnType<typeof normalizeInbound>>|null=null,reply=false;
  try {
   parsed=await normalizeInbound({provider:'cloudflare',message:{from:sender,to:message.to,headers:message.headers,raw:new Blob([bytes]).stream(),rawSize:bytes.length}},{maxRawBytes:LIMIT,maxBodyBytes:1_000_000,maxAttachments:30,maxAttachmentBytes:10_000_000,maxTotalAttachmentBytes:20_000_000});
   subject=parsed.subject;
   reply=isCommentReply(parsed);
-  if(owner&&!reply&&!existing)files=await mailReceiptFiles(parsed);
+  if(owner&&!reply)files=await mailReceiptFiles(parsed);
  } catch {reason=owner?'Receipt content could not be read; source held without assignment':reason;}
- if(existing)return;
  if(reply&&parsed){
   const answer=await recognizeCommentReply(db,env,{messageHash:hash,sender,recipient:message.to,message:parsed});
   if(answer.matched&&answer.status==='accepted')return;
