@@ -55,6 +55,7 @@ jobs:
       - run: pnpm run deps
       - name: HTTP flow suite, second half
         run: pnpm run test:coaster
+      - run: bash scripts/ci/install-browser.sh
       - name: Payroll screens and financial archive
         run: |
           node tests/browser-payroll.mjs
