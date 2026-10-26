@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "06dbed4e20fe9c759fd4f291392ed06c435a9c9c838d0ff76594bee3e1518efc",
+      "sha256": "d369b3442b1258dcbde33ce4c2881c81822839ca98698f629259d25e80518168",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "ac34d0b792776d2c1bd2aebf7c124d8172bf9d142370179e6cf4ffae48ca4125",
+      "sha256": "d4476465f914879ba880159ecd0d5bbd0a1a152cebd994be13769e2edef70e73",
       "executable": false
     },
     "base-copies.json": {
@@ -389,6 +389,10 @@
     },
     "edition.json": {
       "sha256": "ef9fc62bec285740727dc929efcb4cb8ac098d464932a4b33b486244e22c025e",
+      "executable": false
+    },
+    "evidence/payroll-gusto-sandbox.jsonl": {
+      "sha256": "117c664d5e32e4e206159734fd8293809f0ecf1813d2a2a753b78ec5a3cf0ddc",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -1676,7 +1680,7 @@
       "executable": false
     },
     "src/coaster/payroll/handoff.ts": {
-      "sha256": "e0854d10607924e79a7be56fc1ed59d506d81799e9e4210ef8dd343841e1d29f",
+      "sha256": "2f5576df507c46a775a8ca0af9c9473a93a2913cc5fd613f89230ca2a4e7d7a4",
       "executable": false
     },
     "src/coaster/payroll/lines.ts": {
@@ -4264,7 +4268,7 @@
       "executable": false
     },
     "tests/browser-payroll.mjs": {
-      "sha256": "37ca6f5069592dbc8f1aca57a9bdd5d0b8a4292226ee49c3abfa23ad3da8ca99",
+      "sha256": "27dee1a1c63a58022f41f195e4e98bddf73e6a4e8270821fbdd2905a407bd81d",
       "executable": false
     },
     "tests/browser-per-diem.mjs": {
@@ -4376,7 +4380,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "e4020f17d0567d74b48230c0c3b86f992d7691221d245b608ad7a95676f87b39",
+      "sha256": "4a4440a2fc3ff97c5e1ebc249a8ef59d2a371623ad0a9d5916abc34e8c124347",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -6488,7 +6492,7 @@
       "executable": false
     },
     "tests/gusto-sandbox.mjs": {
-      "sha256": "74046c85e21cbe33e5ebb0484807960d73d152b3466714fb4b58f621899aec4c",
+      "sha256": "127d069e276aadd7082e94395db704c2feb0d12a86387c90098c11e2d3e87a8c",
       "executable": false
     },
     "tests/harness.mjs": {

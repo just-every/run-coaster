@@ -139,11 +139,13 @@ test('A native batch crossing Gusto’s employee page limit reconciles every per
     batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:10100});
     batch=await h.post(`batches/${batch.id}/release`,{version:batch.version});
     const path=`batches/${batch.id}/payroll`;
+    edge.uncalculated=true;
     await h.post(path,{version:batch.version,payroll:edge.payrollId,consent:true});
     assert.deepEqual(edge.writes.map(w=>w.employee_compensations.length),[100,1]);
     assert.equal(edge.payroll.employee_compensations.length,workers.length);
     assert.ok(edge.payroll.employee_compensations.every(e=>e.reimbursements.length===1&&e.reimbursements[0].amount==='1.00'));
     assert.equal((await h.get(`batches/${batch.id}`)).batch.status,'approved');
+    edge.uncalculated=false;
     edge.payroll={...edge.payroll,processed:true};
     assert.equal((await h.post(path+'/confirm',{})).confirmed,true);
     assert.equal((await h.get(`batches/${batch.id}`)).batch.status,'reimbursed');

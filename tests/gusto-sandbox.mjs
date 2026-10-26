@@ -1,5 +1,6 @@
-// Live PAY-003 acceptance. Run with held app keys through the approved injector
-// and heavy-slot. Only Gusto Demo receives requests; credentials stay in memory.
+// Live PAY-003 acceptance: a targeted API-only Miniflare HTTP journey. Run with
+// held app keys through the approved injector. Only Gusto Demo receives requests;
+// credentials stay in memory. No browser or full verification run is started.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { gustoOrigin, provisionEmployeeCompany, sandboxApi } from './gusto-sandbox-company.mjs'

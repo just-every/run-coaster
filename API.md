@@ -446,7 +446,10 @@ submit payroll. The owner completes payroll in Gusto.
 An accepted update leaves claims batched and unpaid. Only an exact matching
 processed payroll and its reimbursement receipt mark them reimbursed. This
 records provider run confirmation; it does not assert bank settlement. A lost
-response leaves a reserved handoff that must be read back. A rejected or changed
+response leaves a reserved handoff that must be read back. Gusto omits employee
+amounts on an uncalculated run; that response cannot establish a financial match.
+An acknowledged update is sent, while a lost acknowledgement stays reserved
+until readable amounts reconcile. Neither state marks a claim paid. A rejected or changed
 provider run leaves claims unpaid, with no automatic resend or manual-payment
 override. Disconnect stops further provider access. Restore preserves financial
 handoffs and numbered history, excludes credentials and employee mappings, and

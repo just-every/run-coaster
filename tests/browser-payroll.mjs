@@ -72,6 +72,7 @@ async function journey(width) {
 
     await payroll.getByLabel('Sandbox payroll', { exact: true }).selectOption(edge.payrollId);
     await payroll.getByRole('checkbox', { name: /I reviewed these employee mappings/ }).check();
+    edge.uncalculated = true;
     await submit(payroll, 'Send to Gusto sandbox', `batches/${batch.id}/payroll`);
     await expect(payroll.getByRole('button', { name: 'Confirm provider payment', exact: true })).toBeVisible();
     await expect(panel.getByRole('button', { name: 'Record payment', exact: true })).toHaveCount(0);
@@ -84,6 +85,7 @@ async function journey(width) {
     await expect(payroll.getByRole('button', { name: 'Confirm provider payment', exact: true })).toBeEnabled();
     assert.equal((await h.get(`batches/${batch.id}`)).batch.status, 'approved');
 
+    edge.uncalculated = false;
     edge.payroll = { ...edge.payroll, processed: true, processing_request: { status: 'submit_success' } };
     assert.equal((await submit(payroll, 'Confirm provider payment', `batches/${batch.id}/payroll/confirm`)).confirmed, true);
     await expect(payroll.locator('.chip')).toContainText('Provider confirmed');

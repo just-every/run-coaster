@@ -22,7 +22,7 @@ async function readPayroll(env: Bindings, actor: Actor, c: Connection, id: strin
   const employees = [...first.employee_compensations];
   for (let page = 2; employees.length % 100 === 0 && employees.length > 0; page++) {
     requireThat(page <= 20, 'Gusto payroll is too large to reconcile', 409);
-    const next = await request(env, actor, c, path + `?page=${page}&per=100`);
+    const next = await request(env, actor, c, path + (prepare ? '/prepare' : '') + `?page=${page}&per=100`, prepare ? 'PUT' : 'GET');
     requireThat(next.payroll_uuid === id && Array.isArray(next.employee_compensations), 'Gusto returned an incomplete payroll page', 502);
     if (!next.employee_compensations.length) break;
     employees.push(...next.employee_compensations);
