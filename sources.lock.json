@@ -736,7 +736,7 @@
       "executable": false
     },
     "migrations/core/0080_receipt_email.sql": {
-      "sha256": "33108b5de278d1f84b928f17587364c7f6e1abccd108a3d1ea1d2d9fe64b6432",
+      "sha256": "07321be956171252e499da24ff70f7192c997eae94f00876c92f9bedcaa736b7",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1120,7 +1120,7 @@
       "executable": false
     },
     "scripts/installer/mail-archive.mjs": {
-      "sha256": "817952354795e2028853cce2add5dc279ab4bd064c886a50f7274e14e75fbe55",
+      "sha256": "dae07d4301b7eb5e4a31023856e7ce0b51af9bdf828b79c062e7aef0f6657730",
       "executable": false
     },
     "scripts/installer/payroll-archive.mjs": {
@@ -1128,7 +1128,7 @@
       "executable": false
     },
     "scripts/installer/portability.mjs": {
-      "sha256": "628ab0bfb7594d3bd68c3984d47969fa3e8fb2a4ac342c62bba4e6578542dc94",
+      "sha256": "5f30736cb0296c80a68fb85cb6ccf10bfce355216d54f909846412f6e4bc3b25",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {

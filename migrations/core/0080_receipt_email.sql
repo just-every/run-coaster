@@ -28,3 +28,14 @@ CREATE TRIGGER c_receipt_mail_sources_no_delete BEFORE DELETE ON c_receipt_mail_
 BEGIN SELECT RAISE(ABORT,'source mail is permanent'); END;
 CREATE TRIGGER c_receipt_mail_messages_identity BEFORE UPDATE OF sender,owner_email ON c_receipt_mail_messages WHEN NOT EXISTS(SELECT 1 FROM c_capture_erasing)
 BEGIN SELECT RAISE(ABORT,'source mail identity is permanent'); END;
+-- One complete reference inventory for both original-message and receipt objects.
+CREATE TABLE c_capture_objects (object_key TEXT PRIMARY KEY);
+INSERT INTO c_capture_objects(object_key) SELECT object_key FROM c_capture_receipts;
+CREATE TRIGGER c_capture_objects_from_receipt AFTER INSERT ON c_capture_receipts
+BEGIN INSERT OR IGNORE INTO c_capture_objects(object_key) VALUES(NEW.object_key); END;
+CREATE TRIGGER c_capture_objects_from_mail AFTER INSERT ON c_receipt_mail_messages
+BEGIN INSERT OR IGNORE INTO c_capture_objects(object_key) VALUES(NEW.object_key); END;
+CREATE TRIGGER c_capture_objects_permanent BEFORE UPDATE ON c_capture_objects
+BEGIN SELECT RAISE(ABORT,'original object references are permanent'); END;
+CREATE TRIGGER c_capture_objects_no_delete BEFORE DELETE ON c_capture_objects
+BEGIN SELECT RAISE(ABORT,'original object references are permanent'); END;

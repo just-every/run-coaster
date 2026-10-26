@@ -107,7 +107,7 @@ export async function validateCoasterArchive(read, manifest) {
 // sign in again natively and keep their roles.
 export default {
   product: 'just-every/coaster',
-  buckets: { COASTER_RECEIPTS: { prefix: 'receipt-inbox/', objectReferences: { table: 'c_capture_receipts', keyColumn: 'object_key' } } },
+  buckets: { COASTER_RECEIPTS: { prefix: 'receipt-', objectReferences: { table: 'c_capture_objects', keyColumn: 'object_key' } } },
   excludeTables: ['c_gusto_connection', 'c_gusto_employees', 'rer_dependency_keys', 'rer_dependency_pending', 'rer_dependency_codes', 'c_agent_keys', 'c_guard', 'c_card_match_epoch', 'c_card_match_generations', 'c_card_match_checks', 'c_public_keys', 'c_public_oauth_clients', 'c_public_oauth_codes', 'c_public_webhooks', 'c_public_webhook_deliveries', 'c_qbo_connections', 'c_qbo_oauth_states', 'c_qbd_connection', 'c_qbd_tickets'],
   secretColumns: { c_program_feeds: ['credentials_sealed'] },
   exportRow: (table, row) => table === 'c_qbd_requests' && row.status === 'sent' ? { ...row, status: 'uncertain', message: 'Restored without a QuickBooks response; reconcile in Desktop before reposting' } : table === 'c_program_feeds' ? { ...row, enabled: 0, lease_id: null, lease_until: 0, next_run_at: 0 } : row,

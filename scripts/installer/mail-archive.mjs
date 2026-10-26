@@ -2,6 +2,8 @@ import { PortabilityError } from '@runeditrun/rer/modules/portability';
 export async function validateMailArchive(read,objects,receipts,messages) {
  const valid=ok=>{if(!ok)throw new PortabilityError('coaster_mail_evidence',409);};
  const byKey=new Map(objects.map(o=>[o.key,o]));
+ const references=await read('c_capture_objects'),expected=[...receipts,...messages].map(r=>r.object_key);
+ valid(references.length===expected.length&&new Set(references.map(r=>r.object_key)).size===expected.length&&references.every(r=>expected.includes(r.object_key)));
  valid(new Set(messages.map(m=>m.id)).size===messages.length&&new Set(messages.map(m=>m.sha256)).size===messages.length);
  for(const m of messages){
   const object=byKey.get(m.object_key);
