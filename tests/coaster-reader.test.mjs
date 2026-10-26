@@ -269,6 +269,7 @@ test('Merchant email body and attachment readings share one confirmed-only quest
   }
   assert.equal(q.conflicts.find(c=>c.field==='total').card,'72.50');
   const before=await h.get('claims/'+claim.claim.id,t.sam);
+  const postedBefore=(await h.get('statements')).charges.find(charge=>charge.id===q.chargeId);assert.equal(postedBefore.currency,'USD');
   assert.deepEqual((await h.get(`receipt-inbox/${attachedOriginal.id}/question`,t.sam)).question,q);
   assert.deepEqual(await h.get('claims/'+claim.claim.id,t.sam),before,'an ignored comparison changes no expense');assert.equal(calls.length,2);
   const values={...Object.fromEntries(q.conflicts.map(c=>[c.field,body.values[c.field]])),total:body.values.total,currency:body.values.currency};
@@ -280,7 +281,7 @@ test('Merchant email body and attachment readings share one confirmed-only quest
   const fresh=(await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam)).question;
   await h.post(`receipt-inbox/${attachedOriginal.id}/question`,{...answer,questionId:fresh.id,values:{...values,total:'71.50',tip:'8.00'}},t.sam);
   const after=await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam);assert.equal(after.question,null);assert.equal(after.fields.total.value,'71.50');assert.equal(after.fields.total.source,'person');assert.deepEqual(after.history[1].fields,attachmentRead.history[1].fields);
-  const resolved=(await h.get('claims/'+claim.claim.id,t.sam)).items.find(i=>i.id===item.id);assert.equal(resolved.amount_minor,7250);assert.equal(resolved.original_currency,'USD');assert.equal(JSON.parse(resolved.receipt_resolution).receiptTotal,'71.50');assert.equal(JSON.parse(resolved.receipt_resolution).receiptCurrency,'CAD');
+  const resolved=(await h.get('claims/'+claim.claim.id,t.sam)).items.find(i=>i.id===item.id);assert.equal(resolved.amount_minor,7250);assert.deepEqual((await h.get('statements')).charges.find(charge=>charge.id===q.chargeId),postedBefore);assert.equal(JSON.parse(resolved.receipt_resolution).receiptTotal,'71.50');assert.equal(JSON.parse(resolved.receipt_resolution).receiptCurrency,'CAD');
   assert.deepEqual(await download(attachedOriginal.id),pdf);assert.deepEqual(await download(bodyOriginal.id),bodyPdf);for(const original of originals)assert.deepEqual(await download(original.id,'/source'),message);
   assert.equal(calls.length,2,'comparison, correction and evidence views never start another paid reading');
   // A terminal sibling stops contributing values, while its unchanged evidence stays private.

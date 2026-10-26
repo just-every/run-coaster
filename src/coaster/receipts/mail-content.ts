@@ -76,7 +76,7 @@ function decodeEntities(value: string) {
 }
 
 /** Reduce markup to inert text. Attributes, embedded documents and active content never reach a renderer. */
-function htmlText(html: string) {
+export function htmlText(html: string) {
   const blocks = new Set(['address', 'article', 'aside', 'blockquote', 'caption', 'dd', 'div', 'dl', 'dt', 'figcaption', 'figure', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'li', 'main', 'ol', 'p', 'pre', 'section', 'table', 'tr', 'ul']);
   const omitted = new Set(['head', 'script', 'style', 'iframe', 'object', 'svg', 'math', 'template', 'noscript']);
   const pieces: string[] = [];

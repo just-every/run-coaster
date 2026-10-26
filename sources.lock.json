@@ -1524,7 +1524,7 @@
       "executable": false
     },
     "src/coaster/comment-email.ts": {
-      "sha256": "8a68e26a9cfc9b99b99def07b986ab977954ba934a2f11f81cf62653b3a69c2b",
+      "sha256": "ee5933bfc90b74b58c7925361438108cac0c635a23b89a41a921645164fa94be",
       "executable": false
     },
     "src/coaster/comments.ts": {
@@ -1876,11 +1876,11 @@
       "executable": false
     },
     "src/coaster/receipts/mail-content.ts": {
-      "sha256": "7266c4ca99a5db755c2c7c1ec6ef5053c5057bbef388d790604d14696cd8fe29",
+      "sha256": "04923737026e2706772efab30cf5cf7f1cd58c9eb59c2397e2a1382f533fe8de",
       "executable": false
     },
     "src/coaster/receipts/mail-intake.ts": {
-      "sha256": "205625ffa19765d4069720909997ea096bd166152322abd839e099525b29fa34",
+      "sha256": "956944727383f29f0c1684b262f408737c79da6d6c6d5e88acfd5a627e11ee04",
       "executable": false
     },
     "src/coaster/receipts/mail-parser.d.mts": {
@@ -4468,7 +4468,7 @@
       "executable": false
     },
     "tests/coaster-reader.test.mjs": {
-      "sha256": "4cfd420067b4480d9f1682b98755b13016d5ca15a83a5e06a25759941685071e",
+      "sha256": "2e528c7ea17b478874a95bf9a67010f99fa7127a60e66a7fa6259fb7687c0d82",
       "executable": false
     },
     "tests/coaster-receipt-signals.test.mjs": {
@@ -4496,7 +4496,7 @@
       "executable": false
     },
     "tests/coaster.test.mjs": {
-      "sha256": "f60721254c865791de0904df9340d0f4bf2776bad3d2e658cf367fbc69657888",
+      "sha256": "22f240410ba5ed42a93fc743725c055153713a27f087ea4dbf1bb4a6a220498e",
       "executable": false
     },
     "tests/coding-attachment-quality.mjs": {

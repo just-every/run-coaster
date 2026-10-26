@@ -956,8 +956,10 @@ test('APPROVE-006 an approver asks a named person about one expense without deci
   await h.post('settings/receipt-email/aliases/confirm', { email: alias, code: aliasCode(h, alias) }, t.sam)
   const aliasQuestion = await h.post(`claims/${c.id}/comments`, { body: 'Which office?', asks: SAM }, t.priya)
   const aliasMail = h.messages.findLast(m => m.to.includes(SAM))
-  await deliverMail(h, reply(aliasMail, alias, 'Brisbane'), alias)
-  assert.equal((await h.get(`claims/${c.id}`, t.priya)).comments.find(x => x.id === aliasQuestion.comment).open, false)
+  await deliverMail(h, Buffer.from(reply(aliasMail, alias, '<p>Brisbane</p><script>do not execute</script>').toString().replace('Content-Type: text/plain;', 'Content-Type: text/html;')), alias)
+  const aliasSeen=(await h.get(`claims/${c.id}`, t.priya)).comments
+  assert.equal(aliasSeen.find(x => x.id === aliasQuestion.comment).open, false)
+  assert.equal(aliasSeen.find(x => x.parent_id === aliasQuestion.comment).body, 'Brisbane')
   const revokedQuestion = await h.post(`claims/${c.id}/comments`, { body: 'Which project?', asks: SAM }, t.priya)
   const revokedMail = h.messages.findLast(m => m.to.includes(SAM))
   await h.post('settings/receipt-email/aliases/remove', { email: alias }, t.sam)

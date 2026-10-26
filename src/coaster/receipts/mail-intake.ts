@@ -34,8 +34,9 @@ export async function receiveEmail(message:ForwardableEmailMessage,env:Bindings)
  if(reply&&parsed){
   const answer=await recognizeCommentReply(db,env,{messageHash:hash,sender,recipient:message.to,message:parsed});
   if(answer.matched&&answer.status==='accepted')return;
+  if(answer.matched)reason=answer.reason;
  }
- if(reply)reason='Email question reply retained without receipt assignment';
+ if(reply)reason=reason||'Email question reply retained without receipt assignment';
  if(owner&&!files.length)reason=reason||'No supported receipt content; source held without assignment';
  const employee=reason?null:owner!.email,id=uid(),at=now(),key=`receipt-mail/${id}/${hash}`;
  const uploaded:string[]=[],writes:D1PreparedStatement[]=[];

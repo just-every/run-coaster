@@ -4,7 +4,7 @@ import { commentWrites } from './comments';
 import { can } from './permissions';
 import { all, commit, rolesFrom, sha256Hex, type Sql } from './session';
 import { Fault, now, text, uid, type Actor, type Data } from './types';
-import type { MailReceiptMessage } from './receipts/mail-content';
+import { htmlText, type MailReceiptMessage } from './receipts/mail-content';
 
 const marker = /\[Coaster answer ([a-f0-9]{64})\]/gi;
 const flags = ['is_employee', 'is_manager', 'is_finance', 'is_auditor', 'is_admin', 'is_card_admin', 'is_bookkeeper'];
@@ -61,16 +61,15 @@ export async function recognizeCommentReply(db: D1Database, _env: Bindings, inpu
   catch (error) { if (error instanceof Fault && error.status === 404) return held('Question claim is no longer available'); throw error; }
   if (!canSee(actor, claim)) return held('Reply sender can no longer open this claim');
   if (await db.prepare('SELECT 1 FROM c_comments WHERE parent_id=? AND (author_email=? OR on_behalf_of=?)').bind(question.id, actor.email, actor.email).first()) return held('Question has already been answered');
-  // Preserve the new plain-text answer, excluding ordinary quoted notification
-  // text. HTML-only and oversized messages remain held for explicit app answers.
-  const lines = (input.message.text ?? '').split(/\r?\n/), answer: string[] = [];
+  // Markup is inert text; ordinary quoted notification lines are excluded.
+  const lines = (input.message.text ?? htmlText(input.message.html ?? '')).split(/\r?\n/), answer: string[] = [];
   for (const line of lines) {
     if (/^\s*>/.test(line) || /^On .{0,500}wrote:\s*$/i.test(line) || /^-{2,}\s*Original Message\s*-{2,}$/i.test(line)) break;
     answer.push(line);
   }
   let body: string;
   try { body = text(answer.join('\n').split(token).join('[reply credential removed]'), 'Email answer', 2000); }
-  catch (error) { if (error instanceof Fault) return held('Reply needs a plain-text answer of at most 2000 characters'); throw error; }
+  catch (error) { if (error instanceof Fault) return held('Reply needs readable answer text of at most 2000 characters'); throw error; }
   const live: Sql = {
     sql: `EXISTS(SELECT 1 FROM c_members m WHERE m.member_id=? AND m.email=? AND m.active=1 AND ${flags.map(f => `m.${f}=?`).join(' AND ')} AND (${owner})=? AND ${activeAccount}) AND (SELECT COUNT(*) FROM (${identities}))=1 AND EXISTS(${identities} AND m.member_id=?) AND EXISTS(SELECT 1 FROM c_receipt_mail_settings WHERE id=1 AND address=? AND version=?) AND EXISTS(SELECT 1 FROM c_comment_email_tokens WHERE question_id=? AND token_hash=? AND member_id=? AND destination=?) AND EXISTS(SELECT 1 FROM c_claims c WHERE c.id=? AND (c.employee_email=? OR (c.status<>'draft' AND (? OR (? AND (c.approver_email=? OR c.on_behalf_of=?)) OR EXISTS(SELECT 1 FROM c_workflow_tasks w WHERE w.kind='claim' AND w.record_id=c.id AND w.revision=c.revision AND (w.email=? OR w.on_behalf_of=?))))))`,
     params: [member.member_id, actor.email, ...flags.map(f => member[f]), native.is_owner, sender, sender, sender, sender, member.member_id, recipient, settings.version, question.id, hash, member.member_id, recipient, claim.id, actor.email, can(actor, 'readAll') ? 1 : 0, actor.roles.manager ? 1 : 0, actor.email, actor.email, actor.email, actor.email],
