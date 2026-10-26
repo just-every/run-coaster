@@ -100,6 +100,38 @@ jobs:
           name: coaster-email-proof
           path: ${{ runner.temp }}/email-proof
 
+  bank_details:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - name: Check edition source lock freshness
+        run: node scripts/edition-authoring/cli.mjs check
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deps
+      - run: bash scripts/ci/install-browser.sh
+      - name: Bank details screens and financial archive
+        run: |
+          node tests/browser-bank.mjs
+          node tests/bank-archive.mjs
+        env:
+          COASTER_EVIDENCE: ${{ runner.temp }}/bank-proof
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: coaster-bank-proof
+          path: ${{ runner.temp }}/bank-proof
+
   browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -344,7 +376,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [app, coaster_flows, email_receipts, browser, capture, accessibility, cash_drafts, policy_signals, card_matching, policy_review, receipt_agents]
+    needs: [app, coaster_flows, email_receipts, bank_details, browser, capture, accessibility, cash_drafts, policy_signals, card_matching, policy_review, receipt_agents]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -353,6 +385,7 @@ jobs:
           APP_RESULT: ${{ needs.app.result }}
           COASTER_FLOWS_RESULT: ${{ needs.coaster_flows.result }}
           EMAIL_RECEIPTS_RESULT: ${{ needs.email_receipts.result }}
+          BANK_DETAILS_RESULT: ${{ needs.bank_details.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
           CAPTURE_RESULT: ${{ needs.capture.result }}
           ACCESSIBILITY_RESULT: ${{ needs.accessibility.result }}
@@ -361,7 +394,7 @@ jobs:
           POLICY_REVIEW_RESULT: ${{ needs.policy_review.result }}
           CARD_MATCHING_RESULT: ${{ needs.card_matching.result }}
           RECEIPT_AGENTS_RESULT: ${{ needs.receipt_agents.result }}
-        run: test "$APP_RESULT" = success && test "$COASTER_FLOWS_RESULT" = success && test "$EMAIL_RECEIPTS_RESULT" = success && test "$BROWSER_RESULT" = success && test "$CAPTURE_RESULT" = success && test "$ACCESSIBILITY_RESULT" = success && test "$CASH_DRAFT_RESULT" = success && test "$POLICY_SIGNALS_RESULT" = success && test "$CARD_MATCHING_RESULT" = success && test "$POLICY_REVIEW_RESULT" = success && test "$RECEIPT_AGENTS_RESULT" = success
+        run: test "$APP_RESULT" = success && test "$COASTER_FLOWS_RESULT" = success && test "$EMAIL_RECEIPTS_RESULT" = success && test "$BANK_DETAILS_RESULT" = success && test "$BROWSER_RESULT" = success && test "$CAPTURE_RESULT" = success && test "$ACCESSIBILITY_RESULT" = success && test "$CASH_DRAFT_RESULT" = success && test "$POLICY_SIGNALS_RESULT" = success && test "$CARD_MATCHING_RESULT" = success && test "$POLICY_REVIEW_RESULT" = success && test "$RECEIPT_AGENTS_RESULT" = success
 
   receipt_agent_corpus:
     if: github.event_name == 'workflow_dispatch'
