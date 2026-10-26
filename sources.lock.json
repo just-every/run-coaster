@@ -1376,7 +1376,7 @@
       "executable": false
     },
     "src/coaster/batches.ts": {
-      "sha256": "31b6f763c74ce0aa9cb25a3c330343f792996f9903a803e4a0e659d8fbca0d11",
+      "sha256": "55df16d4fbe40b4763a6ca2757463af929be6500d3ed17e39f0d5078369ee908",
       "executable": false
     },
     "src/coaster/budgets.ts": {
@@ -6484,7 +6484,7 @@
       "executable": false
     },
     "tests/gusto-sandbox-company.mjs": {
-      "sha256": "5028d599bf004118bc37f0a2b0532515cd3fbbc7b599be747154c8e5ca500eab",
+      "sha256": "a897e841fda1e3181dd3bb84b0cb04013629bf74d8e8e5ac9fe95c2ab6820161",
       "executable": false
     },
     "tests/gusto-sandbox.mjs": {

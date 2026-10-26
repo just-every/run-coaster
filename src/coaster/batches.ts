@@ -66,7 +66,7 @@ export async function createBatch(db: D1Database, actor: Actor, b: Data, prepare
 }
 
 type Line = (action: string, target: { claim?: string; batch?: string }, detail: Data) => D1PreparedStatement;
-const unchanged = (claims: Claim[]): Sql => ({ sql: `(SELECT COUNT(*) FROM c_claims WHERE status='approved' AND (${claims.map(() => '(id=? AND version=?)').join(' OR ')}))=?`, params: [...claims.flatMap(c => [c.id, c.version]), claims.length] });
+const unchanged = (claims: Claim[]): Sql => ({ sql: "(SELECT COUNT(*) FROM c_claims c JOIN json_each(?) chosen ON c.id=json_extract(chosen.value,'$.id') AND c.version=json_extract(chosen.value,'$.version') WHERE c.status='approved')=?", params: [JSON.stringify(claims.map(c=>({id:c.id,version:c.version}))), claims.length] });
 
 /** The writes that open a draft batch of these claims, each history line written by `line`. A claim drawing down a cash
  * advance (CLAIM-004) is paid its total less what the advance covers. */
