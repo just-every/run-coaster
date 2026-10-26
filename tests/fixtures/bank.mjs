@@ -42,7 +42,7 @@ export const bankFixture = () => {
         const id = `synthetic-coaster-intent-${++counter}`;
         assert.equal(form.get('payment_method_options[us_bank_account][verification_method]'), 'microdeposits');
         intents.set(id, { id, status: 'requires_payment_method', metadata: { coaster_member: form.get('metadata[coaster_member]') } });
-        return Response.json({ id, client_secret: `synthetic-coaster-secret-${counter}` });
+        return Response.json({ id, client_secret: `${id}-secret` });
       }
       const match = path.match(/^\/v1\/setup_intents\/([^/]+)(\/verify_microdeposits)?$/), intent = match && intents.get(match[1]);
       if (!intent) return Response.json({ error: {} }, { status: 404 });

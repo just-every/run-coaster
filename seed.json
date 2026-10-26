@@ -92,10 +92,10 @@
       "id": "mail-provider",
       "required": false,
       "requiredWhen": "MAIL_PROVIDER selects rer, resend, sendgrid or cloudflare",
-      "why": "A hosted Coaster emails sign-in links, invitations, delegate-grant notices (ADMIN-005), questions about a claim (APPROVE-006), reminders and escalations (FOLLOWUP-001, FOLLOWUP-002), budget alerts (REPORT-004) and scheduled reports (REPORT-002) through the Managed mail relay or the owner's own Resend, SendGrid or Cloudflare Email account; with no provider set nothing is sent, and Coaster on your own computer keeps mail in a local outbox.",
+      "why": "A hosted Coaster emails sign-in links, invitations, delegate-grant notices (ADMIN-005), questions about a claim (APPROVE-006), reminders and escalations (FOLLOWUP-001, FOLLOWUP-002), budget alerts (REPORT-004), bank-change notices (PAY-002) and scheduled reports (REPORT-002) through the Managed mail relay or the owner's own Resend, SendGrid or Cloudflare Email account; with no provider set nothing is sent, and Coaster on your own computer keeps mail in a local outbox.",
       "data": [
         "Private installation mail credential or direct provider API key, sender and recipient email addresses",
-        "Message subject and text/HTML body: requested one-time receipt alias proof codes, single-use sign-in and invitation links, the delegate's name and access level, the question asked with the claim number and title, a scheduled report's name, period and sign-in link (REPORT-002), a reminder naming the claim number and title, the one thing to do and a link to it (FOLLOWUP-001), an escalation of the same naming who owes it (FOLLOWUP-002), or a budget alert naming the budget, person, percentage reached and period (REPORT-004)",
+        "Message subject and text/HTML body: requested one-time receipt alias proof codes, single-use sign-in and invitation links, the delegate's name and access level, the question asked with the claim number and title, a scheduled report's name, period and sign-in link (REPORT-002), a reminder naming the claim number and title, the one thing to do and a link to it (FOLLOWUP-001), an escalation of the same naming who owes it (FOLLOWUP-002), a budget alert naming the budget, person, percentage reached and period (REPORT-004), or a bank-change notice to the person's own address naming the last four digits of the old and new account and when payments resume (PAY-002)",
         "Only on a budget the owner opts in: that budget's actual and amount in its alert, to the budget's owner and finance",
         "Only on a report schedule the owner opts in: that report's figures as a CSV attachment, to finance, auditors or the owner",
         "Delivery ID"
@@ -156,6 +156,19 @@
       "data": [
         "Partner user ID and secret from the private process environment, selected report/policy IDs and the chosen report template sent only to the fixed HTTPS Expensify Integration Server endpoint; redirects refused",
         "The generated CSV filename is sent back for download; returned reports and policy metadata are kept only in a new private local directory; credentials and provider error bodies are never retained or logged"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "bank-verification-providers",
+      "required": false,
+      "requiredWhen": "The owner explicitly connects Plaid sandbox or Stripe test mode and an employee adds a bank account",
+      "why": "PAY-002 verifies an employee's bank account instantly through Plaid Link or by micro-deposits through Stripe. The person enters bank details with the provider; Coaster keeps only the provider token, sealed, and the last four digits. Disconnect stops new accounts.",
+      "data": [
+        "The owner's Plaid sandbox client credentials or Stripe test secret key, sent only to the fixed provider hosts and sealed in D1; redirects refused and no credential is ever exported",
+        "Plaid: an opaque member identifier in the link token request, then the one-time public token Link returns and the resulting access token; Stripe: an opaque member identifier in a customer description and setup metadata, the setup identifier, and the person's name typed into Stripe.js, which Stripe.js sends from the browser",
+        "No routing number, account number, claim, expense, receipt or address is sent by Coaster; the provider returns the last four digits and the bank or account name",
+        "A change of bank account mails the notice described under the mail provider to the person's address on record"
       ],
       "adapters": []
     },
