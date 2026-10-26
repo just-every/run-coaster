@@ -6484,7 +6484,7 @@
       "executable": false
     },
     "tests/gusto-sandbox-company.mjs": {
-      "sha256": "b0afb74c600fa519236470d0a3a2fee0741e85b2186be7883caaf3d217a95462",
+      "sha256": "6502d60eb86d9807064b1ec5a9dff4eb601f1495fe24d6b5a742f578764d5909",
       "executable": false
     },
     "tests/gusto-sandbox.mjs": {

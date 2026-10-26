@@ -92,7 +92,8 @@ export async function provisionEmployeeCompany(call) {
     return { key: question.key, answers: [{ value: answers[question.key], valid_from: hireDate, valid_up_to: null }] }
   }) })) }, 'PUT')
   for (const form of await api(worker + '/forms')) if (form.requires_signing) await api(worker + '/forms/' + form.uuid + '/sign', signature('Synthetic Employee'), 'PUT')
-  const workerStatus = await api(worker + '/onboarding_status', { onboarding_status: 'onboarding_completed' }, 'PUT')
+  let workerStatus = await api(worker + '/onboarding_status')
+  if (workerStatus.onboarding_status !== 'onboarding_completed') workerStatus = await api(worker + '/onboarding_status', { onboarding_status: 'onboarding_completed' }, 'PUT')
   assert.equal(workerStatus.onboarding_status, 'onboarding_completed')
   const tax = await api(root + '/tax_requirements/CA')
   const requirementSets = tax.requirement_sets.map(set => ({ key: set.key, state: set.state, ...(set.effective_from ? { effective_from: set.effective_from } : {}),
