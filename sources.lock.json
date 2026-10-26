@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "4d36b14e5b08f4d3729ef7d5fe521c4be1c4c3146bf9428c2a90e50697550018",
+      "sha256": "06dbed4e20fe9c759fd4f291392ed06c435a9c9c838d0ff76594bee3e1518efc",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d13f4cd24dea4b43c2fd4b017b5914a3062a1f1bb09dfa78d900db61db87bcd4",
+      "sha256": "033c64cea5c42cff90645b238691acee18c75656653ed1cfbc24d7be0b91d495",
       "executable": false
     },
     "DEMO.md": {
@@ -6484,11 +6484,11 @@
       "executable": false
     },
     "tests/gusto-sandbox-company.mjs": {
-      "sha256": "a897e841fda1e3181dd3bb84b0cb04013629bf74d8e8e5ac9fe95c2ab6820161",
+      "sha256": "5159282a12e0f2df456a8b189e228abbbab60b56ef9d93923bd72f5fc73169f5",
       "executable": false
     },
     "tests/gusto-sandbox.mjs": {
-      "sha256": "987a12ef389ee2bffc5b1fa3000e8fe1f4a45e0ee931f9c0103b9fb0081fce87",
+      "sha256": "c350e9f2adb50636ee546b22d76ad19a0777769c6632c735b56ba679cb11e2fa",
       "executable": false
     },
     "tests/harness.mjs": {
