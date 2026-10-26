@@ -6,7 +6,7 @@ import { ownOriginal, latestReading, expected, originalStill, crossSources, capt
 import { readingLine } from './reading/history';
 import { correctedFields } from './reading/normalize';
 import { FIELD_NAMES, type Fields } from './reading/model';
-import { mailReadings, mailSources } from './reading/mail-sources';
+import { mailReadings, mailSources, mailComparison } from './reading/mail-sources';
 
 /** A question is a projection of the current private reading and attached charge,
  * not another copy of OCR or a new mutable conversation. A confirmed field cannot
@@ -17,10 +17,11 @@ export async function receiptQuestion(db:D1Database,id:string){
  const attached=await db.prepare("SELECT i.id AS item,c.id AS claim,c.number,c.title,c.version,c.status,ch.id AS charge,ch.amount_minor,ch.currency,ch.descriptor,ch.transaction_on,ch.posted_on,card.last4 FROM c_receipts a JOIN c_items i ON i.receipt_id=a.id JOIN c_claims c ON c.id=i.claim_id JOIN c_card_charges ch ON ch.id=i.card_charge_id JOIN c_cards card ON card.id=ch.card_id WHERE a.capture_receipt_id=? AND c.employee_email=? AND c.status IN ('draft','returned')").bind(id,r.owner_email).first<Data>();if(!attached)return null;
  const fields=JSON.parse(reading.fields_json) as Fields,card:Data={total:decimal(attached.amount_minor),currency:attached.currency,merchant:attached.descriptor,date:attached.transaction_on??attached.posted_on,last4:attached.last4};
  const equal=(key:string,value:unknown,expected:string)=>key==='merchant'?String(value??'').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'')===expected.toLowerCase().replace(/[^\p{L}\p{N}]/gu,''):value===expected;
- const siblings=await mailReadings(db,id),mail=mailSources(siblings);
+ const siblings=await mailReadings(db,id),mail=mailSources(siblings),confirmed=JSON.parse(reading.usage_json).mailComparison??{};
  const conflicts=FIELD_NAMES.filter(key=>key!=='lineItems').flatMap(key=>{
-  const f=fields[key];if(f.source==='person')return [];
+  const f=fields[key];
   const evidence=mail.filter(source=>source.values[key]!==undefined).map(source=>({kind:source.kind,value:source.values[key]!,receiptId:source.receiptId!,readingSequence:source.readingSequence!,mediaType:source.mediaType!,regions:source.regions?.[key]??[]}));
+  if(f.source==='person'&&!evidence.some(source=>!(confirmed[key]??[]).some((prior:Data)=>prior.receiptId===source.receiptId&&prior.readingSequence===source.readingSequence)&&!equal(key,f.value,source.value)))return [];
   const values=[...(typeof f.value==='string'?[f.value]:[]),...(card[key]!==undefined?[card[key]]:[]),...evidence.map(source=>source.value)];
   if(values.length<2||values.every(value=>equal(key,value,values[0])))return [];
   return [{field:key,read:f.value,card:card[key]??null,regions:f.regions,sources:evidence}];
@@ -45,7 +46,7 @@ export async function answerReceiptQuestion(db:D1Database,a:Actor,id:string,b:Da
  const total=fields.total.value,currency=fields.currency.value;
  const comparison={confirmationSequence:reading!.sequence+1,receiptTotal:total,receiptCurrency:currency,postedTotal:q.conflicts.find(c=>c.field==='total')?.card??null};
  await commit(db,all(authority(a,'employee'),originalStill(a,r,b.expectedSequence,reading!.sequence),claimState(q.claimId,q.version,['draft','returned']),{sql:'EXISTS(SELECT 1 FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id WHERE i.id=? AND i.claim_id=? AND i.card_charge_id=? AND r.capture_receipt_id=?)',params:[q.itemId,q.claimId,q.chargeId,id]}),[
-  readingLine(db,a,r,reading!.sequence+1,'corrected',reading!.attempt_id,reading!.settings_version,reading!.model,fields,{pages}),
+  readingLine(db,a,r,reading!.sequence+1,'corrected',reading!.attempt_id,reading!.settings_version,reading!.model,fields,{pages,mailComparison:mailComparison(r.mailReadings,JSON.parse(reading!.usage_json).mailComparison,Object.keys(b.values))}),
   captureState(db,a,id,Object.values(fields).some(f=>f.review)?'needs-attention':'read','Receipt question answered by the person; posted statement facts kept'),
   db.prepare('UPDATE c_items SET receipt_resolution=? WHERE id=? AND claim_id=?').bind(JSON.stringify(comparison),q.itemId,q.claimId),claimTotal(db,q.claimId),event(db,a,'receipt-answer-confirmed',{claim:q.claimId},{item:q.itemId}),
  ]);

@@ -57,6 +57,7 @@ export function reconcile(fields:Fields,sources:Source[]):Fields {
   // A confident total is unsafe when its explicit components or line items are themselves uncertain.
   if(total!==null&&parts.some(n=>fields[n].value!==null&&fields[n].review)||total!==null&&Array.isArray(fields.lineItems.value)&&fields.lineItems.review)flag(fields,['total'],'A component of the final amount needs review');
   const key=(s:string)=>s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+  if(sources.some(source=>source.pending))flag(fields,FIELD_NAMES.filter(name=>fields[name].source!=='person'),'Conflicts with unread email evidence: read its other original or explicitly confirm these values');
   for(const source of sources)for(const name of FIELD_NAMES){const expected=source.values[name],value=fields[name].value;if(expected!==undefined&&typeof value==='string'&&(name==='merchant'?key(value)!==key(expected):value!==expected))flag(fields,[name],`Conflicts with ${source.kind==='card-charge'?'the attached card charge':source.kind==='merchant-email'?'the merchant email body':source.kind==='email-attachment'?'the email attachment':'the person-confirmed receipt details'}`);}
   return fields;
 }

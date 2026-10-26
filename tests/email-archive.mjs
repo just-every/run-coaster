@@ -3,7 +3,8 @@ import {copyFile,mkdir,rm,writeFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {fresh,command} from './browser-runtime.mjs';
 import {records,rows,tampered} from './browser-archive.mjs';
-import {agency,harness,claim,submit} from './harness.mjs';
+import {agency,harness} from './harness.mjs';
+import {pendingEmailQuestionClaim} from './fixtures/email-question-claim.mjs';
 import {receiptAddress,threeMails,receiptMail,deliverMail} from './fixtures/receipt-email.mjs';
 const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/email-proof');await mkdir(evidence,{recursive:true});
 let h;const roots=[];
@@ -13,7 +14,7 @@ try{
  h=await harness({persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only'});
  const t=await agency(h);await h.post('settings/receipt-email',{address:receiptAddress,consent:true});await threeMails(h);
  await deliverMail(h,receiptMail({from:'unknown@example.net'}),'unknown@example.net');
- const pending=await submit(h,t.sam,await claim(h,t.sam,'Archive email answer',[{kind:'receipt',date:'2026-05-21',merchant:'Rockpool',amount:'96.00',allocations:[{category:t.c.meals}],receiptFixture:'bistro'}]));
+ const pending=await pendingEmailQuestionClaim(h,t,'Archive email answer');
  await h.post(`claims/${pending.id}/comments`,{body:'Which client was this for?',asks:'sam@harbourfinch.example'},t.priya);
  const mail=h.messages.findLast(m=>m.subject.includes('[Coaster answer '));
  await deliverMail(h,Buffer.from(`From: sam@harbourfinch.example\r\nTo: ${receiptAddress}\r\nSubject: Re: ${mail.subject}\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nHarbour Bank, the pitch team`));

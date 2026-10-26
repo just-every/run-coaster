@@ -22,12 +22,17 @@ export async function mailReadings(db:D1Database,id:string) {
  ${peers} ORDER BY r.id`).bind(id).all<Data>()).results;
 }
 export function mailSources(rows:Data[]):Source[] {
- return rows.filter(r=>['read','corrected'].includes(r.reading_kind)&&r.reading_sha256===r.sha256).map(r=>{
-  const fields=JSON.parse(r.fields_json) as Fields;
+ return rows.map(r=>{
+  const ready=['read','corrected'].includes(r.reading_kind)&&r.reading_sha256===r.sha256;
+  const fields=ready?JSON.parse(r.fields_json) as Fields:null;
   return {kind:r.origin==='body'?'merchant-email':'email-attachment',receiptId:r.id,readingSequence:r.reading_sequence,mediaType:r.media_type,
-   values:Object.fromEntries(FIELD_NAMES.flatMap(name=>typeof fields[name].value==='string'?[[name,fields[name].value]]:[])),
-   regions:Object.fromEntries(FIELD_NAMES.map(name=>[name,fields[name].regions]))};
+   pending:!ready,values:fields?Object.fromEntries(FIELD_NAMES.flatMap(name=>typeof fields[name].value==='string'?[[name,fields[name].value]]:[])):{},
+   regions:fields?Object.fromEntries(FIELD_NAMES.map(name=>[name,fields[name].regions])):{}};
  });
+}
+export function mailComparison(rows:Data[],previous:Data|undefined,names:string[]) {
+ const references=rows.map(r=>({receiptId:r.id,readingSequence:r.reading_sequence}));
+ return {...(previous&&!Array.isArray(previous)?previous:{}),...Object.fromEntries(names.map(name=>[name,references]))};
 }
 /** Bind the entire comparison set, including unread parts, to the eventual mutation. */
 export function mailReadingsStill(id:string,rows:Data[]):Sql {

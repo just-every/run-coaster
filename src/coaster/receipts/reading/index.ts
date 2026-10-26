@@ -10,6 +10,7 @@ import { normalizeReading, correctedFields, safePrefill, currentFields } from '.
 import { invokeReader, readerFailure, type ReaderBindings } from './provider';
 import { receiptInput } from './media';
 import { FIELD_NAMES, type Fields, type LineItem } from './model';
+import { mailComparison } from './mail-sources';
 export { readingSettings, saveReadingSettings, setReadingMatchDefault, DEFAULT_READER_MODEL, READING_CONSENT } from './settings';
 export { readingDetail } from './history';
 export type { ReaderBindings } from './provider';
@@ -50,7 +51,7 @@ export async function correctReading(db:D1Database,a:Actor,id:string,b:Data) {
   const pages=JSON.parse(latest.usage_json).pages??1,fields=correctedFields(prior,b.values,pages,await crossSources(db,id));
   const state=Object.values(fields).some(f=>f.review)?'needs-attention':'read';
   await commit(db,originalStill(a,r,b.expectedSequence,latest.sequence),[
-    readingLine(db,a,r,latest.sequence+1,'corrected',latest.attempt_id,latest.settings_version,latest.model,fields,{pages}),
+    readingLine(db,a,r,latest.sequence+1,'corrected',latest.attempt_id,latest.settings_version,latest.model,fields,{pages,mailComparison:mailComparison(r.mailReadings,JSON.parse(latest.usage_json).mailComparison,Object.keys(b.values))}),
     captureState(db,a,id,state,state==='read'?'Receipt fields confirmed by the person':'Receipt correction kept; review the remaining flagged fields'),
   ]);
   await applyReadingMatchDefault(db,a,id);

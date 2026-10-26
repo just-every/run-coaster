@@ -246,7 +246,9 @@ test('Merchant email body and attachment readings share one confirmed-only quest
   assert.deepEqual(await download(attachedOriginal.id),pdf);
   const bodyPdf=await download(bodyOriginal.id);assert.ok(bodyPdf.length>0);
   for(const original of originals)assert.deepEqual(await download(original.id,'/source'),message);
-  const attachmentRead=await read(h,attachedOriginal.id,t.sam);assert.equal(attachmentRead.prefill.amount,attachment.values.total);
+  const notice=attachedOriginal.matchChoice.notice;await h.post('settings/receipt-reading/matching',{version:0,enabled:true,consent:true,notice},t.sam);
+  const attachmentRead=await read(h,attachedOriginal.id,t.sam);assert.ok(!('amount' in attachmentRead.prefill),'unread email evidence cannot silently prefill a value');
+  assert.equal((await h.get('receipt-inbox',t.sam)).receipts.find(r=>r.id===attachedOriginal.id).matchChoice.enabled,false,'standing consent cannot settle an unread email comparison');
   assert.equal(calls.length,1);assert.equal((await h.get(`receipt-inbox/${bodyOriginal.id}/reading`,t.sam)).sequence,0,'reading one original never reads its sibling');
   selected=body;const bodyRead=await read(h,bodyOriginal.id,t.sam);assert.equal(calls.length,2);
   assert.ok(!('total' in bodyRead.prefill));assert.ok(!('merchant' in bodyRead.prefill));
@@ -284,6 +286,12 @@ test('Merchant email body and attachment readings share one confirmed-only quest
   const resolved=(await h.get('claims/'+claim.claim.id,t.sam)).items.find(i=>i.id===item.id);assert.equal(resolved.amount_minor,7250);assert.deepEqual((await h.get('statements')).charges.find(charge=>charge.id===q.chargeId),postedBefore);assert.equal(JSON.parse(resolved.receipt_resolution).receiptTotal,'71.50');assert.equal(JSON.parse(resolved.receipt_resolution).receiptCurrency,'CAD');
   assert.deepEqual(await download(attachedOriginal.id),pdf);assert.deepEqual(await download(bodyOriginal.id),bodyPdf);for(const original of originals)assert.deepEqual(await download(original.id,'/source'),message);
   assert.equal(calls.length,2,'comparison, correction and evidence views never start another paid reading');
+  const priorBody=await h.get(`receipt-inbox/${bodyOriginal.id}/reading`,t.sam);
+  await h.post(`receipt-inbox/${bodyOriginal.id}/reading/corrections`,{expectedSequence:0,expectedReadingSequence:priorBody.sequence,values:{total:'72.00',tip:'8.50'}},t.sam);
+  const changedSource=await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam);assert.ok(changedSource.question?.conflicts.some(c=>c.field==='total'),'new merchant evidence reopens one question after an earlier confirmation');
+  await h.post(`receipt-inbox/${attachedOriginal.id}/reading/corrections`,{expectedSequence:1,expectedReadingSequence:changedSource.sequence,values:{merchant:body.values.merchant}},t.sam);
+  assert.ok((await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam)).question?.conflicts.some(c=>c.field==='total'),'confirming an unrelated field cannot settle new conflicting evidence');
+  assert.deepEqual((await h.get('claims/'+claim.claim.id,t.sam)).items.find(i=>i.id===item.id),resolved,'changed source evidence never overwrites the confirmed expense');
   // A terminal sibling stops contributing values, while its unchanged evidence stays private.
   await h.post(`receipt-inbox/${bodyOriginal.id}/discard`,{expectedSequence:0,reason:'synthetic-coaster-8505'},t.sam);
   const current=await h.get(`receipt-inbox/${attachedOriginal.id}/reading`,t.sam);assert.ok(current.fields.total.reasons.every(reason=>!reason.includes('merchant email')));

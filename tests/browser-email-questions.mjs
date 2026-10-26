@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {expect} from '@playwright/test';
-import {claim,submit} from './harness.mjs';
+import {pendingEmailQuestionClaim} from './fixtures/email-question-claim.mjs';
 import {receiptMail,deliverMail,receiptAddress} from './fixtures/receipt-email.mjs';
 
 export async function emailQuestionScreens({h,t,page,width,capture,read}) {
@@ -28,7 +28,7 @@ export async function emailQuestionScreens({h,t,page,width,capture,read}) {
  await question.getByLabel('I checked these values and authorize saving them on this expense',{exact:true}).check();
  await question.getByRole('button',{name:'Confirm receipt answer',exact:true}).click();await expect(question).toHaveCount(0);
  await page.goto(h.origin+'/app#/claims/'+detail.claim.id);await expect(page.getByText(/Receipt answer confirmed: 58.28 USD/)).toBeVisible();await capture(page,'merchant-email-confirmed',page.locator('.detail'));
- const pending=await submit(h,t.sam,await claim(h,t.sam,'Client dinner question '+width,[{kind:'receipt',date:'2026-05-21',merchant:'Rockpool',amount:'96.00',allocations:[{category:t.c.meals}],receiptFixture:'bistro'}]));
+ const pending=await pendingEmailQuestionClaim(h,t,'Client dinner question '+width);
  const items=(await h.get('claims/'+pending.id,t.priya)).items;
  const asked=await h.post(`claims/${pending.id}/comments`,{body:'Which client was this for?',asks:'sam@harbourfinch.example',item:items[0].id},t.priya);
  await page.goto(h.origin+'/app#/claims/'+pending.id);const comments=page.getByRole('region',{name:'Comments',exact:true});await expect(comments.getByText('Open question',{exact:true})).toBeVisible();await capture(page,'email-answer-open',comments);
