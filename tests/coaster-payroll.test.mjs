@@ -40,7 +40,7 @@ test('Payroll preserves the reviewed split, waits for exact provider confirmatio
     assert.equal((await h.get(`batches/${batch.id}`)).batch.paid_reference,`Gusto ${edge.payrollId}`);
     const history=(await h.get('history')).lines.filter(e=>e.action.startsWith('payroll-')||e.action==='batch-reimbursed');
     assert.deepEqual(history.map(e=>e.action),['payroll-connected','payroll-employee-mapped','payroll-prepare-requested','payroll-handoff-reserved','payroll-handoff-sent','batch-reimbursed']);
-    assert.ok(history.every((e,i)=>e.actor_email==='owner@harbourfinch.example'&&e.at&&e.channel==='app'&&(!i||e.seq>history[i-1].seq)));
+    assert.ok(history.every((e,i)=>e.actor_email==='owner@harbourfinch.example'&&e.at&&e.channel==='app'&&e.agent===null&&(!i||e.seq>history[i-1].seq)));
     assert.ok(!JSON.stringify(history).includes('synthetic-coaster-120'));
     for(const method of ['PUT','PATCH','DELETE'])assert.notEqual((await h.mf.dispatchFetch(h.origin+'/api/coaster/history/'+history[0].id,{method,headers:{cookie:h.owner,origin:h.origin,'content-type':'application/json'},body:'{}'})).status,200);
     await assert.rejects(h.db.prepare('UPDATE c_events SET action=? WHERE seq=?').bind('changed',history[0].seq).run(),/history is permanent/);

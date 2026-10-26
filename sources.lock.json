@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "033c64cea5c42cff90645b238691acee18c75656653ed1cfbc24d7be0b91d495",
+      "sha256": "83d91219eebf90fcd73f35b8b3110fa9b6e9ee40a1895e38088a9d43ca561e48",
       "executable": false
     },
     "DEMO.md": {
@@ -4380,7 +4380,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "4a4440a2fc3ff97c5e1ebc249a8ef59d2a371623ad0a9d5916abc34e8c124347",
+      "sha256": "b749fb36c059fce85f1b7b5f327cca1a60191ef3dc358bf92b1b40cceaa2d165",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
