@@ -4300,7 +4300,7 @@
       "executable": false
     },
     "tests/browser-email.mjs": {
-      "sha256": "69b42984c8543fd61b9b64af27eba3c3835e75d29cc0143bdbedc8fc2f3c3659",
+      "sha256": "8d9215debea58e9f68aaf2f8964cffd77cfd5fe91cc8655155958b3d19b7407e",
       "executable": false
     },
     "tests/browser-journey.mjs": {
