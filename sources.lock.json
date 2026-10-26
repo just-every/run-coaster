@@ -1676,11 +1676,11 @@
       "executable": false
     },
     "src/coaster/payroll/handoff.ts": {
-      "sha256": "fca6e5cbeb26885242618e64c75efe534151632b0f55c2cae2d748ba6f5c03b3",
+      "sha256": "e0854d10607924e79a7be56fc1ed59d506d81799e9e4210ef8dd343841e1d29f",
       "executable": false
     },
     "src/coaster/payroll/lines.ts": {
-      "sha256": "7d85ce25bdaa2be5c1e254763410c10d4a5ccd71782a04313c7271879ad416dc",
+      "sha256": "947bcc7020c1c6b2d9079527bad197ecca369a3fb15ccc81dc67bc224d2a186a",
       "executable": false
     },
     "src/coaster/payroll/model.ts": {
@@ -4376,7 +4376,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "ae007f46180c8a926505b39c86511f1559cbceac8de51d6d676d74aa083d2afc",
+      "sha256": "e4020f17d0567d74b48230c0c3b86f992d7691221d245b608ad7a95676f87b39",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -5984,7 +5984,7 @@
       "executable": false
     },
     "tests/fixtures/payroll.mjs": {
-      "sha256": "1a28b79b22871ce317100f9ab6b081d3bd60870f970ec45f575d7449152514a9",
+      "sha256": "e0ff264981d4e197c0f45f531e91736961dfa7615e671757ca68c45e001b4e70",
       "executable": false
     },
     "tests/fixtures/policy-review/synthetic-coaster-6001.png": {
@@ -6488,7 +6488,7 @@
       "executable": false
     },
     "tests/gusto-sandbox.mjs": {
-      "sha256": "1c0d219785b18853847f2f164dba8991508960ce438a193614416d39e77d7e29",
+      "sha256": "74046c85e21cbe33e5ebb0484807960d73d152b3466714fb4b58f621899aec4c",
       "executable": false
     },
     "tests/harness.mjs": {

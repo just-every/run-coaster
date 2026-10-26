@@ -15,7 +15,10 @@ async function upcoming(env: Bindings, actor: Actor, c: Connection) {
 async function readPayroll(env: Bindings, actor: Actor, c: Connection, id: string, prepare = false) {
   const path = `/v1/companies/${c.company_uuid}/payrolls/${id}`;
   const first = await request(env, actor, c, path + (prepare ? '/prepare?per=100' : '?per=100'), prepare ? 'PUT' : 'GET');
-  requireThat(first.payroll_uuid === id && (!first.company_uuid || first.company_uuid === c.company_uuid) && Array.isArray(first.employee_compensations), 'Gusto returned a different payroll', 502);
+  requireThat(first.payroll_uuid === id && (!first.company_uuid || first.company_uuid === c.company_uuid), 'Gusto returned a different payroll', 502);
+  // Uncalculated Gusto runs omit employee amounts. Absence cannot prove a financial match.
+  if (!prepare && first.processed === false && first.employee_compensations === undefined) return first;
+  requireThat(Array.isArray(first.employee_compensations), 'Gusto has not supplied payroll employee amounts', 502);
   const employees = [...first.employee_compensations];
   for (let page = 2; employees.length % 100 === 0 && employees.length > 0; page++) {
     requireThat(page <= 20, 'Gusto payroll is too large to reconcile', 409);
@@ -63,6 +66,7 @@ export async function sendPayroll(env: Bindings, actor: Actor, id: string, body:
   // Reservation is permanent before the only physical write. A lost acknowledgement is reconciled by GET, never retried.
   for (let offset=0;offset<expected.length;offset+=100)
     await request(env,actor,c,`/v1/companies/${c.company_uuid}/payrolls/${next.payroll_uuid}`,'PUT',{employee_compensations:expected.slice(offset,offset+100)},recent);
+  await markSent(env,actor,c,(await handoff(env,id))!);
   return (await confirmPayroll(env,actor,id)).handoff;
 }
 async function markSent(env: Bindings,actor: Actor,c: Connection,h: Handoff) {
@@ -78,6 +82,8 @@ export async function confirmPayroll(env: Bindings, actor: Actor, id: string) {
   requireThat(h && c && h.company_uuid===c.company_uuid,'Reconnect the original Gusto company to read this handoff',409);
   if(h.status==='confirmed')return {handoff:publicHandoff(h),confirmed:true};
   const payroll=await readPayroll(env,actor,c,h.payroll_uuid),expected=JSON.parse(h.expected) as Data[];
+  requireThat(payroll.check_date===h.check_date, 'Gusto returned a different payroll date',502);
+  if (!Array.isArray(payroll.employee_compensations))return {handoff:publicHandoff(h),confirmed:false};
   requireThat(payroll.check_date===h.check_date && (await Promise.all(expected.map(async e => { const actual=payroll.employee_compensations.find((row:Data)=>row.employee_uuid===e.employee_uuid); return actual && await sameCompensation(actual,e); }))).every(Boolean), 'Provider amounts differ from the reserved handoff. Claims remain unpaid; reconcile in Gusto.',409);
   await markSent(env,actor,c,h);
   if(payroll.processed!==true || ['calculating','submitting','processing_failed'].includes(payroll.processing_request?.status))return {handoff:publicHandoff(h),confirmed:false};

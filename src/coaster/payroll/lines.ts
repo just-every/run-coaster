@@ -24,14 +24,17 @@ export function compensationPlan(payroll: Data, lines: PayrollLine[], reference:
     const employee = payroll.employee_compensations.find((e: Data) => e.employee_uuid === line.employeeUuid);
     requireThat(employee && typeof employee.version === 'string', 'A mapped employee is missing from this payroll', 409);
     requireThat(Array.isArray(employee.reimbursements) && Array.isArray(employee.fixed_compensations), 'This payroll does not support separate reimbursement lines; no amounts were sent', 409);
-    const reimbursements = employee.reimbursements.map((r: Data) => ({ ...r }));
+    const reimbursements = employee.reimbursements.map((r: Data) => ({ ...(typeof r.uuid==='string'?{uuid:r.uuid}:{}), amount:r.amount, description:r.description??'' }));
     requireThat(!reimbursements.some((r: Data) => r.description === reference), 'This batch reference already exists in Gusto; reconcile it before proceeding', 409);
     if (line.reimbursementMinor) reimbursements.push({ amount: dollars(line.reimbursementMinor), description: reference });
-    const fixed = employee.fixed_compensations.map((f: Data) => ({ ...f }));
+    const fixed = employee.fixed_compensations.map((f: Data) => ({ name:f.name, amount:f.amount, ...(typeof f.job_uuid==='string'?{job_uuid:f.job_uuid}:{}), ...(Array.isArray(f.breakdowns)&&f.breakdowns.length?{breakdowns:f.breakdowns}:{}) }));
     if (line.taxableMinor) {
       const bonus = fixed.find((f: Data) => f.name === 'Bonus');
       requireThat(bonusAvailable, 'The Gusto company does not offer the taxable Bonus earning required by this batch', 409);
-      if (bonus) bonus.amount = dollars(cents(bonus.amount) + line.taxableMinor);
+      if (bonus) {
+        requireThat(!bonus.breakdowns?.length, 'The existing Gusto Bonus has workweek allocations; reconcile those in Gusto before adding taxable amounts', 409);
+        bonus.amount = dollars(cents(bonus.amount) + line.taxableMinor);
+      }
       else fixed.push({ name: 'Bonus', amount: dollars(line.taxableMinor) });
     }
     return { employee_uuid: line.employeeUuid, version: employee.version, excluded: false, payment_method: employee.payment_method, fixed_compensations: fixed, reimbursements };

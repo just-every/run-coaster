@@ -14,7 +14,9 @@ test('Payroll preserves the reviewed split, waits for exact provider confirmatio
     assert.deepEqual(review.lines.map(l=>[l.reimbursementMinor,l.taxableMinor]),[[1000,1200]],'non-accountable expense plus actual taxable stipend flow into wages');
     await h.post(root,{version:batch.version,payroll:edge.payrollId,consent:true},h.owner,409);
     batch=await h.post(`batches/${batch.id}/release`,{version:batch.version});
-    await h.post(root,{version:batch.version,payroll:edge.payrollId,consent:true});
+    edge.uncalculated=true;
+    const sent=await h.post(root,{version:batch.version,payroll:edge.payrollId,consent:true});
+    assert.equal(sent.status,'sent');
     assert.equal(edge.writes.length,1);
     const financialEvidence=(await h.db.prepare('SELECT expected FROM c_payroll_handoffs').first()).expected;
     assert.ok(!financialEvidence.includes('Salary')&&!financialEvidence.includes('1000.00'),'unrelated salary amounts are not retained');
@@ -26,6 +28,7 @@ test('Payroll preserves the reviewed split, waits for exact provider confirmatio
     assert.equal((await h.post(root+'/confirm',{})).confirmed,false);
     const current=(await h.get(`batches/${batch.id}`)).batch;
     await h.post(`batches/${batch.id}/paid`,{version:current.version,reference:'synthetic-coaster-121',paidOn:'2031-06-13'},t.finance,409);
+    edge.uncalculated=false;
     edge.payroll={...edge.payroll,processed:true,processing_request:{status:'submit_success'}};
     compensation.fixed_compensations[0].amount='15.01';
     await h.post(root+'/confirm',{},h.owner,409);
@@ -95,6 +98,9 @@ test('Payroll refuses unauthorized handoffs and recovers a lost provider acknowl
     assert.equal((await h.get(path)).handoff.status,'reserved');
     await h.post(path,body,h.owner,409);
     assert.equal(edge.writes.length,1);
+    edge.uncalculated=true;
+    assert.equal((await h.post(path+'/confirm',{})).handoff.status,'reserved','an uncalculated response cannot resolve a lost acknowledgement');
+    edge.uncalculated=false;
     assert.equal((await h.post(path+'/confirm',{})).handoff.status,'sent');
     await h.post(root+'/disconnect',{});
     const stopped=h.outbound.length;

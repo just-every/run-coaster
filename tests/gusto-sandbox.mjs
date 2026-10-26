@@ -62,12 +62,19 @@ async function journey() {
     const response = await fetch(url, { method: request.method, headers, redirect: 'error',
       ...(['GET', 'HEAD'].includes(request.method) ? {} : { body: await request.arrayBuffer() }) })
     const bytes = await response.arrayBuffer()
+    console.log(JSON.stringify({ event: 'gusto_demo_forward', method: request.method, path: url.pathname, status: response.status }))
     if (!response.ok) console.error(clean(JSON.stringify({ event: 'gusto_demo_forward_error', method: request.method, path: url.pathname,
       status: response.status, body: new TextDecoder().decode(bytes) })))
     if (response.ok && url.pathname.endsWith('/prepare')) {
       const payroll = JSON.parse(new TextDecoder().decode(bytes))
       console.log(JSON.stringify({ event: 'gusto_demo_prepared_shape', payroll: payroll.payroll_uuid, fixed_compensation_types: payroll.fixed_compensation_types,
         employees: payroll.employee_compensations.map(e => ({ employee: e.employee_uuid, fixed_compensations: e.fixed_compensations, reimbursements: e.reimbursements })) }))
+    }
+    if (response.ok && request.method === 'GET' && /^\/v1\/companies\/[^/]+\/payrolls\/[^/]+$/.test(url.pathname)) {
+      const payroll = JSON.parse(new TextDecoder().decode(bytes))
+      console.log(JSON.stringify({ event: 'gusto_demo_readback_shape', requestedPayroll: url.pathname.split('/').at(-1), payroll: payroll.payroll_uuid, uuid: payroll.uuid,
+        company: payroll.company_uuid, processed: payroll.processed, calculated_at: payroll.calculated_at, processing_request: payroll.processing_request,
+        employees: payroll.employee_compensations?.map(e => ({ employee: e.employee_uuid, fixed_compensations: e.fixed_compensations, reimbursements: e.reimbursements })) }))
     }
     return new Response(bytes, { status: response.status, headers: response.headers })
   } })
@@ -80,19 +87,21 @@ async function journey() {
     const next = review.payrolls[0]
     assert.ok(next && next.off_cycle === false, 'The app chooses the next actual regular Gusto payroll')
     const sent = await h.post(`batches/${batch.id}/payroll`, { version: batch.version, payroll: next.payroll_uuid, consent: true })
-    assert.equal(sent.status, 'sent')
+    assert.equal(sent.payroll_uuid, next.payroll_uuid)
     const payrollPath = `/v1/companies/${company.company_uuid}/payrolls/${next.payroll_uuid}`
-    const pending = await api(payrollPath + '?per=100')
+    for (const id of claims) assert.equal((await h.get(`claims/${id}`)).claim.status, 'batched', 'Claims stay unpaid before provider processing')
+    await h.post(`batches/${batch.id}/payroll`, { version: batch.version, payroll: next.payroll_uuid, consent: true }, h.owner, 409)
+    assert.equal(physicalUpdates, 1, 'A repeated send must never repeat the actual provider write')
+    // Gusto's uncalculated GET intentionally omits employee_compensations.
+    // A real calculation makes the written amounts available for readback.
+    await api(payrollPath + '/calculate', {}, 'PUT')
+    const pending = await completed(api, payrollPath, 'calculation')
     const pay = pending.employee_compensations.find(e => e.employee_uuid === employee.uuid)
     assert.ok(pay)
     assert.equal(pay.reimbursements.reduce((sum, r) => sum + Math.round(Number(r.amount) * 100), 0), 1000)
     assert.equal(pay.fixed_compensations.find(f => f.name === 'Bonus').amount, '12.00')
     assert.equal((await h.post(`batches/${batch.id}/payroll/confirm`, {})).confirmed, false)
     for (const id of claims) assert.equal((await h.get(`claims/${id}`)).claim.status, 'batched', 'Claims stay unpaid before provider processing')
-    await h.post(`batches/${batch.id}/payroll`, { version: batch.version, payroll: next.payroll_uuid, consent: true }, h.owner, 409)
-    assert.equal(physicalUpdates, 1, 'A repeated send must never repeat the actual provider write')
-    await api(payrollPath + '/calculate', {}, 'PUT')
-    await completed(api, payrollPath, 'calculation')
     await api(payrollPath + '/submit', {}, 'PUT')
     const processed = await completed(api, payrollPath, 'submission')
     const confirmation = await h.post(`batches/${batch.id}/payroll/confirm`, {})

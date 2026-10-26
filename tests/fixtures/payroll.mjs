@@ -8,7 +8,7 @@ export const gustoFixture = () => {
     fixed_compensations:[{name:'Bonus',amount:'3.00',job_uuid:'synthetic-coaster-105'},{name:'Salary',amount:'1000.00',job_uuid:'synthetic-coaster-105'}],
   }]};
   const writes=[];
-  const fixture={company,employee,payrollId,writes,earnings:{default:[{name:'Bonus'}],custom:[]},employees:[{uuid:employee,first_name:'Sam',last_name:'Taylor',email:'sam@harbourfinch.example',terminated:false}],lostAck:false,hold:null,get payroll(){return payroll;},set payroll(value){payroll=value;},async fetch(request){
+  const fixture={company,employee,payrollId,writes,earnings:{default:[{name:'Bonus'}],custom:[]},employees:[{uuid:employee,first_name:'Sam',last_name:'Taylor',email:'sam@harbourfinch.example',terminated:false}],lostAck:false,uncalculated:false,hold:null,get payroll(){return payroll;},set payroll(value){payroll=value;},async fetch(request){
     const url=new URL(request.url),path=url.pathname;
     assert.equal(url.origin,'https://api.gusto-demo.com');
     if(fixture.hold)await fixture.hold(request);
@@ -27,7 +27,7 @@ export const gustoFixture = () => {
         payroll={...payroll,employee_compensations:payroll.employee_compensations.map(e=>updated.find(row=>row.employee_uuid===e.employee_uuid)??e)};
         if(fixture.lostAck)return new Response('',{status:503});
       }
-      return Response.json(page());
+      return Response.json(fixture.uncalculated ? {...payroll,employee_compensations:undefined} : page());
     }
     if(path===`/v1/payrolls/${payrollId}/receipt`)return Response.json({payroll_uuid:payrollId,company_uuid:company,employee_compensations:page().employee_compensations.map(e=>({employee_uuid:e.employee_uuid,total_reimbursement:e.reimbursements.reduce((sum,r)=>sum+Math.round(Number(r.amount)*100),0)/100+'',net_pay:'1000.00',total_tax:'5.00'}))});
     assert.fail(`Unexpected Gusto request ${request.method} ${path}`);
