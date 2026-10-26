@@ -38,7 +38,9 @@ function companyTaxValue(requirement) {
   if (requirement.value !== null && requirement.value !== undefined) return requirement.value
   const metadata = requirement.metadata
   if (metadata.options?.length) return (metadata.options.find(o => o.value === false) ?? metadata.options[0]).value
-  if (metadata.type === 'account_number' && metadata.mask) return metadata.mask.replaceAll('#', '1').replaceAll('^', 'A').replaceAll('@', 'A').replaceAll('%', '1')
+  // Published Gusto CA registration example, for this fictitious Demo company:
+  // https://support.gusto.com/article/106732676100000/California-registration-and-tax-info
+  if (metadata.type === 'account_number') return '123-4567-8'
   if (metadata.type === 'tax_rate') {
     if (metadata.validation?.rates?.length) return Number(metadata.validation.rates[0])
     if (metadata.validation?.min !== undefined) return Number(metadata.validation.min)

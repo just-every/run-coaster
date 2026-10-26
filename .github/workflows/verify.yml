@@ -55,6 +55,17 @@ jobs:
       - run: pnpm run deps
       - name: HTTP flow suite, second half
         run: pnpm run test:coaster
+      - name: Payroll screens and financial archive
+        run: |
+          node tests/browser-payroll.mjs
+          node tests/payroll-archive.mjs
+        env:
+          COASTER_EVIDENCE: ${{ runner.temp }}/payroll-proof
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: coaster-payroll-proof
+          path: ${{ runner.temp }}/payroll-proof
 
   browser:
     runs-on: ubuntu-24.04

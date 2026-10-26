@@ -47,7 +47,7 @@ export async function sendPayroll(env: Bindings, actor: Actor, id: string, body:
   const choices = await upcoming(env,actor,c), next = choices[0];
   requireThat(next && next.payroll_uuid === body.payroll, 'Choose the next unprocessed regular Gusto run; reload',409);
   const lines = await payrollLines(env,batch);
-  requireThat(lines.length>0 && lines.length<=100 && lines.every(l => l.employeeUuid && l.reimbursementMinor>=0 && l.taxableMinor>=0) && lines.reduce((n,l)=>n+l.reimbursementMinor+l.taxableMinor,0)===batch.total_minor, 'Map every employee and reconcile the payroll total first',409);
+  requireThat(lines.length>0 && lines.length<=200 && lines.every(l => l.employeeUuid && l.reimbursementMinor>=0 && l.taxableMinor>=0) && lines.reduce((n,l)=>n+l.reimbursementMinor+l.taxableMinor,0)===batch.total_minor, 'Map every employee and reconcile the payroll total first',409);
   // Prepare is an explicit, consented provider operation with its own numbered audit line.
   await commit(env.DB,all(auth,connectionState(c),batchState(id,batch.version),recent),[event(env.DB,actor,'payroll-prepare-requested',{batch:id},{company:c.company_uuid,payroll:next.payroll_uuid})]);
   const payroll = await readPayroll(env,actor,c,next.payroll_uuid,true);
@@ -59,7 +59,8 @@ export async function sendPayroll(env: Bindings, actor: Actor, id: string, body:
     event(env.DB,actor,'payroll-handoff-reserved',{batch:id},{handoff:key,company:c.company_uuid,payroll:next.payroll_uuid,consent:true,totalMinor:batch.total_minor}),
   ]);
   // Reservation is permanent before the only physical write. A lost acknowledgement is reconciled by GET, never retried.
-  await request(env,actor,c,`/v1/companies/${c.company_uuid}/payrolls/${next.payroll_uuid}`,'PUT',{employee_compensations:expected},recent);
+  for (let offset=0;offset<expected.length;offset+=100)
+    await request(env,actor,c,`/v1/companies/${c.company_uuid}/payrolls/${next.payroll_uuid}`,'PUT',{employee_compensations:expected.slice(offset,offset+100)},recent);
   return (await confirmPayroll(env,actor,id)).handoff;
 }
 async function markSent(env: Bindings,actor: Actor,c: Connection,h: Handoff) {
@@ -80,6 +81,14 @@ export async function confirmPayroll(env: Bindings, actor: Actor, id: string) {
   if(payroll.processed!==true || ['calculating','submitting','processing_failed'].includes(payroll.processing_request?.status))return {handoff:publicHandoff(h),confirmed:false};
   const receipt=await request(env,actor,c,`/v1/payrolls/${h.payroll_uuid}/receipt?per=100`);
   requireThat(receipt.payroll_uuid===h.payroll_uuid && receipt.company_uuid===c.company_uuid && Array.isArray(receipt.employee_compensations), 'Gusto has not supplied the matching processed payroll receipt',409);
+  for(let page=2;receipt.employee_compensations.length>0 && receipt.employee_compensations.length%100===0;page++) {
+    requireThat(page<=20,'Gusto receipt exceeds the reconciliation limit',409);
+    const next=await request(env,actor,c,`/v1/payrolls/${h.payroll_uuid}/receipt?per=100&page=${page}`);
+    requireThat(next.payroll_uuid===h.payroll_uuid && next.company_uuid===c.company_uuid && Array.isArray(next.employee_compensations),'Gusto returned an invalid receipt page',502);
+    if(!next.employee_compensations.length)break;
+    receipt.employee_compensations.push(...next.employee_compensations);
+    if(next.employee_compensations.length<100)break;
+  }
   requireThat(expected.every(e=>receipt.employee_compensations.some((r:Data)=>r.employee_uuid===e.employee_uuid && cents(r.total_reimbursement)===e.reimbursementMinor)), 'Gusto receipt reimbursements do not reconcile',409);
   const at=now(), reference=`Gusto ${h.payroll_uuid}`;
   await commit(env.DB,all(auth,connectionState(c),{sql:"EXISTS(SELECT 1 FROM c_payroll_handoffs WHERE id=? AND status='sent') AND EXISTS(SELECT 1 FROM c_batches WHERE id=? AND status='approved')",params:[h.id,id]}),[

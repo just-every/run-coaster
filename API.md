@@ -454,8 +454,8 @@ cannot resume a send. Reconnect the original company explicitly to read back a
 pending handoff. Unrelated salary amounts are not retained: internal financial
 fingerprints allow exact reconciliation.
 
-This first native door is restricted to Gusto Demo. It supports at most 100
-employees in one batch and regular payrolls with separate reimbursement arrays;
+This first native door is restricted to Gusto Demo. It supports the native batch limit of 200
+claims, splitting provider updates into groups of at most 100 employees, and regular payrolls with separate reimbursement arrays;
 contractors, cash advances that exceed the remaining non-taxable amount,
 off-cycle payrolls, production connection and other providers remain outside
 this implemented slice. The conservative owner-only consent and custody policy

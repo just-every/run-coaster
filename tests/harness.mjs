@@ -66,19 +66,20 @@ async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge,
     /** POST and expect a status (200 by default); returns the JSON answer. */
     const post = async (path, body, cookie = owner, status = 200) => { const r = await send('/api/coaster/' + path, body, cookie); assert.equal(r.status, status, `${path}: ${JSON.stringify(r.value)}`); return r.value }
     const get = async (path, cookie = owner, status = 200) => { const r = await send('/api/coaster/' + path, undefined, cookie); assert.equal(r.status, status, `${path}: ${JSON.stringify(r.value)}`); return r.value }
-    const confirmMail = async email => {
+    const confirmMail = async (email, requestHeaders = {}) => {
       const message = messages.findLast(m => m.to.includes(email))
       assert.ok(message, `mail for ${email}`)
       const token = new URL(message.text.match(/http:\/\/[^\s]+\/auth\/confirm\?token=[^\s]+/)[0]).searchParams.get('token')
-      const confirmed = await send('/auth/confirm', { token })
+      const confirmed = await send('/auth/confirm', { token }, '', requestHeaders)
       assert.equal(confirmed.status, 303, JSON.stringify(confirmed.value))
       return confirmed.cookie
     }
     /** Save a Coaster member, invite them and return their real signed-in session cookie. */
-    const person = async (email, roles, approver) => {
+    const person = async (email, roles, approver, requestHeaders = {}) => {
       await post('settings/members', { email, name: email.split('@')[0], ...roles, approver })
-      await post('settings/members/invite', { email })
-      return confirmMail(email)
+      const invited = await send('/api/coaster/settings/members/invite', { email }, owner, requestHeaders)
+      assert.equal(invited.status, 200, JSON.stringify(invited.value))
+      return confirmMail(email, requestHeaders)
     }
     /** Release a reviewed batch (PAY-004; the owner by default) and record the payment made outside Coaster. */
     const paid = async (id, version, body, cookie = owner, releaser = owner) => post(`batches/${id}/paid`, { ...body, version: (await post(`batches/${id}/release`, { version }, releaser)).version }, cookie)

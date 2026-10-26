@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "577a01fca051d782ad0c5bb40ab854409e8a0701dd7587bb4d628ff5980d3178",
+      "sha256": "e600c42715364366e2cd3fa0fcbcd21c53ac7156ead9ab8162abb39900d63aa4",
       "executable": false
     },
     ".gitignore": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "68af5138cff5f818f00a341ba5e692583bd233179552b58c53ab9ffc7e9be61f",
+      "sha256": "ac34d0b792776d2c1bd2aebf7c124d8172bf9d142370179e6cf4ffae48ca4125",
       "executable": false
     },
     "base-copies.json": {
@@ -1676,7 +1676,7 @@
       "executable": false
     },
     "src/coaster/payroll/handoff.ts": {
-      "sha256": "d6ee9355c23a65e577c0ff2dbefc17a4653e18f1651a614ea8e7a7c24a18f7d0",
+      "sha256": "35963aa7759d2316a0364415a08d3f7277aafa8ec0e7e0bc95e560d5da801190",
       "executable": false
     },
     "src/coaster/payroll/lines.ts": {
@@ -4376,7 +4376,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "59ece996cb30336467f559924d6d0def7c5df84793704ace8a2c757116d1e757",
+      "sha256": "d35431114bf2c27bd16f573facba58281946588f8d611a28497aea3ead390cb3",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -5984,7 +5984,7 @@
       "executable": false
     },
     "tests/fixtures/payroll.mjs": {
-      "sha256": "7d81a924123bdacde5b2ccdb2bfeefb115f9bff2fc95e57850d3c56246d26d45",
+      "sha256": "2ebb34415b41edb58736cab876653b34562a92929c6f6c58061e59b32ddfaa7a",
       "executable": false
     },
     "tests/fixtures/policy-review/synthetic-coaster-6001.png": {
@@ -6484,7 +6484,7 @@
       "executable": false
     },
     "tests/gusto-sandbox-company.mjs": {
-      "sha256": "6502d60eb86d9807064b1ec5a9dff4eb601f1495fe24d6b5a742f578764d5909",
+      "sha256": "5028d599bf004118bc37f0a2b0532515cd3fbbc7b599be747154c8e5ca500eab",
       "executable": false
     },
     "tests/gusto-sandbox.mjs": {
@@ -6492,7 +6492,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "71a7a65b6eadd0fc6be9a3329cb7df3b24f02fa2c2ca8b3d40bd9eb5f7dfcb1f",
+      "sha256": "692bcbbabf8c35161d749d3226e11671e23d5681d6b6a2b051cdc0262b190c50",
       "executable": false
     },
     "tests/identity-provider.mjs": {

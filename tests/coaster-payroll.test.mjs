@@ -101,3 +101,42 @@ test('Payroll refuses unauthorized handoffs and recovers a lost provider acknowl
     assert.equal(edge.writes.length,1,'reconnection reconciles the original reserved effect');
   } finally {await h.close();}
 });
+
+test('A native batch crossing Gusto’s employee page limit reconciles every person and confirms only the complete receipt',async()=>{
+  const edge=gustoFixture(),h=await harness({gustoEdge:r=>edge.fetch(r)});
+  try {
+    await h.post('settings/business',{name:'Harbour and Finch Studio',currency:'USD',timezone:'UTC',receiptThreshold:''});
+    const category=(await h.post('settings/categories',{name:'Office',accountCode:'6500',taxCode:'NONE'})).id;
+    const managerEmail='synthetic-coaster-200@example.invalid',manager=await h.person(managerEmail,{manager:true});
+    const workers=Array.from({length:101},(_,i)=>({uuid:`synthetic-coaster-${300+i}`,email:`synthetic-coaster-${500+i}@example.invalid`,first_name:'Synthetic',last_name:`Employee ${i}`,terminated:false}));
+    edge.employees=workers;
+    edge.payroll={...edge.payroll,employee_compensations:workers.map(e=>({employee_uuid:e.uuid,version:'synthetic-coaster-700',excluded:false,payment_method:'Direct Deposit',reimbursements:[],fixed_compensations:[{name:'Bonus',amount:'0.00',job_uuid:'synthetic-coaster-701'}]}))};
+    const root=['payroll','gusto'].join('/');
+    await h.post(root+'/connect',{company:edge.company,token:'synthetic-coaster-120',consent:true});
+    const claims=[];
+    for(const worker of workers){
+      const cookie=await h.person(worker.email,{employee:true},managerEmail,{'CF-Connecting-IP':`198.51.100.${workers.indexOf(worker)+1}`});
+      let claim=await h.post('claims',{title:'Office purchase'},cookie);
+      claim=await h.post(`claims/${claim.id}/items`,{version:claim.version,kind:'receipt',date:'2026-04-10',merchant:'Office stationery',amount:'1.00',allocations:[{category}],explanation:'Synthetic acceptance expense'},cookie);
+      claim=await h.post(`claims/${claim.id}/submit`,{version:claim.version},cookie);
+      claim=await h.post(`claims/${claim.id}/decision`,{version:claim.version,revision:claim.revision,decision:'approved',acknowledge:true},manager);
+      claims.push(claim.id);
+      await h.post(root+'/employees',{email:worker.email,employee:worker.uuid});
+    }
+    let batch=await h.post('batches',{claims});
+    batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:10100});
+    batch=await h.post(`batches/${batch.id}/release`,{version:batch.version});
+    const path=`batches/${batch.id}/payroll`;
+    await h.post(path,{version:batch.version,payroll:edge.payrollId,consent:true});
+    assert.deepEqual(edge.writes.map(w=>w.employee_compensations.length),[100,1]);
+    assert.equal(edge.payroll.employee_compensations.length,workers.length);
+    assert.ok(edge.payroll.employee_compensations.every(e=>e.reimbursements.length===1&&e.reimbursements[0].amount==='1.00'));
+    assert.equal((await h.get(`batches/${batch.id}`)).batch.status,'approved');
+    edge.payroll={...edge.payroll,processed:true};
+    assert.equal((await h.post(path+'/confirm',{})).confirmed,true);
+    assert.equal((await h.get(`batches/${batch.id}`)).batch.status,'reimbursed');
+    const paid=(await h.get('state')).claims.filter(c=>claims.includes(c.id));
+    assert.equal(paid.length,workers.length);
+    assert.ok(paid.every(c=>c.status==='reimbursed'));
+  } finally {await h.close();}
+});
