@@ -58,6 +58,8 @@ jobs:
       - run: bash scripts/ci/install-browser.sh
       - name: Payroll screens and financial archive
         run: |
+          node tests/browser-email.mjs
+          node tests/email-archive.mjs
           node tests/browser-payroll.mjs
           node tests/payroll-archive.mjs
         env:

@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {copyFile,mkdir,rm,writeFile} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+import {fresh,command} from './browser-runtime.mjs';
+import {records,rows,tampered} from './browser-archive.mjs';
+import {agency,harness} from './harness.mjs';
+import {receiptAddress,threeMails,receiptMail,deliverMail} from './fixtures/receipt-email.mjs';
+const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/email-proof');await mkdir(evidence,{recursive:true});
+let h;const roots=[];
+try{
+ const source=await fresh(),destination=await fresh();roots.push(source,destination);
+ for(const root of roots)await command(root,['install']);
+ h=await harness({persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only'});
+ await agency(h);await h.post('settings/receipt-email',{address:receiptAddress,consent:true});await threeMails(h);
+ await deliverMail(h,receiptMail({from:'unknown@example.net'}),'unknown@example.net');
+ await h.close();h=undefined;
+ await command(source,['export','--output','exports/email.rer']);const archive=join(source,'exports/email.rer'),exported=await records(archive);
+ assert.equal(rows(exported).filter(r=>r.table==='c_receipt_mail_messages').length,4);
+ await command(destination,['export','--output','exports/empty.rer']);const empty=rows(await records(join(destination,'exports/empty.rer')));
+ const invalid=await tampered(archive,'c_receipt_mail_messages',row=>{row.size+=1;});
+ await writeFile(join(destination,'exports/invalid-email.rer'),invalid,{mode:0o600});
+ assert.match(await command(destination,['import','--input','exports/invalid-email.rer','--yes'],{expected:4}),/coaster_mail_evidence/);
+ await command(destination,['export','--output','exports/unchanged.rer']);assert.deepEqual(rows(await records(join(destination,'exports/unchanged.rer'))),empty);
+ await copyFile(archive,join(destination,'exports/email.rer'));await command(destination,['import','--input','exports/email.rer','--yes']);
+ await command(destination,['export','--output','exports/restored.rer']);assert.deepEqual(rows(await records(join(destination,'exports/restored.rer'))),rows(exported));
+ await copyFile(archive,join(evidence,'email.rer'));console.log('Source mail and inbox originals survived exact CLI restore; inconsistent source was refused without writes');
+}finally{await h?.close();for(const root of roots)await rm(root,{recursive:true,force:true});}

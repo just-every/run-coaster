@@ -10,6 +10,7 @@ import { setupStateResponse } from './base/setup-state'
 import { authResponse, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { runHourly } from './coaster/hourly'
+import { receiveEmail } from './coaster/receipts/mail-intake'
 
 // Start documents keep their own cache policy and add no-transform, so no proxy
 // rewrites the HTML React hydrates (Cloudflare's email address obfuscation
@@ -21,6 +22,7 @@ function noTransform(response: Response): Response {
 }
 
 const worker = {
+  async email(message, env) { await receiveEmail(message, env) },
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset

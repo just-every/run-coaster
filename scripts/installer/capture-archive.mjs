@@ -1,3 +1,4 @@
+import { validateMailArchive } from './mail-archive.mjs';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 import { tokenSubjects, validDiscardReason } from '../../src/coaster/receipts/reasons.mjs';
 
@@ -22,7 +23,9 @@ export async function validateCaptureArchive(read, manifest) {
   }
   check(new Set(drafts.map(d => d.receipt_id)).size === drafts.length && new Set(drafts.map(d => d.claim_id)).size === drafts.length, 'cash_draft');
   const objects = manifest?.objects.filter(object => object.bucket === 'COASTER_RECEIPTS') ?? [];
-  check(objects.length === receipts.length, 'objects');
+  const messages=await read('c_receipt_mail_messages');
+  check(objects.length === receipts.length+messages.length, 'objects');
+  await validateMailArchive(read,objects,receipts,messages);
   const byKey = new Map(objects.map(object => [object.key, object]));
   const byId = new Map(receipts.map(receipt => [receipt.id, receipt]));
   const lifecycle = await read('c_capture_lifecycle'), members = await read('c_members'), ended = new Map();

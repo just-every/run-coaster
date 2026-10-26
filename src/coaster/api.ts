@@ -1,3 +1,5 @@
+import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
+import { receiptEmailSource } from './receipts/mail-intake';
 import { payrollConnection, connectPayroll, disconnectPayroll, mapPayrollEmployee } from './payroll/connection';
 import { payrollReview, sendPayroll, confirmPayroll } from './payroll/handoff';
 import { desktopStatus, connectDesktop, disconnectDesktop, syncDesktop, retryDesktop, mapDesktop, desktopSoap, configuration, connection as desktopConnection } from './accounting/desktop';
@@ -121,6 +123,14 @@ api.post('/api/coaster/settings/provider-costs', as(async(a,c)=>saveProviderCost
 api.get('/api/coaster/investigations', as(async(a,c)=>investigations(db(c),a)));
 api.post('/api/coaster/investigations/:id/outcome', as(async(a,c)=>investigationOutcome(db(c),a,param(c,'id'),await body(c))));
 api.get('/api/coaster/investigations/:id/download', as(async(a,c)=>investigationFile(db(c),a,param(c,'id'),runtimeBindings(c.env).COASTER_RECEIPTS)));
+
+api.get('/api/coaster/settings/receipt-email', as(async(a,c)=>receiptEmailSettings(db(c),a)));
+api.post('/api/coaster/settings/receipt-email', as(async(a,c)=>saveReceiptEmail(db(c),a,await body(c))));
+api.post('/api/coaster/settings/receipt-email/aliases', as(async(a,c)=>requestReceiptAlias(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/settings/receipt-email/aliases/confirm', as(async(a,c)=>confirmReceiptAlias(db(c),a,await body(c))));
+api.post('/api/coaster/settings/receipt-email/aliases/remove', as(async(a,c)=>removeReceiptAlias(db(c),a,await body(c))));
+api.get('/api/coaster/settings/receipt-email/held/:id', as(async(a,c)=>receiptEmailSource(db(c),runtimeBindings(c.env).COASTER_RECEIPTS,a,param(c,'id'),true)));
+api.get('/api/coaster/receipt-inbox/:id/source', as(async(a,c)=>receiptEmailSource(db(c),runtimeBindings(c.env).COASTER_RECEIPTS,a,param(c,'id'))));
 
 api.get('/api/coaster/settings/cash-draft-window', as(async (a, c) => cashWindow(db(c), a)));
 api.post('/api/coaster/settings/cash-draft-window/preview', as(async (a, c) => previewCashWindow(db(c), a, await body(c))));

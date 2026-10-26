@@ -160,7 +160,14 @@ test('Receipt disagreements ask one private crop-backed question across the labe
   const t=await agency(h);await h.post('settings/members',{email:'owner@harbourfinch.example',name:'Owner',employee:true,finance:true,approver:'priya@harbourfinch.example'});await h.post('settings/business',{name:'Harbour & Finch Studio',currency:'USD',timezone:'America/Chicago',perDiem:'75',receiptThreshold:''});await enable(h)
   const manifest=JSON.parse(await readFile(folder+'manifest.json','utf8')),seen=new Set();let firstQuestion,firstOriginal,firstReading,firstClaim
   for(const entry of manifest.receipts){
-   activeLabel=JSON.parse(await readFile(folder+entry.label,'utf8'));const label=activeLabel.values,original=await upload(h,t.sam,Number(entry.id.replace('synthetic-coaster-','')))
+   activeLabel=JSON.parse(await readFile(folder+entry.label,'utf8'));const label=activeLabel.values;let original;
+   if(first){
+    const {receiptAddress,receiptMail,deliverMail}=await import('./fixtures/receipt-email.mjs');
+    await h.post('settings/receipt-email',{address:receiptAddress,consent:true});
+    await deliverMail(h,receiptMail({file:{name:activeLabel.file,bytes:await readFile(folder+activeLabel.file)},subject:'Merchant receipt with tip'}));
+    original=(await h.get('receipt-inbox',t.sam)).receipts[0];assert.ok(original.emailSource);
+   }else original=await upload(h,t.sam,Number(entry.id.replace('synthetic-coaster-','')));
+
    const readBefore=await read(h,original.id,t.sam),originalFields=readBefore.history[1].fields
    const issuer='synthetic-coaster-7100',last4=label.last4??'1111';await h.post('statements/cards',{issuer,last4,employee:'sam@harbourfinch.example'})
    const chargeTotal=(Number(label.total)+(first?0:.01)).toFixed(2),quote=s=>'"'+String(s).replaceAll('"','""')+'"'

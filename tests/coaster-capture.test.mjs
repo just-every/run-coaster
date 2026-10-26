@@ -612,3 +612,51 @@ test('CAPTURE-004 attaches and detaches one R2 original on editable purchases, p
 
   } finally {await h.close()}
 })
+
+test('Forwarded HTML, PDF and inline photo receipts retain private source messages and replay exactly once',async()=>{
+ const {receiptAddress,threeMails,deliverMail}=await import('./fixtures/receipt-email.mjs');
+ const h=await harness();try {
+  const t=await agency(h);await h.post('settings/receipt-email',{address:receiptAddress,consent:true});
+  const {originals,photo,pdf}=await threeMails(h),inbox=(await h.get('receipt-inbox',t.sam)).receipts;
+  assert.equal(inbox.length,3);assert.ok(inbox.every(r=>r.emailSource.from===SAM));
+  for(const r of inbox){
+   const source=await h.mf.dispatchFetch(h.origin+r.emailSource.sourceUrl,{headers:{cookie:t.sam}});assert.equal(source.status,200);
+   const bytes=Buffer.from(await source.arrayBuffer());assert.ok(originals.some(raw=>raw.equals(bytes)));
+   await h.get('receipt-inbox/'+r.id+'/source',t.alex,404);await h.get('receipt-inbox/'+r.id+'/source',h.owner,404);
+   const file=await download(h,t.sam,r.id);if(r.name==='receipt.png')assert.deepEqual(file.bytes,photo);else if(r.name==='invoice.pdf')assert.deepEqual(file.bytes,pdf);else{
+    const {extractText}=await import('unpdf');const text=await extractText(new Uint8Array(file.bytes),{mergePages:true});assert.match(text.text,/Harbour Air/);assert.match(text.text,/245.80/);
+   }
+  }
+  await Promise.all(originals.map(raw=>deliverMail(h,raw)));assert.equal((await h.get('receipt-inbox',t.sam)).receipts.length,3);
+  assert.equal((await h.get('settings/receipt-email')).held.length,0);assert.equal((await h.get('receipt-inbox',h.owner)).receipts.length,0);
+  assert.equal(h.outbound.filter(r=>!r.url.startsWith('https://api.resend.com/')).length,0,'HTML email renders without external requests');
+  await assert.rejects(h.db.prepare('DELETE FROM c_receipt_mail_messages').run(),/source mail is permanent/);
+ }finally{await h.close()}
+});
+
+test('Unknown and unconfirmed sender mail stays owner-held; native alias proof grants future intake and erasure revokes it',async()=>{
+ const {receiptAddress,receiptMail,deliverMail,aliasCode}=await import('./fixtures/receipt-email.mjs');
+ const h=await harness();try {
+  const t=await agency(h),alias='sam.receipts@example.net';await h.post('settings/receipt-email',{address:receiptAddress,consent:true},t.sam,403);
+  await h.post('settings/receipt-email',{address:receiptAddress,consent:true});
+  const unknown=receiptMail({from:alias});await deliverMail(h,unknown,alias);
+  const held=(await h.get('settings/receipt-email')).held;assert.equal(held.length,1);assert.equal(held[0].from,alias);
+  assert.equal((await h.get('settings/receipt-email',t.sam)).held.length,0);await h.get('settings/receipt-email/held/'+held[0].id,t.sam,403);
+  const source=await h.mf.dispatchFetch(h.origin+held[0].sourceUrl,{headers:{cookie:h.owner}});assert.deepEqual(Buffer.from(await source.arrayBuffer()),unknown);
+  await h.post('settings/receipt-email/aliases',{email:alias},t.sam);const code=aliasCode(h,alias);
+  await h.post('settings/receipt-email/aliases/confirm',{email:alias,code:'synthetic-coaster-8201'},t.sam,409);
+  await h.post('settings/receipt-email/aliases/confirm',{email:alias,code},t.alex,409);
+  await h.post('settings/receipt-email/aliases/confirm',{email:alias,code},t.sam);
+  await h.post('settings/receipt-email/aliases/confirm',{email:alias,code},t.sam,409);
+  const next=receiptMail({from:alias,subject:'Confirmed airline receipt'});await deliverMail(h,next,alias);
+  assert.equal((await h.get('receipt-inbox',t.sam)).receipts.length,1);assert.equal((await h.get('settings/receipt-email')).held.length,1,'confirmation never assigns old held mail');
+  await h.post('delegates',{delegate:'alex@harbourfinch.example',level:'full'},t.sam);
+  assert.equal((await h.send('/api/coaster/settings/receipt-email/aliases',{email:'another@example.net'},t.alex,{'x-coaster-acting-for':SAM})).status,403);
+  await h.post('settings/receipt-email/aliases/remove',{email:alias},t.sam);await deliverMail(h,receiptMail({from:alias,subject:'After revocation'}),alias);
+  assert.equal((await h.get('receipt-inbox',t.sam)).receipts.length,1);assert.equal((await h.get('settings/receipt-email')).held.length,2);
+  await h.post('settings/receipt-email/aliases',{email:'sam.extra@example.net'},t.sam);
+  await h.post('settings/members',{email:SAM,name:'sam',employee:true,active:false});
+  await h.post('settings/members/erase',{email:SAM});
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_receipt_mail_aliases WHERE owner_email=?').bind(SAM).first()).n,0);
+ }finally{await h.close()}
+});

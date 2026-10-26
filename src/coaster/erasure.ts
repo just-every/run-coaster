@@ -14,6 +14,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
+  ['c_receipt_mail_messages',['sender','owner_email']], ['c_receipt_mail_settings',['set_by']],
   ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']],
   ['c_program_feeds', ['connected_by']], ['c_receipt_reading_settings', ['set_by']], ['c_receipt_readings', ['actor_email', 'on_behalf_of']],
   ['c_auto_coding_rules',['owner_email','set_by']], ['c_auto_coding_contexts',['employee_email']], ['c_auto_coding_suggestions',['employee_email']], ['c_auto_coding_feedback',['actor_email']], ['c_auto_coding_observations',['employee_email']],
@@ -146,6 +147,9 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql("DELETE FROM c_auto_coding_rules WHERE scope='personal' AND owner_email=?",address),
     sql('DELETE FROM c_agent_keys WHERE member_email=?', address),
     sql('DELETE FROM c_public_keys WHERE member_email=?', address),
+    sql('UPDATE c_capture_receipts SET uploaded_by=? WHERE uploaded_by IN (SELECT email FROM c_receipt_mail_aliases WHERE owner_email=?)',subject,address),
+    sql('UPDATE c_receipt_mail_messages SET sender=? WHERE owner_email=?',subject,address),
+    sql('DELETE FROM c_receipt_mail_aliases WHERE owner_email=?',address),
     sql('DELETE FROM c_receipt_reading_match_defaults WHERE employee_email=?', address),
     sql('DELETE FROM c_qbo_oauth_states WHERE actor_email=?', address),
     sql('DELETE FROM c_delegations WHERE approver_email=? OR delegate_email=?', address, address),
