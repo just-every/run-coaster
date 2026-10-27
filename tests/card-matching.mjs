@@ -11,12 +11,14 @@ import {codingScreens} from './browser-coding.mjs'
 import {readingEdge,readingScreens} from './browser-reading.mjs'
 import {programFeedScreens} from './browser-program-feed.mjs'
 import {automaticCodingScreens} from './browser-auto-coding.mjs'
+import {importPrivateStatements,scanStatementArchive,rejectUnsafeStatementArchives,verifyPrivateStatementDownloads} from './statement-archive.mjs'
 
 const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/card-matching-proof')
 const notice="When this receipt matches one of your card charges, Coaster attaches it automatically. Approvers and finance can see the receipt, its file name and the total, currency and date you entered once that expense is submitted — by you, your delegate or the owner's scheduled submission."
 await mkdir(evidence,{recursive:true})
 let root,restored,server,browser,readerEdge
-const launch=()=>chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+const launch=()=>chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}),args:['--use-mock-keychain','--password-store=basic','--no-sandbox']})
+const statementDoor=(context,origin)=>({post:(path,body)=>api(context,origin,path,body),get:path=>api(context,origin,path),download:async id=>{const response=await context.request.get(`${origin}/api/coaster/statements/${id}/file`);assert.equal(response.status(),200);return {bytes:await response.body(),disposition:response.headers()['content-disposition']}}})
 const chosen=[]
 const [part,of]=(process.env.MATCH_REFUSALS??'0/1').split('/').map(Number)
 assert.ok(Number.isInteger(part)&&Number.isInteger(of)&&of>0&&part>=0&&part<of,'MATCH_REFUSALS must be part/of')
@@ -27,6 +29,7 @@ try {
   server=await start(root,port);browser=await launch()
   const owner=await session(browser,root,server.origin,'owner',1440);await setUp(owner,server.origin)
   const category=(await api(owner.context,server.origin,'state')).categories.find(c=>c.name==='Office supplies').id
+  const privateStatements=await importPrivateStatements(statementDoor(owner.context,server.origin),category,PEOPLE.employee)
   await api(owner.context,server.origin,'statements/cards',{issuer:'Synthetic Card',last4:'1111',employee:PEOPLE.employee})
   const importRows=async(name,amount,merchant,count=1,date='2026-10-02')=>{
     const input={format:'csv',name,issuer:'Synthetic Card',category,content:'Date,Merchant,Amount,Id\n'+Array.from({length:count},(_,i)=>`${date},${merchant},${amount},${name}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}}
@@ -156,10 +159,12 @@ try {
   await owner.context.close();await browser.close();browser=undefined;await server.close();server=undefined
   await command(root,['export','--output','exports/matching.rer'])
   const archive=join(root,'exports/matching.rer');await copyFile(archive,join(evidence,'matching.rer'))
+  await scanStatementArchive(archive)
   restored=await fresh();await command(restored,['install']);const restorePort=await freePort()
   await command(restored,['setup','--owner-email','owner@harbourfinch.example','--port',String(restorePort)])
   await mkdir(join(restored,'exports'),{recursive:true});await command(restored,['export','--output','exports/empty.rer'])
   const empty=rows(await records(join(restored,'exports/empty.rer')))
+  await rejectUnsafeStatementArchives(restored,archive,{part,of})
   const alterBasis=change=>(event,input)=>{
     const data=JSON.parse(event.match_data);change(data);event.match_data=JSON.stringify(data)
     for(const {row} of rows(input).filter(r=>r.table==='c_receipts'))
@@ -211,7 +216,11 @@ try {
   await command(restored,['import','--input','exports/matching.rer','--yes'])
   await command(restored,['export','--output','exports/restored.rer'])
   assert.deepEqual(rows(await records(join(restored,'exports/restored.rer'))),rows(await records(archive)),'matching, rule versions, masked statement originals, rejections and private history round trip exactly')
+  await scanStatementArchive(join(restored,'exports/restored.rer'))
   server=await start(restored,restorePort);browser=await launch()
+  const restoredOwner=await session(browser,restored,server.origin,'owner',1440)
+  await verifyPrivateStatementDownloads(statementDoor(restoredOwner.context,server.origin),privateStatements)
+  await restoredOwner.context.close()
   const restoredEmployee=await session(browser,restored,server.origin,'employee',390)
   const before=(await api(restoredEmployee.context,server.origin,'receipt-inbox')).receipts
   for(const id of chosen) assert.ok(before.some(r=>r.id===id))

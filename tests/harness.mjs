@@ -85,7 +85,7 @@ async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge,
     }
     /** Release a reviewed batch (PAY-004; the owner by default) and record the payment made outside Coaster. */
     const paid = async (id, version, body, cookie = owner, releaser = owner) => post(`batches/${id}/paid`, { ...body, version: (await post(`batches/${id}/release`, { version }, releaser)).version }, cookie)
-    return { db, mf, origin, owner, messages, outbound, auth, send, post, get, person, paid, confirmMail, async close() { await mf.dispose(); if (!persistencePath) await rm(dir, { recursive: true, force: true }) } }
+    return { db, mf, persistencePath: dir, origin, owner, messages, outbound, auth, send, post, get, person, paid, confirmMail, async close() { await mf.dispose(); if (!persistencePath) await rm(dir, { recursive: true, force: true }) } }
   } catch (error) { await mf.dispose(); if (!persistencePath) await rm(dir, { recursive: true, force: true }); throw error }
 }
 

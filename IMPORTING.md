@@ -212,6 +212,13 @@ memory, before anything is stored, and the retained original is that masked
 file, labelled "card numbers masked" with its own SHA-256. This outranks keeping
 the file byte for byte. Download it from `GET /api/coaster/statements/:id/file`.
 
+Compact, spaced and hyphenated copies of the supplied account number are masked
+before transaction identifiers, descriptions, memos or preview diagnostics are
+derived. Export retains the masked bytes with their size and digest. Restore
+checks those values and refuses an unmasked statement original while staging,
+before writing any destination row or object; valid masked originals restore
+without changing a byte.
+
 ## Preview, commit and undo
 
 Preview writes nothing. It names the statement period, each card and who it is
