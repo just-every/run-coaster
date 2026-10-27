@@ -755,6 +755,10 @@
       "sha256": "41007c0908b35eef684fe9e1d76cf56583f825e58c6ecb63da944d106336994d",
       "executable": false
     },
+    "migrations/core/0085_hris.sql": {
+      "sha256": "258dba408f7b9ffa90857f3b81c94305325229dbe5d6fae481e5ed4c7e77187d",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -1156,7 +1160,7 @@
       "executable": false
     },
     "scripts/installer/portability.mjs": {
-      "sha256": "5963dd899afb458e203577fedd5c65c2f65e4b8e1c9738d1285860262c95b26a",
+      "sha256": "75bc20bed8f9637cafb87750b978fbd0990585fe47614fbbd751d6b3023c4fa8",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {
@@ -1224,7 +1228,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "85d5e02c8d72324b0371e90210313c6fd535c4bc74cad5127a26f5a839370e9a",
+      "sha256": "d89e62ac7676292bd2c0293ade50e9d9560b99e43bc638972013f0188e4cd455",
       "executable": false
     },
     "src/auth.server.ts": {
@@ -1400,7 +1404,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "6630d4fd5b3556a0761e43194b707034a7bd3e4d3edcc4bfc525e5b401f18bfb",
+      "sha256": "0a29d7f7958697bbf8c507212dad738567a64f6be807788e4df80b22bdbcdb3a",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1608,7 +1612,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "8abe3addff9c70aa7465b4f71dceb774cdd2fff4b1132692e5ab5a28b1661f65",
+      "sha256": "062fde5bc8e93eba99539f34b61bcb2c7737c8f07769fb294d20cbe708ce3080",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -1685,6 +1689,10 @@
     },
     "src/coaster/hourly.ts": {
       "sha256": "9cf51687154b05613cb966be21bd4f77f47392b3916100dcef816e4b899b9740",
+      "executable": false
+    },
+    "src/coaster/hris/gusto.ts": {
+      "sha256": "c4da3d3a132cf293c28b477224a785386a4f3b108683c4cd0912383575077263",
       "executable": false
     },
     "src/coaster/imports/cards.ts": {
@@ -4219,6 +4227,10 @@
       "sha256": "8d0f845d0104e462b4002e83dcbbe0d78923714c6f34ea6acb389d8f457f6af1",
       "executable": false
     },
+    "src/ui/hris.tsx": {
+      "sha256": "b035d73392dc1ff88141c0ac9d8509b832280542107e5e88f96c26de99307500",
+      "executable": false
+    },
     "src/ui/icons.tsx": {
       "sha256": "26d9cbae45ce4860b6116b9826caee7c7de93fc2c14c5c1ab35f6133f43153a3",
       "executable": false
@@ -4332,7 +4344,7 @@
       "executable": false
     },
     "src/ui/settings.tsx": {
-      "sha256": "2512d9ffefe4231e4bc73b1bc031f90734852bd5dd4df74aca5e8b0079b8e794",
+      "sha256": "0dd98f433111ee1d9ba7679a2274cd2a8d7f402c16135fb6bbd2cc0c7c46fb4f",
       "executable": false
     },
     "src/ui/shell.tsx": {
@@ -4557,6 +4569,10 @@
     },
     "tests/coaster-fx.test.mjs": {
       "sha256": "f9d409949845ec9ae987598378663294b98d11f5ea5db69dbce5ae219a2d9d8a",
+      "executable": false
+    },
+    "tests/coaster-hris.test.mjs": {
+      "sha256": "abe1ba1db96950464f4d9ecc863eb553b0f645094622c36135835d4d6b32a3f3",
       "executable": false
     },
     "tests/coaster-import-configuration.test.mjs": {
@@ -6705,6 +6721,10 @@
     },
     "tests/harness.mjs": {
       "sha256": "1c42b2eace99399a35e588099d6a4d519470e7f4de8ea47419341aba19eb0d54",
+      "executable": false
+    },
+    "tests/hris-kit.mjs": {
+      "sha256": "6312cc9e3dc32b2112108470e9c1bbd4545274f3708f13d885d1fb6cb1dce6ff",
       "executable": false
     },
     "tests/identity-provider.mjs": {
