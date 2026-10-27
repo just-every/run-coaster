@@ -124,6 +124,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     name: true, email: true, signInAccount: Boolean(operator),
     personalPlaidConnections: await count('c_plaid_connections WHERE personal_email=?', address),
     plaidLinkRequests: await count('c_plaid_links WHERE member_email=?', address),
+    hrisMappings: await count('c_hris_mappings WHERE email=?', address),
     agentKeys: await count('c_agent_keys WHERE member_email=?', address),
     delegations: await count('c_delegations WHERE approver_email=? OR delegate_email=?', address, address) + await count('c_delegates WHERE grantor_email=? OR delegate_email=?', address, address),
     approverAssignments: await count('c_members WHERE approver_email=?', address),
@@ -184,6 +185,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     ...rewrittenMatches.map(row=>sql('UPDATE c_capture_lifecycle SET match_data=? WHERE receipt_id=? AND sequence=? AND match_data=?',row.replaced,row.receipt_id,row.sequence,row.match_data)),
     ...rewrittenReasons.map(row => sql('UPDATE c_capture_lifecycle SET reason=? WHERE receipt_id=? AND sequence=? AND reason=?', row.replaced, row.receipt_id, row.sequence, row.reason)),
     ...ADDRESS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=? WHERE ${c}=?`, subject, address))),
+    sql("UPDATE c_events SET detail=json_set(detail,'$.before.name',?,'$.after.name',?) WHERE action='hris-synced' AND json_extract(detail,'$.email')=?", label, label, address),
     ...JSON_COLUMNS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=replace(${c},?,?) WHERE instr(${c},?)>0`, quoted, quotedLabel, quoted))),
     sql("UPDATE c_members SET email=?,name=?,member_id=?,approver_email=NULL,updated_at=? WHERE email=?", subject, label, uid(), at, address),
     // The Base sign-in account and everything that let it sign in.

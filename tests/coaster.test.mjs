@@ -1948,7 +1948,7 @@ test('ERASURE-001 the owner erases a departed employee\'s personal data and keep
   const { subject } = receipt.retained
   assert.match(receipt.label, /^Former member [0-9a-f]{8}$/); assert.equal(subject, 'former-member-' + receipt.label.slice(-8))
   assert.equal(receipt.erasedBy, 'owner@harbourfinch.example')
-  assert.deepEqual(receipt.removed, { name: true, email: true, signInAccount: true, personalPlaidConnections: 0, plaidLinkRequests: 0, agentKeys: 1, delegations: 1, approverAssignments: 0, comments: 1, reminders: 0, discardReasons: 0, bankAccounts: 0 })
+  assert.deepEqual(receipt.removed, { name: true, email: true, signInAccount: true, personalPlaidConnections: 0, plaidLinkRequests: 0, hrisMappings: 0, agentKeys: 1, delegations: 1, approverAssignments: 0, comments: 1, reminders: 0, discardReasons: 0, bankAccounts: 0 })
   assert.deepEqual(receipt.retained.claims.map(c => [c.claim, c.status, c.totalMinor]), [[`CL-${String(paid.number).padStart(4, '0')}`, 'reimbursed', 22928], [`CL-${String(rejected.number).padStart(4, '0')}`, 'rejected', 2010]])
   const hotel = sha(await readFile('tests/fixtures/receipts/hotel.png'))
   assert.deepEqual(receipt.retained.receiptSha256, [hotel, sha(await readFile('tests/fixtures/receipts/uber.png'))].sort())

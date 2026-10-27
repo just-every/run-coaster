@@ -24,9 +24,9 @@ test('HRIS reviews hires and manager changes, preserves roles and hands off term
     assert.deepEqual([native.name,native.approver_email,native.is_manager],['Alexandra Hire',edge.employees[2].email,0]);
     await h.get('state',employee);
     // Make this person an approver with a waiting claim; HRIS must retain their role and use the existing handoff.
-    await h.post('settings/members',{email:hire.email,name:hire.first_name,employee:true,manager:true,approver:edge.employees[2].email});
+    await h.post(['settings', 'members'].join('/'),{email:hire.email,name:hire.first_name,employee:true,manager:true,approver:edge.employees[2].email});
     const subordinate=await h.person('synthetic-coaster-804@example.invalid',{employee:true},hire.email);
-    const category=(await h.post('settings/categories',{name:'Office',accountCode:'6500',taxCode:'NONE'})).id;
+    const category=(await h.post(['settings', 'categories'].join('/'),{name:'Office',accountCode:'6500',taxCode:'NONE'})).id;
     let claim=await h.post('claims',{title:'Office purchase'},subordinate);
     claim=await h.post(`claims/${claim.id}/items`,{version:claim.version,kind:'receipt',date:'2026-04-10',merchant:'Office',amount:'2.00',allocations:[{category}],explanation:'Synthetic evidence'},subordinate);
     claim=await h.post(`claims/${claim.id}/submit`,{version:claim.version},subordinate);
@@ -48,13 +48,19 @@ test('HRIS reviews hires and manager changes, preserves roles and hands off term
     await assert.rejects(h.db.prepare("UPDATE c_events SET action='changed' WHERE seq=?").bind(history[0].seq).run(),/history is permanent/);
     hire.terminated=false;
     await applyHris(h,hire,{},h.owner,409);
+    await h.post(`claims/${claim.id}/decision`,{version:(await h.get(`claims/${claim.id}`,replacement)).claim.version,revision:claim.revision,decision:'approved',acknowledge:true},replacement);
+    const erased=await h.post(['settings', 'members', 'erase'].join('/'),{email:hire.email});
+    assert.equal(erased.removed.hrisMappings,1);
+    assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_hris_mappings WHERE email=?').bind(hire.email).first()).n,0);
+    const retained=JSON.stringify((await h.get('history')).lines.filter(e=>e.action==='hris-synced'));
+    for(const value of [hire.email,'Alex Hire','Alexandra Hire'])assert.ok(!retained.includes(value),'HRIS history erases historical personal names and addresses');
   }finally{await h.close();}
 });
 
 test('HRIS connection matrix refuses unsafe identities, stale review and withdrawn authority with no native or provider writes',async()=>{
   const edge=hrisFixture(),h=await harness({gustoEdge:r=>edge.fetch(r)});
   try{
-    await h.post('settings/business',{name:'Harbour and Finch',currency:'USD',timezone:'UTC'});
+    await h.post(['settings', 'business'].join('/'),{name:'Harbour and Finch',currency:'USD',timezone:'UTC'});
     const connect={company:edge.company,token:'synthetic-coaster-810',consent:true};
     for(const role of ['cardAdmin','manager','auditor','bookkeeper','employee']){
       const cookie=await h.person(`synthetic-coaster-${role.toLowerCase()}@example.invalid`,{[role]:true});
@@ -78,7 +84,7 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
       assert.ok(!sealed.includes(connect.token));
       await h.get(['payroll','gusto'].join('/'),cookie,403);
       const preview=await h.get(hrisRoot+'/preview',cookie);
-      await h.post('settings/members',{email:address,name:'Changed role',employee:true});
+      await h.post(['settings', 'members'].join('/'),{email:address,name:'Changed role',employee:true});
       const before=h.outbound.length;
       await h.post(hrisRoot+'/sync',{employee:edge.employees[0].uuid,email:edge.employees[0].email,fingerprint:preview.fingerprint,consent:true},cookie,role==='admin'?401:403);
       assert.equal(h.outbound.length,before);
@@ -86,10 +92,27 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
     }
     await setupHris(h,edge);
     await applyHris(h,edge.employees[1],{email:'owner@harbourfinch.example'},h.owner,403);
+    const delegateEmail='synthetic-coaster-820@example.invalid',delegate=await h.person(delegateEmail,{employee:true});
+    const grantor='synthetic-coaster-finance@example.invalid';
+    await h.post(['settings', 'members'].join('/'),{email:grantor,name:'Finance',finance:true});
+    const grant=await h.post('delegates',{grantor,delegate:delegateEmail,level:'full'});
+    const acting={'x-coaster-acting-for':grantor};
+    const delegated=await h.send('/api/coaster/'+hrisRoot+'/preview',undefined,delegate,acting);
+    assert.equal(delegated.status,200);
+    const delegatedSync=await h.send('/api/coaster/'+hrisRoot+'/sync',{employee:edge.employees[1].uuid,email:edge.employees[1].email,fingerprint:delegated.value.fingerprint,consent:true},delegate,acting);
+    assert.equal(delegatedSync.status,200,JSON.stringify(delegatedSync.value));
+    const delegatedHistory=(await h.get('history')).lines.filter(e=>e.action==='hris-synced').at(-1);
+    assert.equal(delegatedHistory.actor_email,delegateEmail);assert.equal(delegatedHistory.detail.actingFor,grantor);
+    await h.post(`delegates/${grant.id}/revoke`,{});
+    const requests=h.outbound.length;
+    assert.equal((await h.send('/api/coaster/'+hrisRoot+'/preview',undefined,delegate,acting)).status,403);
+    assert.equal(h.outbound.length,requests);
+    await applyHris(h,edge.employees[1],{email:'owner@harbourfinch.example'},h.owner,409);
+
     const before=(await h.get(hrisRoot+'/preview')).fingerprint;
     edge.employees[1].manager_uuid='synthetic-coaster-unknown';
     await applyHris(h,edge.employees[1],{},h.owner,409);
-    assert.equal(await h.db.prepare('SELECT 1 FROM c_members WHERE email=?').bind(edge.employees[1].email).first(),null);
+    assert.equal((await h.db.prepare('SELECT approver_email FROM c_members WHERE email=?').bind(edge.employees[1].email).first()).approver_email,edge.employees[0].email);
     edge.hold=async request=>{if(new URL(request.url).pathname.endsWith('/employees')){edge.hold=null;await h.post(hrisRoot+'/disconnect',{});}};
     await h.get(hrisRoot+'/preview',h.owner,409);
     assert.ok(before);

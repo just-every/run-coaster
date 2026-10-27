@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {copyFile,rm,mkdir} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+import {fresh,command} from './browser-runtime.mjs';
+import {records,rows} from './browser-archive.mjs';
+import {harness} from './harness.mjs';
+import {hrisFixture,hrisRoot,setupHris,applyHris} from './hris-kit.mjs';
+const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/hris-proof');
+await mkdir(evidence,{recursive:true});
+const roots=[];let h;
+try{
+  for(let i=0;i<2;i++){
+    const root=await fresh();roots.push(root);
+    execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root});
+    execFileSync('git',['config','user.email','synthetic-coaster-810'],{cwd:root});
+    await command(root,['install']);
+  }
+  const [source,destination]=roots,edge=hrisFixture();
+  h=await harness({persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only',gustoEdge:r=>edge.fetch(r)});
+  await setupHris(h,edge);await applyHris(h,edge.employees[1]);
+  edge.employees[1].manager_uuid=null;await applyHris(h,edge.employees[1]);
+  edge.employees[1].terminated=true;await applyHris(h,edge.employees[1]);
+  await h.post(hrisRoot+'/disconnect',{});
+  await h.post(hrisRoot+'/connect',{company:edge.company,token:'synthetic-coaster-810',consent:true});
+  const history=(await h.db.prepare('SELECT * FROM c_events ORDER BY seq').all()).results;
+  const members=(await h.db.prepare('SELECT * FROM c_members ORDER BY email').all()).results;
+  assert.ok(history.filter(e=>e.action==='hris-synced').length===4);
+  const secret=(await h.db.prepare('SELECT token_sealed FROM c_hris_connection').first()).token_sealed;
+  await h.close();h=undefined;
+  await command(source,['export','--output','exports/hris.rer']);
+  const archive=join(source,'exports/hris.rer'),exported=await records(archive),portable=rows(exported);
+  for(const table of ['c_hris_connection','c_hris_mappings'])assert.ok(!exported[0].tables.some(t=>t.name===table));
+  assert.ok(!JSON.stringify(exported).includes(secret)&&!JSON.stringify(exported).includes('synthetic-coaster-810'));
+  assert.deepEqual(portable.filter(r=>r.table==='c_events').map(r=>r.row).sort((a,b)=>a.seq-b.seq),history);
+  await copyFile(archive,join(destination,'exports/hris.rer'));
+  await command(destination,['import','--input','exports/hris.rer','--yes']);
+  await command(destination,['export','--output','exports/restored.rer']);
+  const restored=await records(join(destination,'exports/restored.rer'));
+  assert.deepEqual(rows(restored),portable,'every portable native record remains identical through real CLI restore');
+  assert.deepEqual(rows(restored).filter(r=>r.table==='c_members').map(r=>r.row).sort((a,b)=>a.email.localeCompare(b.email)),members);
+  h=await harness({existingDatabase:true,persistencePath:join(destination,'.wrangler/state/v3'),databaseId:'local-foundation-only',gustoEdge:r=>edge.fetch(r)});
+  assert.equal((await h.get(hrisRoot)).connection,null);
+  const requests=h.outbound.length;
+  await h.get(hrisRoot+'/preview',h.owner,409);await h.post(hrisRoot+'/sync',{consent:true},h.owner,409);
+  assert.equal(h.outbound.length,requests,'restored evidence cannot contact Gusto');
+  await copyFile(archive,join(evidence,'hris.rer'));
+  console.log('HRIS numbered history and native roster survive real CLI restore with no provider authority');
+}finally{await h?.close();await Promise.all(roots.map(root=>rm(root,{recursive:true,force:true})));}

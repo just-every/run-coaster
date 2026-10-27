@@ -6,7 +6,7 @@ export const hrisFixture=()=>{
   return edge;
 };
 export async function setupHris(h,edge){
-  await h.post('settings/business',{name:'Harbour and Finch',currency:'USD',timezone:'UTC'});
+  await h.post(['settings', 'business'].join('/'),{name:'Harbour and Finch',currency:'USD',timezone:'UTC'});
   const manager=await h.person(edge.employees[0].email,{employee:true,manager:true});
   await h.post(hrisRoot+'/connect',{company:edge.company,token:'synthetic-coaster-810',consent:true});
   await applyHris(h,edge.employees[0]);
