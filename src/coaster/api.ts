@@ -1,4 +1,5 @@
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
+import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
 import { receiptEmailSource } from './receipts/mail-intake';
 import { payrollConnection, connectPayroll, disconnectPayroll, mapPayrollEmployee } from './payroll/connection';
@@ -237,6 +238,7 @@ api.post('/api/coaster/export-templates', as(async (a, c) => saveExportTemplate(
 
 api.post('/api/coaster/agent-keys', as(async (a, c) => createAgentKey(db(c), a, await body(c))));
 api.post('/api/coaster/agent-keys/:id/revoke', as(async (a, c) => revokeAgentKey(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/conversation', as(async (a, c) => conversation(db(c), a, await body(c, 8_000_000))));
 api.post('/api/coaster/preparations/close', as(async (a, c) => prepareClose(db(c), a, await body(c))));
 api.post('/api/coaster/preparations/trip', as(async (a, c) => prepareTrip(db(c), a, await body(c))));
 api.post('/api/coaster/preparations/expenses/:id', as(async (a, c) => prepareExpense(db(c), a, param(c, 'id'))));
@@ -248,7 +250,7 @@ api.get('/api/coaster/agent/context', asAgent(async (a, c) => ({
   approvedClaims: a.roles.finance ? (await db(c).prepare("SELECT id,number,employee_email,title,total_minor,currency FROM c_claims WHERE status='approved' ORDER BY number").all()).results : [],
   proposals: (await db(c).prepare('SELECT id,kind,status,created_at,decided_at,result_id FROM c_proposals WHERE for_email=? ORDER BY created_at DESC LIMIT 50').bind(a.email).all()).results,
 })));
-api.get('/api/coaster/agent/proposals/:id', asAgent(async (a, c) => { const p = await proposal(db(c), param(c, 'id')); requireThat(p.for_email === a.email && !p.payload.preparation, 'Proposal not found', 404); return p; }));
+api.get('/api/coaster/agent/proposals/:id', asAgent(async (a, c) => { const p = await proposal(db(c), param(c, 'id')); requireThat(p.for_email === a.email && !p.payload.preparation && !p.payload.nativeConversation, 'Proposal not found', 404); return p; }));
 api.post('/api/coaster/agent/claims', asAgent(async (a, c) => proposeClaim(db(c), a, await body(c, 8_000_000))));
 api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c), a, await body(c))));
 
