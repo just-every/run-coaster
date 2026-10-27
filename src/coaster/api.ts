@@ -1,3 +1,4 @@
+import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
 import { receiptEmailSource } from './receipts/mail-intake';
 import { payrollConnection, connectPayroll, disconnectPayroll, mapPayrollEmployee } from './payroll/connection';
@@ -234,6 +235,7 @@ api.post('/api/coaster/export-templates', as(async (a, c) => saveExportTemplate(
 
 api.post('/api/coaster/agent-keys', as(async (a, c) => createAgentKey(db(c), a, await body(c))));
 api.post('/api/coaster/agent-keys/:id/revoke', as(async (a, c) => revokeAgentKey(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/conversation', as(async (a, c) => conversation(db(c), a, await body(c, 8_000_000))));
 api.post('/api/coaster/preparations/close', as(async (a, c) => prepareClose(db(c), a, await body(c))));
 api.post('/api/coaster/preparations/trip', as(async (a, c) => prepareTrip(db(c), a, await body(c))));
 api.post('/api/coaster/preparations/expenses/:id', as(async (a, c) => prepareExpense(db(c), a, param(c, 'id'))));

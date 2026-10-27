@@ -35,6 +35,16 @@ export async function revokeAgentKey(db: D1Database, actor: Actor, id: string) {
 /** An agent proposes a draft claim from receipts. Nothing is submitted until the employee accepts and submits. */
 export async function proposeClaim(db: D1Database, actor: Actor, b: Data) {
   requireThat(actor.kind === 'agent', 'Use an agent key', 401);
+  return prepareClaim(db, actor, b);
+}
+
+/** Native conversation prepares the same reviewable proposal without acquiring an agent key. */
+export async function proposeConversationClaim(db: D1Database, actor: Actor, b: Data) {
+  requireThat(actor.kind === 'person' && !actor.delegate && !actor.publicCredential, 'Use your own native session', 403);
+  return prepareClaim(db, { ...actor, agentLabel: 'Conversation assistant' }, b);
+}
+
+async function prepareClaim(db: D1Database, actor: Actor, b: Data) {
   need(actor, 'employee');
   const business = await requireBusiness(db), known = await categories(db);
   const title = text(b.title, 'Claim title', 200);
@@ -55,7 +65,7 @@ export async function proposeClaim(db: D1Database, actor: Actor, b: Data) {
   await commit(db, all(authority(actor, 'employee'), checked.guard), [
     db.prepare("INSERT INTO c_proposals(id,kind,agent_label,for_email,payload,status,created_at) VALUES(?,'claim',?,?,?,'proposed',?)").bind(id, actor.agentLabel, actor.email, JSON.stringify(payload), now()),
     ...statements,
-    event(db, actor, 'claim-proposed', {}, { proposal: id, title, expenses: items.length }),
+    event(db, actor, 'claim-proposed', {}, { proposal: id, title, expenses: items.length, agent: actor.agentLabel }),
   ]);
   return proposal(db, id);
 }
