@@ -2,7 +2,7 @@ import {gustoFixture} from './fixtures/payroll.mjs';
 export const hrisRoot=['hris','gusto'].join('/');
 export const hrisFixture=()=>{
   const edge=gustoFixture();
-  edge.employees=[{uuid:'synthetic-coaster-801',email:'synthetic-coaster-801@example.invalid',first_name:'Riley',last_name:'Manager',terminated:false},{uuid:'synthetic-coaster-802',email:'synthetic-coaster-802@example.invalid',first_name:'Alex',last_name:'Hire',manager_uuid:'synthetic-coaster-801',terminated:false}];
+  edge.employees=[{uuid:'synthetic-coaster-801',email:'synthetic-coaster-801@example.invalid',first_name:'Riley',last_name:'Manager',terminated:false},{uuid:'synthetic-coaster-802',email:'synthetic-coaster-802@example.invalid',first_name:'Alex',last_name:'Hire',roles:['owner','admin','finance','manager'],may_release:true,manager_uuid:'synthetic-coaster-801',terminated:false}];
   return edge;
 };
 export async function setupHris(h,edge){

@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "3adc7ccac52896d89e0e0e30cb410ce8c5f7cc6f19a98fa82616c54bc056ebcd",
+      "sha256": "544c457572639c0c084ee113c5eea50a42403b197fc0d2e3db2ecb283640c7e6",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "d276325b802d712380d4dcfcbe0e651b5e4640d645cd2f052b6911fe5edf09c9",
+      "sha256": "9ee05ca39fccacdcddf7a98d726bb8fb0d111858140f0dca55e1b3e38775a039",
       "executable": false
     },
     "base-copies.json": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1663d36938b22fe313a136c0907207e9690937ccd2d5fc76a6d770df58fd5222",
+      "sha256": "6423f66271ec6f20cac34b0feb2e8409f3a3b7f6d1880575d880bc77abeb3618",
       "executable": false
     },
     "DEMO.md": {
@@ -360,7 +360,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "6da50c19d00c80214a6100cf7e29cd291e47b0f06698b242c3a1a1b3fefb421b",
+      "sha256": "565c8090ef865b2af785b6e5713871ee6c66ff51e1e7570fa052951453746389",
       "executable": false
     },
     "docs/deploy.md": {
@@ -947,6 +947,10 @@
       "sha256": "e4951a9877a04be51ac5766e35125f8b07e918bc8bd17987f56e2893e67d7c76",
       "executable": false
     },
+    "RULINGS.md": {
+      "sha256": "bafa9845e84499012d67fd2e187221b2e0dcd5c329ceab043ec2725790f65ccd",
+      "executable": false
+    },
     "RUN-LOCALLY.md": {
       "sha256": "5ff085d13310245f9b1304348e92dfea0d60fc348beb575ee468ad82be299bcb",
       "executable": false
@@ -965,6 +969,10 @@
     },
     "scripts/ci/run-browser-group.mjs": {
       "sha256": "5b7fed68be0d0da7afb75059b7ba1483f1abecd4fb29c40ec0879531fe3764e0",
+      "executable": false
+    },
+    "scripts/coaster-contract-docs.mjs": {
+      "sha256": "c28e5f2ec76b18584e718a77a52c2a5bc677b511baa026d7a2fad77798dd458b",
       "executable": false
     },
     "scripts/contract-docs.mjs": {
@@ -1692,7 +1700,7 @@
       "executable": false
     },
     "src/coaster/hris/gusto.ts": {
-      "sha256": "b4e1e372b7eef319b140298247e6059cef9c28fc085873c6a8486ecaef4f18d2",
+      "sha256": "2fd66ca9ddb6376c00365b2f670c3910652fc598942101dc4f996fda73eda19e",
       "executable": false
     },
     "src/coaster/imports/cards.ts": {
@@ -4220,7 +4228,7 @@
       "executable": false
     },
     "src/ui/hris.tsx": {
-      "sha256": "79265c65b964fc20b4d39797277fe3bc1ecbe2be2ae73efd46f94150f49d6213",
+      "sha256": "87e2cc6502c4e0c69527d0f057b2bf516150fef1aa1fc4e65ac8aa5d7014779f",
       "executable": false
     },
     "src/ui/icons.tsx": {
@@ -4336,7 +4344,7 @@
       "executable": false
     },
     "src/ui/settings.tsx": {
-      "sha256": "fc55214752bdc830a7ef8d603531f0a6a73528f18da25d9b7b3c898dbce897ea",
+      "sha256": "edad7a69762f66f5c6b8564894b30972ad68122f918a0c84beae51bb8c463f99",
       "executable": false
     },
     "src/ui/shell.tsx": {
@@ -4432,7 +4440,7 @@
       "executable": false
     },
     "tests/browser-hris.mjs": {
-      "sha256": "eb068d0a6fb7ad0ea0ca853fdc7dc101dbf0d8a9dbfd2615de6b89ddbd7d9e79",
+      "sha256": "27840c5c3a78407b9d56209f2462fee2af7d9a416e7e22643d6fef47f6f87eab",
       "executable": false
     },
     "tests/browser-journey.mjs": {
@@ -4568,7 +4576,7 @@
       "executable": false
     },
     "tests/coaster-hris.test.mjs": {
-      "sha256": "b6880b3dd6db640ff33e878e311074b254f025cbff2667f71e7bc85778396264",
+      "sha256": "39a7f6279df41f6ec7d9c7f31c950092f86ab5fe66f63c2e9fb4822ed68e5960",
       "executable": false
     },
     "tests/coaster-import-configuration.test.mjs": {
@@ -6724,7 +6732,7 @@
       "executable": false
     },
     "tests/hris-kit.mjs": {
-      "sha256": "8a62bb31820d1e7b916e226f832ed6ed7cf7432dab85eeec2486cb93a474de71",
+      "sha256": "998993accae4e9fc2b15e543707af7fbe9978e3517dc9b5dd969b462b07b54e7",
       "executable": false
     },
     "tests/identity-provider.mjs": {
