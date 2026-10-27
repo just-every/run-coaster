@@ -63,3 +63,7 @@
 .receipt-inbox dd { margin: 0 0 8px; }
 .receipt-inbox dt { font-weight: 600; }
 .receipt-fingerprint { font-family: monospace; }
+
+/* Bulk review uses the same queue panel and explicit per-claim confirmation. */
+.bulk-approvals { padding: 16px; margin-bottom: 16px; overflow-wrap: anywhere; }
+.bulk-approvals .form-end { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }

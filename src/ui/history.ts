@@ -50,5 +50,5 @@ export function describe(e: D, names: Record<string, string> = {}) {
   };
   // A delegate's line is theirs, on behalf of the person they acted for (approvals already say so).
   const forWhom = d.actingFor && d.actingFor !== d.onBehalfOf ? ` on behalf of ${names[d.actingFor] ?? d.actingFor}` : '';
-  return (words[e.action] ?? `${e.action.replace(/-/g, ' ')} by ${who}`) + forWhom + agent;
+  return (words[e.action] ?? `${e.action.replace(/-/g, ' ')} by ${who}`) + forWhom + agent + (d.channel === 'bulk' ? ` · bulk approval · revision ${d.revision}` : '');
 }

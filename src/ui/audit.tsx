@@ -3,7 +3,7 @@ import { apiHref, batchNumber, call, claimNumber, moment, type D } from './api';
 import { describe } from './history';
 import { Empty, Field, Form, Section } from './parts';
 
-const CHANNELS: Record<string, string> = { app: 'in the app', import: 'by import', rule: 'by approval rule', schedule: 'by the hourly run' };
+const CHANNELS: Record<string, string> = { app: 'in the app', bulk: 'by bulk approval', import: 'by import', rule: 'by approval rule', schedule: 'by the hourly run' };
 
 /** Search every history line and download a period's audit pack: the owner, finance and auditors. */
 export function AuditRecords({ state }: { state: D }) {
