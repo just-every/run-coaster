@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "6b9a7e4158e01a8b7c3d741492239d3dc61023066b8cc5ee89e8ef64db095505",
+      "sha256": "485f54d2f38ec2d906d9ccffa20dbbfe4836db25bab7f5084e0bb343283c6ee6",
       "executable": false
     },
     ".gitignore": {
@@ -939,8 +939,16 @@
       "sha256": "96cc2c712a812be73f4cf5f6baf434e89ab3692b7a7176540350a16d135f2114",
       "executable": false
     },
-    "scripts/ci/install-browser.sh": {
-      "sha256": "38c53e43a864f99e58e1881183c194a2ca5836b49fe074f7a4af2aadc9142433",
+    "scripts/ci/browser-groups.mjs": {
+      "sha256": "6b07e23559f4be41287f397cf7cb526dc06cd91c88d652eac3558778986fed8c",
+      "executable": false
+    },
+    "scripts/ci/chromium-probe.mjs": {
+      "sha256": "c57c6ab541b0c9eb2a10896da3d027b4400f15744063acfd16d7faeb00c02110",
+      "executable": false
+    },
+    "scripts/ci/run-browser-group.mjs": {
+      "sha256": "5b7fed68be0d0da7afb75059b7ba1483f1abecd4fb29c40ec0879531fe3764e0",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
