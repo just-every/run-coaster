@@ -35,6 +35,8 @@ export async function individualArchive() {
       ['c_items',r=>{r.card_personal=0;},r=>r.card_personal===1],
       ['c_revisions',r=>{const s=JSON.parse(r.snapshot);s.items.find(i=>i.card_personal===1).card_personal=0;r.snapshot=JSON.stringify(s);},()=>true],
       ['c_reimbursement_keys',r=>{r.key='card:synthetic-coaster-forged';},()=>true],
+      ['c_reimbursement_keys',r=>{r.key='expense:synthetic-coaster-forged';},()=>true],
+      ['c_revisions',r=>{const s=JSON.parse(r.snapshot);s.items.find(i=>i.amount_minor===1000).amount_minor=1001;s.items.find(i=>i.amount_minor===2000).amount_minor=1999;r.snapshot=JSON.stringify(s);},()=>true],
     ];
     for(const [i,[name,mutate,choose]]of mutations.entries()){
       await writeFile(join(destination,`./exports/invalid-${i}.rer`),await tampered(archive,name,mutate,choose),{mode:0o600});
@@ -48,7 +50,7 @@ export async function individualArchive() {
     const restored=await records(join(destination,'./exports/restored.rer'));
     assert.deepEqual(rows(restored),rows(exported),'real CLI restore preserves every portable financial row and numbered history line');
     await copyFile(archive,join(evidence,'individual.rer'));await copyFile(join(destination,'./exports/restored.rer'),join(evidence,'individual-restored.rer'));
-    console.log('Individual-liability CLI restore: six immutable charges, two personal, four once-only keys, USD 100.00 batch, identical numbered history; four corrupted archives refused without writes');
+    console.log('Individual-liability CLI restore: six immutable charges, two personal, four once-only keys, USD 100.00 batch, identical numbered history; six corrupted archives refused without writes');
   } finally {await h?.close();await f?.issuer.close();await Promise.all(roots.map(root=>rm(root,{recursive:true,force:true})));}
 }
 if(process.argv[1]===new URL(import.meta.url).pathname)await individualArchive();
