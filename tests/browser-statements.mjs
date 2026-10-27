@@ -65,3 +65,18 @@ async function screenshot(page, evidence, name, width) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits ${width}px`)
   await page.screenshot({ path: join(evidence, `${name}-${width}.png`) })
 }
+
+/** The privacy slice uses the existing statement-file list and ordinary download links. */
+export async function statementPrivacyScreens(browser, root, origin, imported, evidence) {
+  for (const width of [1440, 390]) {
+    const owner = await session(browser, root, origin, 'owner', width);
+    try {
+      await owner.page.goto(origin + '/app#/settings');
+      const section = owner.page.getByRole('region', { name: 'Card statement reconciliation', exact: true });
+      await section.locator('summary').filter({ hasText: 'Imported statement files' }).click();
+      for (const file of imported) await section.getByRole('link', { name: file.name, exact: true }).waitFor();
+      await section.scrollIntoViewIfNeeded();
+      await screenshot(owner.page, evidence, 'statement-private-files', width);
+    } finally { await owner.context.close(); }
+  }
+}

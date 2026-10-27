@@ -1,4 +1,5 @@
 import { requireThat } from '../types';
+import { maskStatementNumbers } from './statement-numbers';
 import type { StatementBalance, StatementCard, StatementRow } from './statement';
 
 type Node = { name: string; value: string; children: Node[] };
@@ -47,6 +48,15 @@ export function parseOfx(raw: string): Parsed {
   requireThat(!all(root, 'BANKACCTFROM').length && !all(root, 'BANKID').length && !all(root, 'BANKACCTTO').length, 'Bank account and routing numbers are never accepted; export the credit-card statement');
   const statements = all(root, 'CCSTMTRS');
   requireThat(statements.length > 0, 'No credit-card statement (CCSTMTRS) in this file');
+  const accounts = new Map<string, string>();
+  for (const s of statements) {
+    const account = text(s, 'CCACCTFROM', 'ACCTID').replace(/[\s-]/g, ''), last4 = account.slice(-4);
+    requireThat(!accounts.has(last4) || accounts.get(last4) === account, `Two cards in this file share the last four ${last4}; import them in separate files`);
+    accounts.set(last4, account);
+  }
+  const masked = maskStatementNumbers(raw, accounts.values());
+  // Re-read only masked input: descriptions, memos, transaction keys and diagnostics must never retain the number.
+  if (masked !== raw) return parseOfx(masked);
   const cards: StatementCard[] = [], rows: StatementRow[] = [], errors: string[] = [], full = new Map<string, string>(), balances: Record<string, StatementBalance> = {};
   let currency = '', start: string | null = null, end: string | null = null;
   for (const s of statements) {
@@ -83,9 +93,5 @@ export function parseOfx(raw: string): Parsed {
       rows.push(row);
     }
   }
-  // Every full number is replaced wherever it occurs; only the last four remain in what is kept.
-  let masked = raw;
-  for (const number of full.values()) if (number.length > 4) masked = masked.split(number).join('*'.repeat(number.length - 4) + number.slice(-4));
-  masked = masked.replace(/(<ACCTID>)([^<\r\n]*)/gi, (_, open: string, value: string) => { const d = value.replace(/[\s-]/g, ''); return open + (d.length > 4 ? '*'.repeat(d.length - 4) + d.slice(-4) : value); });
   return { cards, rows, period: { start, end }, currency, masked, errors, balances };
 }
