@@ -67,9 +67,11 @@ try{
       const delegateCookie=await h.person(delegateAddress,{employee:true});
       await h.post('delegates',{grantor,delegate:delegateAddress,level:'full'});
       const signIn=async cookie=>{const split=cookie.indexOf('=');await context.clearCookies();await context.addCookies([{name:cookie.slice(0,split),value:cookie.slice(split+1),url:h.origin,httpOnly:true,sameSite:'Lax'}]);};
-      await signIn(delegateCookie);await page.goto(h.origin+'/app#/claims');
+      await signIn(delegateCookie);await page.goto(h.origin+'/app#/claims');await page.reload();
+      await page.setViewportSize({width:390,height:1000});
       await page.locator('.account-menu summary').click();
       await page.getByRole('button',{name:grantor.split('@')[0],exact:true}).click();
+      await page.setViewportSize({width,height:1000});
       await page.goto(h.origin+'/app#/settings');
       await panel.getByRole('button',{name:'Review HRIS roster',exact:true}).click();
       await expect(panel.getByRole('heading',{name:'Alex Hire · Terminated',exact:true})).toBeVisible();

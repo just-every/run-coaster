@@ -377,6 +377,6 @@ api.post('/api/coaster/plaid/connections/:id/disconnect', as(async(a,c)=>disconn
 
 api.get('/api/coaster/hris/gusto', as(async(a,c)=>hrisStatus(runtimeBindings(c.env),a)));
 api.post('/api/coaster/hris/gusto/connect', as(async(a,c)=>connectHris(runtimeBindings(c.env),a,await body(c))));
-api.post('/api/coaster/hris/gusto/disconnect', as(async(a,c)=>disconnectHris(runtimeBindings(c.env),a)));
+api.post('/api/coaster/hris/gusto/disconnect', as(async(a,c)=>disconnectHris(runtimeBindings(c.env),a,await body(c))));
 api.get('/api/coaster/hris/gusto/preview', as(async(a,c)=>previewHris(runtimeBindings(c.env),a)));
 api.post('/api/coaster/hris/gusto/sync', as(async(a,c)=>syncHris(runtimeBindings(c.env),a,await body(c))));

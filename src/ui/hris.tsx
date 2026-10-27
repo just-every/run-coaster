@@ -35,7 +35,7 @@ export function HrisSettings({ reload, canSync, personal }: { reload: () => Prom
       </div>) : <Empty title="No roster employees">No native person is changed by an empty provider roster.</Empty>)}
       {personal && <div className="sub-form"><Form label="Disconnect HRIS" onSubmit={async v=>{
         if(!v.consent)throw new Error('Confirm disconnection first.');
-        await call(root+'/disconnect',{});setReview(undefined);await load();setNotice('HRIS disconnected. Native people and numbered history remain.');
+        await call(root+'/disconnect',{company:status.connection.company_uuid,consent:true});setReview(undefined);await load();setNotice('HRIS disconnected. Native people and numbered history remain.');
       }}><Field label="Disconnect this HRIS company" name="consent" type="checkbox" /></Form></div>}
     </>}
   </Section>;

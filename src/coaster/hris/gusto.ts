@@ -46,11 +46,12 @@ export async function connectHris(env: Bindings, actor: Actor, b: Data) {
   ]);
   return hrisStatus(env,actor);
 }
-export async function disconnectHris(env: Bindings, actor: Actor) {
+export async function disconnectHris(env: Bindings, actor: Actor, b: Data) {
   const auth = access(actor);
   requireThat(!actor.delegate, 'HRIS provider custody requires your own native session', 403);
   const c = await connection(env);
   requireThat(c, 'HRIS is not connected', 409);
+  requireThat(b.consent === true && b.company === c.company_uuid, 'Explicit consent for this HRIS company is required');
   await commit(env.DB,all(auth,state(c)),[env.DB.prepare('DELETE FROM c_hris_connection'),env.DB.prepare('DELETE FROM c_hris_mappings'),event(env.DB,actor,'hris-disconnected',{}, {company:c.company_uuid})]);
   return {connection:null};
 }

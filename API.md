@@ -609,7 +609,8 @@ and exact roster guards.
   roles are preserved. Termination hands over open work before deactivation.
   Changes to the owner or current operator, remapping an existing identity,
   stale reviews, inactive-person reactivation and manager cycles are refused.
-- `POST /api/coaster/hris/gusto/disconnect` deletes local connection custody
+- `POST /api/coaster/hris/gusto/disconnect` requires explicit `consent: true`
+  and the connected `company` UUID, then deletes local connection custody
   and mappings, retaining native people and numbered history. It reports no
   remote account deletion.
 

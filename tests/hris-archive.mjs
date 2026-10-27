@@ -21,7 +21,7 @@ try{
   await setupHris(h,edge);await applyHris(h,edge.employees[1]);
   edge.employees[1].manager_uuid=null;await applyHris(h,edge.employees[1]);
   edge.employees[1].terminated=true;await applyHris(h,edge.employees[1]);
-  await h.post(hrisRoot+'/disconnect',{});
+  await h.post(hrisRoot+'/disconnect',{company:edge.company,consent:true});
   await h.post(hrisRoot+'/connect',{company:edge.company,token:'synthetic-coaster-810',consent:true});
   const history=(await h.db.prepare('SELECT * FROM c_events ORDER BY seq').all()).results;
   const members=(await h.db.prepare('SELECT * FROM c_members ORDER BY email').all()).results;

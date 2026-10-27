@@ -25,7 +25,7 @@ test('HRIS reviews hires and manager changes, preserves roles and hands off term
     assert.deepEqual([native.name,native.approver_email,native.is_manager],['Alexandra Hire',edge.employees[2].email,0]);
     await h.get('state',employee);
     // Make this person an approver with a waiting claim; HRIS must retain their role and use the existing handoff.
-    await h.post(['settings', 'members'].join('/'),{email:hire.email,name:hire.first_name,employee:true,manager:true,approver:edge.employees[2].email});
+    await h.post(['settings', 'members'].join('/'),{email:hire.email,name:hire.first_name,employee:true,manager:true,finance:true,release:true,approver:edge.employees[2].email});
     const subordinate=await h.person('synthetic-coaster-804@example.invalid',{employee:true},hire.email);
     const category=(await h.post(['settings', 'categories'].join('/'),{name:'Office',accountCode:'6500',taxCode:'NONE'})).id;
     let claim=await h.post('claims',{title:'Office purchase'},subordinate);
@@ -53,7 +53,7 @@ test('HRIS reviews hires and manager changes, preserves roles and hands off term
     assert.equal((await h.send('/api/coaster/state',undefined,subordinate,{'x-coaster-acting-for':hire.email})).status,403,'termination immediately fences the departed grantor delegation');
     assert.equal((await h.get(`claims/${claim.id}`,replacement)).claim.approver_email,edge.employees[2].email);
     native=await h.db.prepare('SELECT * FROM c_members WHERE email=?').bind(hire.email).first();
-    assert.deepEqual([native.active,native.is_manager],[0,1]);
+    assert.deepEqual([native.active,native.is_manager,native.is_finance,native.may_release],[0,1,1,1]);
     const handed=(await h.get('statements')).charges.find(c=>c.id===cardClaim.items[0].card_charge_id);
     assert.equal(handed.employee_email,edge.employees[2].email);
     const successorClaim=await h.get(`claims/${handed.claim_id}`,replacement);
@@ -108,12 +108,19 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
       const address=`synthetic-coaster-${role.toLowerCase()}@example.invalid`,cookie=await h.person(address,{[role]:true});
       await h.post(hrisRoot+'/connect',{...connect,consent:false},cookie,400);
       await h.post(hrisRoot+'/connect',connect,cookie);
+      const disconnectRequests=h.outbound.length,disconnectEvents=(await h.db.prepare('SELECT COUNT(*) n FROM c_events').first()).n;
+      for(const body of [{},{company:edge.company,consent:false},{company:'synthetic-coaster-wrong-company',consent:true}])await h.post(hrisRoot+'/disconnect',body,cookie,400);
+      assert.equal(h.outbound.length,disconnectRequests);
+      assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_events').first()).n,disconnectEvents);
       const status=await h.get(hrisRoot,cookie);
       assert.equal(status.connection.company_uuid,edge.company);
       assert.ok(!JSON.stringify(status).includes('synthetic-coaster-810'));
       const sealed=(await h.db.prepare('SELECT token_sealed FROM c_hris_connection').first()).token_sealed;
       assert.ok(!sealed.includes(connect.token));
       await h.get(['payroll','gusto'].join('/'),cookie,403);
+      await h.post(hrisRoot+'/disconnect',{company:edge.company,consent:true},cookie);
+      assert.equal((await h.get(hrisRoot,cookie)).connection,null);
+      await h.post(hrisRoot+'/connect',connect,cookie);
       const preview=await h.get(hrisRoot+'/preview',cookie);
       if(role==='finance'){
         const before=h.outbound.length;
@@ -126,7 +133,7 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
       const before=h.outbound.length;
       await h.post(hrisRoot+'/sync',{employee:edge.employees[0].uuid,email:edge.employees[0].email,fingerprint:preview.fingerprint,consent:true},cookie,role==='admin'?401:403);
       assert.equal(h.outbound.length,before);
-      await h.post(hrisRoot+'/disconnect',{});
+      await h.post(hrisRoot+'/disconnect',{company:edge.company,consent:true});
     }
     await setupHris(h,edge);
     await applyHris(h,edge.employees[1],{email:'owner@harbourfinch.example'},h.owner,403);
@@ -137,13 +144,20 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
     const acting={'x-coaster-acting-for':grantor};
     const delegated=await h.send('/api/coaster/'+hrisRoot+'/preview',undefined,delegate,acting);
     assert.equal(delegated.status,200);
-    const custodyBefore=h.outbound.length;
+    let custodyBefore=h.outbound.length;
     for(const suffix of ['/connect','/disconnect']){
       const result=await h.send('/api/coaster/'+hrisRoot+suffix,connect,delegate,acting);
       assert.equal(result.status,403,'Full delegation supplies no personal provider custody');
     }
     assert.equal(h.outbound.length,custodyBefore);
-    const delegatedSync=await h.send('/api/coaster/'+hrisRoot+'/sync',{employee:edge.employees[1].uuid,email:edge.employees[1].email,fingerprint:delegated.value.fingerprint,consent:true},delegate,acting);
+    await h.post(hrisRoot+'/disconnect',{company:edge.company,consent:true});
+    const disconnectedRequests=h.outbound.length;
+    assert.equal((await h.send('/api/coaster/'+hrisRoot+'/connect',connect,delegate,acting)).status,403);
+    assert.equal(h.outbound.length,disconnectedRequests,'Full delegate cannot create fresh provider custody');
+    await h.post(hrisRoot+'/connect',connect);await applyHris(h,edge.employees[0]);
+    const currentDelegated=await h.send('/api/coaster/'+hrisRoot+'/preview',undefined,delegate,acting);
+    assert.equal(currentDelegated.status,200);custodyBefore=h.outbound.length;
+    const delegatedSync=await h.send('/api/coaster/'+hrisRoot+'/sync',{employee:edge.employees[1].uuid,email:edge.employees[1].email,fingerprint:currentDelegated.value.fingerprint,consent:true},delegate,acting);
     assert.equal(delegatedSync.status,403,'Full preparation is not scoped roster execution');
     assert.equal(h.outbound.length,custodyBefore);
     assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_hris_mappings WHERE employee_uuid=?').bind(edge.employees[1].uuid).first()).n,0);
@@ -170,7 +184,7 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
     edge.employees[1].manager_uuid='synthetic-coaster-unknown';
     await applyHris(h,edge.employees[1],{},h.owner,409);
     assert.equal((await h.db.prepare('SELECT approver_email FROM c_members WHERE email=?').bind(edge.employees[1].email).first()).approver_email,edge.employees[0].email);
-    edge.hold=async request=>{if(new URL(request.url).pathname.endsWith('/employees')){edge.hold=null;await h.post(hrisRoot+'/disconnect',{});}};
+    edge.hold=async request=>{if(new URL(request.url).pathname.endsWith('/employees')){edge.hold=null;await h.post(hrisRoot+'/disconnect',{company:edge.company,consent:true});}};
     await h.get(hrisRoot+'/preview',h.owner,409);
     assert.ok(before);
     assert.ok(h.outbound.filter(r=>r.url.startsWith('https://api.gusto-demo.com')).every(r=>r.method==='GET'&&!r.body));
