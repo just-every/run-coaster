@@ -37,6 +37,14 @@ test('Individual-liability SFTP charges reimburse only four approved business pu
     assert.equal(classified.status,403);
     const source=(await h.db.prepare('SELECT * FROM c_card_charges ORDER BY id').all()).results;
     assert.equal(source.length,6);assert.ok(source.every(c=>c.program_id===f.feed.id&&c.liability==='individual'));
+    assert.deepEqual(source.map(c=>[c.transaction_key,c.amount_minor]).sort((a,b)=>a[0].localeCompare(b[0])),[
+      ['card:synthetic-coaster-1206|1111:id:synthetic-coaster-1220',1000],
+      ['card:synthetic-coaster-1206|1111:id:synthetic-coaster-1221',2000],
+      ['card:synthetic-coaster-1206|1111:id:synthetic-coaster-1222',3000],
+      ['card:synthetic-coaster-1206|1111:id:synthetic-coaster-1223',4000],
+      ['card:synthetic-coaster-1206|1111:id:synthetic-coaster-1224',5000],
+      ['card:synthetic-coaster-1206|1111:id:synthetic-coaster-1225',6000],
+    ]);
     const path=`claims/${f.claim.id}/items/classify`,body={version:f.claim.version,item:f.items[0].id,personal:true};
     for(const who of [h.owner,f.manager,f.finance,f.other]) await h.post(path,body,who,403);
     assert.equal((await h.send('/api/coaster/'+path,body,f.employee,{origin:'https://unrelated.example'})).status,403);
@@ -67,7 +75,12 @@ test('Individual-liability SFTP charges reimburse only four approved business pu
     assert.equal(frozen.items.length,12);assert.equal(frozen.total_minor,10000);
     assert.deepEqual(frozen.items.filter(i=>i.card_liability==='individual').map(i=>[i.merchant,i.card_personal]).sort(),[0,0,0,0,1,1].map((personal,i)=>[`synthetic-coaster-${1210+i}`,personal]));
     const keys=(await h.db.prepare('SELECT * FROM c_reimbursement_keys WHERE batch_id=? ORDER BY key').bind(batch.id).all()).results;
-    assert.deepEqual(keys.map(k=>k.key),f.items.filter(i=>i.amount_minor<=4000).map(i=>'card:'+i.card_transaction_key).sort());
+    assert.deepEqual(keys.map(k=>k.key),[
+      'card:card:synthetic-coaster-1206|1111:id:synthetic-coaster-1220',
+      'card:card:synthetic-coaster-1206|1111:id:synthetic-coaster-1221',
+      'card:card:synthetic-coaster-1206|1111:id:synthetic-coaster-1222',
+      'card:card:synthetic-coaster-1206|1111:id:synthetic-coaster-1223',
+    ]);
     assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_card_ledger').first()).n,0);
     await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:10000},h.owner);
     const desktop=['accounting','desktop'].join('/');

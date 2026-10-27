@@ -4552,7 +4552,7 @@
       "executable": false
     },
     "tests/coaster-individual-liability.test.mjs": {
-      "sha256": "7baa91388e25be0f7c24e93b903f6b30d0b97ab394db4726c6bcb58b77726475",
+      "sha256": "a666e39bb355e9409458bc25c546bc74fdbfa6af81f6e8826079665f8b4845c5",
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
