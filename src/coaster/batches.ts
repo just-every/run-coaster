@@ -4,7 +4,7 @@ import { event, ruleEvent } from './events';
 import { business } from './settings';
 import { claimNumber, claimItems, type Claim } from './claims';
 import { exactKey } from './exceptions';
-import { isCardExpense } from './card-expenses';
+import { isCardExpense, isReimbursable } from './card-expenses';
 import { normalDescriptor } from './cards/statement';
 import { advanceNumber, advancesUnchanged, appliedTo } from './advances';
 import { batchNotHeld, requireBatchNotHeld, requireNotHeld, heldAmong } from './bank/holds';
@@ -23,16 +23,28 @@ const batchState = (id: string, version: number, status: string): Sql => ({ sql:
 
 /** Keys every expense of these claims reimburses under; refuses any key already taken. */
 async function reimbursementKeys(db: D1Database, claims: Claim[]) {
-  const keys: { key: string; claim: Claim; item: string }[] = [];
+  const keys: { key: string; claim: Claim; item: string; alias?: {receipt:string|null;employee:string;date:string;amount:number;keys:string} }[] = [];
   for (const claim of claims) for (const item of await claimItems(db, claim.id)) {
-    // The company paid a card expense: it never reimburses, so it has no reimbursement key (FEED-004).
-    if (isCardExpense(item)) continue;
+    // Only cash expenses and individual business charges reserve reimbursement keys.
+    if (!isReimbursable(item)) continue;
     // An out-of-pocket expense for a purchase the company card already paid cannot also be reimbursed: the same receipt as a
     // card expense carries, or the same person, date, merchant and amount as a card charge (FEED-004, COA-005).
     const same = item.receipt_sha256 ? await db.prepare('SELECT ch.descriptor FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id JOIN c_card_charges ch ON ch.id=i.card_charge_id WHERE r.sha256=? LIMIT 1').bind(item.receipt_sha256).first<{ descriptor: string }>() : null;
     const twin = same ?? (await db.prepare('SELECT descriptor FROM c_card_charges WHERE employee_email=? AND COALESCE(transaction_on,posted_on)=? AND amount_minor=?').bind(claim.employee_email, item.spent_on, item.amount_minor).all<{ descriptor: string }>()).results.find(c => normalDescriptor(c.descriptor) === normalDescriptor(item.merchant));
-    requireThat(!twin, `${claimNumber(claim.number)} repeats ${twin?.descriptor} (${item.spent_on}), a charge the company card already paid; it cannot also be reimbursed`, 409);
-    keys.push({ key: exactKey(claim.employee_email, item), claim, item: item.id });
+    requireThat(isCardExpense(item) || !twin, `${claimNumber(claim.number)} repeats ${twin?.descriptor} (${item.spent_on}), a charge the company card already paid; it cannot also be reimbursed`, 409);
+    let alias: (typeof keys)[number]['alias'];
+    if (isCardExpense(item)) {
+      // A card transaction and an earlier cash purchase use different source keys but cannot pay twice.
+      const sql=`SELECT k.key,cash.merchant FROM c_reimbursement_keys k JOIN c_items cash ON cash.id=k.item_id JOIN c_claims c ON c.id=k.claim_id LEFT JOIN c_receipts r ON r.id=cash.receipt_id
+        WHERE cash.card_charge_id IS NULL AND ((? IS NOT NULL AND r.sha256=?) OR (c.employee_email=? AND cash.spent_on=? AND cash.amount_minor=?))`;
+      const params=[item.receipt_sha256??null,item.receipt_sha256??null,claim.employee_email,item.spent_on,item.amount_minor];
+      const candidates=(await db.prepare(sql).bind(...params).all<{key:string;merchant:string}>()).results;
+      const receiptKey=item.receipt_sha256 ? `receipt:${item.receipt_sha256}` : null;
+      requireThat(!candidates.some(c=>c.key===receiptKey || normalDescriptor(c.merchant)===normalDescriptor(item.merchant)), `${claimNumber(claim.number)} repeats a reimbursed out-of-pocket purchase`,409);
+      // Refuse if another batch reserves a possible alias between this read and the committing transaction.
+      alias={receipt:item.receipt_sha256??null,employee:claim.employee_email,date:item.spent_on,amount:item.amount_minor,keys:JSON.stringify(candidates.map(c=>c.key).sort())};
+    }
+    keys.push({ key: exactKey(claim.employee_email, item), claim, item: item.id, alias });
   }
   const seen = new Map<string, Claim>();
   for (const k of keys) {
@@ -46,6 +58,15 @@ async function reimbursementKeys(db: D1Database, claims: Claim[]) {
     requireThat(!expired, `${claimNumber(k.claim.number)} repeats an expense already reimbursed through ${claimNumber(expired?.claim_number ?? 0)}, since removed under the retention policy`, 409);
   }
   return keys;
+}
+
+/** One binding guards every possible cash alias, including a large batch of card expenses. */
+function reimbursementState(keys: Awaited<ReturnType<typeof reimbursementKeys>>): Sql {
+  return {sql:`NOT EXISTS(SELECT 1 FROM json_each(?) e WHERE
+    (SELECT json_group_array(key) FROM (SELECT k.key FROM c_reimbursement_keys k JOIN c_items cash ON cash.id=k.item_id JOIN c_claims c ON c.id=k.claim_id LEFT JOIN c_receipts r ON r.id=cash.receipt_id
+      WHERE cash.card_charge_id IS NULL AND ((json_extract(e.value,'$.receipt') IS NOT NULL AND r.sha256=json_extract(e.value,'$.receipt')) OR
+        (c.employee_email=json_extract(e.value,'$.employee') AND cash.spent_on=json_extract(e.value,'$.date') AND cash.amount_minor=json_extract(e.value,'$.amount'))) ORDER BY k.key))<>json_extract(e.value,'$.keys'))`,
+    params:[JSON.stringify(keys.flatMap(k=>k.alias?[k.alias]:[]))]};
 }
 
 /** Finance gathers approved claims into a draft batch; each exact expense can be in one batch only. */
@@ -63,7 +84,7 @@ export async function createBatch(db: D1Database, actor: Actor, b: Data, prepare
   requireThat(new Set(claims.map(c => c.currency)).size === 1, 'A batch reimburses in one currency');
   await requireNotHeld(db, claims.map(c => c.employee_email));
   const keys = await reimbursementKeys(db, claims), id = uid(), applied = await appliedTo(db, claims);
-  await commit(db, all(authority(actor, 'finance'), unchanged(claims), advancesUnchanged(applied)), await openBatch(db, id, claims, keys, applied, actor.email, (action, target, detail) => event(db, actor, action, target, detail), { preparedBy }));
+  await commit(db, all(authority(actor, 'finance'), unchanged(claims), advancesUnchanged(applied), reimbursementState(keys)), await openBatch(db, id, claims, keys, applied, actor.email, (action, target, detail) => event(db, actor, action, target, detail), { preparedBy }));
   return loadBatch(db, id);
 }
 
@@ -111,8 +132,8 @@ export async function runPaySchedule(db: D1Database, at: Date) {
   for (const claim of results.filter(c => !held.has(c.employee_email))) if (await reimbursementKeys(db, [...claims, claim]).then(() => true, () => false)) claims.push(claim);
   const id = uid(), run = db.prepare('INSERT INTO c_pay_runs(day,ran_at,batch_id) VALUES(?,?,?)').bind(day, at.toISOString(), claims.length ? id : null);
   if (!claims.length) { await run.run(); return; }
-  const applied = await appliedTo(db, claims);
-  await commit(db, all({ sql: '1', params: [] }, unchanged(claims), advancesUnchanged(applied)), [run, ...await openBatch(db, id, claims, await reimbursementKeys(db, claims), applied, PAY_SCHEDULE, (action, target, detail) => ruleEvent(db, PAY_SCHEDULE, action, target, detail), { payDay: day })]);
+  const applied = await appliedTo(db, claims), keys=await reimbursementKeys(db,claims);
+  await commit(db, all({ sql: '1', params: [] }, unchanged(claims), advancesUnchanged(applied), reimbursementState(keys)), [run, ...await openBatch(db, id, claims, keys, applied, PAY_SCHEDULE, (action, target, detail) => ruleEvent(db, PAY_SCHEDULE, action, target, detail), { payDay: day })]);
 }
 
 export async function removeFromBatch(db: D1Database, actor: Actor, id: string, b: Data) {
@@ -227,8 +248,8 @@ export async function batchLines(db: D1Database, id: string) {
     const form1099 = contractors.has(row.employee_email);
     let taxableMinor = 0;
     for (const item of snapshot.items) {
-      // Company-card expenses were paid by the company: no accounting line and no reimbursement (FEED-004).
-      if (isCardExpense(item)) continue;
+      // Company charges and individual personal charges have no reimbursement accounting line.
+      if (!isReimbursable(item)) continue;
       const taxable = marked.has(item.id) || (!!item.allowance_id && taxableAllowances.has(item.allowance_id));
       if (taxable) taxableMinor += item.amount_minor;
       const expenseApproval=snapshot.expenseApprovals?.find((a:Data)=>a.item===item.id);

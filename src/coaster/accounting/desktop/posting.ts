@@ -18,7 +18,7 @@ export async function preparePosting(db: D1Database) {
     }
   }
   const claims=(await db.prepare("SELECT c.id,c.revision,r.snapshot FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision WHERE c.status IN('approved','batched','reimbursed') ORDER BY c.number").all<Data>()).results;
-  for(const claim of claims) for(const item of JSON.parse(claim.snapshot).items) if(item.card_charge_id) {
+  for(const claim of claims) for(const item of JSON.parse(claim.snapshot).items) if(item.card_charge_id && (item.card_liability ?? 'company')==='company') {
     const charge=await db.prepare('SELECT card_id FROM c_card_charges WHERE id=?').bind(item.card_charge_id).first<{card_id:string}>();
     requireThat(charge,'Card expense has no source charge',409);
     const lines=item.allocations.map((p:Data)=>({account:p.account_code,amountMinor:p.amount_minor,costCentre:p.cost_centre,description:item.description,merchant:item.merchant}));

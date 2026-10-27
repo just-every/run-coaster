@@ -61,6 +61,7 @@ export async function openReconciliation(db: D1Database, actor: Actor, fileId: s
   requireThat(!file.undone_at, 'This import was undone; there is nothing to reconcile', 409);
   requireThat(typeof b.last4 === 'string' && /^\d{4}$/.test(b.last4), 'Name the card by its last four digits');
   const card = await db.prepare('SELECT c.id,c.issuer,c.last4 FROM c_cards c JOIN c_statement_files f ON lower(f.issuer)=lower(c.issuer) WHERE f.id=? AND c.last4=?').bind(fileId, b.last4).first<{ id: string; issuer: string; last4: string }>();
+  requireThat(!await db.prepare("SELECT 1 FROM c_card_charges WHERE file_id=? AND liability='individual'").bind(fileId).first(), 'Individual-liability charges belong in employee reimbursement, not the company card ledger', 409);
   requireThat(card, `Assign card ····${b.last4} to an employee before reconciling its statement`, 409);
   const existing = await db.prepare(`SELECT ${COLUMNS} FROM c_card_statements WHERE file_id=? AND card_id=?`).bind(fileId, card.id).first<StatementRecord>();
   requireThat(!existing?.closed_at, 'This card statement is closed', 409);
