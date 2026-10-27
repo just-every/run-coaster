@@ -13,7 +13,7 @@ const connection = (env: Bindings) => env.DB.prepare('SELECT * FROM c_hris_conne
 const state = (c: Connection): Sql => ({ sql: 'EXISTS(SELECT 1 FROM c_hris_connection WHERE id=1 AND company_uuid=? AND token_sealed=?)', params: [c.company_uuid, c.token_sealed] });
 function access(actor: Actor) {
   needRow(actor, 'connections');
-  requireThat(actor.kind === 'person' && !actor.delegate && !actor.publicCredential, 'Use your own native session for HRIS', 403);
+  requireThat(actor.kind === 'person' && !actor.publicCredential, 'Use a native session for HRIS', 403);
   return rowAuthority(actor, 'connections');
 }
 async function current(env: Bindings, actor: Actor, c?: Connection) {
@@ -92,13 +92,13 @@ export async function syncHris(env: Bindings, actor: Actor, b: Data) {
   requireThat(!mappings.some(m=>m.email===address && m.employee_uuid!==p.employee),'This person already maps to another employee',409);
   const before = members.find(m=>m.email===address);
   requireThat(!await env.DB.prepare("SELECT 1 FROM oa_operators WHERE lower(email)=? AND role='owner'").bind(address).first(),'HRIS cannot change the owner',403);
-  requireThat(address!==actor.email,'HRIS cannot change its current operator',403);
+  requireThat(address!==actor.email && address!==actor.delegate?.email,'HRIS cannot change its current operator',403);
   requireThat(before || !p.terminated,'An unknown terminated employee is not imported',409);
   requireThat(!before || before.active || p.terminated,'Reactivate a person explicitly in People before syncing',409);
   let manager: string | null = null;
   if(p.manager) {
     manager = mappings.find(m=>m.employee_uuid===p.manager)?.email ?? null;
-    requireThat(manager && manager!==address && members.some(m=>m.email===manager && m.active && m.is_manager),'Map the manager to an active native approver first',409);
+    requireThat(!r.employees.find(e=>e.employee===p.manager)?.terminated && manager && manager!==address && members.some(m=>m.email===manager && m.active && m.is_manager),'Map the manager to an active native approver first',409);
     let next: string | null = manager; const seen = new Set([address]);
     while(next) { requireThat(!seen.has(next),'The manager hierarchy would contain a cycle',409); seen.add(next); next=members.find(m=>m.email===next)?.approver_email ?? null; }
   }
@@ -109,10 +109,11 @@ export async function syncHris(env: Bindings, actor: Actor, b: Data) {
   const statements: D1PreparedStatement[]=[];
   if(before?.active && p.terminated) {
     const work = await openWork(env.DB,address), successor = b.successor ? email(b.successor,'Successor') : manager ?? before.approver_email;
-    if(work.manager || work.finance || work.cards) {
+    const relationships = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM c_members WHERE approver_email=?) AS reports,(SELECT COUNT(*) FROM c_departments WHERE head_email=?) AS heads').bind(address,address).first<{reports:number;heads:number}>();
+    if(work.manager || work.finance || work.cards || relationships!.reports || relationships!.heads) {
       const to = members.find(m=>m.email===successor && m.active);
       requireThat(to && to.email!==address && !r.employees.some(e=>e.terminated && mappings.some(m=>m.employee_uuid===e.employee && m.email===to.email)),'Choose an active successor before termination',409);
-      requireThat((!work.manager || to.is_manager) && (!work.finance || to.is_finance) && (!work.cards || to.is_employee),'The successor must hold every role needed by open work',409);
+      requireThat((!(work.manager || relationships!.heads) || to.is_manager) && (!work.finance || to.is_finance) && (!work.cards || to.is_employee),'The successor must hold every role needed by open work',409);
       const handoff = await handOver(env.DB,actor,address,to.email);
       statements.push(...handoff.statements); guards.push(...handoff.guards);
     }
@@ -121,5 +122,5 @@ export async function syncHris(env: Bindings, actor: Actor, b: Data) {
   else statements.push(env.DB.prepare('INSERT INTO c_members(email,name,is_employee,is_manager,is_finance,active,approver_email,updated_at) VALUES(?,?,1,0,0,1,?,?)').bind(address,p.name,manager,now()));
   statements.push(env.DB.prepare('INSERT INTO c_hris_mappings VALUES(?,?,?) ON CONFLICT(employee_uuid) DO NOTHING').bind(p.employee,address,c.company_uuid),event(env.DB,actor,'hris-synced',{}, {company:c.company_uuid,email:address,before:before ? {name:before.name,manager:before.approver_email,active:!!before.active}:null,after:{name:p.name,manager,active:!p.terminated},cardFreeze:'not available; issuing program required'}));
   await commit(env.DB,all(auth,state(c),...guards),statements);
-  return {synced:true,cardFreeze:'unproved'};
+  return {synced:true,cardFreeze:'unavailable'};
 }
