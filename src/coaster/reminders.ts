@@ -1,3 +1,4 @@
+import { cardEvidenceChases } from './card-evidence-chases';
 import { receiptQuestions } from './receipts/questions';
 import { authority, commit } from './session';
 import { event, ruleEvent } from './events';
@@ -11,13 +12,13 @@ import type { Bindings } from '../auth.server';
 import { now, requireThat, type Actor, type Data } from './types';
 
 /** One open item a person owes, keyed so that a new revision, approver or edit starts its own reminder sequence. */
-type Open = { key: string; person: string; claim: string; number: number; title: string; action: string };
+type Open = { key: string; person: string; claim: string; number: number; title: string; action: string; postedOn?: string };
 
 /** Everything someone owes today: receipts a draft still needs, unsubmitted claims, held claims (APPROVE-005), open
  * questions (APPROVE-006) and claims waiting for their approver. Anything resolved simply stops being open. */
 export async function openItems(db: D1Database, settings: Business): Promise<Open[]> {
   const [receipts, unsubmitted, held, questions, decisions] = await db.batch([
-    db.prepare("SELECT i.id,i.merchant,c.id AS claim,c.number,c.title,c.employee_email FROM c_items i JOIN c_claims c ON c.id=i.claim_id WHERE c.status IN ('draft','returned') AND i.kind='receipt' AND i.receipt_id IS NULL AND (i.amount_minor>? OR EXISTS(SELECT 1 FROM c_allocations a JOIN c_categories g ON g.id=a.category_id WHERE a.item_id=i.id AND g.receipt_always=1))").bind(settings.receipt_threshold_minor),
+    db.prepare("SELECT i.id,i.merchant,c.id AS claim,c.number,c.title,c.employee_email FROM c_items i JOIN c_claims c ON c.id=i.claim_id WHERE c.status IN ('draft','returned') AND i.kind='receipt' AND i.card_charge_id IS NULL AND i.receipt_id IS NULL AND (i.amount_minor>? OR EXISTS(SELECT 1 FROM c_allocations a JOIN c_categories g ON g.id=a.category_id WHERE a.item_id=i.id AND g.receipt_always=1))").bind(settings.receipt_threshold_minor),
     db.prepare("SELECT id,number,title,employee_email,revision FROM c_claims c WHERE status IN ('draft','returned') AND NOT (held_from IS NOT NULL AND revision=0) AND EXISTS(SELECT 1 FROM c_items i WHERE i.claim_id=c.id)"),
     db.prepare("SELECT id,number,title,employee_email FROM c_claims WHERE held_from IS NOT NULL AND status='returned' AND revision=0"),
     db.prepare('SELECT q.id,q.asks_email,c.id AS claim,c.number,c.title FROM c_comments q JOIN c_claims c ON c.id=q.claim_id WHERE q.asks_email IS NOT NULL AND NOT EXISTS(SELECT 1 FROM c_comments r WHERE r.parent_id=q.id AND (r.author_email=q.asks_email OR r.on_behalf_of=q.asks_email))'),
@@ -27,6 +28,7 @@ export async function openItems(db: D1Database, settings: Business): Promise<Ope
   const agentQuestions=await receiptQuestions(db);
   const rows = (r: D1Result) => r.results as Data[];
   return [
+    ...await cardEvidenceChases(db, settings),
     ...agentQuestions.map(q=>({key:`receipt-question:${q.id}`,person:q.employee,claim:q.claimId,number:q.claimNumber,title:q.title,action:'Answer your private receipt question'})),
     ...rows(receipts).map(r => ({ key: `receipt:${r.id}`, person: r.employee_email, claim: r.claim, number: r.number, title: r.title, action: `Attach the receipt for ${r.merchant}` })),
     ...rows(unsubmitted).map(r => ({ key: `unsubmitted:${r.id}:${r.revision}`, person: r.employee_email, claim: r.id, number: r.number, title: r.title, action: `Submit ${claimNumber(r.number)}` })),
@@ -61,8 +63,8 @@ export const localHour = (at: Date, timezone: string) => Number(new Intl.DateTim
 /** Quiet hours run from `from` to `until` and may wrap midnight; equal hours mean none. */
 const quiet = (hour: number, from: number, until: number) => from === until ? false : from > until ? hour >= from || hour < until : hour >= from && hour < until;
 
-/** The hourly run: every open item is noted when first seen; on a US business day outside quiet hours (business time
- * zone), an item whose business days since then reach the next step is reminded once for that step, by email. */
+/** The hourly run notes open items and sends each due email step on a US business day outside quiet hours.
+ * Card evidence ages from its posting date; other tasks age from discovery. Complete evidence closes a card chase. */
 export async function runReminders(env: Bindings, at: Date) {
   const db = env.DB, settings = await business(db);
   if (!settings) return;
@@ -73,9 +75,15 @@ export async function runReminders(env: Bindings, at: Date) {
   const seen = new Map((await db.prepare('SELECT r.key,r.first_seen_at,(SELECT MAX(step) FROM c_reminders s WHERE s.key=r.key) AS sent FROM c_reminder_items r').all<Data>()).results.map(r => [r.key, r]));
   const mail = operatorMail(env);
   for (const item of items) {
-    const record = seen.get(item.key)!, age = businessDaysBetween(localDate(record.first_seen_at, settings.timezone), today);
-    await remind(env, mail, item, age, settings.reminder_days.filter(d => d <= age).length, record.sent ?? 0, at);
-    await escalate(env, settings, mail, item, age, at);
+    const record = seen.get(item.key)!, age = businessDaysBetween(item.postedOn ?? localDate(record.first_seen_at, settings.timezone), today);
+    const due = settings.reminder_days.filter(d => d <= age).length;
+    // An overdue imported charge still owes every configured step, each with its own durable delivery identity.
+    if (item.postedOn) {
+      for (let step = (record.sent ?? 0) + 1; step <= due; step++) await remind(env, mail, item, age, step, record.sent ?? 0, at);
+    } else {
+      await remind(env, mail, item, age, due, record.sent ?? 0, at);
+      await escalate(env, settings, mail, item, age, at);
+    }
   }
 }
 
@@ -88,5 +96,5 @@ async function remind(env: Bindings, mail: ReturnType<typeof operatorMail>, item
   const link = `${env.AUTH_ORIGIN}/app#/claims/${item.claim}`;
   const words = `${item.action} “${item.title}”: it has waited ${age} business ${age === 1 ? 'day' : 'days'}. Open it in Coaster: ${link}`;
   const sent = mail ? await mail.send({ deliveryId: `reminder-${item.key}-${step}`, from: env.MAIL_FROM ?? '', to: [item.person], subject: `Reminder: ${item.action}`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
-  await ruleEvent(db, 'reminder', 'reminder-sent', { claim: item.claim }, { item: item.key.startsWith('receipt-question:')?'private-employee-task':item.key, step, to: item.person, businessDays: age, mail: sent?.status ?? 'mail not set up' }).run();
+  await ruleEvent(db, 'reminder', 'reminder-sent', { claim: item.claim }, { item: item.key.startsWith('receipt-question:')?'private-employee-task':item.key, step, to: item.person, businessDays: age, ...(item.postedOn ? { postedOn: item.postedOn, channel: 'email' } : {}), mail: sent?.status ?? 'mail not set up' }).run();
 }
