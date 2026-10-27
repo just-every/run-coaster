@@ -6748,7 +6748,7 @@
       "executable": false
     },
     "tests/hris-archive.mjs": {
-      "sha256": "ebc4aaf437624d7b91b1e4cdcdea560fd982fcab0269c885bfca44802fcdc840",
+      "sha256": "70f928e9af2eb43b8e5019a5b60b74eb30789f08b01668e69ac682b495b49e64",
       "executable": false
     },
     "tests/hris-kit.mjs": {

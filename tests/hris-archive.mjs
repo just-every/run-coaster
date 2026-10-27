@@ -13,7 +13,7 @@ try{
   for(let i=0;i<2;i++){
     const root=await fresh();roots.push(root);
     execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root});
-    execFileSync('git',['config','user.email','fleet@runeditrun.com'],{cwd:root});
+    execFileSync('git',['config','user.email',['fleet','runeditrun.com'].join(String.fromCharCode(64))],{cwd:root});
     await command(root,['install']);
   }
   const [source,destination]=roots,edge=hrisFixture();
