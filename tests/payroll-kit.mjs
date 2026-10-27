@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 
 /** Real native claim approval, a finance tax decision and scheduled taxable allowance. */
-export async function payrollBatch(h) {
-  await h.post(['settings','business'].join('/'),{name:'Harbour and Finch Studio',currency:'USD',timezone:'UTC',receiptThreshold:''});
+export async function payrollBatch(h,{currency='USD',ownClaim=false}={}) {
+  await h.post(['settings','business'].join('/'),{name:'Harbour and Finch Studio',currency,timezone:'UTC',receiptThreshold:''});
   const category=(await h.post(['settings','categories'].join('/'),{name:'Office',accountCode:'6500',taxCode:'NONE'})).id;
-  const managerEmail='priya@harbourfinch.example',memberEmail='sam@harbourfinch.example';
+  const managerEmail='priya@harbourfinch.example',memberEmail=ownClaim?'owner@harbourfinch.example':'sam@harbourfinch.example';
   const manager=await h.person(managerEmail,{manager:true,employee:true});
   const finance=await h.person('morgan@harbourfinch.example',{finance:true,employee:true},managerEmail);
-  const employee=await h.person(memberEmail,{employee:true},managerEmail);
+  if(ownClaim)await h.post(['settings', 'members'].join('/'),{email:memberEmail,name:'Rose Owner',employee:true,approver:managerEmail});
+  const employee=ownClaim?h.owner:await h.person(memberEmail,{employee:true},managerEmail);
   let claim=await h.post('claims',{title:'Client workshop'},employee);
   for(const [merchant,amount] of [['Office stationery','10.00'],['Unsubstantiated taxi','5.00']])claim=await h.post(`claims/${claim.id}/items`,{version:claim.version,kind:'receipt',date:'2026-04-10',merchant,amount,allocations:[{category}],explanation:'Synthetic acceptance expense'},employee);
   const detail=await h.get(`claims/${claim.id}`,employee),taxable=detail.items.find(i=>i.merchant==='Unsubstantiated taxi');

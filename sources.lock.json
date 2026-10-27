@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d481608e619e534042a0e771d7635c96c2c03f6c00c7b07e49846996a65a2545",
+      "sha256": "37e172eac4816fb45f09f38cb9e75c5bf9b89c6732fc748ec60ded416570f1d7",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -4396,7 +4396,7 @@
       "executable": false
     },
     "tests/browser-payroll.mjs": {
-      "sha256": "27dee1a1c63a58022f41f195e4e98bddf73e6a4e8270821fbdd2905a407bd81d",
+      "sha256": "6d31a744b58a0acdf2925234f1838301f1ac9a5f6363b3dd7f931475e76fe7df",
       "executable": false
     },
     "tests/browser-per-diem.mjs": {
@@ -4512,7 +4512,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "b749fb36c059fce85f1b7b5f327cca1a60191ef3dc358bf92b1b40cceaa2d165",
+      "sha256": "fa1cafd367884e2eaae76da083c1a98ff335be9104454149c33a63b8c5d8686c",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -6136,7 +6136,7 @@
       "executable": false
     },
     "tests/fixtures/payroll.mjs": {
-      "sha256": "e0ff264981d4e197c0f45f531e91736961dfa7615e671757ca68c45e001b4e70",
+      "sha256": "1065f85a20ce2ff0377c400e38b62c6fc9135f67e6a7d88dc803303951d16394",
       "executable": false
     },
     "tests/fixtures/plaid.mjs": {
@@ -6668,7 +6668,7 @@
       "executable": false
     },
     "tests/payroll-archive.mjs": {
-      "sha256": "4ea2c53a38eeed54294418a704de988a3f5551d6ca7c732341ded84d080a475b",
+      "sha256": "915f8f1b9607cbea05ddbae8c016fe26d9ed1d739436011a4802c333e99bcdbb",
       "executable": false
     },
     "tests/payroll-browser-runtime.mjs": {
@@ -6676,7 +6676,7 @@
       "executable": false
     },
     "tests/payroll-kit.mjs": {
-      "sha256": "7e641fd641bc989c3ccf5dfa920890548105d1d0fcddd82c774a204a721f35ce",
+      "sha256": "3892c68539254895aa47a8e5c33929c587ab307aea81ae411f45a068ba398f5a",
       "executable": false
     },
     "tests/plaid-native.mjs": {
