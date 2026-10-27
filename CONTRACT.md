@@ -327,7 +327,7 @@ Historical 21 October documentary review only: the commit then judged was the `m
 
 Every capability claim the homepage (run-coaster.com, `src/site/landing/`) states or draws, mapped to the clauses that promise it and judged against this commit's code: `done` when the claimed form runs today, `partial` when a narrower form is in code and the rest is contract, `missing` when it is contract only. The homepage shows the product being built toward (owner, 17 October 2026); this table and the Status table show how far the code has come. `OWN` is the MIT license and the public repository.
 
-**51 claims: 8 done, 12 partial, 31 missing.**
+**51 claims: 11 done, 18 partial, 22 missing.**
 
 | # | Section | Claim | Clause(s) | Status |
 | --- | --- | --- | --- | --- |
