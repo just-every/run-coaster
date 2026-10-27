@@ -1464,7 +1464,7 @@
       "executable": false
     },
     "src/coaster/card-evidence-chases.ts": {
-      "sha256": "f1b5084696e1968c8441c28af806760c59af9566742d4bc27879f8a9b0740e08",
+      "sha256": "f82e53ae0b8a4378cc7291df9ceb73a43c4592765d4e24791efb7ea4266e6d3e",
       "executable": false
     },
     "src/coaster/card-expenses.ts": {
@@ -4464,7 +4464,7 @@
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
-      "sha256": "74b939a3a1bb88c91eb4ce0615792798fdc4fc9f8a59944535854898d1770dd8",
+      "sha256": "fd86a09d27455abb97f53fec633ee04098376af5ed8ea2a1474e07905ad3d0c5",
       "executable": false
     },
     "tests/card-matching.mjs": {
@@ -4500,7 +4500,7 @@
       "executable": false
     },
     "tests/coaster-card-chases.test.mjs": {
-      "sha256": "6a7481a3c1bc6ec770377a3a7007eab61954680b58f58e81268d40c4e4208179",
+      "sha256": "8e5e186b05a21d1e45fb33ca7e8c24375e107128ab48486111faf93782b5b129",
       "executable": false
     },
     "tests/coaster-card-matching-volume.test.mjs": {
