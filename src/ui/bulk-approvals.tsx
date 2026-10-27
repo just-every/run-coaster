@@ -15,9 +15,13 @@ export function BulkApprovals({ waiting, names, reload }: { waiting: D[]; names:
     setBusy(true); setError('');
     try {
       const answer = await call(['approvals', 'bulk'].join('/'), { claims: reviews.map(d => ({ id: d.claim.id, version: d.claim.version, revision: d.claim.revision, reviewed: checks[d.claim.id], acknowledge: checks[d.claim.id], override: overrides[d.claim.id] })) });
-      setResults(answer.results.map((r: D) => ({ ...r, title: reviews.find(d => d.claim.id === r.id)?.claim.title }))); setReviews([]); setSelected([]); await reload();
+      setResults(answer.results.map((r: D) => {
+        const claim = reviews.find(d => d.claim.id === r.id)?.claim;
+        return { ...r, title: claim?.title, number: claim?.number };
+      })); setReviews([]); setSelected([]); await reload();
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
+  const approvedCount = results.filter(r => r.approved).length, failedCount = results.length - approvedCount;
   return <section className="panel bulk-approvals" aria-label="Bulk approval">
     <details className="disclosure"><summary>Approve several claims</summary>
       <p>Choose claims, then review each expense and exception before approving its current step.</p>
@@ -34,7 +38,7 @@ export function BulkApprovals({ waiting, names, reload }: { waiting: D[]; names:
         <label className="check"><input type="checkbox" disabled={busy} checked={!!checks[d.claim.id]} onChange={e => setChecks({ ...checks, [d.claim.id]: e.target.checked })} />I reviewed {d.claim.title}, its expenses, exceptions and explanations</label>
       </article>)}
       {!!reviews.length && <div className="form-end"><button className="button primary" disabled={busy || reviews.some(d => !checks[d.claim.id] || (d.exceptions.some((x: D) => x.code === 'needs-pre-approval') && !overrides[d.claim.id]?.trim()))} onClick={approve}>Approve {plural(reviews.length, 'claim')}</button><button className="button" disabled={busy} onClick={() => setReviews([])}>Change selection</button></div>}
-      {!!results.length && <div role="status"><h3>Bulk approval results</h3><ul className="ruled-list">{results.map(r => <li key={r.id}>{r.title ?? r.id} · revision {r.revision}: {r.approved ? r.claimStatus === 'submitted' ? 'Step approved; further review required' : 'Approved' : `Not approved: ${r.error}`}</li>)}</ul></div>}
+      {!!results.length && <div role="status"><h3>Bulk approval results</h3><p>{plural(approvedCount, 'claim')} approved · {plural(failedCount, 'claim')} not approved</p><ul className="ruled-list">{results.map(r => <li key={r.id}>{r.number == null ? r.id : claimNumber(r.number)} · {r.title ?? r.id} · revision {r.revision}: {r.approved ? r.claimStatus === 'submitted' ? 'Step approved; further review required' : 'Approved' : `Not approved: ${r.error}`}</li>)}</ul></div>}
       {error && <p role="alert" className="form-error">{error}</p>}
     </details>
   </section>;

@@ -8,7 +8,7 @@
 .brand-mark { width: 44px; height: 44px; }
 .brand-name { position: relative; font: 800 36px/1 var(--font-head); letter-spacing: -.045em; white-space: nowrap; }
 /* Base marks local and demo copies with a suffix on [data-rer-name]; it sits as a small tag under the wordmark. */
-.brand-name::after { position: absolute; right: 0; top: 100%; margin-top: 2px; padding: 1px 7px; border-radius: 999px; background: var(--app-active); color: var(--app-active-ink); font: 600 11px/16px var(--font-body); letter-spacing: .02em; }
+.brand-name::after { position: absolute; right: 0; top: 100%; margin-top: 2px; padding: 1px 7px; border-radius: 999px; background: var(--app-active); color: var(--app-active-ink); font: 600 13px/16px var(--font-body); letter-spacing: .02em; }
 .rail .brand { margin: 2px 0 40px 20px; }
 .nav { display: flex; flex-direction: column; gap: 10px; }
 .nav a { position: relative; display: flex; align-items: center; gap: 20px; min-height: 46px; padding: 10px 22px; border-radius: 8px; color: var(--app-label); font-size: 16.5px; text-decoration: none; }
@@ -16,12 +16,12 @@
 .nav a:hover { background: var(--row); color: var(--ink); }
 .nav a.active { background: var(--app-active); color: var(--app-active-ink); font-weight: 600; }
 .nav a.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 8px 0 0 8px; background: var(--app-kelly); }
-.nav-count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: -6px; padding: 0 6px; border-radius: 999px; background: var(--app-quiet); color: var(--ink); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.nav-count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: -6px; padding: 0 6px; border-radius: 999px; background: var(--app-quiet); color: var(--ink); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .nav a.active .nav-count { background: var(--mint-strong); color: var(--app-active-ink); }
 .rail-foot { margin-top: auto; padding: 20px 0 0 12px; border-top: 1px solid var(--app-hairline); }
 .who-am-i { display: flex; gap: 12px; align-items: flex-start; }
 .who-am-i p { margin: 0; font-size: 14.5px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
-.who-am-i small { display: block; color: var(--soft); font-size: 12.5px; font-weight: 400; line-height: 1.45; }
+.who-am-i small { display: block; color: var(--soft); font-size: 13px; font-weight: 400; line-height: 1.45; }
 .rail-business { display: flex; gap: 12px; align-items: center; margin-top: 18px; color: var(--app-label); font-size: 13px; line-height: 1.35; }
 .rail-business .icon { width: 22px; height: 22px; margin-left: 9px; color: var(--app-kelly); }
 
@@ -68,10 +68,10 @@
   .rail { display: contents; }
   .rail > .brand, .rail-foot { display: none; }
   .nav { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; flex-direction: row; gap: 0; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--app-hairline); background: #fff; box-shadow: 0 -6px 18px -14px rgba(20, 23, 27, .3); }
-  .nav a { flex: 1 1 0; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; min-height: 56px; padding: 6px 2px; border-radius: 10px; font-size: 12px; line-height: 1.15; text-align: center; }
+  .nav a { flex: 1 1 0; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; min-height: 56px; padding: 6px 2px; border-radius: 10px; font-size: 13px; line-height: 1.15; text-align: center; }
   .nav a .icon { width: 22px; height: 22px; }
   .nav a.active::before { left: 25%; right: 25%; top: -7px; bottom: auto; width: auto; height: 3px; border-radius: 0 0 3px 3px; }
-  .nav-count { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; margin: 0; padding: 0 5px; font-size: 11px; }
+  .nav-count { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; margin: 0; padding: 0 5px; font-size: 13px; }
   .topbar { flex-wrap: wrap; gap: 12px 14px; min-height: 0; padding: 14px 16px 12px; }
   .topbar .brand { display: inline-flex; margin-right: auto; }
   .topbar .brand-mark { width: 34px; height: 34px; }
@@ -87,7 +87,7 @@
   .account-menu .initials { width: 38px; height: 38px; }
   .account-card { position: absolute; right: 0; top: 46px; z-index: 30; width: max-content; max-width: calc(100vw - 32px); padding: 14px 16px; border: 1px solid var(--app-hairline); border-radius: 12px; background: #fff; box-shadow: var(--shadow-float); font-size: 14px; }
   .account-card p { margin: 0; overflow-wrap: anywhere; }
-  .account-card small { display: block; color: var(--soft); font-size: 12.5px; }
+  .account-card small { display: block; color: var(--soft); font-size: 13px; }
   .content, .content.with-panel, .content.with-wide-panel { display: flex; flex-direction: column; gap: 16px; padding: 16px 16px 28px; }
   .content.with-panel.has-selection > .work, .content.with-wide-panel.has-selection > .work { display: none; }
   .content.with-panel:not(.has-selection) > .side, .content.with-wide-panel:not(.has-selection) > .side { display: none; }

@@ -3,7 +3,7 @@
 .cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 20px; }
 .cards-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .plain { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 14px; }
-.plain th { padding: 8px 12px 8px 0; color: var(--app-label); font-size: 12px; font-weight: 400; text-align: left; border-bottom: 1px solid var(--app-hairline); white-space: nowrap; }
+.plain th { padding: 8px 12px 8px 0; color: var(--app-label); font-size: 13px; font-weight: 400; text-align: left; border-bottom: 1px solid var(--app-hairline); white-space: nowrap; }
 .plain td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--app-hairline-soft); vertical-align: middle; }
 .plain th:last-child, .plain td:last-child { padding-right: 0; }
 .plain th.figure { text-align: right; }

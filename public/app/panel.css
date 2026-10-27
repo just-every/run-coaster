@@ -33,7 +33,7 @@
 .line .receipt { grid-row: 1 / span 3; }
 .line-main { min-width: 0; font-size: 14px; line-height: 1.4; }
 .line-main strong { font-weight: 600; overflow-wrap: anywhere; }
-.line-main .muted { display: block; font-size: 12.5px; }
+.line-main .muted { display: block; font-size: 13px; }
 .line .amount { font-size: 14.5px; font-weight: 600; text-align: right; white-space: nowrap; }
 .line-extra { grid-column: 2 / -1; min-width: 0; }
 .line-actions { grid-column: 2 / -1; display: flex; gap: 8px; margin-top: 6px; }
@@ -42,8 +42,8 @@
 .receipt img { width: 100%; height: 100%; object-fit: cover; }
 .receipt .icon { width: 18px; height: 18px; }
 .receipt.missing { border-style: dashed; border-color: #f2b8bf; background: var(--app-fail); color: var(--app-fail-mark); }
-.receipt-file { font-size: 11px; font-weight: 700; letter-spacing: .04em; }
-.split-line { display: block; color: var(--soft); font-size: 12.5px; }
+.receipt-file { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+.split-line { display: block; color: var(--soft); font-size: 13px; }
 .total { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0 2px; font-size: 16px; font-weight: 650; }
 
 /* The decision, as the pick asks it: one question, radio choices, the gradient button that does the chosen thing. */
@@ -71,12 +71,12 @@
 .timeline li::before { content: ''; position: absolute; left: 3px; top: 13px; width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
 .timeline li:first-child::before { background: var(--app-kelly); }
 .timeline li:not(:last-child)::after { content: ''; position: absolute; left: 7px; top: 25px; bottom: -11px; border-left: 1px solid var(--app-hairline); }
-.timeline time { display: block; color: var(--soft); font-size: 12.5px; }
+.timeline time { display: block; color: var(--soft); font-size: 13px; }
 .revision h3 { font-weight: 500; font-size: 13.5px; }
 
 /* Batch detail tables inside the wider panel. */
 .mini { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.mini th { padding: 6px 8px 8px 0; color: var(--app-label); font-size: 12px; font-weight: 400; text-align: left; border-bottom: 1px solid var(--app-hairline); }
+.mini th { padding: 6px 8px 8px 0; color: var(--app-label); font-size: 13px; font-weight: 400; text-align: left; border-bottom: 1px solid var(--app-hairline); }
 .mini td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--app-hairline-soft); vertical-align: middle; overflow-wrap: anywhere; }
 .mini th:last-child, .mini td:last-child { padding-right: 0; }
 .mini th.figure { text-align: right; }

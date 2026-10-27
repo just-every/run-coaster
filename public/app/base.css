@@ -9,6 +9,7 @@ body:has(.app) { margin: 0; padding: 0; background: var(--app-grid); background-
 .app a:hover { text-decoration-thickness: 2px; }
 .app :focus-visible { outline: 2px solid var(--app-kelly); outline-offset: 2px; }
 .app .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.app small { font-size: 13px; }
 .app .muted { color: var(--soft); }
 .app .block { display: block; }
 .app .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
@@ -44,7 +45,7 @@ body:has(.app) { margin: 0; padding: 0; background: var(--app-grid); background-
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field-wide, .form-end, .form-title, .split, .roles { grid-column: 1 / -1; }
 .field-label { color: var(--app-label); font-size: 13px; font-weight: 500; }
-.field-hint { color: var(--soft); font-size: 12.5px; }
+.field-hint { color: var(--soft); font-size: 13px; }
 .field input:not([type=checkbox]):not([type=radio]), .field select, .field textarea, .key-field { width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid var(--app-field); border-radius: 10px; background: #fff; color: var(--ink); font-size: 14.5px; transition: border-color .12s, box-shadow .12s; }
 .field input:not([type=checkbox]):not([type=radio]):hover, .field select:hover, .field textarea:hover { border-color: #b9c0ca; }
 .field input:not([type=checkbox]):not([type=radio]):focus, .field select:focus, .field textarea:focus, .key-field:focus { outline: none; border-color: var(--app-kelly); box-shadow: 0 0 0 3px rgba(30, 158, 58, .18); }
@@ -79,10 +80,10 @@ body:has(.app) { margin: 0; padding: 0; background: var(--app-grid); background-
 .roles { display: flex; gap: 20px; flex-wrap: wrap; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
 .key-once { display: grid; gap: 8px; margin: 12px 0; }
-.key-field { font-family: var(--font-mono); font-size: 12.5px; }
+.key-field { font-family: var(--font-mono); font-size: 13px; }
 
 /* Status pills: words with a shape, never colour alone. Green done, amber waiting, red failed, grey not started. */
-.chip { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; padding: 4px 11px 4px 6px; border-radius: 999px; background: var(--app-quiet); color: var(--app-quiet-ink); font: 500 12.5px/18px var(--font-body); white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; padding: 4px 11px 4px 6px; border-radius: 999px; background: var(--app-quiet); color: var(--app-quiet-ink); font: 500 13px/18px var(--font-body); white-space: nowrap; }
 .chip > span { overflow: hidden; text-overflow: ellipsis; }
 .chip .icon { width: 17px; height: 17px; padding: 2.5px; border-radius: 50%; stroke-width: 2.6; background: var(--soft); color: #fff; }
 .tone-done { background: var(--app-done); color: var(--app-done-ink); }
@@ -94,18 +95,18 @@ body:has(.app) { margin: 0; padding: 0; background: var(--app-grid); background-
 .tone-quiet .icon { background: #9aa1ab; }
 
 /* Initials, as the pick draws people in the table and the rail. */
-.initials { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--app-quiet); color: var(--ink); font: 600 11.5px/1 var(--font-body); letter-spacing: .02em; }
+.initials { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--app-quiet); color: var(--ink); font: 600 13px/1 var(--font-body); letter-spacing: .02em; }
 .initials.me { width: 40px; height: 40px; background: var(--mint-strong); color: var(--app-active-ink); font-size: 13.5px; }
 
-.warning { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 6px; padding: 3px 11px 3px 4px; border-radius: 999px; background: var(--app-fail); color: var(--app-fail-ink); font-size: 12.5px; line-height: 1.35; }
-.warning-mark { display: grid; place-items: center; flex: none; width: 17px; height: 17px; border-radius: 50%; background: var(--app-fail-mark); color: #fff; font-size: 11px; font-weight: 700; }
+.warning { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin-top: 6px; padding: 3px 11px 3px 4px; border-radius: 999px; background: var(--app-fail); color: var(--app-fail-ink); font-size: 13px; line-height: 1.35; }
+.warning-mark { display: grid; place-items: center; flex: none; width: 17px; height: 17px; border-radius: 50%; background: var(--app-fail-mark); color: #fff; font-size: 13px; font-weight: 700; }
 .explanation { display: block; margin-top: 6px; font-size: 13px; color: var(--soft); }
 .notice:empty { display: none; }
 .notice { margin: 0; padding: 10px 14px; border: 1px solid var(--mint-strong); border-radius: 10px; background: var(--app-done); color: var(--app-done-ink); font-weight: 500; font-size: 14px; }
 .callout { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--app-fail-edge); border-radius: 10px; background: var(--app-fail); color: var(--app-fail-ink); font-size: 14px; }
 .reconciled, .paid { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--mint-strong); border-radius: 10px; background: var(--app-done); color: var(--app-done-ink); font-size: 14px; font-weight: 500; }
 .reconciled .icon, .paid .icon { width: 18px; height: 18px; margin-top: 1px; stroke-width: 2.4; }
-.machine { display: block; font-family: var(--font-mono); font-size: 11.5px; color: var(--soft); overflow-wrap: anywhere; }
+.machine { display: block; font-family: var(--font-mono); font-size: 13px; color: var(--soft); overflow-wrap: anywhere; }
 .disclosure summary { cursor: pointer; padding: 8px 0; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
 .disclosure-body { padding: 4px 0 8px; }
 .ruled-list { list-style: none; padding: 0; margin: 0; }
