@@ -18,7 +18,7 @@ export async function cardEvidenceChases(db: D1Database, settings: Business) {
     const allocated = new Set(JSON.parse(r.allocations) as string[]);
     const required = [...policy.categories.filter(c => allocated.has(c.id)).flatMap(c => c.required_fields),
       ...policy.rules.flatMap(rule => rule.kind === 'required-field' && allocated.has(rule.category) ? [rule.field] : [])];
-    const fields = [...new Set(required)].filter(name => !values[name]?.trim());
+    const fields = [...new Set(required)].filter(name => !Object.hasOwn(values, name) || !values[name].trim());
     const missing = [...(!r.receipt_id ? ['receipt'] : []), ...(!r.description.trim() ? ['memo'] : []), ...fields];
     return missing.length ? [{ key: `card-evidence:${r.id}`, person: r.employee_email as string,
       claim: r.claim as string, number: r.number as number, title: r.title as string,
