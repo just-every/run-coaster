@@ -4,7 +4,7 @@ import { event, ruleEvent } from './events';
 import { business } from './settings';
 import { claimNumber, claimItems, type Claim } from './claims';
 import { exactKey } from './exceptions';
-import { isCardExpense } from './card-expenses';
+import { isCardExpense, isReimbursable } from './card-expenses';
 import { normalDescriptor } from './cards/statement';
 import { advanceNumber, advancesUnchanged, appliedTo } from './advances';
 import { batchNotHeld, requireBatchNotHeld, requireNotHeld, heldAmong } from './bank/holds';
@@ -25,13 +25,13 @@ const batchState = (id: string, version: number, status: string): Sql => ({ sql:
 async function reimbursementKeys(db: D1Database, claims: Claim[]) {
   const keys: { key: string; claim: Claim; item: string }[] = [];
   for (const claim of claims) for (const item of await claimItems(db, claim.id)) {
-    // The company paid a card expense: it never reimburses, so it has no reimbursement key (FEED-004).
-    if (isCardExpense(item)) continue;
+    // Only cash expenses and individual business charges reserve reimbursement keys.
+    if (!isReimbursable(item)) continue;
     // An out-of-pocket expense for a purchase the company card already paid cannot also be reimbursed: the same receipt as a
     // card expense carries, or the same person, date, merchant and amount as a card charge (FEED-004, COA-005).
     const same = item.receipt_sha256 ? await db.prepare('SELECT ch.descriptor FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id JOIN c_card_charges ch ON ch.id=i.card_charge_id WHERE r.sha256=? LIMIT 1').bind(item.receipt_sha256).first<{ descriptor: string }>() : null;
     const twin = same ?? (await db.prepare('SELECT descriptor FROM c_card_charges WHERE employee_email=? AND COALESCE(transaction_on,posted_on)=? AND amount_minor=?').bind(claim.employee_email, item.spent_on, item.amount_minor).all<{ descriptor: string }>()).results.find(c => normalDescriptor(c.descriptor) === normalDescriptor(item.merchant));
-    requireThat(!twin, `${claimNumber(claim.number)} repeats ${twin?.descriptor} (${item.spent_on}), a charge the company card already paid; it cannot also be reimbursed`, 409);
+    requireThat(isCardExpense(item) || !twin, `${claimNumber(claim.number)} repeats ${twin?.descriptor} (${item.spent_on}), a charge the company card already paid; it cannot also be reimbursed`, 409);
     keys.push({ key: exactKey(claim.employee_email, item), claim, item: item.id });
   }
   const seen = new Map<string, Claim>();
@@ -227,8 +227,8 @@ export async function batchLines(db: D1Database, id: string) {
     const form1099 = contractors.has(row.employee_email);
     let taxableMinor = 0;
     for (const item of snapshot.items) {
-      // Company-card expenses were paid by the company: no accounting line and no reimbursement (FEED-004).
-      if (isCardExpense(item)) continue;
+      // Company charges and individual personal charges have no reimbursement accounting line.
+      if (!isReimbursable(item)) continue;
       const taxable = marked.has(item.id) || (!!item.allowance_id && taxableAllowances.has(item.allowance_id));
       if (taxable) taxableMinor += item.amount_minor;
       const expenseApproval=snapshot.expenseApprovals?.find((a:Data)=>a.item===item.id);
