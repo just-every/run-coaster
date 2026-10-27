@@ -28,6 +28,7 @@ import { accountablePlan, markNonAccountable } from './accountable-plan';
 import { saveMileageRate } from './mileage';
 import { createClaim, removeItem, renameClaim, saveItem, submitClaim, uploadReceipt } from './claims';
 import { decide, reassign } from './decisions';
+import { bulkApprove } from './bulk-approvals';
 import { retractClaim, unapproveClaim } from './reversals';
 import { releaseHold } from './holds';
 import { exceptionQueue, recordFinding, reviewException, saveAuditSample } from './audit-queue';
@@ -176,6 +177,7 @@ api.post('/api/coaster/claims/:id/receipts', as(async (a, c) => uploadReceipt(db
 api.post('/api/coaster/claims/:id/receipt-signals/review', as(async (a, c) => reviewReceiptSignal(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/submit', as(async (a, c) => submitClaim(db(c), a, param(c, 'id'), await body(c), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/claims/:id/decision', as(async (a, c) => decide(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/approvals/bulk', as(async (a, c) => bulkApprove(db(c), a, await body(c))));
 api.post('/api/coaster/claims/:id/retract', as(async (a, c) => retractClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/unapprove', as(async (a, c) => unapproveClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/comments', as(async (a, c) => addComment(db(c), runtimeBindings(c.env), a, param(c, 'id'), await body(c))));

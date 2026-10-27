@@ -1,11 +1,10 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { harness } from './harness.mjs';
 import { apiPath, cardChaseFixture } from './card-chase-kit.mjs';
 
 // ScheduledController.scheduledTime is fixed by the fixture; authentication keeps its ordinary live session clock.
 
-test('Posted card evidence sends three distinct seven-day mail steps from posting, even below the receipt threshold, and closes on native attachment', async () => {
+export async function proveCardEvidenceReminders() {
   const h = await harness();
   try {
     const f = await cardChaseFixture(h), initial = await f.detail(), item = initial.items[0];
@@ -36,9 +35,9 @@ test('Posted card evidence sends three distinct seven-day mail steps from postin
     assert.equal((await f.reminders()).length, 3);
     assert.equal((await f.detail()).items[0].card_charge_id, item.card_charge_id, 'source charge stays linked');
   } finally { await h.close(); }
-});
+}
 
-test('A posted card chase remains open for missing memo or configured fields and closes only on native evidence completion', async () => {
+export async function proveCardEvidenceCompletion() {
   for (const kind of ['memo', 'field', 'policy-field']) {
     const h = await harness();
     try {
@@ -59,4 +58,56 @@ test('A posted card chase remains open for missing memo or configured fields and
       assert.equal((await f.reminders()).length, 3);
     } finally { await h.close(); }
   }
-});
+}
+
+
+export async function proveCardEvidenceEscalations() {
+  const h = await harness();
+  try {
+    const f = await cardChaseFixture(h);
+    await h.post(apiPath('settings', 'business'), { name: 'Harbour & Finch Studio', currency: 'USD', timezone: ['America', 'Chicago'].join('/'), receiptThreshold: '10.00' });
+    await h.post(apiPath('settings', 'reminders'), { days: '1,3,5', quietFrom: '20', quietUntil: '8', escalateAfter: '2' }, f.morgan);
+    const item = (await f.detail()).items[0];
+    assert.equal(item.amount_minor, 1200);
+    const escalations = async () => (await f.detail()).events.filter(e => e.action === 'escalated');
+    const card = events => events.filter(e => e.detail.item.startsWith('card-evidence:'));
+    const draft = events => events.filter(e => e.detail.item.startsWith('unsubmitted:'));
+    // Discover on posting day so both independent tasks share the same clock origin.
+    for (const day of ['2026-06-01', '2026-06-02', '2026-06-04', '2026-06-08']) await f.tick(day);
+    assert.deepEqual((await f.reminders()).map(e => e.detail.step), [1, 2, 3]);
+    assert.deepEqual(await escalations(), [], 'no escalation before the last reminder plus the gap');
+    const expected = [
+      [1, ['priya@harbourfinch.example'], 7],
+      [2, ['jordan@harbourfinch.example', 'morgan@harbourfinch.example'], 9],
+    ];
+    const snapshots = [];
+    for (const day of ['2026-06-10', '2026-06-12']) {
+      await f.tick(day);
+      const events = await escalations();
+      snapshots.push(events);
+      assert.deepEqual(await f.tick(day), []);
+      assert.equal((await escalations()).length, events.length, 'replayed tick never duplicates either escalation');
+    }
+    assert.equal(card(await escalations()).length, 2, 'three reminders must be followed by two missing-receipt escalations');
+    for (const [index, events] of snapshots.entries()) {
+      const projection = rows => rows.map(e => [e.detail.level, e.detail.to, e.detail.businessDays]);
+      assert.deepEqual(projection(draft(events)), expected.slice(0, index + 1), 'unsubmitted claim still escalates independently');
+      assert.deepEqual(projection(card(events)), expected.slice(0, index + 1), 'missing card receipt escalates to manager then finance');
+    }
+    const deliveries = h.outbound.filter(r => r.url === 'https://api.resend.com/emails' && JSON.parse(r.body).subject === 'Escalated: Complete card expense evidence');
+    assert.deepEqual(deliveries.map(d => JSON.parse(d.body).to), expected.map(row => row[1]));
+    assert.equal(new Set(deliveries.map(d => d.headers['idempotency-key'])).size, 2);
+    assert.equal((await f.reminders()).length, 3);
+    await f.attach();
+    await f.tick('2026-06-16');
+    assert.equal(card(await escalations()).length, 2, 'receipt completion stops the evidence escalation');
+    assert.equal((await f.reminders()).length, 3);
+  } finally { await h.close(); }
+}
+
+if (process.argv.includes('--prove-card-chases')) {
+  await proveCardEvidenceReminders();
+  await proveCardEvidenceCompletion();
+  await proveCardEvidenceEscalations();
+  console.log('Posted evidence reminders, completion and escalation passed');
+}

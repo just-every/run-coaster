@@ -1,3 +1,4 @@
+import { proveCardEvidenceReminders, proveCardEvidenceCompletion, proveCardEvidenceEscalations } from './card-chases.mjs';
 // One business-flow test per CONTRACT.md clause, through the public HTTP API
 // with real native sessions, workerd and D1.
 import { test } from 'node:test'
@@ -1373,6 +1374,8 @@ test('ACCT-005 a batch and a period export as CSV and XLSX through a saved colum
 }))
 
 test('FOLLOWUP-001 reminders chase receipts, drafts, holds, questions and decisions on the business days finance sets, never on a holiday or in quiet hours, and stop once done', () => withAgency(async (h, t) => {
+  await proveCardEvidenceReminders();
+  await proveCardEvidenceCompletion();
   await h.post('settings/reminders', { days: '2, 5, 10', quietFrom: '20', quietUntil: '8' }, t.sam, 403)
   await h.post('settings/reminders', { days: '5, 2', quietFrom: '20', quietUntil: '8' }, t.jordan, 400)
   await h.post('settings/reminders', { days: '2, 5, 10', quietFrom: '20', quietUntil: '8' }, t.jordan)
@@ -1431,6 +1434,7 @@ test('FOLLOWUP-001 reminders chase receipts, drafts, holds, questions and decisi
 }))
 
 test('FOLLOWUP-002 an approval past its service level escalates to the approver\'s manager and then finance, a draft past its last reminder to the employee\'s manager and then finance, each recorded, until done', () => withAgency(async (h, t) => {
+  await proveCardEvidenceEscalations();
   const JORDAN = 'jordan@harbourfinch.example', MORGAN = 'morgan@harbourfinch.example', PRIYA = 'priya@harbourfinch.example'
   await h.post('settings/members', { email: PRIYA, name: 'priya', employee: true, manager: true, approver: JORDAN })
   await h.post('settings/reminders', { days: '2, 5, 10', quietFrom: '20', quietUntil: '8', serviceLevel: '3', escalateAfter: '2' }, t.sam, 403)

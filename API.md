@@ -28,6 +28,7 @@ with `actingFor`.
 | `POST claims/:id/receipts` `{version, name, base64, item?}` | its employee | Upload receipt bytes (JPEG, PNG, WebP, HEIC or PDF, at most 1.5 MB). |
 | `POST claims/:id/submit` `{version}` | its employee | Submit the next revision to the approving manager. |
 | `POST claims/:id/decision` `{revision, version, decision: approved\|returned\|rejected, reason, acknowledge}` | the assigned manager | Decide the exact revision. |
+| `POST /api/coaster/approvals/bulk` `{claims: [{id, revision, version, reviewed, acknowledge, override?}]}` | the currently assigned workflow reviewer or live Full delegate, never the claim employee | Approve each of 1–25 distinct reviewed claims through the ordinary decision checks. Each claim commits independently; a 200 response contains `bulkId` and ordered `results` with `id`, `revision`, `approved`, and either `claimStatus` or refusal `status` and `error`. Missing review or exception acknowledgment, stale state, self-approval and unassigned review write nothing to that claim. Successful history records `channel: bulk`, the shared `bulkId` and exact revision. Later workflow stages remain waiting. |
 | `GET receipts/:id` | who may see its claim | The receipt bytes. |
 | `POST requests` `{title, estimate, purpose}` | employee | Ask before spending; routes to their approving manager (or that manager's delegate). |
 | `POST requests/:id/decision` `{version, decision: approved\|rejected, reason}` | the routed approver | Decide the exact request; expenses link to an approved one with `request` and claims show estimate against actual. |
@@ -574,5 +575,9 @@ statement posting date; business quiet hours and holidays still apply. Late disc
 catches up each due step with a distinct durable mail-adapter identity. Replayed ticks
 create no duplicate delivery or reminder history. The native expense edit and receipt
 attachment doors resolve evidence; resolved expenses receive no later chase step.
+Both reminder branches retain the shared escalation service: after the last reminder
+plus the configured gap, the evidence task escalates to its manager, then finance.
+Card evidence uses posting age for these steps; the independent unsubmitted-claim
+task continues to use discovery age. Each task records its own once-only history.
 Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).

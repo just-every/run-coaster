@@ -13,11 +13,11 @@ import { requireBusiness } from './settings';
 import { email, now, optionalText, requireThat, uid, type Actor, type Data } from './types';
 
 /** The assigned manager approves, returns or rejects the exact submitted revision. */
-export async function decide(db: D1Database, actor: Actor, id: string, b: Data) {
+export async function decide(db: D1Database, actor: Actor, id: string, b: Data, context: Data = {}) {
   const workflowClaim = await loadClaim(db, id);
   const frozen = await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(id,workflowClaim.revision).first<{snapshot:string}>();
   const frozenSnapshot = frozen && JSON.parse(frozen.snapshot);
-  if(frozenSnapshot?.workflow) return decideWorkflowClaim(db,actor,workflowClaim,b,frozenSnapshot.workflow,frozenSnapshot);
+  if(frozenSnapshot?.workflow) return decideWorkflowClaim(db,actor,workflowClaim,b,frozenSnapshot.workflow,frozenSnapshot,context);
   need(actor, 'manager');
   requireThat(actor.kind === 'person', 'Only a person decides a claim', 403);
   const claim = await loadClaim(db, id);
@@ -46,7 +46,7 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data) 
     db.prepare('UPDATE c_claims SET status=?,approver_email=?,on_behalf_of=?,version=version+1,updated_at=? WHERE id=?').bind(next ? 'submitted' : b.decision, next?.approver ?? claim.approver_email, next ? next.onBehalfOf : claim.on_behalf_of, at, claim.id),
     ...(next ? [advanceChain(db, chain!)] : []),
     ...(b.decision === 'approved' && !next ? [auditSample(db, claim.id, claim.revision)] : []),
-    event(db, actor, next ? 'claim-step-approved' : `claim-${b.decision}`, { claim: claim.id }, { revision: claim.revision, ...(chain ? { step: chain.position + 1, steps: chain.steps.length, nextApprover: next?.approver ?? null } : {}), reason: recorded, preApprovalOverride: override, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf }),
+    event(db, actor, next ? 'claim-step-approved' : `claim-${b.decision}`, { claim: claim.id }, { ...context, revision: claim.revision, ...(chain ? { step: chain.position + 1, steps: chain.steps.length, nextApprover: next?.approver ?? null } : {}), reason: recorded, preApprovalOverride: override, exceptionsAcknowledged: b.decision === 'approved' ? exceptions.length : 0, onBehalfOf }),
   ]);
   return loadClaim(db, id);
 }

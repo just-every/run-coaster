@@ -39,6 +39,7 @@ export const groups = {
   ],
   'policy-review': [
     { evidence: 'card-chases', commands: [['tests/browser-card-chases.mjs']] },
+    { evidence: 'bulk-approvals', commands: [['tests/browser-bulk-approvals.mjs']] },
     { evidence: 'bank-archive', commands: [['tests/bank-archive.mjs']] },
     {"evidence": "policy-review", "commands": [["tests/browser-policy-review.mjs"]]},
   ],
