@@ -1,6 +1,8 @@
 // Real CLI export and restore over the exact D1 state written by the production Worker.
 // Run through the owning heavy slot after committing the candidate: node tests/payroll-archive.mjs
 import assert from 'node:assert/strict';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fresh, command } from './browser-runtime.mjs';
@@ -20,6 +22,10 @@ async function roundTrip(stage) {
   try {
     const [source, destination] = await Promise.all([fresh(), fresh()]);
     roots.push(source, destination);
+    for(const root of roots){
+      await promisify(execFile)('git',['config','user.name','Run Edit Run fleet'],{cwd:root});
+      await promisify(execFile)('git',['config','user.email','fleet@runeditrun.com'],{cwd:root});
+    }
     await Promise.all(roots.map(root => command(root, ['install'])));
     const edge = gustoFixture();
     // portability-worker.mjs uses getPlatformProxy with this versioned directory;
@@ -75,6 +81,15 @@ async function roundTrip(stage) {
     assert.deepEqual(rows(restored), rows(exported), 'every portable row survives the real CLI export → import → export unchanged');
     assert.deepEqual(numbered(tableRows(restored, 'c_events')), history, 'exact history sequence, provenance and details survive restore');
     assert.deepEqual(tableRows(restored, 'c_payroll_handoffs'), [handoff], `${stage} financial evidence survives without provider authority`);
+    h = await harness({persistencePath:join(destination,'.wrangler/state/v3'),databaseId:'local-foundation-only',initialized:true,gustoEdge:request=>edge.fetch(request)});
+    const beforeExecution=await h.db.prepare('SELECT * FROM c_payroll_handoffs').first();
+    const calls=h.outbound.length;
+    await h.post(path,{version:batch.version,payroll:edge.payrollId,consent:true},h.owner,409);
+    await h.post(path+'/confirm',{},h.owner,409);
+    assert.equal(h.outbound.length,calls,'restored evidence cannot contact the provider without a newly authorized connection');
+    assert.deepEqual(await h.db.prepare('SELECT * FROM c_payroll_handoffs').first(),beforeExecution,'refused restored HTTP execution preserves the exact financial evidence');
+    assert.equal((await h.get(['payroll','gusto'].join('/'))).connection,null);
+    await h.close();h=undefined;
     await Promise.all([
       copyFile(archive, join(evidence, `payroll-${stage}.rer`)),
       copyFile(join(destination, 'exports/restored-payroll.rer'), join(evidence, `payroll-${stage}-restored.rer`)),
