@@ -187,9 +187,10 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
     assert.ok(before);
     assert.ok(h.outbound.filter(r=>r.url.startsWith('https://api.gusto-demo.com')).every(r=>r.method==='GET'&&!r.body));
   }finally{await h.close();}
+  await fullDelegationAuthority();
 });
 
-test('HRIS Full delegation follows current grantor authority across connection, review, apply and revocation',async()=>{
+async function fullDelegationAuthority(){
   const edge=hrisFixture(),h=await harness({gustoEdge:r=>edge.fetch(r)});
   try{
     await setupHris(h,edge);
@@ -252,8 +253,11 @@ test('HRIS Full delegation follows current grantor authority across connection, 
     assert.equal((await send('/sync',body)).status,403);assert.equal(h.outbound.length,requests);assert.equal(await snapshot(),before);
     assert.equal((await send('/preview')).status,200,'connection review survives loss of People authority');
     await h.post(['settings','members'].join('/'),{email:grantor,name:'Admin again',employee:true,admin:true});
-    // Revocation during provider I/O must fence the commit as well as the next request.
+    // Revocation during a provider request must fence the commit as well as the next request.
     const grant=await h.post('delegates',{grantor,delegate:delegateAddress,level:'full'});
+    await applyHris(h,edge.employees[0]);
+    const ready=await send('/preview');
+    assert.equal((await send('/sync',{...body,fingerprint:ready.value.fingerprint})).status,200,'the same actor and target can execute before withdrawal');
     const fresh=await send('/preview');
     edge.hold=async request=>{if(new URL(request.url).pathname.endsWith('/employees')){edge.hold=null;await h.post(`delegates/${grant.id}/revoke`,{});}};
     const mappings=(await h.db.prepare('SELECT COUNT(*) n FROM c_hris_mappings').first()).n;
@@ -274,4 +278,4 @@ test('HRIS Full delegation follows current grantor authority across connection, 
     }
     assert.equal(h.outbound.length,noRequest);assert.equal(await snapshot(),noWrite);
   }finally{await h.close();}
-});
+}

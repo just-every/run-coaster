@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "e55e18279b3d69804cc9215ea3da785eaafa28f231b5d919b3a68112075c8570",
+      "sha256": "8d6539b9cd24fae420cd0b240252bae722bb5728b7034980f326c326410b566b",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6a95d93d450b3bf9372fd16fe5aff757371b984d71ae86045d04f995d6f833d5",
+      "sha256": "4b44b10535a3af1b76e306fd1477231889acd8a3aea70758d05d03341e3b4788",
       "executable": false
     },
     "DEMO.md": {
@@ -360,11 +360,15 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "c5ea87e63fbc6c2fbc45a407754b5f54a9397e59d59308edb9644a541a912173",
+      "sha256": "68bb5846a85649e11671a4b61975c750dded3ca5074fb2ac15b4d5d36627c8c9",
       "executable": false
     },
     "docs/deploy.md": {
       "sha256": "f5bc8a69b57355c88f3b51b8db231640c8dbde491f86c6b65c896ca1a663f596",
+      "executable": false
+    },
+    "docs/evidence/admin002-authority.md": {
+      "sha256": "015cf00acc683d03f94de93a89d11164dfd779250d17d39edf08c3ad250522d4",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -4592,7 +4596,7 @@
       "executable": false
     },
     "tests/coaster-hris.test.mjs": {
-      "sha256": "1bb9934d042412ef901103cf051c42b944d88620ec90cef30775cf56b03aeaad",
+      "sha256": "c0bd119cada82af2c69016d539dbf3f1fa8d1829f45c14c4a6fb95871aca81d7",
       "executable": false
     },
     "tests/coaster-import-configuration.test.mjs": {
