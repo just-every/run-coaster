@@ -6756,7 +6756,7 @@
       "executable": false
     },
     "tests/statement-archive.mjs": {
-      "sha256": "c44d0c2a844f16512771fe3dbc50e5cbcedee0c33816d9d7dab46aec1399b2e2",
+      "sha256": "c9f097d524cf8e861fb32d9f86b0cdd88cb34fcbbd3d458faef5ca2fe14478e4",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {

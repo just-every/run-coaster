@@ -140,13 +140,17 @@ export async function rejectUnsafeStatementArchives(destination, archive, { part
   ];
   for (const [index, entry] of cases.entries()) {
     if (index % of !== part) continue;
+    // Statement ids are random: an unrelated reconciliation fixture may have no timestamp to corrupt.
+    const fixture = statementPrivacyFixtures('unused').find(fixture => fixture.input.format === entry.format);
     const invalid = await tampered(archive, 'c_statement_files', row => {
+      const original = JSON.stringify(row);
       if (entry.metadata) entry.metadata(row);
       else {
         const body = Buffer.from(entry.change(Buffer.from(row.bytes.blob, 'base64').toString('utf8')));
         row.bytes.blob = body.toString('base64'); row.size = body.length; row.sha256 = createHash('sha256').update(body).digest('hex');
       }
-    }, row => row.format === entry.format);
+      assert.notEqual(JSON.stringify(row), original, `${entry.code} must change the selected statement`);
+    }, row => row.format === entry.format && row.name === fixture.name);
     const name = `exports/statement-${entry.code}.rer`;
     await writeFile(join(destination, name), invalid, { mode: 0o600 });
     const log = await command(destination, ['import', '--input', name, '--yes'], { expected: 4 });
