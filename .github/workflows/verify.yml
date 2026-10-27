@@ -90,7 +90,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - run: pnpm run verify
 
   coaster_flows:
@@ -113,7 +121,15 @@ jobs:
       - run: pnpm run deps
       - name: HTTP flow suite, second half
         run: pnpm run test:coaster
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Payroll screens and financial archive
         run: |
           node tests/browser-payroll.mjs
@@ -145,7 +161,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Receipt intake, merchant questions, email answers and exact restoration
         run: |
           node tests/browser-email.mjs
@@ -184,7 +208,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Browser journeys, restore and fresh-clone verbs
         run: node tests/browser.mjs
         env:
@@ -222,7 +254,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Receipt inbox journeys, lifecycle archive refusals and restore
         run: node tests/capture.mjs
         env:
@@ -256,7 +296,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Keyboard-only journeys and axe on every main screen
         run: node tests/accessibility.mjs
         env:
@@ -287,7 +335,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Cash-window screens, scheduled drafts and archive replay
         run: node tests/capture-cash.mjs
         env:
@@ -318,7 +374,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Combined 300-expense detector acceptance
         run: node tests/policy-signals-scale.mjs
       - name: Receipt/spend signal evidence, review and payment screens
@@ -355,7 +419,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Card matching consent, questions, undo and archive replay
         run: node tests/card-matching.mjs
         env:
@@ -387,7 +459,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Complete policy-agent coding corpus
         run: node tests/automatic-coding-quality.mjs --policy-agent
       - name: Policy envelopes, mixed approvals, agreement, revocation and archive authority
@@ -453,7 +533,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      - run: bash scripts/ci/install-browser.sh
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - name: Provider costs, private receipt questions and archive integrity
         run: |
           node tests/browser-reading.mjs
