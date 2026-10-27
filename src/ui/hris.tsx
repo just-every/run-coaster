@@ -3,14 +3,15 @@ import { call, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 const root = ['hris','gusto'].join('/');
 
-export function HrisSettings({ reload, canSync }: { reload: () => Promise<unknown>; canSync: boolean }) {
+export function HrisSettings({ reload, canSync, personal }: { reload: () => Promise<unknown>; canSync: boolean; personal: boolean }) {
   const [status,setStatus]=useState<D>(),[review,setReview]=useState<D>(),[notice,setNotice]=useState('');
   const load=async()=>setStatus(await call(root));
   useEffect(()=>{load().catch(e=>setNotice(e.message));},[]);
   return <Section title="Gusto roster" label="Gusto HRIS roster">
     <p className="muted">Review one sandbox employee at a time. New hires receive only employee access. Existing roles stay as assigned in People. Card freezing requires an issuing connection and is unavailable here.</p>
     <p role="status">{notice}</p>
-    {status && !status.connection && <Form label="Connect HRIS sandbox" onSubmit={async(v,form)=>{
+    {!personal && <p className="muted">You may review the connected roster for your grantor. Provider consent and custody require their own session; scoped delegated execution remains unavailable.</p>}
+    {personal && status && !status.connection && <Form label="Connect HRIS sandbox" onSubmit={async(v,form)=>{
       await call(root+'/connect',{company:v.company,token:v.token,consent:!!v.consent});form.reset();await load();setNotice('HRIS connected. Review the roster before applying changes.');
     }}>
       <Field label="HRIS company UUID" name="company" autoComplete="off" />
@@ -32,10 +33,10 @@ export function HrisSettings({ reload, canSync }: { reload: () => Promise<unknow
           <Field label={'I confirmed the identity and change for '+person.name} name="consent" type="checkbox" />
         </Form> : <p className="muted">An owner or admin must apply this reviewed roster change.</p>}
       </div>) : <Empty title="No roster employees">No native person is changed by an empty provider roster.</Empty>)}
-      <div className="sub-form"><Form label="Disconnect HRIS" onSubmit={async v=>{
+      {personal && <div className="sub-form"><Form label="Disconnect HRIS" onSubmit={async v=>{
         if(!v.consent)throw new Error('Confirm disconnection first.');
         await call(root+'/disconnect',{});setReview(undefined);await load();setNotice('HRIS disconnected. Native people and numbered history remain.');
-      }}><Field label="Disconnect this HRIS company" name="consent" type="checkbox" /></Form></div>
+      }}><Field label="Disconnect this HRIS company" name="consent" type="checkbox" /></Form></div>}
     </>}
   </Section>;
 }

@@ -62,6 +62,26 @@ try{
       await capture('terminated');
       const account=page.locator('.account-menu summary');
       if(width<1024)await tooltipProof(page,account);
+      const grantor='synthetic-coaster-850@example.invalid',delegateAddress='synthetic-coaster-851@example.invalid';
+      await h.person(grantor,{employee:true,admin:true});
+      const delegateCookie=await h.person(delegateAddress,{employee:true});
+      await h.post('delegates',{grantor,delegate:delegateAddress,level:'full'});
+      const signIn=async cookie=>{const split=cookie.indexOf('=');await context.clearCookies();await context.addCookies([{name:cookie.slice(0,split),value:cookie.slice(split+1),url:h.origin,httpOnly:true,sameSite:'Lax'}]);};
+      await signIn(delegateCookie);await page.goto(h.origin+'/app#/claims');
+      await page.locator('.account-menu summary').click();
+      await page.getByRole('button',{name:grantor.split('@')[0],exact:true}).click();
+      await page.goto(h.origin+'/app#/settings');
+      await panel.getByRole('button',{name:'Review HRIS roster',exact:true}).click();
+      await expect(panel.getByRole('heading',{name:'Alex Hire · Terminated',exact:true})).toBeVisible();
+      if(width===1440){
+        await expect(panel.getByRole('button',{name:'Disconnect HRIS',exact:true})).toHaveCount(0);
+        await expect(panel.getByRole('button',{name:/^Sync /})).toHaveCount(0);
+        await expect(panel.getByLabel('HRIS access token')).toHaveCount(0);
+      }
+      await capture('delegate-review');
+      if(width<1024)await tooltipProof(page,page.locator('.account-menu summary'));
+      await page.evaluate(()=>sessionStorage.removeItem('coaster-acting-for'));
+      await signIn(h.owner);await page.reload();
       await panel.getByLabel('Disconnect this HRIS company').check();
       await submit('Disconnect HRIS','/disconnect');
       await expect(panel.getByRole('button',{name:'Connect HRIS sandbox',exact:true})).toBeVisible();

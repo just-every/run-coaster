@@ -586,10 +586,13 @@ no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-
 ## Reviewed Gusto HRIS roster
 
 The native HRIS connection is separate from the owner-only payroll connection.
-An owner, admin or finance member, or their currently authorized Full delegate,
-may connect and disconnect through the ADMIN-001 connection row. Applying a
-roster change additionally requires the People row: owner, admin or their live
-Full delegate. Finance connection rights alone confer no People writes. Other roles
+An owner, admin or finance member may connect and disconnect in their own native
+session through the ADMIN-001 connection row. A live Full delegate may review
+the connected roster but cannot supply personal consent or custody. Applying a
+roster change currently requires the person's own People authority: owner or
+admin. Finance operation of an owner-approved mapping and scoped delegated
+execution remain unimplemented requirements. Finance connection rights alone
+confer no People writes. Other roles
 are refused before provider traffic. Every provider request rechecks current
 authority; every sync brackets its complete native transaction with authority
 and exact roster guards.
