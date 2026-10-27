@@ -18,7 +18,6 @@ function access(actor: Actor) {
 }
 function syncAccess(actor: Actor) {
   access(actor);
-  requireThat(!actor.delegate, 'Scoped delegated roster execution is not available; review and prepare only', 403);
   needRow(actor, 'people');
   return rowAuthority(actor, 'people');
 }
@@ -33,7 +32,6 @@ export async function hrisStatus(env: Bindings, actor: Actor) {
 }
 export async function connectHris(env: Bindings, actor: Actor, b: Data) {
   const auth = access(actor);
-  requireThat(!actor.delegate, 'HRIS provider consent and custody require your own native session', 403);
   requireThat(b.consent === true, 'Explicit consent to read this Gusto sandbox roster is required');
   requireThat(!await connection(env), 'Disconnect the current HRIS company first', 409);
   const company = providerId(b.company), token = text(b.token, 'Gusto sandbox token', 4000);
@@ -48,7 +46,6 @@ export async function connectHris(env: Bindings, actor: Actor, b: Data) {
 }
 export async function disconnectHris(env: Bindings, actor: Actor, b: Data) {
   const auth = access(actor);
-  requireThat(!actor.delegate, 'HRIS provider custody requires your own native session', 403);
   const c = await connection(env);
   requireThat(c, 'HRIS is not connected', 409);
   requireThat(b.consent === true && b.company === c.company_uuid, 'Explicit consent for this HRIS company is required');
@@ -85,7 +82,7 @@ async function review(env: Bindings, actor: Actor, writing = false) {
   const mappingSnapshot = (await env.DB.prepare(mappingQuery).first<{value:string}>())!.value;
   const members: Data[] = JSON.parse(memberSnapshot), mappings: Data[] = JSON.parse(mappingSnapshot);
   await current(env,actor,c,writing);
-  return {c,employees,members,mappings,memberSnapshot,mappingSnapshot,fingerprint:await sha256Hex(JSON.stringify([c.company_uuid,employees,members,mappings]))};
+  return {c,employees,members,mappings,memberSnapshot,mappingSnapshot,fingerprint:await sha256Hex(JSON.stringify([c.company_uuid,employees,members,mappings,actor.email,actor.delegate?.email,actor.delegate?.grant]))};
 }
 export async function previewHris(env: Bindings, actor: Actor) {
   const {employees,members,mappings,fingerprint} = await review(env,actor);

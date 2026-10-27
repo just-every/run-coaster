@@ -3,15 +3,15 @@ import { call, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 const root = ['hris','gusto'].join('/');
 
-export function HrisSettings({ reload, canSync, personal }: { reload: () => Promise<unknown>; canSync: boolean; personal: boolean }) {
+export function HrisSettings({ reload, canSync, delegated }: { reload: () => Promise<unknown>; canSync: boolean; delegated: boolean }) {
   const [status,setStatus]=useState<D>(),[review,setReview]=useState<D>(),[notice,setNotice]=useState('');
   const load=async()=>setStatus(await call(root));
   useEffect(()=>{load().catch(e=>setNotice(e.message));},[]);
   return <Section title="Gusto roster" label="Gusto HRIS roster">
     <p className="muted">Review one sandbox employee at a time. New hires receive only employee access. Existing roles stay as assigned in People. Card freezing requires an issuing connection and is unavailable here.</p>
     <p role="status">{notice}</p>
-    {!personal && <p className="muted">You may review the connected roster for your grantor. Provider consent and custody require their own session; scoped delegated execution remains unavailable.</p>}
-    {personal && status && !status.connection && <Form label="Connect HRIS sandbox" onSubmit={async(v,form)=>{
+    {delegated && <p className="muted">You are acting for your grantor under their current authority. Connect only with provider access you are authorized to use. Every change records you and your grantor.</p>}
+    {status && !status.connection && <Form label="Connect HRIS sandbox" onSubmit={async(v,form)=>{
       await call(root+'/connect',{company:v.company,token:v.token,consent:!!v.consent});form.reset();await load();setNotice('HRIS connected. Review the roster before applying changes.');
     }}>
       <Field label="HRIS company UUID" name="company" autoComplete="off" />
@@ -31,12 +31,12 @@ export function HrisSettings({ reload, canSync, personal }: { reload: () => Prom
           <Field label={'Coaster email for '+person.name} name="email" type="email" defaultValue={review.mappings.find((m:D)=>m.employee_uuid===person.employee)?.email ?? person.email ?? ''} />
           {person.terminated && <Field label={'Successor for '+person.name} name="successor" required={false} hint="Leave empty to use the approving manager." options={[...review.members.filter((m:D)=>m.active).map((m:D)=>({value:m.email,label:m.name}))]} />}
           <Field label={'I confirmed the identity and change for '+person.name} name="consent" type="checkbox" />
-        </Form> : <p className="muted">An owner or admin must apply this reviewed roster change.</p>}
+        </Form> : <p className="muted">An owner, admin or their live Full delegate must apply this reviewed roster change.</p>}
       </div>) : <Empty title="No roster employees">No native person is changed by an empty provider roster.</Empty>)}
-      {personal && <div className="sub-form"><Form label="Disconnect HRIS" onSubmit={async v=>{
+      <div className="sub-form"><Form label="Disconnect HRIS" onSubmit={async v=>{
         if(!v.consent)throw new Error('Confirm disconnection first.');
         await call(root+'/disconnect',{company:status.connection.company_uuid,consent:true});setReview(undefined);await load();setNotice('HRIS disconnected. Native people and numbered history remain.');
-      }}><Field label="Disconnect this HRIS company" name="consent" type="checkbox" /></Form></div>}
+      }}><Field label="Disconnect this HRIS company" name="consent" type="checkbox" /></Form></div>
     </>}
   </Section>;
 }

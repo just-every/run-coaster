@@ -375,6 +375,10 @@ api.post('/api/coaster/plaid/link', as(async(a,c)=>createPlaidLink(runtimeBindin
 api.post('/api/coaster/plaid/exchange', as(async(a,c)=>exchangePlaidLink(runtimeBindings(c.env),a,await body(c))));
 api.post('/api/coaster/plaid/connections/:id/disconnect', as(async(a,c)=>disconnectPlaid(runtimeBindings(c.env),a,param(c,'id'))));
 
+api.use('/api/coaster/hris/*', async(c,next)=>{
+  requireThat(!c.req.header('authorization'), 'HRIS requires your own native session, not an agent credential', 403);
+  await next();
+});
 api.get('/api/coaster/hris/gusto', as(async(a,c)=>hrisStatus(runtimeBindings(c.env),a)));
 api.post('/api/coaster/hris/gusto/connect', as(async(a,c)=>connectHris(runtimeBindings(c.env),a,await body(c))));
 api.post('/api/coaster/hris/gusto/disconnect', as(async(a,c)=>disconnectHris(runtimeBindings(c.env),a,await body(c))));

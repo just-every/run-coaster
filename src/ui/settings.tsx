@@ -87,7 +87,7 @@ export function Settings({ state, reload }: ViewProps) {
     {b && roles.employee && !state.actor.delegate && <MyBank name={state.actor.name} />}
     {b && (owner || roles.finance) && !state.actor.delegate && <BankPeople />}
     {b && owner && !state.actor.delegate && <BankProviders />}
-    {b && (owner || roles.admin || roles.finance) && <HrisSettings reload={reload} canSync={!state.actor.delegate && (owner || roles.admin)} personal={!state.actor.delegate} />}
+    {b && (owner || roles.admin || roles.finance) && <HrisSettings reload={reload} canSync={owner || roles.admin} delegated={!!state.actor.delegate} />}
     {b && owner && !state.actor.delegate && <PayrollSettings members={state.members} />}
     {b && !state.actor.delegate && (admin || roles.finance) && <ProgramFeed state={state} />}
     {b && owner && !state.actor.delegate && <ProviderCosts />}

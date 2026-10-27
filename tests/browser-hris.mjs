@@ -3,7 +3,7 @@ import {mkdir} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {chromium,expect} from '@playwright/test';
 import {harness} from './harness.mjs';
-import {hrisFixture,hrisRoot} from './hris-kit.mjs';
+import {hrisAddress,hrisFixture,hrisRoot} from './hris-kit.mjs';
 import {payrollBrowserRuntime,noOverflow,tooltipProof} from './payroll-browser-runtime.mjs';
 const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/hris-proof');
 await mkdir(evidence,{recursive:true});
@@ -62,7 +62,7 @@ try{
       await capture('terminated');
       const account=page.locator('.account-menu summary');
       if(width<1024)await tooltipProof(page,account);
-      const grantor='synthetic-coaster-850@example.invalid',delegateAddress='synthetic-coaster-851@example.invalid';
+      const grantor=hrisAddress('850'),delegateAddress=hrisAddress('851');
       await h.person(grantor,{employee:true,admin:true});
       const delegateCookie=await h.person(delegateAddress,{employee:true});
       await h.post('delegates',{grantor,delegate:delegateAddress,level:'full'});
@@ -76,11 +76,30 @@ try{
       await panel.getByRole('button',{name:'Review HRIS roster',exact:true}).click();
       await expect(panel.getByRole('heading',{name:'Alex Hire · Terminated',exact:true})).toBeVisible();
       if(width===1440){
-        await expect(panel.getByRole('button',{name:'Disconnect HRIS',exact:true})).toHaveCount(0);
-        await expect(panel.getByRole('button',{name:/^Sync /})).toHaveCount(0);
+        await expect(panel.getByRole('button',{name:'Disconnect HRIS',exact:true})).toBeVisible();
+        await expect(panel.getByRole('button',{name:'Sync Alex Hire',exact:true})).toBeVisible();
         await expect(panel.getByLabel('HRIS access token')).toHaveCount(0);
       }
       await capture('delegate-review');
+      await panel.getByRole('checkbox',{name:'I confirmed the identity and change for Alex Hire',exact:true}).check();
+      await panel.getByLabel('Successor for Alex Hire',{exact:true}).selectOption(edge.employees[0].email);
+      await submit('Sync Alex Hire','/sync');
+      await capture('delegate-applied');
+      await panel.getByLabel('Disconnect this HRIS company').check();
+      await submit('Disconnect HRIS','/disconnect');
+      await capture('delegate-disconnected');
+      await panel.getByLabel('HRIS company UUID').fill(edge.company);
+      await panel.getByLabel('HRIS access token').fill('synthetic-coaster-810');
+      await panel.getByRole('checkbox',{name:/I authorize reading this sandbox/}).check();
+      await submit('Connect HRIS sandbox','/connect');
+      await capture('delegate-connected');
+      // A finance grantor remains able to review, without roster-write controls.
+      await h.post(['settings','members'].join('/'),{email:grantor,name:grantor.split('@')[0],employee:true,finance:true});
+      await page.reload();
+      await panel.getByRole('button',{name:'Review HRIS roster',exact:true}).click();
+      await expect(panel.getByRole('heading',{name:'Alex Hire · Terminated',exact:true})).toBeVisible();
+      if(width===1440)await expect(panel.getByRole('button',{name:/^Sync /})).toHaveCount(0);
+      await capture('finance-delegate-review');
       if(width<1024)await tooltipProof(page,page.locator('.account-menu summary'));
       await page.evaluate(()=>sessionStorage.removeItem('coaster-acting-for'));
       await signIn(h.owner);await page.reload();
