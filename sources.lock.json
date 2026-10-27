@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "01f3a41dd19e0239ac1f04e5b4bb2f70cd8bc94230cad1dac1b0bef6cb40c015",
+      "sha256": "5901cc8d004d7f5e0be6bd56319942c0a42129fa605f1cbef254d1916b043f18",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "4200326ab7c59c85999839f25b97460de74fb49a92a71a92b594cf572f043d9a",
+      "sha256": "58773e73a29f6ff1cb0fa9db5080b0c9eb7165e48636a7b9928e79d6c9f89c40",
       "executable": false
     },
     "base-copies.json": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "43e3dab1849a520051722a3ed77b43a2708121f0a714a367ae3beeef6f471790",
+      "sha256": "68eca7fb67ed262edb54b83356359a6acff0bd0adc37ea58cbb2ce257b877ca0",
       "executable": false
     },
     "DEMO.md": {
@@ -4471,6 +4471,10 @@
       "sha256": "4875546c322c4c374573bdde70f7b9aa4f2ade58a5b59e763fb6fb2dd0683693",
       "executable": false
     },
+    "tests/coaster-plaid.test.mjs": {
+      "sha256": "bf8cedeb4c2e7f15cd4791e9df46862b68b6c3c60c417ff495acae65b550945e",
+      "executable": false
+    },
     "tests/coaster-policy-advice.test.mjs": {
       "sha256": "5d42c3ce66c30b068c2b1e2ed9652f58d09f1e047f75e5d4e3c54705c03d9c1a",
       "executable": false
@@ -6620,11 +6624,11 @@
       "executable": false
     },
     "tests/plaid-native.mjs": {
-      "sha256": "8a14bc58b846ea132c9207d7b00b8eadce7298e951bf31b0993b1736019c0741",
+      "sha256": "053fe4677c85c0b987b18078203195ba2e9c9569ee67e5bfd5226f9754cf35c0",
       "executable": false
     },
     "tests/plaid-sandbox.mjs": {
-      "sha256": "e66675072aa04f09219ddee92f20891f3b7e2ac2d09db140fccc831ab95b667b",
+      "sha256": "365048b7a9f90292dfa476587fb870d51f37a09ad7953b9c814101099363f7bf",
       "executable": false
     },
     "tests/policy-signals-browser.mjs": {

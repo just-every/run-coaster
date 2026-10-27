@@ -60,6 +60,10 @@ export async function companyPlaidJourney(){
     const events=(await h.db.prepare("SELECT * FROM c_events WHERE action LIKE 'plaid-%' ORDER BY seq").all()).results;
     assert.deepEqual(events.map(e=>e.action),['plaid-settings-saved','plaid-link-started','plaid-link-started','plaid-exchange-reserved','plaid-connection-pending','plaid-accounts-verified','plaid-connected']);
     assert.ok(events.every((e,i)=>e.actor_email && e.at && (!i || e.seq>events[i-1].seq)));
+    const visibleHistory=(await h.get('history')).lines.filter(e=>e.action.startsWith('plaid-'));
+    assert.deepEqual(visibleHistory.map(e=>[e.seq,e.action,e.actor_email,e.channel]),events.map(e=>[e.seq,e.action,e.actor_email,'app']));
+    for(const method of ['PUT','PATCH','DELETE'])assert.notEqual((await h.mf.dispatchFetch(h.origin+'/api/coaster/history/'+events[0].id,{method,headers:{cookie:h.owner,origin:h.origin,'content-type':'application/json'},body:'{}'})).status,200);
+    assert.deepEqual((await h.get('history')).lines.filter(e=>e.action.startsWith('plaid-')).map(e=>e.seq),events.map(e=>e.seq));
     await assert.rejects(h.db.prepare('DELETE FROM c_events WHERE id=?').bind(events[0].id).run(),/history is permanent/);
     await assert.rejects(h.db.prepare("UPDATE c_events SET action='changed' WHERE id=?").bind(events[0].id).run(),/history is permanent/);
     edge.failRemove=true;
@@ -138,5 +142,5 @@ export async function personalPlaidJourney(){
 if(process.argv.includes('--run')) {
   await companyPlaidJourney();
   await personalPlaidJourney();
-  console.log(JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),companyPlaidJourney:'PASS',personalPlaidJourney:'PASS',verifyCoverage:'manual journey; not loaded by push Verify'}));
+  console.log(JSON.stringify({source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),companyPlaidJourney:'PASS',personalPlaidJourney:'PASS',verifyCoverage:'tests/coaster-plaid.test.mjs in the mandatory HTTP flow suite'}));
 }

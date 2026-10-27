@@ -393,7 +393,7 @@ Native finance sessions use `GET investigations` for connected POLICY-002 eviden
 
 ## Provider costs and receipt questions
 
-Native owners read or version model rates with `GET/POST settings/provider-costs` (`version`, `model`, `inputPerMillion`, `outputPerMillion`, `reservePerPage`, `monthlyCap`; empty cap is unlimited, zero pauses optional AI). Costs are USD estimates from reported tokens. The monthly check includes settled estimates and outstanding reservations for both reading and coding. Unknown outcomes retain their reservation; metered overruns are fully recorded and stop later requests. Manual claims and coding remain available. Pricing and usage without account details round-trip in the installation archive.
+Native owners read or version model rates with `GET or POST /api/coaster/settings/provider-costs` (`version`, `model`, `inputPerMillion`, `outputPerMillion`, `reservePerPage`, `monthlyCap`; empty cap is unlimited, zero pauses optional AI). Costs are USD estimates from reported tokens. The monthly check includes settled estimates and outstanding reservations for both reading and coding. Unknown outcomes retain their reservation; metered overruns are fully recorded and stop later requests. Manual claims and coding remain available. Pricing and usage without account details round-trip in the installation archive.
 
 The employee or live delegate reads `GET receipt-inbox/:id/question` and confirms with `POST` carrying `{questionId, expectedSequence, expectedReadingSequence, version, values, consent:true}`. `values` must explicitly confirm total, currency and every conflicting field (tip, subtotal and sales tax can also be confirmed with a total conflict). One current question shows the reading, posted card values and original source regions. Confirmation atomically appends private reading history and records the confirmed comparison on an editable expense. It never changes the card statement amount, submits or pays. Questions stop when answered or no longer editable; FOLLOWUP-001 uses its business-day reminder schedule.
 
@@ -511,6 +511,11 @@ Link screens, account assignment, receipt matching, recurring metering, provider
 erasure follow-up and full restored-history proof remain FEED-001 work. The
 complete target remains binding. Production Plaid hosts are not accepted.
 
-The bounded native assertions run manually with `node tests/plaid-native.mjs --run`.
-They are not loaded by push Verify; FEED-001 remains partial. The existing
-provider archive journey carries the mandatory CLI restore proof.
+The bounded native assertions in `tests/plaid-native.mjs` are registered by
+`tests/coaster-plaid.test.mjs` in the mandatory push Verify HTTP flow suite.
+Run the touched tests with `node --test tests/coaster-plaid.test.mjs`.
+The held-key `tests/plaid-sandbox.mjs` journey records its source SHA and verifies
+company and personal card connection, admin authority, four refused roles,
+costs, the owner cap, continued manual claims and confirmed item removal.
+It does not implement or prove transaction sync. FEED-001 remains partial.
+The existing provider archive journey carries the mandatory CLI restore proof.
