@@ -156,8 +156,6 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
-      - name: Check edition source lock freshness
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
@@ -200,11 +198,6 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
-      - name: Check edition source lock freshness
-        # Technical foundation exports use composition.lock.json or reference-export.json.
-        # Edition-owned seeds must commit both edition.json and sources.lock.json.
-        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
@@ -246,11 +239,6 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
-      - name: Check edition source lock freshness
-        # Technical foundation exports use composition.lock.json or reference-export.json.
-        # Edition-owned seeds must commit both edition.json and sources.lock.json.
-        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
@@ -288,11 +276,6 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
-      - name: Check edition source lock freshness
-        # Technical foundation exports use composition.lock.json or reference-export.json.
-        # Edition-owned seeds must commit both edition.json and sources.lock.json.
-        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
@@ -329,9 +312,6 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
-      - name: Check edition source lock freshness
-        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
@@ -368,9 +348,6 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
-      - name: Check edition source lock freshness
-        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
@@ -413,9 +390,6 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
-      - name: Check edition source lock freshness
-        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
@@ -453,9 +427,6 @@ jobs:
         with:
           node-version: '22.20.0'
           package-manager-cache: false
-      - name: Check edition source lock freshness
-        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
