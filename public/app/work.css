@@ -9,7 +9,7 @@
 .tile { min-width: 0; min-height: 84px; padding: 12px 18px 10px; border: 1px solid var(--app-hairline); border-radius: 10px; background: #fff; }
 .tile-label { margin: 0 0 2px; font-size: 15px; }
 .tile-value { display: block; font: 700 30px/1.1 var(--font-body); letter-spacing: -.01em; }
-.tile-note { display: block; margin-top: 2px; color: var(--soft); font-size: 12.5px; }
+.tile-note { display: block; margin-top: 2px; color: var(--soft); font-size: 13px; }
 .tile.wash { border-color: var(--app-tile-edge); background: var(--app-tile-wash); }
 .tile.wash .tile-label { font-weight: 600; }
 .tile.wash .tile-note { color: #2c5a12; }
@@ -29,7 +29,7 @@
 
 .table-wrap { min-width: 0; }
 .data { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13.5px; }
-.data th { padding: 8px 10px 10px; color: var(--app-label); font-size: 12px; font-weight: 400; text-align: left; white-space: nowrap; }
+.data th { padding: 8px 10px 10px; color: var(--app-label); font-size: 13px; font-weight: 400; text-align: left; white-space: nowrap; }
 .data th.figure { text-align: right; }
 .sort { display: inline-flex; align-items: center; gap: 6px; padding: 2px 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
 .sort:hover { color: var(--ink); }
@@ -38,7 +38,7 @@
 [aria-sort=ascending] .sort-mark svg:first-child, [aria-sort=descending] .sort-mark svg:last-child { color: var(--ink); }
 .data td { height: 46px; padding: 4px 10px; border-bottom: 1px solid var(--app-hairline-soft); vertical-align: middle; overflow-wrap: anywhere; }
 .data td.figure { font-size: 15px; padding-right: 16px; }
-.data .sub { display: block; margin-top: 0; color: var(--soft); font-size: 12px; }
+.data .sub { display: block; margin-top: 0; color: var(--soft); font-size: 13px; }
 .data .soft { color: var(--app-label); }
 .data .person { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .data .person span:last-child { min-width: 0; }
@@ -68,10 +68,10 @@
 @media (min-width: 1024px) and (max-width: 1279px) {
   .page-head h1 { font-size: 40px; }
   .page-head h1 + p { font-size: 15.5px; }
-  .data { font-size: 12.5px; }
+  .data { font-size: 13px; }
   .data td, .data th { padding-inline: 7px; }
   .data .person { gap: 8px; }
-  .data .initials { width: 26px; height: 26px; font-size: 10.5px; }
+  .data .initials { width: 26px; height: 26px; font-size: 13px; }
   .tile { padding: 12px 14px; }
   .agent-row { flex-wrap: wrap; }
 }
@@ -87,9 +87,9 @@
   .page-head h1 + p { font-size: 15px; }
   .tiles { gap: 8px; margin: 16px 0 12px; }
   .tile { min-height: 0; padding: 10px 10px 9px; }
-  .tile-label { font-size: 12.5px; line-height: 1.25; }
+  .tile-label { font-size: 13px; line-height: 1.25; }
   .tile-value { font-size: 22px; margin-top: 2px; }
-  .tile-note { font-size: 11.5px; }
+  .tile-note { font-size: 13px; }
   .agent-row { flex-wrap: wrap; align-items: flex-start; gap: 10px 12px; padding: 12px 14px; }
   .agent-mark { width: 32px; height: 32px; }
   .agent-text { flex-basis: calc(100% - 44px); font-size: 13.5px; line-height: 1.5; }
@@ -104,10 +104,10 @@
   .data td[data-cell=person] { grid-column: 1; grid-row: 1; }
   .data td[data-cell=amount] { grid-column: 2; grid-row: 1; align-self: center; padding: 0; font-size: 15.5px; font-weight: 600; }
   .data td[data-cell=title] { grid-column: 1 / -1; }
-  .data td[data-cell=approver] { grid-column: 1 / -1; color: var(--soft); font-size: 12.5px; }
+  .data td[data-cell=approver] { grid-column: 1 / -1; color: var(--soft); font-size: 13px; }
   .data td[data-cell=approver]::before { content: 'Approver '; }
   .data td[data-cell=status] { grid-column: 1; align-self: center; }
-  .data td[data-cell=updated] { grid-column: 2; align-self: center; text-align: right; color: var(--soft); font-size: 12.5px; }
+  .data td[data-cell=updated] { grid-column: 2; align-self: center; text-align: right; color: var(--soft); font-size: 13px; }
   .data td[data-cell=pick] { grid-column: 1 / -1; }
 }
 
