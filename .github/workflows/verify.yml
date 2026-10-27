@@ -128,12 +128,18 @@ jobs:
     needs: plan
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: ${{ matrix.timeout || 15 }}
     strategy:
       fail-fast: false
       matrix:
         # Keep every refusal value; the long fresh-clone journeys cannot be combined within 12 minutes.
         group: ['journeys-0', 'journeys-1', 'capture-0', 'capture-1-email', 'capture-2', 'matching-0', 'matching-1', 'matching-2', 'cash-accessibility', 'policy-signals-scale', 'policy-review', 'payroll-corpus']
+        # These groups exhausted 15 minutes in push 40425248525. Only their job budgets rise.
+        include:
+          - group: journeys-0
+            timeout: 18
+          - group: matching-0
+            timeout: 18
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
