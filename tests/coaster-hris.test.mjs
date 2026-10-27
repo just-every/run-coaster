@@ -39,6 +39,7 @@ test('HRIS reviews hires and manager changes, preserves roles and hands off term
     native=await h.db.prepare('SELECT * FROM c_members WHERE email=?').bind(hire.email).first();
     assert.deepEqual([native.active,native.is_manager],[0,1]);
     assert.equal(edge.writes.length,0,'HRIS makes no payroll or card-provider writes');
+    assert.ok(h.outbound.filter(r=>r.url.startsWith('https://api.gusto-demo.com')).every(r=>r.method==='GET'&&!r.body),'termination is also read-only at the Gusto boundary');
     const history=(await h.get('history')).lines.filter(e=>e.action.startsWith('hris-'));
     assert.deepEqual(history.map(e=>e.action),['hris-connected',...Array(5).fill('hris-synced')]);
     assert.deepEqual(history.at(-1).detail.after,{name:'Alexandra Hire',manager:edge.employees[2].email,active:false});

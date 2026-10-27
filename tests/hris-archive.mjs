@@ -33,6 +33,7 @@ try{
   for(const table of ['c_hris_connection','c_hris_mappings'])assert.ok(!exported[0].tables.some(t=>t.name===table));
   assert.ok(!JSON.stringify(exported).includes(secret)&&!JSON.stringify(exported).includes('synthetic-coaster-810'));
   assert.deepEqual(portable.filter(r=>r.table==='c_events').map(r=>r.row).sort((a,b)=>a.seq-b.seq),history);
+  await mkdir(join(destination,'exports'),{recursive:true});
   await copyFile(archive,join(destination,'exports/hris.rer'));
   await command(destination,['import','--input','exports/hris.rer','--yes']);
   await command(destination,['export','--output','exports/restored.rer']);
