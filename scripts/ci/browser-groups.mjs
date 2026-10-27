@@ -44,7 +44,7 @@ export const groups = {
     {"evidence": "policy-review", "commands": [["tests/browser-policy-review.mjs"]]},
   ],
   'payroll-corpus': [
-    { evidence: 'hris', commands: [['tests/browser-hris.mjs'], ['tests/hris-archive.mjs']] },
+    { evidence: 'hris', commands: [['tests/browser-hris.mjs'], ['tests/hris-archive.mjs']], env: { COASTER_PROOF_WIDTHS: '1440,390' } },
     { evidence: 'bank', commands: [['tests/browser-bank.mjs']] },
     {"evidence": "payroll", "commands": [["tests/browser-payroll.mjs"], ["tests/payroll-archive.mjs"]], "env": {"COASTER_SHARD": "2/2"}},
     {"evidence": "policy-corpus", "commands": [["tests/automatic-coding-quality.mjs", "--policy-agent"]]},

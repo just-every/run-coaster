@@ -964,7 +964,7 @@
       "executable": false
     },
     "scripts/ci/browser-groups.mjs": {
-      "sha256": "d9ba9667bef8ca45050edda70267ae450d5ee9e7b9f919b10c5dececfaa294aa",
+      "sha256": "2c4d8bb8d2e87d00910a5e74006383a9ce0962fda40bea22fd3ee6bf18460c8a",
       "executable": false
     },
     "scripts/ci/chromium-probe.mjs": {
