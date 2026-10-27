@@ -123,65 +123,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: HTTP flow suite, second half
         run: pnpm run test:coaster
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Payroll screens and financial archive
-        run: |
-          node tests/browser-payroll.mjs
-          node tests/payroll-archive.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/payroll-proof
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-payroll-proof
-          path: ${{ runner.temp }}/payroll-proof
-
-  email_receipts:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Receipt intake, merchant questions, email answers and exact restoration
-        run: |
-          node tests/browser-email.mjs
-          node tests/email-archive.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/email-proof
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-email-proof
-          path: ${{ runner.temp }}/email-proof
 
   browser:
     needs: plan
@@ -191,7 +132,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        refusals: ['0/2', '1/2']
+        # Keep every refusal value; the long fresh-clone journeys cannot be combined within 12 minutes.
+        group: ['journeys-0', 'journeys-1', 'capture-0', 'capture-1-email', 'capture-2', 'matching-0', 'matching-1', 'matching-2', 'cash-accessibility', 'policy-signals-scale', 'policy-review', 'payroll-corpus']
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -214,268 +156,15 @@ jobs:
             timeout 420 pnpm exec playwright install-deps chromium
             node scripts/ci/chromium-probe.mjs
           }
-      - name: Browser journeys, restore and fresh-clone verbs
-        run: node tests/browser.mjs
+      - name: Run browser group in sequence
         env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/coaster-proof
-          COASTER_ARCHIVE_REFUSALS: ${{ matrix.refusals }}
+          CI_GROUP: ${{ matrix.group }}
+        run: node scripts/ci/run-browser-group.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: coaster-browser-proof-${{ strategy.job-index }}
+          name: coaster-browser-proof-${{ matrix.group }}
           path: ${{ runner.temp }}/coaster-proof
-
-  capture:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        refusals: ['0/3', '1/3', '2/3']
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; action runtime Node 24
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; action runtime Node 24
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Receipt inbox journeys, lifecycle archive refusals and restore
-        run: node tests/capture.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/capture-proof
-          CAPTURE_REFUSALS: ${{ matrix.refusals }}
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-capture-proof-${{ strategy.job-index }}
-          path: ${{ runner.temp }}/capture-proof
-
-  accessibility:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; action runtime Node 24
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; action runtime Node 24
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Keyboard-only journeys and axe on every main screen
-        run: node tests/accessibility.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/accessibility-proof
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-accessibility-proof
-          path: ${{ runner.temp }}/accessibility-proof
-
-  cash_drafts:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Cash-window screens, scheduled drafts and archive replay
-        run: node tests/capture-cash.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/cash-draft-proof
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-cash-draft-proof
-          path: ${{ runner.temp }}/cash-draft-proof
-
-  policy_signals:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Combined 300-expense detector acceptance
-        run: node tests/policy-signals-scale.mjs
-      - name: Receipt/spend signal evidence, review and payment screens
-        run: node tests/policy-signals-browser.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/policy-signals-proof
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-policy-signals-proof
-          path: ${{ runner.temp }}/policy-signals-proof
-
-  card_matching:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        refusals: ['0/3', '1/3', '2/3']
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Card matching consent, questions, undo and archive replay
-        run: node tests/card-matching.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/card-matching-proof
-          MATCH_REFUSALS: ${{ matrix.refusals }}
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-card-matching-proof-${{ strategy.job-index }}
-          path: ${{ runner.temp }}/card-matching-proof
-
-  policy_review:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Complete policy-agent coding corpus
-        run: node tests/automatic-coding-quality.mjs --policy-agent
-      - name: Policy envelopes, mixed approvals, agreement, revocation and archive authority
-        run: node tests/browser-policy-review.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/policy-review-proof
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-policy-review-proof
-          path: ${{ runner.temp }}/policy-review-proof
-
-  verify:
-    needs: [plan, app, coaster_flows, email_receipts, browser, capture, accessibility, cash_drafts, policy_signals, card_matching, policy_review, receipt_agents]
-    if: ${{ always() }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 1
-    steps:
-      - name: Require the plan and every shard
-        env:
-          PLAN: ${{ needs.plan.result }}
-          SKIP: ${{ needs.plan.outputs.skip }}
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: |
-          test "$PLAN" = success
-          if [ "$SKIP" = true ]; then exit 0; fi
-          for result in $RESULTS; do test "$result" = success; done
 
   receipt_agent_corpus:
     needs: plan
@@ -537,3 +226,19 @@ jobs:
         with:
           name: coaster-receipt-agent-proof
           path: ${{ runner.temp }}/receipt-agent-proof
+
+  verify:
+    needs: [plan, app, coaster_flows, browser, receipt_agents]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Require the plan and every shard
+        env:
+          PLAN: ${{ needs.plan.result }}
+          SKIP: ${{ needs.plan.outputs.skip }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          test "$PLAN" = success
+          if [ "$SKIP" = true ]; then exit 0; fi
+          for result in $RESULTS; do test "$result" = success; done
