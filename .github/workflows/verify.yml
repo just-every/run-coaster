@@ -89,7 +89,6 @@ jobs:
         run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -118,7 +117,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: HTTP flow suite, second half
         run: pnpm run test:coaster
       - name: Install Chromium
@@ -158,7 +156,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -200,7 +197,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -241,7 +237,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -278,7 +273,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -314,7 +308,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -350,7 +343,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -392,7 +384,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -429,7 +420,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
@@ -503,7 +493,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
       - name: Install Chromium
         run: |
           set -euo pipefail
