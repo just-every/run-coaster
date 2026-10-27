@@ -83,7 +83,7 @@ async function roundTrip(stage) {
     assert.deepEqual(numbered(tableRows(restored, 'c_events')), history, 'exact bank history lines survive restore in order');
     assert.deepEqual(tableRows(restored, 'c_bank_accounts'), tableRows(exported, 'c_bank_accounts'), 'accounts and holds are identical after restore');
     await Promise.all([copyFile(archive, join(evidence, `bank-${stage}.rer`)), copyFile(join(destination, './exports/restored-bank.rer'), join(evidence, `bank-${stage}-restored.rer`))]);
-    h = await harness({ existingDatabase: true, persistencePath: join(destination, '.wrangler/state/v3'), databaseId: 'local-foundation-only' });
+    h = await harness({ existingDatabase: true, persistencePath: join(destination, '.wrangler/state/v3'), databaseId: 'local-foundation-only', plaidEdge: request => edge.fetch(request), stripeEdge: request => edge.fetch(request), bindings: { SESSION_SECRET: 'synthetic-coaster-restored-installation-secret' } });
     const restoredPerson = await h.person('sam@harbourfinch.example', { employee: true });
     assert.equal((await h.get('bank', restoredPerson)).account.last4, '1111', 'historical status remains readable');
     for (const provider of ['plaid', 'stripe']) {
@@ -91,7 +91,10 @@ async function roundTrip(stage) {
       await h.post(['bank', 'complete'].join('/'), { provider, publicToken: 'synthetic-coaster-restore', setupIntent: 'synthetic-coaster-restore' }, restoredPerson, 409);
     }
     assert.ok(!h.outbound.some(r => ['sandbox.plaid.com', 'api.stripe.com'].includes(new URL(r.url).host)), 'restored records authorize no provider request');
-    console.log(`Bank ${stage} real CLI archive round trip passed`);
+    await connectBank(h, edge);
+    const replacement = await addInstant(h, edge, restoredPerson, '5678');
+    assert.deepEqual([replacement.account.last4, replacement.account.held, replacement.notified], ['5678', true, 'accepted'], 'explicit reauthorization permits a freshly verified replacement without the old installation secret');
+    console.log(`Bank ${stage} real CLI archive round trip and reauthorized replacement passed`);
   } finally {
     await h?.close();
     await Promise.all(roots.map(root => rm(root, { recursive: true, force: true })));

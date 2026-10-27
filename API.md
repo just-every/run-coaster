@@ -546,3 +546,10 @@ appends a numbered history line that names the account by an opaque id. Erasure
 deletes the person's bank rows. Archives carry the sealed token and last four, never
 provider credentials; revoking a provider-side item or payment method is done in the
 provider's own console.
+
+Restored bank evidence can be replaced after the owner explicitly reconnects the
+verification provider and the employee freshly verifies a replacement. The old
+installation secret is not needed to discard historical ciphertext. A committed
+replacement sends its safety notice independently of the initiating session;
+the original active member and contact must still match. The hourly run releases
+expired bank holds before selecting that day’s reimbursement batch.

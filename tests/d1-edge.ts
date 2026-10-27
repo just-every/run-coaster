@@ -10,6 +10,10 @@ export function databaseAtEdge(env: any): D1Database {
   const statement = (prepared: any, sql: string): any => new Proxy(prepared, {
     get(target, key) {
       if (key === 'bind') return (...args: any[]) => statement(target.bind(...args), sql);
+      if (key === 'first' && sql.includes('c_bank_accounts WHERE id=? AND member_email=?')) return async (...args: any[]) => {
+        await env.DB_GATE.fetch('https://d1-edge.test/before-bank-notice');
+        return target[key](...args);
+      };
       const gate = gates.find(g => g.method === key && sql.startsWith(g.sql));
       if (gate) return async (...args: any[]) => {
         const result = await target[key](...args);

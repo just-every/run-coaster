@@ -27,8 +27,8 @@ export async function runHourly(original: Bindings, at: Date) {
   await runAutoSubmit(env, at);
   await runRetention(env, at);
   await deliverReports(env, at);
-  await runPaySchedule(env.DB, at);
   await runBankHolds(env.DB, at);
+  await runPaySchedule(env.DB, at);
   await deliverWebhooks(env, at);
   await runQboDaily(env, at);
 }

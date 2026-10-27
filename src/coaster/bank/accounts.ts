@@ -154,8 +154,10 @@ async function activate(env: Bindings, actor: Actor, member: Member, draft: Draf
   const previous = await accountOf(env.DB, actor.email, 'active'), id = pending?.id ?? uid(), at = now(), days = await holdDays(env.DB);
   // Replaying a completed setup must not read as a change of account.
   if (previous) {
-    const old = await unsealDraft(env, previous);
-    requireThat(old.token !== draft.token || old.ref !== draft.ref, 'That account is already your active account', 409);
+    // Historical ciphertext from a restored installation cannot grant provider authority.
+    // A freshly verified replacement needs no access to that old credential.
+    const old = await unsealDraft(env, previous).catch(() => null);
+    requireThat(!old || old.token !== draft.token || old.ref !== draft.ref, 'That account is already your active account', 409);
   }
   const outstanding = previous?.hold_until && !previous.hold_released_at ? Date.parse(previous.hold_until) : 0;
   const holdUntil = previous ? new Date(Math.max(Date.parse(at) + days * 86_400_000, outstanding)).toISOString() : null;
@@ -180,7 +182,9 @@ async function activate(env: Bindings, actor: Actor, member: Member, draft: Draf
 
 /** The notice goes to the address on record before the change: the person's own address, naming the last four of both accounts and when the hold ends. The outcome is its own history line; the hold stands either way. */
 async function notifyPreviousContact(env: Bindings, actor: Actor, member: Member, previous: Account, draft: Draft, holdUntil: string, account: string) {
-  const current = all(nativeSelf(actor), { sql: 'EXISTS(SELECT 1 FROM c_bank_accounts WHERE id=? AND member_email=?)', params: [account, member.email] });
+  // This safety notice follows the committed replacement, even if the initiating session ends.
+  // The original member identity must still exist and be active; erasure or contact changes refuse it.
+  const current: Sql = { sql: 'EXISTS(SELECT 1 FROM c_bank_accounts WHERE id=? AND member_email=?) AND EXISTS(SELECT 1 FROM c_members WHERE member_id=? AND email=? AND active=1)', params: [account, member.email, member.member_id, member.email] };
   if (!await env.DB.prepare(`SELECT (${current.sql}) AS ok`).bind(...current.params).first<{ ok: number }>().then(r => r?.ok)) return 'not sent: access changed';
   const mail = operatorMail(env), link = `${env.AUTH_ORIGIN}/app#/settings`;
   const body = `Your bank account for Coaster reimbursements was changed. The new account ends ${draft.last4} (${draft.label}); the one it replaced ended ${previous.last4}. As a safety measure no payment will be made to you until ${holdUntil.slice(0, 16).replace('T', ' ')} UTC. If you did not make this change, tell the owner or finance now and sign in to review it: ${link}`;
