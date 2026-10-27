@@ -125,3 +125,12 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+## Contract documentation
+
+CONTRACT.md is the source. For scoped changes, regenerate the changed acceptance
+entries and the clause register, preserving untouched legacy acceptance text.
+Lander-Regenerate: `node scripts/contract-docs.mjs write ADMIN-002`.
+Lander-Check: `node scripts/contract-docs.mjs check ADMIN-002`.
+Pass every changed clause id when a round touches more than one. The command
+also regenerates the Status summary counts from the source rows.
