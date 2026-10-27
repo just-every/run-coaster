@@ -12,7 +12,7 @@ import { noOverflow, payrollBrowserRuntime, tooltipProof } from './payroll-brows
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/payroll-proof');
 await mkdir(evidence, { recursive: true });
 const attach = await payrollBrowserRuntime();
-const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
+const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] });
 const shots = [];
 
 async function journey(width) {
@@ -87,6 +87,14 @@ async function journey(width) {
 
     edge.uncalculated = false;
     edge.payroll = { ...edge.payroll, processed: true, processing_request: { status: 'submit_success' } };
+    edge.receipt = { company_uuid: 'synthetic-coaster-999' };
+    const mismatch = page.waitForResponse(reply => reply.url() === h.origin + `/api/coaster/batches/${batch.id}/payroll/confirm`);
+    await payroll.getByRole('button', { name: 'Confirm provider payment', exact: true }).click();
+    assert.equal((await mismatch).status(), 409);
+    await expect(page.getByText('Gusto has not supplied the matching processed payroll receipt', { exact: true })).toBeVisible();
+    assert.equal((await h.get(`batches/${batch.id}`)).batch.status, 'approved');
+    await capture('receipt-refused', payroll);
+    edge.receipt = null;
     assert.equal((await submit(payroll, 'Confirm provider payment', `batches/${batch.id}/payroll/confirm`)).confirmed, true);
     await expect(payroll.locator('.chip')).toContainText('Provider confirmed');
     await expect(payroll.getByRole('button', { name: 'Confirm provider payment', exact: true })).toHaveCount(0);

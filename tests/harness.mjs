@@ -24,7 +24,7 @@ export async function harness(options = {}) {
   }
 }
 
-async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge, qboEdge, aiEdge, gustoEdge, persistencePath, databaseId, bindings = {} } = {}) {
+async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge, qboEdge, aiEdge, gustoEdge, persistencePath, databaseId, initialized = false, bindings = {} } = {}) {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = persistencePath ?? await mkdtemp(join(tmpdir(), 'coaster-test-'))
   const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], conditions: ['workerd', 'worker', 'browser'], external: ['node:*', 'cloudflare:*'], target: 'es2023', plugins: [heifEsbuildPlugin()] })
   // Every request the Worker sends anywhere is recorded with its body, so a test can prove where data leaves (DATA-001).
@@ -48,8 +48,8 @@ async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge,
   const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], outboundService: edge, ...(d1Barrier ? { serviceBindings: { DB_GATE: d1Barrier } } : {}), d1Databases: { DB: databaseId ?? 'coaster' }, r2Buckets: { COASTER_RECEIPTS: 'coaster-receipts' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', INSTALLATION_KEY: Buffer.from('synthetic-coaster-1').toString('hex').padEnd(64, '0'), SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'synthetic-local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'resend', MAIL_API_KEY: 'test-mail-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>', ...(identityProvider ? { IDENTITY_PROVIDER: identityProvider } : {}), ...(typeof bindings === 'function' ? bindings(origin) : bindings) } }), resourcePersistencePath: dir })
   try {
     const db = await mf.getD1Database('DB')
-    if (persistencePath) await db.prepare('CREATE TABLE d1_migrations(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)').run()
-    for (const file of (await readdir('migrations/core')).filter(f => f.endsWith('.sql')).sort()) {
+    if (persistencePath && !initialized) await db.prepare('CREATE TABLE d1_migrations(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)').run()
+    for (const file of (initialized ? [] : await readdir('migrations/core')).filter(f => f.endsWith('.sql')).sort()) {
       const statements = unstable_splitSqlQuery(await readFile('migrations/core/' + file, 'utf8')).map(sql => db.prepare(sql))
       if (persistencePath) statements.push(db.prepare('INSERT INTO d1_migrations(name) VALUES(?)').bind(file))
       await db.batch(statements)

@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "60b2db8b6ce5b4b20c992bf45c3595cd58c93772e9e73bdab115d6f12a14a580",
+      "sha256": "27bec3233959da5b8052fda324a4bce64d45635e34e9f4c43cf2d9640e842268",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "411defdc2499b0358c484c4ffa5202f886aad0689832c7a04208a517457df41c",
+      "sha256": "4af1293308e8d473b1d650d0cca9ae1f3fca4cbee452e53527ccfdb3717e0825",
       "executable": false
     },
     "DEMO.md": {
@@ -4336,7 +4336,7 @@
       "executable": false
     },
     "tests/browser-payroll.mjs": {
-      "sha256": "27dee1a1c63a58022f41f195e4e98bddf73e6a4e8270821fbdd2905a407bd81d",
+      "sha256": "6d31a744b58a0acdf2925234f1838301f1ac9a5f6363b3dd7f931475e76fe7df",
       "executable": false
     },
     "tests/browser-per-diem.mjs": {
@@ -4448,7 +4448,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "b749fb36c059fce85f1b7b5f327cca1a60191ef3dc358bf92b1b40cceaa2d165",
+      "sha256": "fa1cafd367884e2eaae76da083c1a98ff335be9104454149c33a63b8c5d8686c",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -6064,7 +6064,7 @@
       "executable": false
     },
     "tests/fixtures/payroll.mjs": {
-      "sha256": "e0ff264981d4e197c0f45f531e91736961dfa7615e671757ca68c45e001b4e70",
+      "sha256": "1065f85a20ce2ff0377c400e38b62c6fc9135f67e6a7d88dc803303951d16394",
       "executable": false
     },
     "tests/fixtures/policy-review/synthetic-coaster-6001.png": {
@@ -6576,7 +6576,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "692bcbbabf8c35161d749d3226e11671e23d5681d6b6a2b051cdc0262b190c50",
+      "sha256": "f43c6f23cae90ca2b434dd26a80106c511511ba3f175ed18655766e282fcde0c",
       "executable": false
     },
     "tests/identity-provider.mjs": {
@@ -6592,7 +6592,7 @@
       "executable": false
     },
     "tests/payroll-archive.mjs": {
-      "sha256": "2d84f1e50f6d8cab8a910d3b0de2e4007e615ac47c0c8f491d1ad91c4ffa8315",
+      "sha256": "547117fb11498fd0a612f004f81af8e44c5edea5f57aac916559feaf7a3a4688",
       "executable": false
     },
     "tests/payroll-browser-runtime.mjs": {
@@ -6600,7 +6600,7 @@
       "executable": false
     },
     "tests/payroll-kit.mjs": {
-      "sha256": "7e641fd641bc989c3ccf5dfa920890548105d1d0fcddd82c774a204a721f35ce",
+      "sha256": "3892c68539254895aa47a8e5c33929c587ab307aea81ae411f45a068ba398f5a",
       "executable": false
     },
     "tests/policy-signals-browser.mjs": {
