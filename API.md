@@ -579,5 +579,13 @@ Both reminder branches retain the shared escalation service: after the last remi
 plus the configured gap, the evidence task escalates to its manager, then finance.
 Card evidence uses posting age for these steps; the independent unsubmitted-claim
 task continues to use discovery age. Each task records its own once-only history.
-Mail adapter acceptance does not establish mailbox delivery. This native slice makes
+Card evidence uses the configured manager and finance escalation sequence after its
+last reminder, with the same posting-date anchor and replay protection.
+An employee may append a missing receipt to their own posted card expense after
+submission through `POST claims/:id/receipts`, with the exact current `version`
+and `item`. This narrow door cannot replace a receipt or change expense facts,
+frozen revisions, decisions, approved amounts or payment status. The new receipt
+and its attributable history remain available beside the original submission.
+The claim screen labels the later evidence; ordinary expense edits still require
+an editable claim. This also permits completing retained evidence after closure.Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).
