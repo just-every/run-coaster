@@ -1,11 +1,11 @@
 import { agency, receipt } from './harness.mjs';
 
 export const apiPath = (...parts) => parts.join('/');
-export async function cardChaseFixture(h, { memo = 'Client supplies', required = false } = {}) {
+export async function cardChaseFixture(h, { memo = 'Client supplies', required = false, field = 'Client' } = {}) {
   const t = await agency(h);
   await h.post(apiPath('settings', 'business'), { name: 'Harbour & Finch Studio', currency: 'USD', timezone: ['America', 'Chicago'].join('/'), receiptThreshold: '75.00' });
   await h.post(apiPath('settings', 'reminders'), { days: '1,3,5', quietFrom: '20', quietUntil: '8', escalateAfter: '' }, t.morgan);
-  const category = required ? (await h.post(apiPath('settings', 'categories'), { name: 'Client supplies', accountCode: '6501', taxCode: 'None', requiredFields: ['Client'] })).id : t.c.office;
+  const category = required ? (await h.post(apiPath('settings', 'categories'), { name: 'Client supplies', accountCode: '6501', taxCode: 'None', requiredFields: [field] })).id : t.c.office;
   await h.post(apiPath('settings', 'categories'), { name: 'Unrelated category', accountCode: '6599', taxCode: 'None', requiredFields: ['Unrelated field'] });
   await h.post(apiPath('statements', 'cards'), { issuer: 'Synthetic Card', last4: '1201', employee: 'sam@harbourfinch.example' });
   const input = { format: 'ofx', name: 'synthetic-coaster-120.ofx', issuer: 'Synthetic Card', category,
