@@ -28,7 +28,7 @@ export function HrisSettings({ reload }: { reload: () => Promise<unknown> }) {
           await reload();setReview(await call(root+'/preview'));setNotice('Roster change saved. Card freezing is unavailable.');
         }}>
           <Field label={'Coaster email for '+person.name} name="email" type="email" defaultValue={review.mappings.find((m:D)=>m.employee_uuid===person.employee)?.email ?? person.email ?? ''} />
-          {person.terminated && <Field label={'Successor for '+person.name} name="successor" options={[{value:'',label:'Use approving manager'},...review.members.filter((m:D)=>m.active).map((m:D)=>({value:m.email,label:m.name}))]} />}
+          {person.terminated && <Field label={'Successor for '+person.name} name="successor" required={false} hint="Leave empty to use the approving manager." options={[...review.members.filter((m:D)=>m.active).map((m:D)=>({value:m.email,label:m.name}))]} />}
           <Field label={'I confirmed the identity and change for '+person.name} name="consent" type="checkbox" />
         </Form>
       </div>) : <Empty title="No roster employees">No native person is changed by an empty provider roster.</Empty>)}

@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "f9c69411cd4f9a5177e5449e3a6c52ca117cae5e142847171c29b27e950f9dfd",
+      "sha256": "6b5cee6c8c68e62cb89d8bced56f102406df9c8d64cc1454332fdc8d5465ceb9",
       "executable": false
     },
     ".gitignore": {
@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "bf87c729b91b4491e6a2e16881b2238842d7ad62ae5a7468c2e409c1d4f1e4d5",
+      "sha256": "f092419678394cf2d14e5861f7d32e1ca927bbfdaf6203a8bae96338aeb5bce4",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "39755dde1dd33ad6d3f1691507e182f6725047aa44d1bd9c9666e49302fc6be1",
+      "sha256": "24bd3b02cbb256d179182bd19cb7ef70412757bb3671c3edd70d0e6c06ea6fc5",
       "executable": false
     },
     "DEMO.md": {
@@ -956,7 +956,7 @@
       "executable": false
     },
     "scripts/ci/browser-groups.mjs": {
-      "sha256": "74aaf535fe39a3117afa49c801ffbc08803812bf38d48e6197fb53521786c957",
+      "sha256": "d9ba9667bef8ca45050edda70267ae450d5ee9e7b9f919b10c5dececfaa294aa",
       "executable": false
     },
     "scripts/ci/chromium-probe.mjs": {
@@ -4236,7 +4236,7 @@
       "executable": false
     },
     "src/ui/hris.tsx": {
-      "sha256": "2f9f6d7be5cd7841d03643b6fdd5f9b83c91a3823dacd008c9e4be9ad10e2bb5",
+      "sha256": "dcf04ed6fc90cf9df93470010d3f046f5c0c596c197d893151646c02598382d9",
       "executable": false
     },
     "src/ui/icons.tsx": {
@@ -4584,7 +4584,7 @@
       "executable": false
     },
     "tests/coaster-hris.test.mjs": {
-      "sha256": "3a537c1dc9983b84928968319261952b0761289faa05022bbb7755e3963f26a4",
+      "sha256": "830c9bf4947ba10949194ec4c8ece054261710eb8fb0b93274d1e029ace54f91",
       "executable": false
     },
     "tests/coaster-import-configuration.test.mjs": {
@@ -6736,7 +6736,7 @@
       "executable": false
     },
     "tests/hris-archive.mjs": {
-      "sha256": "e2a247dba75fb8670554f6d33c932b9638ef3fff5aa68af4ee265fc034e36c65",
+      "sha256": "6adc30c4faff0bdd369b12619ebf6f098aad03e3d1f8f07b986bdcf737290316",
       "executable": false
     },
     "tests/hris-kit.mjs": {
