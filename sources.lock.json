@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "60b2db8b6ce5b4b20c992bf45c3595cd58c93772e9e73bdab115d6f12a14a580",
+      "sha256": "01f3a41dd19e0239ac1f04e5b4bb2f70cd8bc94230cad1dac1b0bef6cb40c015",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "d4476465f914879ba880159ecd0d5bbd0a1a152cebd994be13769e2edef70e73",
+      "sha256": "4200326ab7c59c85999839f25b97460de74fb49a92a71a92b594cf572f043d9a",
       "executable": false
     },
     "base-copies.json": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "411defdc2499b0358c484c4ffa5202f886aad0689832c7a04208a517457df41c",
+      "sha256": "43e3dab1849a520051722a3ed77b43a2708121f0a714a367ae3beeef6f471790",
       "executable": false
     },
     "DEMO.md": {
@@ -747,6 +747,10 @@
       "sha256": "88c83b0048e049f589b6846ed780d23ac9ce310c35fbedbef06c3e61440bfc4e",
       "executable": false
     },
+    "migrations/core/0083_plaid_connections.sql": {
+      "sha256": "a489c9f7b8658cc23545afcd184e08012adfb92c1dfe11b03ea25e640bcfa6b7",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -1144,7 +1148,7 @@
       "executable": false
     },
     "scripts/installer/portability.mjs": {
-      "sha256": "5f30736cb0296c80a68fb85cb6ccf10bfce355216d54f909846412f6e4bc3b25",
+      "sha256": "d773fa205ebbe6e836d883e61005208cd6615694d66fd934dbebf9aa4f3ff8e3",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {
@@ -1208,7 +1212,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "a5fe1cdc433d9e2c7a606c5ea0c58d6f367ab8f291274ec6b013b1deabb304bd",
+      "sha256": "06c0e744d78de9ed47545e48948619bfc4cb77a54c13abe2dadf6be6732fcd92",
       "executable": false
     },
     "src/auth.server.ts": {
@@ -1380,7 +1384,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "4db37d9081b4eea04032edafd54eeeb457176ba0b69a8f6ba8af53ecbda924ca",
+      "sha256": "ba5c33b6003bb7b325579304b89e58f2c187b8da7bcc231f853632bc2510e6f6",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1556,7 +1560,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "42ad1e2a14ce6e1be5bd709d2a3493e2f39005b2643e3570cbff1b6ebea1befb",
+      "sha256": "bfd8beec41f6002ab84de162a11503a247a187578af7540dbb8c0630951dcec9",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -1761,6 +1765,14 @@
     },
     "src/coaster/permissions.ts": {
       "sha256": "6b1729da6435bed9b2ce34027ba249eac4bd11545802d15ba64a2708efca2339",
+      "executable": false
+    },
+    "src/coaster/plaid/connections.ts": {
+      "sha256": "dcf4b66603790dc452493b8be80142fbdf50776abe4f0f8a2506d3d267b0bc86",
+      "executable": false
+    },
+    "src/coaster/plaid/network.ts": {
+      "sha256": "cd72d34116c4cb9902c6ae93b1b57fe5865b674ca6f83b7759eeebfbe11024f5",
       "executable": false
     },
     "src/coaster/policy-advice.ts": {
@@ -4504,7 +4516,7 @@
       "executable": false
     },
     "tests/coaster.test.mjs": {
-      "sha256": "22f240410ba5ed42a93fc743725c055153713a27f087ea4dbf1bb4a6a220498e",
+      "sha256": "561e11e152f1aba03593a4b712c76756360d4be66d49ddb5bbd9d31d8e15227f",
       "executable": false
     },
     "tests/coding-attachment-quality.mjs": {
@@ -6067,6 +6079,10 @@
       "sha256": "e0ff264981d4e197c0f45f531e91736961dfa7615e671757ca68c45e001b4e70",
       "executable": false
     },
+    "tests/fixtures/plaid.mjs": {
+      "sha256": "66f2d4b7c602b3477f757d9b98afa64c993d49c5954c77ca85883192e4e5f88d",
+      "executable": false
+    },
     "tests/fixtures/policy-review/synthetic-coaster-6001.png": {
       "sha256": "5b5dd3f09cb992c122323e469426b5aeea016a9a495fd8e39707bb29f6f78f82",
       "executable": false
@@ -6576,7 +6592,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "692bcbbabf8c35161d749d3226e11671e23d5681d6b6a2b051cdc0262b190c50",
+      "sha256": "0de6964ea124a68e2a1edeb8d4d321a8b666989245fc3fd07772e960d513c95d",
       "executable": false
     },
     "tests/identity-provider.mjs": {
@@ -6592,7 +6608,7 @@
       "executable": false
     },
     "tests/payroll-archive.mjs": {
-      "sha256": "2d84f1e50f6d8cab8a910d3b0de2e4007e615ac47c0c8f491d1ad91c4ffa8315",
+      "sha256": "4ea2c53a38eeed54294418a704de988a3f5551d6ca7c732341ded84d080a475b",
       "executable": false
     },
     "tests/payroll-browser-runtime.mjs": {
@@ -6601,6 +6617,14 @@
     },
     "tests/payroll-kit.mjs": {
       "sha256": "7e641fd641bc989c3ccf5dfa920890548105d1d0fcddd82c774a204a721f35ce",
+      "executable": false
+    },
+    "tests/plaid-native.mjs": {
+      "sha256": "8a14bc58b846ea132c9207d7b00b8eadce7298e951bf31b0993b1736019c0741",
+      "executable": false
+    },
+    "tests/plaid-sandbox.mjs": {
+      "sha256": "e66675072aa04f09219ddee92f20891f3b7e2ac2d09db140fccc831ab95b667b",
       "executable": false
     },
     "tests/policy-signals-browser.mjs": {

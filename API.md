@@ -393,7 +393,7 @@ Native finance sessions use `GET investigations` for connected POLICY-002 eviden
 
 ## Provider costs and receipt questions
 
-Native owners read or version model rates with `GET/POST settings/provider-costs` (`version`, `model`, `inputPerMillion`, `outputPerMillion`, `reservePerPage`, `monthlyCap`; empty cap is unlimited, zero pauses optional AI). Costs are USD estimates from reported tokens. The monthly check includes settled estimates and outstanding reservations for both reading and coding. Unknown outcomes retain their reservation; metered overruns are fully recorded and stop later requests. Manual claims and coding remain available. Pricing and anonymous usage round-trip in the installation archive.
+Native owners read or version model rates with `GET/POST settings/provider-costs` (`version`, `model`, `inputPerMillion`, `outputPerMillion`, `reservePerPage`, `monthlyCap`; empty cap is unlimited, zero pauses optional AI). Costs are USD estimates from reported tokens. The monthly check includes settled estimates and outstanding reservations for both reading and coding. Unknown outcomes retain their reservation; metered overruns are fully recorded and stop later requests. Manual claims and coding remain available. Pricing and usage without account details round-trip in the installation archive.
 
 The employee or live delegate reads `GET receipt-inbox/:id/question` and confirms with `POST` carrying `{questionId, expectedSequence, expectedReadingSequence, version, values, consent:true}`. `values` must explicitly confirm total, currency and every conflicting field (tip, subtotal and sales tax can also be confirmed with a total conflict). One current question shows the reading, posted card values and original source regions. Confirmation atomically appends private reading history and records the confirmed comparison on an editable expense. It never changes the card statement amount, submits or pays. Questions stop when answered or no longer editable; FOLLOWUP-001 uses its business-day reminder schedule.
 
@@ -463,3 +463,54 @@ contractors, cash advances that exceed the remaining non-taxable amount,
 off-cycle payrolls, production connection and other providers remain outside
 this implemented slice. The conservative owner-only consent and custody policy
 awaits ct approval under PAY-003.
+
+## Plaid sandbox connection foundation (FEED-001, partial)
+
+All doors use native sessions and same-origin writes. Company connections honor
+live Full delegation in ADMIN-005; personal card custody requires its employee.
+Agents and public credentials have no authority. Each physical provider request
+requires a sign-in within ten minutes and current native authority. The native owner sets
+`POST /api/coaster/plaid/settings` with `version`, `clientId`, `secret`,
+`accountMonthly` (USD per connected account month), `monthlyCap` (empty for
+unlimited) and explicit `consent:true`. `GET /api/coaster/plaid/settings` returns
+only configuration state, the immutable configured price version and month-to-date estimates without account details. No application secret is returned.
+
+`POST /api/coaster/plaid/link` takes `scope:"company"` or `scope:"personal"`
+and `consent:true`. Company connections require owner, admin or finance;
+a personal card requires its employee's own session. The answer supplies a
+sandbox Link token, an expiring request `id` and the configured per-account USD
+estimate. Finish Plaid Link, then explicitly confirm its public token using
+`POST /api/coaster/plaid/exchange` with `link`, `publicToken` and `consent:true`.
+The native session must be the one that started Link. Each request is reserved
+before provider exchange and cannot be replayed, even after a lost response.
+An uncertain exchange needs human reconciliation with Plaid; it is never resent.
+
+The adapter verifies accounts with Plaid, retaining account identifiers, type
+and last four only. Application and access credentials are sealed for this
+installation. Accounts with unsupported types are refused. A connection held
+in `pending` state after validation or cap refusal can only be disconnected;
+it has no transaction authority. Exchange atomically reserves at least one configured account month before any
+provider exchange and checks the owner cap, including concurrent requests.
+Verified account counts settle the full estimate. Unknown outcomes keep their
+reservation; an overrun is fully recorded and pauses subsequent activation.
+This caps native estimates and provides no guarantee about provider invoices. Disconnect never erases that cost. These are estimates, not Plaid
+invoices, and recurring monthly metering is not yet implemented.
+
+`GET /api/coaster/plaid/connections` lists company records to the connection
+roles and personal records only to their employee. Explicit
+`POST /api/coaster/plaid/connections/:id/disconnect` first confirms Plaid item
+removal, then drops local custody. If the provider refuses, custody remains for
+an explicit later action. Erasure deletes personal local connection and Link
+custody atomically while retaining financial records and cost estimates without account details; it
+makes no claim that the remote provider removed its item. All execution custody
+is excluded from installation archives; numbered native history remains.
+
+This foundation implements no transaction sync, expense creation, bank-detail
+editing, reimbursement or notification. Transaction lifecycle handling, native
+Link screens, account assignment, receipt matching, recurring metering, provider
+erasure follow-up and full restored-history proof remain FEED-001 work. The
+complete target remains binding. Production Plaid hosts are not accepted.
+
+The bounded native assertions run manually with `node tests/plaid-native.mjs --run`.
+They are not loaded by push Verify; FEED-001 remains partial. The existing
+provider archive journey carries the mandatory CLI restore proof.

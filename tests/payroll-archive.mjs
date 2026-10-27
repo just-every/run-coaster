@@ -7,6 +7,7 @@ import { fresh, command } from './browser-runtime.mjs';
 import { records, rows, tampered } from './browser-archive.mjs';
 import { harness } from './harness.mjs';
 import { gustoFixture } from './fixtures/payroll.mjs';
+import { plaidFixture, plaidConfig } from './fixtures/plaid.mjs';
 import { payrollBatch, connectFixture } from './payroll-kit.mjs';
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/payroll-proof');
@@ -21,10 +22,16 @@ async function roundTrip(stage) {
     const [source, destination] = await Promise.all([fresh(), fresh()]);
     roots.push(source, destination);
     await Promise.all(roots.map(root => command(root, ['install'])));
-    const edge = gustoFixture();
+    const edge = gustoFixture(), plaid = plaidFixture();
     // portability-worker.mjs uses getPlatformProxy with this versioned directory;
     // wrangler.jsonc declares the same local D1 identifier. Dispose before CLI access.
-    h = await harness({ persistencePath: join(source, '.wrangler/state/v3'), databaseId: 'local-foundation-only', gustoEdge: request => edge.fetch(request) });
+    h = await harness({ persistencePath: join(source, '.wrangler/state/v3'), databaseId: 'local-foundation-only', gustoEdge: request => edge.fetch(request), plaidEdge: request => plaid.fetch(request) });
+    await h.post(['plaid','settings'].join('/'),plaidConfig);
+    const link=await h.post(['plaid','link'].join('/'),{scope:'company',consent:true});
+    const linked=await h.post(['plaid','exchange'].join('/'),{link:link.id,publicToken:'synthetic-coaster-240',consent:true});
+    const plaidConnection=await h.db.prepare('SELECT credentials_sealed FROM c_plaid_connections WHERE id=?').bind(linked.id).first();
+    const plaidCosts=(await h.db.prepare('SELECT * FROM c_plaid_costs').all()).results;
+    assert.equal(plaidCosts.length,2);assert.deepEqual(plaidCosts.map(c=>c.kind).sort(),['reserved','settled']);assert.ok(plaidCosts.every(c=>c.usd_minor===250));assert.equal((await h.get(['plaid','settings'].join('/'))).monthToDateMinor,250);
     const t = await payrollBatch(h);
     await connectFixture(h, edge, t.memberEmail);
     const batch = await h.post(`batches/${t.batch.id}/release`, { version: t.batch.version });
@@ -50,11 +57,13 @@ async function roundTrip(stage) {
     assert.deepEqual(numbered(tableRows(exported, 'c_events')), history, 'CLI exports every numbered native history line unchanged');
     assert.equal(tableRows(exported, 'c_batches').find(row => row.id === batch.id).status, stage === 'confirmed' ? 'reimbursed' : 'approved');
     for (const claim of tableRows(exported, 'c_claims').filter(row => t.claims.includes(row.id))) assert.equal(claim.status, stage === 'confirmed' ? 'reimbursed' : 'batched');
-    for (const table of ['c_gusto_connection', 'c_gusto_employees']) {
+    for (const table of ['c_gusto_connection', 'c_gusto_employees', 'c_plaid_settings', 'c_plaid_links', 'c_plaid_connections']) {
       assert.equal(tableRows(exported, table).length, 0, 'connection credentials and employee mappings are excluded');
       assert.ok(!exported[0].tables.some(entry => entry.name === table), 'excluded payroll authority has no restore schema');
     }
+    assert.deepEqual(tableRows(exported,'c_plaid_costs'),plaidCosts);
     const encoded = JSON.stringify(exported);
+    for(const secret of [plaidConfig.secret,plaidConnection.credentials_sealed,'synthetic-coaster-access-','synthetic-coaster-203','synthetic-coaster-240'])assert.ok(!encoded.includes(secret),'no Plaid execution or account custody travels');
     assert.ok(!encoded.includes('synthetic-coaster-120') && !encoded.includes(connection.token_sealed), 'neither plain nor sealed connection token travels');
 
     await command(destination, ['export', '--output', 'exports/empty-before.rer']);
@@ -79,7 +88,15 @@ async function roundTrip(stage) {
       copyFile(archive, join(evidence, `payroll-${stage}.rer`)),
       copyFile(join(destination, 'exports/restored-payroll.rer'), join(evidence, `payroll-${stage}-restored.rer`)),
     ]);
-    console.log(`Payroll ${stage} real CLI archive round trip passed`);
+    h=await harness({existingDatabase:true,persistencePath:join(destination,'.wrangler/state/v3'),databaseId:'local-foundation-only',plaidEdge:r=>plaid.fetch(r)});
+    assert.deepEqual((await h.get(['plaid','connections'].join('/'))).connections,[]);
+    assert.equal((await h.get(['plaid','settings'].join('/'))).configured,false);
+    const requests=plaid.calls.length;
+    await h.post(['plaid','link'].join('/'),{scope:'company',consent:true},h.owner,409);
+    await h.post(['plaid','connections',linked.id,'disconnect'].join('/'),{},h.owner,404);
+    assert.equal(plaid.calls.length,requests,'restored financial evidence permits no Plaid execution');
+    assert.deepEqual(tableRows(restored,'c_plaid_costs'),plaidCosts);
+    console.log(`Payroll ${stage} and Plaid real CLI archive round trip passed with inert restored authority`);
   } finally {
     await h?.close();
     await Promise.all(roots.map(root => rm(root, { recursive: true, force: true })));
