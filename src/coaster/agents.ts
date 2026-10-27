@@ -61,7 +61,7 @@ async function prepareClaim(db: D1Database, actor: Actor, b: Data) {
     }
     items.push({ ...raw, receipt: undefined, receiptId: receipt, amountMinor: item.amount_minor });
   }
-  const payload = { title, note: optionalText(b.note, 'Note', 2000), items };
+  const payload = { nativeConversation: actor.kind === 'person', title, note: optionalText(b.note, 'Note', 2000), items };
   await commit(db, all(authority(actor, 'employee'), checked.guard), [
     db.prepare("INSERT INTO c_proposals(id,kind,agent_label,for_email,payload,status,created_at) VALUES(?,'claim',?,?,?,'proposed',?)").bind(id, actor.agentLabel, actor.email, JSON.stringify(payload), now()),
     ...statements,
@@ -87,13 +87,17 @@ export async function proposeBatch(db: D1Database, actor: Actor, b: Data) {
 export async function proposal(db: D1Database, id: string): Promise<Data> {
   const row = await db.prepare('SELECT * FROM c_proposals WHERE id=?').bind(id).first<Data>();
   requireThat(row, 'Proposal not found', 404);
-  return { ...row, payload: JSON.parse(row.payload) };
+  const payload = JSON.parse(row.payload);
+  // Older native proposals used this reserved label before custody was recorded explicitly.
+  if (payload.nativeConversation === undefined && row.agent_label === 'Conversation assistant') payload.nativeConversation = true;
+  return { ...row, payload };
 }
 
 async function mine(db: D1Database, actor: Actor, id: string) {
   requireThat(actor.kind === 'person', 'Only the person the agent works for decides its proposals', 403);
   const p = await proposal(db, id);
   requireThat(p.for_email === actor.email, 'This proposal is for someone else', 403);
+  if (p.payload.nativeConversation) requireThat(!actor.delegate && !actor.publicCredential, 'Review this conversation in your own native session', 403);
   requireThat(p.status === 'proposed', 'This proposal was already decided', 409);
   return p;
 }

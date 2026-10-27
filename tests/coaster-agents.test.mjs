@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { agency, harness, receipt } from './harness.mjs'
 
-async function fixture(run) { const h = await harness(); try { await run(h, await agency(h)) } finally { await h.close() } }
+async function fixture(run, options = {}) { const h = await harness(options); try { await run(h, await agency(h)) } finally { await h.close() } }
 async function draft(h, t, title, date = '2026-05-10') {
   let c = await h.post('claims', { title }, t.sam)
   const file = await receipt('bistro'); file.base64 = Buffer.concat([Buffer.from(file.base64,'base64'),Buffer.from(title)]).toString('base64')
@@ -138,7 +138,8 @@ test('Conversation compares scoped quarter spend with exact report values and re
   assert.ok((await h.get('state')).claims.every(c=>c.status==='submitted'))
 }))
 
-test('Conversation returns the authorized monthly budget actual and remaining without widening budget custody', () => fixture(async(h,t)=>{
+test('Conversation returns the authorized monthly budget actual and remaining without widening budget custody', async () => {
+await fixture(async(h,t)=>{
   await h.post('budgets',{name:'Travel',scope:'category',scopeKey:t.c.travel,period:'monthly',amount:'500.00',owner:'priya@harbourfinch.example',thresholds:'80, 100'},t.morgan)
   let c=await h.post('claims',{title:'Budget travel'},t.sam)
   c=await h.post(`claims/${c.id}/items`,{version:c.version,kind:'per_diem',date:'2026-06-10',days:2,category:t.c.travel},t.sam)
@@ -152,34 +153,82 @@ test('Conversation returns the authorized monthly budget actual and remaining wi
   await h.post('conversation',{message:'How much of the Travel budget is left in 2026-06?'},otherManager,403)
   await h.post('conversation',{message:'How much of the Travel budget is left in 2026-06?'},t.sam,403)
   await h.post('conversation',{message:'How much of the Travel budget is left in 2026-13?'},t.priya,400)
-}))
+})
+for(const [instant,month,actual,remaining] of [
+  ['2027-07-01T05:59:59Z','2027-06',15000,35000],
+  ['2027-07-01T06:00:00Z','2027-07',0,50000]
+]) await fixture(async(h,t)=>{
+  await h.post(['settings','business'].join('/'),{name:'Harbour & Finch Studio',currency:'USD',timezone:['America','Denver'].join('/'),perDiem:'75.00',receiptThreshold:''})
+  await h.post('budgets',{name:'Travel',scope:'category',scopeKey:t.c.travel,period:'monthly',amount:'500.00',owner:'priya@harbourfinch.example',thresholds:'80, 100'},t.morgan)
+  let c=await h.post('claims',{title:'Boundary travel'},t.sam)
+  c=await h.post(`claims/${c.id}/items`,{version:c.version,kind:'per_diem',date:'2027-06-10',days:2,category:t.c.travel},t.sam)
+  await h.post(`claims/${c.id}/submit`,{version:c.version},t.sam)
+  const answer=await h.post('conversation',{message:'How much of the Travel budget is left this month?'},t.priya)
+  assert.equal(answer.month,month)
+  assert.deepEqual(answer.budgets.map(b=>[b.period,b.budgetMinor,b.actualMinor,b.remainingMinor]),[[month,50000,actual,remaining]])
+  assert.equal((await h.send(answer.budgets[0].link,undefined,t.priya)).value[0].remainingMinor,remaining)
+}, {clock:Date.parse(instant)})
+})
 
 test('Conversation keeps four reviewed photos and published Denver per diem in a proposal until native acceptance', () => fixture(async(h,t)=>{
   await h.post(['settings', 'business'].join('/'),{name:'Harbour & Finch Studio',currency:'USD',timezone:['America', 'Denver'].join('/'),perDiem:'75.00',receiptThreshold:''})
   const receipts=[]
-  for(let i=0;i<4;i++) {const file=await receipt('bistro');file.name=`synthetic-coaster-${i}.png`;file.base64=Buffer.concat([Buffer.from(file.base64,'base64'),Buffer.from(`synthetic-coaster-${i}`)]).toString('base64');receipts.push({date:'2026-10-06',merchant:`Trip purchase ${i}`,amount:`${i+1}.00`,category:t.c.travel,receipt:file})}
+  for(let i=0;i<4;i++) {const file=await receipt('bistro');file.name=`synthetic-coaster-${i}.png`;file.base64=Buffer.concat([Buffer.from(file.base64,'base64'),Buffer.from(`synthetic-coaster-${i}`)]).toString('base64');receipts.push({date:['2026-10-06','2026-10-07','2026-10-08','2026-10-08'][i],merchant:`Trip purchase ${i}`,amount:`${i+1}.00`,category:[t.c.travel,t.c.meals,t.c.office,t.c.car][i],receipt:file})}
   await h.post('delegates',{delegate:'alex@harbourfinch.example',level:'full'},t.sam)
   const input={message:'Denver client trip, Oct 6–8',year:2026,receipts}, before=await h.get('state',t.sam), outbound=h.outbound.length
   const response=await h.post('conversation',input,t.sam)
   assert.equal(response.kind,'proposal');assert.match(response.question,/business purpose/)
   assert.equal(response.proposal.payload.items.length,5)
-  assert.deepEqual(response.proposal.payload.items.slice(0,4).map(i=>i.amountMinor),[100,200,300,400])
+  assert.deepEqual(response.proposal.payload.items.slice(0,4).map(i=>[i.date,i.merchant,i.amountMinor,i.category]),[
+    ['2026-10-06','Trip purchase 0',100,t.c.travel],['2026-10-07','Trip purchase 1',200,t.c.meals],
+    ['2026-10-08','Trip purchase 2',300,t.c.office],['2026-10-08','Trip purchase 3',400,t.c.car]
+  ])
   assert.ok(response.proposal.payload.items.slice(0,4).every(i=>i.receiptId))
   const allowance=response.proposal.payload.items[4]
   assert.equal(allowance.perDiem.method,'gsa');assert.equal(allowance.perDiem.endDate,'2026-10-08')
+  assert.equal(allowance.date,'2026-10-06')
+  assert.equal(allowance.perDiem.locationId,['gsa:US:CO:Denver ', ' Aurora:Denver ', ' Adams ', ' Arapahoe ', ' Jefferson'].join('/'))
+  // Published FY2027 Denver meals: USD 92; first and last day at 75 percent: 69 + 92 + 69.
+  assert.equal(allowance.amountMinor,23000)
   const quote=await h.post(['per-diem', 'quote'].join('/'),{date:allowance.date,perDiem:allowance.perDiem},t.sam)
   assert.equal(allowance.amountMinor,quote.totalMinor)
+  assert.deepEqual(quote.days.map(d=>[d.date,d.mieRateMinor,d.mieMinor]),[['2026-10-06',9200,6900],['2026-10-07',9200,9200],['2026-10-08',9200,6900]])
   assert.deepEqual((await h.get('state',t.sam)).claims,before.claims,'proposal creates no submitted or payable claim')
   await h.post(`proposals/${response.proposal.id}/accept`,{},t.alex,403)
+  const key=await h.post('agent-keys',{label:'synthetic-coaster-8700'},t.sam)
+  const agentHeaders={authorization:`Bearer ${key.token}`}, delegated={'x-coaster-acting-for':'sam@harbourfinch.example'}
+  assert.equal((await h.send(`/api/coaster/agent/proposals/${response.proposal.id}`,undefined,'',agentHeaders)).status,404)
+  for(const decision of ['accept','decline']) {
+    assert.equal((await h.send(`/api/coaster/proposals/${response.proposal.id}/${decision}`,{},t.alex,delegated)).status,403)
+    assert.equal((await h.send(`/api/coaster/proposals/${response.proposal.id}/${decision}`,{},'',agentHeaders)).status,401)
+  }
+  assert.equal((await h.get('state',t.sam)).proposals.find(p=>p.id===response.proposal.id).status,'proposed')
+  // Simulate an earlier stored native proposal, then assert the upgraded shared doors.
+  await h.db.prepare("UPDATE c_proposals SET payload=json_remove(payload,'$.nativeConversation') WHERE id=?").bind(response.proposal.id).run()
+  assert.equal((await h.send(`/api/coaster/agent/proposals/${response.proposal.id}`,undefined,'',agentHeaders)).status,404)
+  for(const decision of ['accept','decline']) assert.equal((await h.send(`/api/coaster/proposals/${response.proposal.id}/${decision}`,{},t.alex,delegated)).status,403)
+  // An actual agent proposal remains readable and decidable by its native owner.
+  const ordinary=await h.send('/api/coaster/agent/claims',{title:'Agent draft remains supported',items:[{kind:'receipt',date:'2026-10-06',merchant:'Taxi',amount:'2.00',category:t.c.travel,explanation:'Review missing receipt'}]},'',agentHeaders)
+  assert.equal(ordinary.status,200)
+  assert.equal((await h.send(`/api/coaster/agent/proposals/${ordinary.value.id}`,undefined,'',agentHeaders)).status,200)
+  await h.db.prepare("UPDATE c_proposals SET payload=json_remove(payload,'$.nativeConversation') WHERE id=?").bind(ordinary.value.id).run()
+  assert.equal((await h.send(`/api/coaster/agent/proposals/${ordinary.value.id}`,undefined,'',agentHeaders)).status,200)
+  assert.equal((await h.post(`proposals/${ordinary.value.id}/decline`,{},t.sam)).status,'declined')
+  const toDecline=await h.post('conversation',{...input,purpose:'Meet the Denver client'},t.sam)
+  assert.equal(toDecline.question,null)
+  assert.equal((await h.post(`proposals/${toDecline.proposal.id}/decline`,{},t.sam)).status,'declined')
   const result=await h.post(`proposals/${response.proposal.id}/accept`,{},t.sam), detail=await h.get(`claims/${result.claim.id}`,t.sam)
   assert.equal(detail.claim.status,'draft');assert.equal(detail.receipts.length,4);assert.equal(detail.items.length,5)
-  assert.equal(detail.claim.total_minor,1000+quote.totalMinor)
+  assert.equal(detail.claim.total_minor,24000)
+  assert.deepEqual(detail.items.slice(0,4).map(i=>[i.spent_on,i.merchant,i.amount_minor,i.allocations[0].category_id]),[
+    ['2026-10-06','Trip purchase 0',100,t.c.travel],['2026-10-07','Trip purchase 1',200,t.c.meals],
+    ['2026-10-08','Trip purchase 2',300,t.c.office],['2026-10-08','Trip purchase 3',400,t.c.car]
+  ])
   assert.deepEqual(detail.receipts.map(r=>r.name).sort(),receipts.map(r=>r.receipt.name).sort())
   for(const r of detail.receipts) {const bytes=await h.mf.dispatchFetch(h.origin+`/api/coaster/receipts/${r.id}`,{headers:{cookie:t.sam}});assert.deepEqual(Buffer.from(await bytes.arrayBuffer()),Buffer.from(receipts.find(photo=>photo.receipt.name===r.name).receipt.base64,'base64'))}
   await h.post(`proposals/${response.proposal.id}/accept`,{},t.sam,409)
   await h.post('conversation',{...input,receipts:[{...receipts[0],amount:'invented'}]},t.sam,400)
   assert.equal((await h.post('conversation',{message:input.message,receipts},t.sam)).kind,'question','missing year is clarified rather than guessed')
-  const key=await h.post('agent-keys',{label:'synthetic-coaster-8700'},t.sam)
   assert.equal((await h.send('/api/coaster/conversation',input,'',{authorization:`Bearer ${key.token}`})).status,401)
   assert.equal((await h.send('/api/coaster/conversation',input,t.alex,{'x-coaster-acting-for':'sam@harbourfinch.example'})).status,403)
   assert.equal(h.outbound.length,outbound,'receipt bytes and question text remain inside the installation')
