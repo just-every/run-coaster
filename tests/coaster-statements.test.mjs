@@ -5,6 +5,7 @@ import { crc32 } from 'node:zlib'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { agency, harness } from './harness.mjs'
+import { importPrivateStatements, scanStatementStorage } from './statement-archive.mjs'
 
 const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example', ISSUER = 'Synthetic Card'
 const FULL = ['4111111111111111', '4111 1111 1111 1111', '5500 0000 0000 0004', '5500000000000004']
@@ -151,6 +152,13 @@ test('FEED-002 QFX and mapped CSV import with masking, overlap flags, imported-h
   for (const [table, column] of [['c_statement_files', 'CAST(bytes AS TEXT)'], ['c_statement_files', 'mapping'], ['c_cards', 'issuer||last4'], ['c_card_charges', 'descriptor||memo||transaction_key'], ['c_events', 'detail'], ['c_items', 'description||merchant']])
     for (const number of FULL) assert.equal((await h.db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE instr(${column},?)>0`).bind(number).first()).n, 0, `${table} holds no card number`)
   await h.get('statements', t.sam, 403)
+  // Repeated compact, spaced, hyphenated and mixed-format numbers must not enter any derived field.
+  await importPrivateStatements({
+    post: (path, body) => h.post(path, body), get: path => h.get(path),
+    download: async id => { const response = await h.send(`/api/coaster/statements/${id}/file`, undefined, h.owner); assert.equal(response.status, 200); return { bytes: Buffer.from(response.text), disposition: response.headers.get('content-disposition') }; },
+  }, t.c.office, SAM)
+  await original(h, t.sam, 'synthetic-privacy-receipt.png')
+  await scanStatementStorage(h)
   assert.equal(h.outbound.length, sent, 'statement import made no outbound request')
 }))
 

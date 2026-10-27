@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a1ee40d7a0ef032f2e2720162b234e3d448993592156cdc1fda09d48b6a221e1",
+      "sha256": "6ef97bba0d1e3ae3e62695c9cc9ff7b726e9eef3a5c2d242bb839c866024fe20",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a7b3315d3e7787e8a6bb888f3fe592448f82cf5789a54121c6bed64883c63eea",
+      "sha256": "fc84c4d2b78862713699c3b9dd60d5255ac6d070f6c0b507a3af4aed7fe175c4",
       "executable": false
     },
     "DEMO.md": {
@@ -404,7 +404,7 @@
       "executable": false
     },
     "IMPORTING.md": {
-      "sha256": "790aac05e43718a4d7ac148f8255ff48c6ad9678783eae5625778c6a9de3e18a",
+      "sha256": "70e41071b8b828fa13fe9454cddfaace4903ed3ed844a47c9ab71cb50ef06026",
       "executable": false
     },
     "LICENSE": {
@@ -1156,7 +1156,7 @@
       "executable": false
     },
     "scripts/installer/portability.mjs": {
-      "sha256": "9138d40bbdea1354b68341d7ba87526ab71b4be5f88da1bac6172a508abf87b4",
+      "sha256": "5963dd899afb458e203577fedd5c65c2f65e4b8e1c9738d1285860262c95b26a",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {
@@ -1169,6 +1169,10 @@
     },
     "scripts/installer/seed.mjs": {
       "sha256": "7bd4e291b926f9744cf262a2bb119502fe7506a8f142a67409c0b32293c949f9",
+      "executable": false
+    },
+    "scripts/installer/statement-archive.mjs": {
+      "sha256": "ffa3d144845863f035fa376563fa93f5c44103ee994fe88ad9d8a03258dbb8ee",
       "executable": false
     },
     "scripts/installer/ui/background.svg": {
@@ -1476,7 +1480,7 @@
       "executable": false
     },
     "src/coaster/cards/ofx.ts": {
-      "sha256": "0ed18b78ba7509a830fb21cc44271a043220a86849e62c4a1969400df759c75c",
+      "sha256": "76f2b399ef5b52cdef877efa7abdf94045f8e36bd1b3dccb951e0a98158c13ae",
       "executable": false
     },
     "src/coaster/cards/plan.ts": {
@@ -1492,7 +1496,11 @@
       "executable": false
     },
     "src/coaster/cards/statement-csv.ts": {
-      "sha256": "288305fd0c3ffbdc33600a3b66c9a6815121b8220cf787712b86f013e814b934",
+      "sha256": "5a5755765af74a6e5ce343090b6c691f9026793048d391493970e51bfc305aef",
+      "executable": false
+    },
+    "src/coaster/cards/statement-numbers.ts": {
+      "sha256": "260be536b3c243fe3b162b0f5581417f5f4d6ce2e8d70147cefdf1304bc539a9",
       "executable": false
     },
     "src/coaster/cards/statement.ts": {
@@ -1703,8 +1711,16 @@
       "sha256": "73c59aef7a3963623bd323a207756877d0d72986068180c6d269c6bab604e336",
       "executable": false
     },
+    "src/coaster/imports/csv-parser.d.mts": {
+      "sha256": "2630b2a11553ea0176067cf2795144d391bd4b58e1966414a2e306b4fba9c77b",
+      "executable": false
+    },
+    "src/coaster/imports/csv-parser.mjs": {
+      "sha256": "d177fb7b98997c8b889bd79ce8aafebb81be9a6ad13efd58dddcb12a0aaa52a3",
+      "executable": false
+    },
     "src/coaster/imports/csv.ts": {
-      "sha256": "e01a505e36ddd7d11d91f921e64464e5ba715ae7f37017f8b2887eb72ab15d34",
+      "sha256": "c984654b2cd4386f5ddbfc70d51571ae0ba589cbb573334867a461751fb956cc",
       "executable": false
     },
     "src/coaster/imports/cutover.ts": {
@@ -4456,7 +4472,7 @@
       "executable": false
     },
     "tests/card-matching.mjs": {
-      "sha256": "f8b3653cd93aa77801dc1ec7bbf1c103c5dbd0ecda9d0fcf4db18f5a208b8348",
+      "sha256": "3922a0d4ec179c2b95777906f4b7efe2d126ac26459948ff0eb577df25273c8a",
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {
@@ -4572,7 +4588,7 @@
       "executable": false
     },
     "tests/coaster-statements.test.mjs": {
-      "sha256": "d7572c119b4a76589c1adba8860397400e647ee1a272b4bb4cb316e135438353",
+      "sha256": "e02590cfc0fab998beff2731883921e79b6b27240ddeb91bcf726863c36e1b37",
       "executable": false
     },
     "tests/coaster-suite.mjs": {
@@ -6672,7 +6688,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "63fc9057e752348d199db8cefdcdd86f3bcbcca18e1ad530675a64d203dd6ecb",
+      "sha256": "1c42b2eace99399a35e588099d6a4d519470e7f4de8ea47419341aba19eb0d54",
       "executable": false
     },
     "tests/identity-provider.mjs": {
@@ -6737,6 +6753,10 @@
     },
     "tests/site/site.test.mjs": {
       "sha256": "c0dfec467bebce19f47e16ddc7e074c13fdc0e37dd7c0b75d19aceaad2c33264",
+      "executable": false
+    },
+    "tests/statement-archive.mjs": {
+      "sha256": "e789bb1eac0de3520e0e159a48941e80b5c839e55bd27c05e55dfacdf999abe1",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {
