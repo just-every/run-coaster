@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c1b9a6466a3beb4ffea9396892eb5e8d9363df1a8c608d9ee0969cdb76131821",
+      "sha256": "174e9dc470036f5638e7102dd1b6c752a9e33ff74541546a4f48f5699264d32f",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "70f3ce8504d0b7bb4e912af728ebad28416eaf4f751078137cab9b10153db4bc",
+      "sha256": "8dcd6838f481b2931be1b68a20ece39daa538d31d62ba8116e07a48a43c9ed2f",
       "executable": false
     },
     "DEMO.md": {
@@ -4588,7 +4588,7 @@
       "executable": false
     },
     "tests/coaster-individual-liability.test.mjs": {
-      "sha256": "a666e39bb355e9409458bc25c546bc74fdbfa6af81f6e8826079665f8b4845c5",
+      "sha256": "b68ad8b16af9b88652f6bae719f39a31775e3270c38288480ed2a17a3957a87c",
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {

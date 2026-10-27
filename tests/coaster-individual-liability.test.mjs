@@ -113,7 +113,10 @@ test('Individual-liability SFTP charges reimburse only four approved business pu
       ['DELETE FROM c_events WHERE claim_id=?',[claim.id]],
     ])await assert.rejects(h.db.prepare(sql).bind(...args).run());
     await h.paid(batch.id,(await h.get(`batches/${batch.id}`,f.finance)).batch.version,{reference:'synthetic-coaster-1294',paidOn:'2031-06-10'},f.finance);
-    await h.post(path,{version:(await h.get(`claims/${claim.id}`,f.employee)).claim.version,item:f.items[0].id,personal:true},f.employee,409);
+    const paidState=await h.get(`claims/${claim.id}`,f.employee),paidHistory=await h.get('history',f.finance);
+    await h.post(path,{version:paidState.claim.version,item:f.items[0].id,personal:true},f.employee,409);
+    assert.deepEqual(await h.get(`claims/${claim.id}`,f.employee),paidState,'paid classification refusal preserves the complete frozen claim');
+    assert.deepEqual(await h.get('history',f.finance),paidHistory,'paid classification refusal appends no misleading history');
     const history=await h.get('history',f.finance),lines=history.lines.filter(e=>e.claim?.id===claim.id||e.batch?.id===batch.id);
     const actions=lines.map(e=>e.action);
     assert.equal(actions.filter(a=>a==='program-feed-charge-created').length,12);
