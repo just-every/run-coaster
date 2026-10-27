@@ -21,6 +21,7 @@ import { CardReconciliation } from './card-reconciliation';
 import { CodingSettings, CategoryAccountField } from './coding';
 import { QuickBooks } from './quickbooks';
 import { PayrollSettings } from './payroll';
+import { BankPeople, BankProviders, MyBank } from './bank';
 import { AutomaticCoding } from './automatic-coding';
 import { ProgramFeed } from './program-feed';
 import { ReceiptReadingSettings } from './receipt-reading';
@@ -82,6 +83,9 @@ export function Settings({ state, reload }: ViewProps) {
       </Form>
     </Section>}
     {b && !state.actor.delegate && (admin || roles.finance || roles.bookkeeper) && <><QuickBooks state={state} /><Desktop state={state} /></>}
+    {b && roles.employee && !state.actor.delegate && <MyBank name={state.actor.name} />}
+    {b && (owner || roles.finance) && !state.actor.delegate && <BankPeople />}
+    {b && owner && !state.actor.delegate && <BankProviders />}
     {b && owner && !state.actor.delegate && <PayrollSettings members={state.members} />}
     {b && !state.actor.delegate && (admin || roles.finance) && <ProgramFeed state={state} />}
     {b && owner && !state.actor.delegate && <ProviderCosts />}

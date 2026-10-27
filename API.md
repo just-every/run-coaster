@@ -519,3 +519,30 @@ company and personal card connection, admin authority, four refused roles,
 costs, the owner cap, continued manual claims and confirmed item removal.
 It does not implement or prove transaction sync. FEED-001 remains partial.
 The existing provider archive journey carries the mandatory CLI restore proof.
+
+## Employee bank details
+
+Each person adds, verifies and changes their own bank account in their own native
+session; a delegate, agent key or public credential is refused. Coaster keeps the
+provider's token (sealed in the installation) and the last four digits. The person
+enters routing and account numbers with the provider's own browser flow (Plaid Link
+for instant verification, Stripe.js for micro-deposits), so Coaster never receives
+them. Each account change or provider connection change needs a sign-in from the last ten minutes.
+
+- `GET /api/coaster/bank` reads your own account, any pending account, the connected providers and the cooling-off days.
+- `POST /api/coaster/bank/start` takes `provider` (`plaid` or `stripe`) and returns a Plaid `linkToken`, or a Stripe `setupIntent`, `clientSecret` and `publishableKey`.
+- `POST /api/coaster/bank/complete` takes the Plaid `publicToken` (and `accountId` when the item holds more than one checking or savings account) or the Stripe `setupIntent`. Instant verification activates the account; micro-deposits leave it pending.
+- `POST /api/coaster/bank/verify` takes the pending account `id` and the two deposit `amounts` in cents, or a `descriptorCode`.
+- `POST /api/coaster/bank/refresh` and `POST /api/coaster/bank/cancel` take the pending account `id`.
+- `GET /api/coaster/bank/people` reads every person's status, last four and hold; the owner and finance only.
+- `POST /api/coaster/bank/hold-period` takes whole `days` (1 to 30); the owner and finance only.
+- `GET /api/coaster/bank/providers`, `POST /api/coaster/bank/providers/connect` (`provider`, credentials, `consent: true`) and `POST /api/coaster/bank/providers/disconnect` belong to the owner's own session. Only the Plaid sandbox and Stripe test mode are accepted.
+
+Replacing the active account is a change: the old token is discarded, the address on
+record is told the last four of both accounts and when the hold ends, and no batch
+holding that person's claim can be created, released, recorded as paid or sent to
+payroll until the hourly run ends the hold after the cooling-off period. Each step
+appends a numbered history line that names the account by an opaque id. Erasure
+deletes the person's bank rows. Archives carry the sealed token and last four, never
+provider credentials; revoking a provider-side item or payment method is done in the
+provider's own console.

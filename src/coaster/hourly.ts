@@ -11,10 +11,11 @@ import { runRetention } from './retention';
 import { runCardMatching } from './receipts/card-matching';
 import { runCashDrafts } from './receipts/cash-drafts';
 import { runPaySchedule } from './batches';
+import { runBankHolds } from './bank/holds';
 
 /** The hourly Cron Trigger: chases open items (FOLLOWUP-001), alerts budgets (REPORT-004), pays stipends and opens recurring
  * drafts (CLAIM-009), submits automatic reports on schedule (AUTO-001), proposes records past retention (RETAIN-001), sends
- * scheduled reports (REPORT-002) and opens the pay-day batch (PAY-004). */
+ * scheduled reports (REPORT-002), opens the pay-day batch (PAY-004) and releases bank-change holds whose cooling-off period passed (PAY-002). */
 export async function runHourly(original: Bindings, at: Date) {
   const env = runtimeBindings(original);
   await runProgramFeeds(env, at);
@@ -27,6 +28,7 @@ export async function runHourly(original: Bindings, at: Date) {
   await runRetention(env, at);
   await deliverReports(env, at);
   await runPaySchedule(env.DB, at);
+  await runBankHolds(env.DB, at);
   await deliverWebhooks(env, at);
   await runQboDaily(env, at);
 }
