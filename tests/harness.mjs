@@ -24,7 +24,7 @@ export async function harness(options = {}) {
   }
 }
 
-async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge, qboEdge, aiEdge, gustoEdge, plaidEdge, clock, existingDatabase = false, persistencePath, databaseId, bindings = {} } = {}) {
+async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge, qboEdge, aiEdge, gustoEdge, plaidEdge, stripeEdge, clock, existingDatabase = false, persistencePath, databaseId, bindings = {} } = {}) {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = persistencePath ?? await mkdtemp(join(tmpdir(), 'coaster-test-'))
   const bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], conditions: ['workerd', 'worker', 'browser'], ...(clock === undefined ? {} : { banner: { js: `const NativeDate=globalThis.Date; globalThis.Date=class extends NativeDate { constructor(...args) { if(args.length)super(...args); else super(${clock}); } static now() { return ${clock}; } };` } }), external: ['node:*', 'cloudflare:*'], target: 'es2023', plugins: [heifEsbuildPlugin()] })
   // Every request the Worker sends anywhere is recorded with its body, so a test can prove where data leaves (DATA-001).
@@ -38,6 +38,7 @@ async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge,
     if (fxRates !== undefined && request.url === 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml') return typeof fxRates === 'function' ? fxRates(request) : new Response(fxRates, { headers: { 'content-type': 'application/xml' } });
     if (aiEdge && new URL(request.url).hostname === 'api.openai.com') return aiEdge(new Request(request.url, { method: request.method, headers: request.headers, body, redirect: 'manual' }))
     if (plaidEdge && new URL(request.url).hostname === 'sandbox.plaid.com') return plaidEdge(new Request(request.url, { method: request.method, headers: request.headers, body, redirect: 'manual' }))
+    if (stripeEdge && new URL(request.url).hostname === 'api.stripe.com') return stripeEdge(new Request(request.url, { method: request.method, headers: request.headers, ...(['GET', 'HEAD'].includes(request.method) ? {} : { body }), redirect: 'manual' }))
     if (gustoEdge && new URL(request.url).hostname === 'api.gusto-demo.com') return gustoEdge(new Request(request.url, { method: request.method, headers: request.headers, ...(['GET', 'HEAD'].includes(request.method) ? {} : { body }), redirect: 'manual' }))
     if (qboEdge && new URL(request.url).hostname.endsWith('.intuit.com')) return qboEdge(new Request(request.url, { method: request.method, headers: request.headers, ...(['GET', 'HEAD'].includes(request.method) ? {} : { body }), redirect: 'manual' }))
     if (webhookEdge && /^https:\/\/\d+\.\d+\.\d+\.\d+\//.test(request.url)) return webhookEdge(new Request(request.url, { method: request.method, headers: request.headers, body, redirect: 'manual' }))
