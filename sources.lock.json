@@ -4392,7 +4392,7 @@
       "executable": false
     },
     "tests/browser-agents.mjs": {
-      "sha256": "90e842658fc2b8e3c5ffda0e170427e47b03c26840d17666351c6b1d0c1d2664",
+      "sha256": "05ce6ce26d589e8aaff46af13d0245f6c28262a4ae0667cef02b8115e208bee7",
       "executable": false
     },
     "tests/browser-archive.mjs": {
@@ -4436,7 +4436,7 @@
       "executable": false
     },
     "tests/browser-desktop.mjs": {
-      "sha256": "85bc8e93e8628a076882e68a703684013aaa1a37a91f63f09639753670f77c98",
+      "sha256": "e37849a74ef5e51e5b004032ecaa9f0b09e48d4df0d04cd8e7d163d5a5217297",
       "executable": false
     },
     "tests/browser-email-questions.mjs": {
@@ -4480,7 +4480,7 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "9a3fb375ff32282c734140c2126d3cbfa756abec02c7594967ca31d30f619ad7",
+      "sha256": "409413a1ea1659222b464119b3581060c99be31693c241585759e58f7ea6c765",
       "executable": false
     },
     "tests/browser-statements.mjs": {
@@ -6748,7 +6748,7 @@
       "executable": false
     },
     "tests/individual-liability-archive.mjs": {
-      "sha256": "57bd7e16895142dae3e71635dab89bd26a0e8571e02a224970212d4a4baa9acd",
+      "sha256": "c319925476d6c59863d92bb83d12751d55d03a861cf5774b0703c6de8404d1bd",
       "executable": false
     },
     "tests/individual-liability-kit.mjs": {
