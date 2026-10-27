@@ -1,3 +1,4 @@
+import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
 import { receiptEmailSource } from './receipts/mail-intake';
 import { payrollConnection, connectPayroll, disconnectPayroll, mapPayrollEmployee } from './payroll/connection';
@@ -348,3 +349,10 @@ api.post('/api/coaster/payroll/gusto/employees', as(async (a,c)=>mapPayrollEmplo
 api.get('/api/coaster/batches/:id/payroll', as(async (a,c)=>payrollReview(runtimeBindings(c.env),a,param(c,'id'))));
 api.post('/api/coaster/batches/:id/payroll', as(async (a,c)=>sendPayroll(runtimeBindings(c.env),a,param(c,'id'),await body(c))));
 api.post('/api/coaster/batches/:id/payroll/confirm', as(async (a,c)=>confirmPayroll(runtimeBindings(c.env),a,param(c,'id'))));
+
+api.get('/api/coaster/plaid/settings', as(async(a,c)=>plaidSettings(runtimeBindings(c.env),a)));
+api.post('/api/coaster/plaid/settings', as(async(a,c)=>savePlaidSettings(runtimeBindings(c.env),a,await body(c))));
+api.get('/api/coaster/plaid/connections', as(async(a,c)=>plaidConnections(runtimeBindings(c.env),a)));
+api.post('/api/coaster/plaid/link', as(async(a,c)=>createPlaidLink(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/plaid/exchange', as(async(a,c)=>exchangePlaidLink(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/plaid/connections/:id/disconnect', as(async(a,c)=>disconnectPlaid(runtimeBindings(c.env),a,param(c,'id'))));

@@ -14,6 +14,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
+  ['c_plaid_settings', ['set_by']], ['c_plaid_connections', ['connected_by']],
   ['c_receipt_mail_messages',['sender','owner_email']], ['c_receipt_mail_settings',['set_by']],
   ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']],
   ['c_program_feeds', ['connected_by']], ['c_receipt_reading_settings', ['set_by']], ['c_receipt_readings', ['actor_email', 'on_behalf_of']],
@@ -121,6 +122,8 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   const rewrittenReasons = discardReasons.map(row => ({ ...row, replaced: replaceDiscardIdentity(row.reason, members, address, member.name, subject, label) })).filter(row => row.reason !== row.replaced);
   const removed = {
     name: true, email: true, signInAccount: Boolean(operator),
+    personalPlaidConnections: await count('c_plaid_connections WHERE personal_email=?', address),
+    plaidLinkRequests: await count('c_plaid_links WHERE member_email=?', address),
     agentKeys: await count('c_agent_keys WHERE member_email=?', address),
     delegations: await count('c_delegations WHERE approver_email=? OR delegate_email=?', address, address) + await count('c_delegates WHERE grantor_email=? OR delegate_email=?', address, address),
     approverAssignments: await count('c_members WHERE approver_email=?', address),
@@ -192,6 +195,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     asSql(event(db, actor, 'member-erased', {}, { member: subject, erasure: id })),
     // Native-account deletion dirties this derived cache after address replacement; remove the old identity last.
     sql('DELETE FROM c_card_match_generations WHERE employee_email=?', address),
+    sql('DELETE FROM c_plaid_connections WHERE personal_email=?', address), sql('DELETE FROM c_plaid_links WHERE member_email=?', address),
     sql('DELETE FROM c_capture_erasing'), sql('DELETE FROM c_erasing'), sql(`INSERT INTO c_guard SELECT CASE WHEN (${guard.sql}) THEN 1 ELSE 0 END`, ...guard.params), sql('DELETE FROM c_guard'),
   ];
   const checkpoint = [...await redactionStatements(db), ...await invalidateTransfersStatements(db)].map(asSql);
