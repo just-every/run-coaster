@@ -41,6 +41,7 @@ export const groups = {
   'policy-review': [
     { evidence: 'individual-liability', commands: [['tests/browser-individual-liability.mjs']] },
     { evidence: 'bulk-approvals', commands: [['tests/browser-bulk-approvals.mjs']] },
+    { evidence: 'card-chases', commands: [['tests/browser-card-chases.mjs']] },
     { evidence: 'bank-archive', commands: [['tests/bank-archive.mjs']] },
     {"evidence": "policy-review", "commands": [["tests/browser-policy-review.mjs"]]},
   ],

@@ -569,4 +569,21 @@ CT approved the native policy WITH RIDERS on 27 October 2026; AGENT-007 remains 
 
 `POST /api/coaster/feeds/program` accepts optional `liability: "company" | "individual"` (default `company`) under its existing explicit native connection consent. Each scheduled mapped-CSV charge freezes that program liability and source program ID. Existing manual statement imports remain company liability.
 
-`POST /api/coaster/claims/:id/items/classify` accepts `{version, item, personal: boolean}` from the original cardholder in their own native employee session, on a draft or returned claim. Other people, delegates, agents, stale versions and frozen claims are refused. Ordinary expense editing preserves classification and source money facts. Submission freezes liability and classification with each revision. Only individual business charges contribute to reimbursement totals, accounting lines and once-only source transaction keys; company charges and individual personal charges contribute zero. Individual charges cannot enter the company card ledger or transfer their liability to a successor. Numbered charge, classification and batch events and all financial evidence survive CLI export and restore; program execution credentials do not. These batches establish no provider settlement or QuickBooks bill. The conservative classification and liability default awaits ct ratification.
+`POST /api/coaster/claims/:id/items/classify` accepts `{version, item, personal: boolean}` from the original cardholder in their own native employee session, on a draft or returned claim. Other people, delegates, agents, stale versions and frozen claims are refused. Ordinary expense editing preserves classification and source money facts. Submission freezes liability and classification with each revision. Only individual business charges contribute to reimbursement totals, accounting lines and once-only source transaction keys; company charges and individual personal charges contribute zero. Individual charges cannot enter the company card ledger or transfer their liability to a successor. Numbered charge, classification and batch events and all financial evidence survive CLI export and restore; program execution credentials do not. These batches establish no provider settlement or QuickBooks bill. CT approved the classification and liability foundation WITH RIDERS on 27 October 2026; scoped human classification delegation remains unfinished. Company feed connections retain owner, admin and finance authority and live Full delegation. Deactivation revokes access while individual charges remain with the original cardholder. Restore validates source amounts and every card reimbursement key before any destination write.
+
+## Posted card evidence reminders
+
+The hourly scheduled handler chases each native posted card expense missing a receipt,
+an expense memo (description), an allocated category field or an active finance-policy
+required field. Receipts are chased at every amount, including below the ordinary
+receipt threshold. Existing finance reminder steps count US business days from the
+statement posting date; business quiet hours and holidays still apply. Late discovery
+catches up each due step with a distinct durable mail-adapter identity. Replayed ticks
+create no duplicate delivery or reminder history. The native expense edit and receipt
+attachment doors resolve evidence; resolved expenses receive no later chase step.
+Both reminder branches retain the shared escalation service: after the last reminder
+plus the configured gap, the evidence task escalates to its manager, then finance.
+Card evidence uses posting age for these steps; the independent unsubmitted-claim
+task continues to use discovery age. Each task records its own once-only history.
+Mail adapter acceptance does not establish mailbox delivery. This native slice makes
+no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).
