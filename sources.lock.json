@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "3b5b4e84fa10587c15fe0739f7693b518cbd5f2080a2875734a52e2e99245bba",
+      "sha256": "3b968b55d4521e099173e53954c44f6b3f61315e0ee95f03d071bdd293248bc8",
       "executable": false
     },
     "base-copies.json": {
@@ -1508,7 +1508,7 @@
       "executable": false
     },
     "src/coaster/claims.ts": {
-      "sha256": "8dfbc2cf63a2bf2ac4bb317de2a81dc48c9ef63de001f48d4fdb8a50ee753abc",
+      "sha256": "4c6d577c590b257c28d11078ac95b5d4efae2abdf07ef63375563dd2d9c63b2c",
       "executable": false
     },
     "src/coaster/coding/automatic/engine.ts": {
@@ -2028,7 +2028,7 @@
       "executable": false
     },
     "src/coaster/reminders.ts": {
-      "sha256": "d482a92a150532bde3b16873d692f0aced8cc723e52dc3adb7f92d164e651e14",
+      "sha256": "8ed5f3e0162352b6e4542886466bea3783e945de426426ca9d3a745170c06052",
       "executable": false
     },
     "src/coaster/report-schedules.ts": {
@@ -4140,7 +4140,7 @@
       "executable": false
     },
     "src/ui/claim-panel.tsx": {
-      "sha256": "c9e2023032e47184c00e866f2873f9c9df1c90864aced30b49dc4424850206ec",
+      "sha256": "a0b79e0dfee22b0bbf7f965577d3d71ce2f34f584ba8ddc03dbe0b3184472ba8",
       "executable": false
     },
     "src/ui/claims-table.tsx": {
@@ -4384,7 +4384,7 @@
       "executable": false
     },
     "tests/browser-card-chases.mjs": {
-      "sha256": "170343908ab7115326381d4e521494c31ce125680b347ccabf0afbede8e4fafc",
+      "sha256": "854994f0b86c81630364ae176700d09cb08f40e80379b323a405030951044ab9",
       "executable": false
     },
     "tests/browser-coding.mjs": {
@@ -4500,7 +4500,7 @@
       "executable": false
     },
     "tests/coaster-card-chases.test.mjs": {
-      "sha256": "8e5e186b05a21d1e45fb33ca7e8c24375e107128ab48486111faf93782b5b129",
+      "sha256": "8cfcc1793a697a7e140cada466b4cebf8d5dddcb4e954435baf726b6df752fab",
       "executable": false
     },
     "tests/coaster-card-matching-volume.test.mjs": {

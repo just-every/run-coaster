@@ -575,5 +575,14 @@ statement posting date; business quiet hours and holidays still apply. Late disc
 catches up each due step with a distinct durable mail-adapter identity. Replayed ticks
 create no duplicate delivery or reminder history. The native expense edit and receipt
 attachment doors resolve evidence; resolved expenses receive no later chase step.
+Card evidence uses the configured manager and finance escalation sequence after its
+last reminder, with the same posting-date anchor and replay protection.
+An employee may append a missing receipt to their own posted card expense after
+submission through `POST claims/:id/receipts`, with the exact current `version`
+and `item`. This narrow door cannot replace a receipt or change expense facts,
+frozen revisions, decisions, approved amounts or payment status. The new receipt
+and its attributable history remain available beside the original submission.
+The claim screen labels the later evidence; ordinary expense edits still require
+an editable claim. This also permits completing retained evidence after closure.
 Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).

@@ -17,27 +17,30 @@ try {
     try {
       const f = await cardChaseFixture(h);
       for (const day of ['2026-06-02', '2026-06-04', '2026-06-08']) await f.tick(day);
+      const submitted = await h.post(`claims/${f.id}/submit`, { version: (await f.detail()).claim.version }, f.sam);
+      await h.post(`claims/${f.id}/decision`, { version: submitted.version, revision: submitted.revision, decision: 'approved', acknowledge: true }, f.priya);
+      const frozen = (await f.detail()).revisions;
       context = await browser.newContext({ viewport: { width, height: 1000 }, serviceWorkers: 'block' });
       await attach(context, { ...h, owner: f.sam });
       const page = await context.newPage();
       await page.goto(h.origin + '/app#/claims/' + f.id);
-      const panel = page.locator('.claim-detail');
-      await expect(page.getByRole('button', { name: 'Change Client supplies', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Attach card receipt', exact: true })).toBeVisible();
       if (width === 1440) {
         assert.equal((await f.reminders()).length, 3);
         await tooltipProof(page, page.getByRole('link', { name: 'Back to claims', exact: true }));
       }
       await noOverflow(page);
       await page.screenshot({ path: join(evidence, `${width}-missing-evidence.png`), fullPage: true });
-      await page.getByRole('button', { name: 'Change Client supplies', exact: true }).click();
-      await page.getByLabel('Receipt photo or PDF', { exact: true }).setInputFiles('tests/fixtures/receipts/officeworks.png');
-      await page.getByRole('button', { name: 'Save expense', exact: true }).click();
+      await page.getByLabel('Missing card receipt', { exact: true }).setInputFiles('tests/fixtures/receipts/officeworks.png');
+      await page.getByRole('button', { name: 'Attach card receipt', exact: true }).click();
       await expect(page.getByRole('link', { name: 'Open receipt officeworks.png', exact: true })).toBeVisible();
       if (width === 1440) {
         await tooltipProof(page, page.getByRole('link', { name: 'Open receipt officeworks.png', exact: true }));
         await h.post(apiPath('settings', 'reminders'), { days: '1,3,5,6', quietFrom: '20', quietUntil: '8', escalateAfter: '' }, f.morgan);
         assert.deepEqual(await f.tick('2026-06-09'), []);
         assert.equal((await f.reminders()).length, 3);
+        assert.deepEqual((await f.detail()).revisions, frozen);
+        await expect(page.getByText('Receipt added after submission; earlier revisions unchanged.', { exact: true })).toBeVisible();
       }
       await noOverflow(page);
       await page.screenshot({ path: join(evidence, `${width}-evidence-attached.png`), fullPage: true });
