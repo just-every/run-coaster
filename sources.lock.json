@@ -404,7 +404,7 @@
       "executable": false
     },
     "IMPORTING.md": {
-      "sha256": "70e41071b8b828fa13fe9454cddfaace4903ed3ed844a47c9ab71cb50ef06026",
+      "sha256": "a452e4c957a4fd19f2a427c7968cd4c0f672e05d2c9ec2cf00825bab21f6bcbc",
       "executable": false
     },
     "LICENSE": {
@@ -1172,7 +1172,7 @@
       "executable": false
     },
     "scripts/installer/statement-archive.mjs": {
-      "sha256": "ffa3d144845863f035fa376563fa93f5c44103ee994fe88ad9d8a03258dbb8ee",
+      "sha256": "7502ae8bf05bf36a163360594d7e492bf36b038280540ee417cb5b6fd495a0ba",
       "executable": false
     },
     "scripts/installer/ui/background.svg": {
@@ -1500,7 +1500,7 @@
       "executable": false
     },
     "src/coaster/cards/statement-numbers.ts": {
-      "sha256": "e68cf10c1437ab7d6b150b0cb1259a5d62d41ffc06ad146ed7d6bd7d9f8c607c",
+      "sha256": "534f165046969b88866cd4eb1f58637361464f5801ea0b549a4ab4114bc577a6",
       "executable": false
     },
     "src/coaster/cards/statement.ts": {
@@ -6756,7 +6756,7 @@
       "executable": false
     },
     "tests/statement-archive.mjs": {
-      "sha256": "dbb52ab5722639ea2d029cf237506e6e53b39be40e59e5cb682a1ca0e54b6f82",
+      "sha256": "c44d0c2a844f16512771fe3dbc50e5cbcedee0c33816d9d7dab46aec1399b2e2",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {

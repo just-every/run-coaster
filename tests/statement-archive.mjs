@@ -22,8 +22,10 @@ export function statementPrivacyFixtures(category) {
       : `${format === 'qfx' ? '<?xml version="1.0"?>' : 'OFXHEADER:100\n'}<OFX><CREDITCARDMSGSRSV1><CCSTMTTRNRS><CCSTMTRS><CURDEF>AUD</CURDEF><CCACCTFROM><ACCTID>${card}</ACCTID></CCACCTFROM><BANKTRANLIST><DTSTART>20261001</DTSTART><DTEND>20261031</DTEND><STMTTRN><TRNTYPE>DEBIT</TRNTYPE><DTPOSTED>20261002120000</DTPOSTED><TRNAMT>-12.34</TRNAMT><FITID>synthetic-coaster-${index}-${values}</FITID><NAME>Synthetic ${values}</NAME><MEMO>${values}</MEMO></STMTTRN></BANKTRANLIST></CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>`;
     const card = partial ? (format === 'csv' ? '550000******0004' : '411111******1111') : variants[index];
     const safeCard = partial ? (format === 'csv' ? '************0004' : '************1111') : masked[(format === 'csv' ? 6 : 0) + index];
-    const input = { format, name: `synthetic-privacy-${String.fromCharCode(97 + index)}-${account}.${format}`, issuer: `Synthetic privacy ${index}`, category, content: build(card, partial ? card : fields).replace('<ACCTID>', '<ACCTID >'), ...(format === 'csv' ? { mapping: { dateFormat: 'YYYY-MM-DD', sign: 'purchases-positive', postedDate: 'Date', description: 'Merchant', amount: 'Amount', card: 'Card', transactionId: 'Ref' } } : {}) };
-    return { input, expected: build(safeCard, partial ? safeCard : safeFields).replace('<ACCTID>', '<ACCTID >'), name: `synthetic-privacy-${String.fromCharCode(97 + index)}-${format === 'csv' ? '************0004' : '************1111'}.${format}`, last4: account.slice(-4) };
+    const filenameCard = index === 3 ? '411111**********1111' : variants[index % 3];
+    const filenameMasked = index === 3 ? '****************1111' : masked[(format === 'csv' ? 6 : 0) + index % 3];
+    const input = { format, name: `synthetic-privacy-${String.fromCharCode(97 + index)}-${filenameCard}.${format}`, issuer: `Synthetic privacy ${index}`, category, content: build(card, partial ? card : fields).replace('<ACCTID>', '<ACCTID >'), ...(format === 'csv' ? { mapping: { dateFormat: 'YYYY-MM-DD', sign: 'purchases-positive', postedDate: 'Date', description: 'Merchant', amount: 'Amount', card: 'Card', transactionId: 'Ref' } } : {}) };
+    return { input, expected: build(safeCard, partial ? safeCard : safeFields).replace('<ACCTID>', '<ACCTID >'), name: `synthetic-privacy-${String.fromCharCode(97 + index)}-${filenameMasked}.${format}`, last4: account.slice(-4) };
   });
 }
 

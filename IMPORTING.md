@@ -212,12 +212,16 @@ memory, before anything is stored, and the retained original is that masked
 file, labelled "card numbers masked" with its own SHA-256. This outranks keeping
 the file byte for byte. Download it from `GET /api/coaster/statements/:id/file`.
 
-Compact, spaced and hyphenated copies of the supplied account number are masked
+Compact, spaced and hyphenated copies of the supplied account number, including
+leading digits left visible in a partially masked account, are masked
 before transaction identifiers, descriptions, memos or preview diagnostics are
 derived. Export retains the masked bytes with their size and digest. Restore
 checks those values and refuses an unmasked statement original while staging,
 before writing any destination row or object; valid masked originals restore
-without changing a byte.
+without changing a byte. Number-shaped uploaded filenames are also redacted to
+their last four digits before truncation, persistence, history or download.
+Restore accepts the same whitespace in OFX account tags and account values as
+the statement importer, and refuses unsafe filenames as well as unsafe bytes.
 
 ## Preview, commit and undo
 

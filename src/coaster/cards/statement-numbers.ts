@@ -20,5 +20,5 @@ export function maskStatementNumbers(raw: string, numbers: Iterable<string>, rep
 
 /** Uploaded filenames are untrusted metadata too; retain only the last four digits of number-shaped labels. */
 export function maskStatementFilename(value: string): string {
-  return value.replace(/[\d*](?:[ \t._/-]*[\d*]){4,18}/g, number => maskStatementNumbers(number, [], [number]));
+  return value.replace(/[\d*](?:[ \t._/-]*[\d*]){4,}/g, number => maskStatementNumbers(number, [], [number]));
 }

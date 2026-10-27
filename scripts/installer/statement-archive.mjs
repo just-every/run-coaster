@@ -22,6 +22,9 @@ const timestamp = value => {
 /** Inspect staged originals without touching the destination. Re-sealing an unsafe archive grants no custody. */
 export async function validateStatementArchive(read) {
   for (const file of await read('c_statement_files')) {
+    for (const match of String(file.name).matchAll(/[\d*](?:[ \t._/-]*[\d*]){4,}/g)) {
+      check(match[0].replace(/\D/g, '').length <= 4, 'number');
+    }
     const body = bytes(file.bytes);
     check(body.length === file.size && createHash('sha256').update(body).digest('hex') === file.sha256, 'bytes');
     const text = body.toString('utf8'), lastFour = new Set();
@@ -42,16 +45,17 @@ export async function validateStatementArchive(read) {
       }
     } else {
       check(['ofx', 'qfx'].includes(file.format), 'format');
-      const accounts = [...text.matchAll(/<ACCTID>([^<]*)/gi)];
+      const accounts = [...text.matchAll(/<ACCTID\s*\/?>([^<]*)/gi)];
       check(accounts.length > 0, 'format');
       for (const [, account] of accounts) {
-        check(/^[*\s-]*\d{4}\s*$/.test(account), 'number');
-        lastFour.add(account.replace(/\D/g, ''));
+        const normalized = account.replace(/[\s-]/g, '');
+        check(/^[*]*\d{4}$/.test(normalized), 'number');
+        lastFour.add(normalized.slice(-4));
       }
     }
     // OFX timestamps are not card fields. Elsewhere refuse a full card-shaped number matching this
     // statement's last four, or a valid PAN even when its account field was already masked.
-    const content = file.format === 'csv' ? text : text.replace(/<DT[A-Z.]*>([^<\r\n]*)/gi, (field, value) => timestamp(value) ? '' : field);
+    const content = file.format === 'csv' ? text : text.replace(/<DT[A-Z.]*\s*\/?>([^<\r\n]*)/gi, (field, value) => timestamp(value) ? '' : field);
     for (const match of content.matchAll(/(?<!\d)\d(?:[ \t./-]*\d){12,18}(?![ \t./-]*\d)/g)) {
       const digits = match[0].replace(/\D/g, '');
       check(!lastFour.has(digits.slice(-4)) && !luhn(digits), 'number');
