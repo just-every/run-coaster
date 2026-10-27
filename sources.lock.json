@@ -1484,7 +1484,7 @@
       "executable": false
     },
     "src/coaster/cards/plan.ts": {
-      "sha256": "386b55faf6b13aa79b6cdfa2feab0e678098f03f1d703f638ca3fcad17d78aba",
+      "sha256": "aa005602c6200c6e55f31d0d2ef071009e8183f16c904aba1b5328cb78beb979",
       "executable": false
     },
     "src/coaster/cards/reconcile-analysis.ts": {
@@ -1500,7 +1500,7 @@
       "executable": false
     },
     "src/coaster/cards/statement-numbers.ts": {
-      "sha256": "260be536b3c243fe3b162b0f5581417f5f4d6ce2e8d70147cefdf1304bc539a9",
+      "sha256": "e68cf10c1437ab7d6b150b0cb1259a5d62d41ffc06ad146ed7d6bd7d9f8c607c",
       "executable": false
     },
     "src/coaster/cards/statement.ts": {
@@ -4452,7 +4452,7 @@
       "executable": false
     },
     "tests/browser-statements.mjs": {
-      "sha256": "0da5aef2ca794220316d14788637fdfe9229857c94636962564e201c96d42483",
+      "sha256": "b8e58f972911a9ecf7fab9082abccefe2ceb7122178ba2ec36015fc15ffac241",
       "executable": false
     },
     "tests/browser.mjs": {
@@ -4472,7 +4472,7 @@
       "executable": false
     },
     "tests/card-matching.mjs": {
-      "sha256": "3922a0d4ec179c2b95777906f4b7efe2d126ac26459948ff0eb577df25273c8a",
+      "sha256": "ea5a23e5106329a3e941cef8844df1bb05b2682e4de08236bb45ed6d728d62b8",
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {
@@ -6756,7 +6756,7 @@
       "executable": false
     },
     "tests/statement-archive.mjs": {
-      "sha256": "e789bb1eac0de3520e0e159a48941e80b5c839e55bd27c05e55dfacdf999abe1",
+      "sha256": "dbb52ab5722639ea2d029cf237506e6e53b39be40e59e5cb682a1ca0e54b6f82",
       "executable": false
     },
     "tests/typecheck-checks.mjs": {

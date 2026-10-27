@@ -13,14 +13,17 @@ const masked = ['************1111', '**** **** **** 1111', '****-****-****-1111'
 
 /** Expected bytes are independent fixture values, not output from the masking implementation. */
 export function statementPrivacyFixtures(category) {
-  return ['ofx', 'qfx', 'csv'].map((format, index) => {
+  return ['ofx', 'qfx', 'csv', 'ofx', 'qfx', 'csv'].map((format, index) => {
+    const partial = index >= 3;
     const account = format === 'csv' ? numbers[1] : numbers[0], variants = formats(account);
     const fields = variants.join(' ; '), safeFields = masked.slice(format === 'csv' ? 6 : 0, format === 'csv' ? 12 : 6).join(' ; ');
     const build = (card, values) => format === 'csv'
       ? `Date,Merchant,Amount,Card,Ref,Unmapped\n2026-10-02,Synthetic ${values},12.34,${card},synthetic-coaster-${index}-${values},${values}\n`
       : `${format === 'qfx' ? '<?xml version="1.0"?>' : 'OFXHEADER:100\n'}<OFX><CREDITCARDMSGSRSV1><CCSTMTTRNRS><CCSTMTRS><CURDEF>AUD</CURDEF><CCACCTFROM><ACCTID>${card}</ACCTID></CCACCTFROM><BANKTRANLIST><DTSTART>20261001</DTSTART><DTEND>20261031</DTEND><STMTTRN><TRNTYPE>DEBIT</TRNTYPE><DTPOSTED>20261002120000</DTPOSTED><TRNAMT>-12.34</TRNAMT><FITID>synthetic-coaster-${index}-${values}</FITID><NAME>Synthetic ${values}</NAME><MEMO>${values}</MEMO></STMTTRN></BANKTRANLIST></CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>`;
-    const input = { format, name: `synthetic-privacy.${format}`, issuer: `Synthetic privacy ${format}`, category, content: build(variants[index], fields), ...(format === 'csv' ? { mapping: { dateFormat: 'YYYY-MM-DD', sign: 'purchases-positive', postedDate: 'Date', description: 'Merchant', amount: 'Amount', card: 'Card', transactionId: 'Ref' } } : {}) };
-    return { input, expected: build(masked[(format === 'csv' ? 6 : 0) + index], safeFields), last4: account.slice(-4) };
+    const card = partial ? (format === 'csv' ? '550000******0004' : '411111******1111') : variants[index];
+    const safeCard = partial ? (format === 'csv' ? '************0004' : '************1111') : masked[(format === 'csv' ? 6 : 0) + index];
+    const input = { format, name: `synthetic-privacy-${String.fromCharCode(97 + index)}-${account}.${format}`, issuer: `Synthetic privacy ${index}`, category, content: build(card, partial ? card : fields).replace('<ACCTID>', '<ACCTID >'), ...(format === 'csv' ? { mapping: { dateFormat: 'YYYY-MM-DD', sign: 'purchases-positive', postedDate: 'Date', description: 'Merchant', amount: 'Amount', card: 'Card', transactionId: 'Ref' } } : {}) };
+    return { input, expected: build(safeCard, partial ? safeCard : safeFields).replace('<ACCTID>', '<ACCTID >'), name: `synthetic-privacy-${String.fromCharCode(97 + index)}-${format === 'csv' ? '************0004' : '************1111'}.${format}`, last4: account.slice(-4) };
   });
 }
 
@@ -33,6 +36,7 @@ export function assertNoStatementNumbers(value, label = 'retained data') {
   if (typeof value === 'string') {
     const compact = value.replace(/[\s./-]/g, '');
     for (const number of numbers) assert.equal(compact.includes(number), false, `${label} retains no full fixture card number`);
+    assert.doesNotMatch(value, /(?:411111|550000)[*\s./-]*\d{4}/, `${label} retains no leading digits from a partially masked account`);
     // JSON snapshots and encoded BLOB cells are inspected recursively too.
     try { const decoded = JSON.parse(value); if (typeof decoded === 'object' && decoded !== null) assertNoStatementNumbers(decoded, label); } catch (error) { if (error instanceof assert.AssertionError) throw error; }
   } else if (typeof value === 'object') {
@@ -76,13 +80,13 @@ export async function scanStatementStorage(h) {
 
 export async function importPrivateStatements(door, category, employee) {
   const fixtures = statementPrivacyFixtures(category), imported = [];
-  for (const { input, expected, last4 } of fixtures) {
+  for (const { input, expected, name, last4 } of fixtures) {
     await door.post(['statements', 'cards'].join('/'), { issuer: input.issuer, last4, employee });
     const preview = await door.post(['statements', 'preview'].join('/'), input);
     assertNoStatementNumbers(preview, 'statement preview');
     assert.deepEqual([preview.importable, preview.totalMinor, preview.errors], [1, 1234, []]);
     const committed = await door.post(['statements', 'commit'].join('/'), { ...input, fingerprint: preview.fingerprint });
-    imported.push({ id: committed.file, expected, format: input.format });
+    imported.push({ id: committed.file, expected, name, format: input.format });
     assertNoStatementNumbers(committed, 'statement commit');
   }
   await verifyPrivateStatementDownloads(door, imported);
@@ -91,10 +95,11 @@ export async function importPrivateStatements(door, category, employee) {
 
 export async function verifyPrivateStatementDownloads(door, imported) {
   const state = await door.get('statements');
-  for (const { id, expected } of imported) {
+  for (const { id, expected, name } of imported) {
     const file = state.files.find(file => file.id === id);
     assert.ok(file, 'the imported statement is listed');
     assert.equal(file.label, 'card numbers masked');
+    assert.equal(file.name, name, 'the persisted filename retains only the last four');
     const body = Buffer.from(expected);
     assert.equal(file.size, body.length, 'retained size is the masked UTF-8 byte length');
     assert.equal(file.sha256, createHash('sha256').update(body).digest('hex'), 'retained SHA-256 authenticates masked bytes');
@@ -102,6 +107,7 @@ export async function verifyPrivateStatementDownloads(door, imported) {
     assert.deepEqual(downloaded.bytes, body, 'the public download returns the exact labelled masked original');
     assert.match(downloaded.disposition, /card-numbers-masked/);
     assertNoStatementNumbers(downloaded.bytes, 'statement download');
+    assertNoStatementNumbers(downloaded.disposition, 'statement download filename');
   }
 }
 
@@ -123,6 +129,8 @@ export async function rejectUnsafeStatementArchives(destination, archive, { part
   const empty = rows(await records(join(destination, 'exports/statement-empty.rer')));
   const cases = [
     ...['ofx', 'qfx', 'csv'].map(format => ({ code: `number-${format}`, format, change: () => statementPrivacyFixtures('unused').find(fixture => fixture.input.format === format).input.content })),
+    { code: 'number-partial', format: 'ofx', change: () => statementPrivacyFixtures('unused')[3].input.content },
+    { code: 'number-filename', format: 'csv', error: 'number', metadata: row => { row.name = 'synthetic-' + numbers[1] + '.csv'; } },
     { code: 'number-memo', format: 'ofx', change: text => text.replace('<MEMO>', '<MEMO>5500 - 0000 - 0000 - 0004 ; ') },
     { code: 'number-date', format: 'qfx', change: text => text.replace('20261002120000', numbers[0]) },
     { code: 'size', format: 'csv', metadata: row => { row.size++; } },
@@ -136,11 +144,11 @@ export async function rejectUnsafeStatementArchives(destination, archive, { part
         const body = Buffer.from(entry.change(Buffer.from(row.bytes.blob, 'base64').toString('utf8')));
         row.bytes.blob = body.toString('base64'); row.size = body.length; row.sha256 = createHash('sha256').update(body).digest('hex');
       }
-    }, row => row.name === `synthetic-privacy.${entry.format}`);
+    }, row => row.format === entry.format);
     const name = `exports/statement-${entry.code}.rer`;
     await writeFile(join(destination, name), invalid, { mode: 0o600 });
     const log = await command(destination, ['import', '--input', name, '--yes'], { expected: 4 });
-    assert.match(log, new RegExp(entry.metadata ? 'coaster_statement_bytes' : 'coaster_statement_number'));
+    assert.match(log, new RegExp(entry.error === 'number' || !entry.metadata ? 'coaster_statement_number' : 'coaster_statement_bytes'));
     const after = `exports/statement-after-${entry.code}.rer`;
     await command(destination, ['export', '--output', after]);
     assert.deepEqual(rows(await records(join(destination, after))), empty, 'unsafe statement restore writes no row or object');

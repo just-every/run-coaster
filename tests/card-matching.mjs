@@ -6,7 +6,7 @@ import {join,resolve} from 'node:path'
 import {command,fresh,freePort,start} from './browser-runtime.mjs'
 import {api,PEOPLE,session,setUp} from './browser-journey.mjs'
 import {records,rows,tampered} from './browser-archive.mjs'
-import {statementScreens} from './browser-statements.mjs'
+import {statementScreens,statementPrivacyScreens} from './browser-statements.mjs'
 import {codingScreens} from './browser-coding.mjs'
 import {readingEdge,readingScreens} from './browser-reading.mjs'
 import {programFeedScreens} from './browser-program-feed.mjs'
@@ -30,6 +30,7 @@ try {
   const owner=await session(browser,root,server.origin,'owner',1440);await setUp(owner,server.origin)
   const category=(await api(owner.context,server.origin,'state')).categories.find(c=>c.name==='Office supplies').id
   const privateStatements=await importPrivateStatements(statementDoor(owner.context,server.origin),category,PEOPLE.employee)
+  await statementPrivacyScreens(browser,root,server.origin,privateStatements,evidence)
   await api(owner.context,server.origin,'statements/cards',{issuer:'Synthetic Card',last4:'1111',employee:PEOPLE.employee})
   const importRows=async(name,amount,merchant,count=1,date='2026-10-02')=>{
     const input={format:'csv',name,issuer:'Synthetic Card',category,content:'Date,Merchant,Amount,Id\n'+Array.from({length:count},(_,i)=>`${date},${merchant},${amount},${name}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}}

@@ -3,6 +3,7 @@ import { sha256Hex } from '../session';
 import { requireBusiness } from '../settings';
 import { categories } from '../items';
 import { optionalText, requireThat, type Actor, type Data } from '../types';
+import { maskStatementFilename } from './statement-numbers';
 import { parseOfx } from './ofx';
 import { parseStatementCsv } from './statement-csv';
 import { CHARGE_LIMIT, ROW_LIMIT, STATEMENT_LIMIT, cardKey, chargeDate, issuerLabel, normalDescriptor, type Statement, type StatementRow } from './statement';
@@ -15,7 +16,7 @@ const FORMATS = ['ofx', 'qfx', 'csv'];
 export function readStatement(b: Data, currency: string): Statement {
   requireThat(typeof b.content === 'string' && b.content.length > 0 && b.content.length <= STATEMENT_LIMIT, `Choose a statement file (at most ${STATEMENT_LIMIT / 1_000_000} MB)`);
   requireThat(FORMATS.includes(b.format), 'Choose OFX, QFX or CSV');
-  const name = (typeof b.name === 'string' && b.name.trim() ? b.name.trim() : `statement.${b.format}`).replace(/[\u0000-\u001f]/g, '').slice(0, 200), issuer = issuerLabel(b.issuer);
+  const name = maskStatementFilename((typeof b.name === 'string' && b.name.trim() ? b.name.trim() : `statement.${b.format}`).replace(/[\u0000-\u001f]/g, '')).slice(0, 200), issuer = issuerLabel(b.issuer);
   if (b.format === 'csv') {
     const mapping = (b.mapping ?? {}) as Data;
     requireThat(mapping && typeof mapping === 'object' && !Array.isArray(mapping), 'Map the CSV columns');
