@@ -564,3 +564,16 @@ expired bank holds before selecting that day’s reimbursement batch.
 - `Denver client trip, Oct 6–8` requires an explicit `year` (or year in the message) and one to twenty receipts. Each receipt is `{date, merchant, amount, category, receipt:{name,base64}}`, with reviewed details within the trip dates. Amounts are entered facts, not a claim of automatic photo reading. The route proposes these originals and the destination's published GSA meal allowance; ordinary explicit FX rules apply through `manualRate` when needed. Furnished meals and purpose need employee review. An omitted purpose returns a question and records the question in the proposal note. Nothing becomes a claim until the existing proposal acceptance door creates a draft; submission is a separate native action.
 
 CT approved the native policy WITH RIDERS on 27 October 2026; AGENT-007 remains partial. Native conversation proposals carry server-owned custody metadata. Shared agent reads refuse their payloads and both shared decision routes require the person's own session. Older proposals bearing the native assistant label retain that restriction; ordinary agent proposals retain their existing authority. Slack verification, account linking, receipt download, replies, Teams, text messages and a conversational input screen remain unbuilt. No chat credentials or sending authority are restored by this foundation.
+
+## Posted card evidence reminders
+
+The hourly scheduled handler chases each native posted card expense missing a receipt,
+an expense memo (description), an allocated category field or an active finance-policy
+required field. Receipts are chased at every amount, including below the ordinary
+receipt threshold. Existing finance reminder steps count US business days from the
+statement posting date; business quiet hours and holidays still apply. Late discovery
+catches up each due step with a distinct durable mail-adapter identity. Replayed ticks
+create no duplicate delivery or reminder history. The native expense edit and receipt
+attachment doors resolve evidence; resolved expenses receive no later chase step.
+Mail adapter acceptance does not establish mailbox delivery. This native slice makes
+no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).

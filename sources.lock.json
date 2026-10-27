@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a1ee40d7a0ef032f2e2720162b234e3d448993592156cdc1fda09d48b6a221e1",
+      "sha256": "efb124fb1c9f515adc71598b329f931e5c9a074a2460b13cbb378886eb4e4fa5",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "65de76d1dca0c22dcfa3d9e6152e915a7d3e52f89a5f1d9180eae17c10e1e877",
+      "sha256": "3b5b4e84fa10587c15fe0739f7693b518cbd5f2080a2875734a52e2e99245bba",
       "executable": false
     },
     "base-copies.json": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a7b3315d3e7787e8a6bb888f3fe592448f82cf5789a54121c6bed64883c63eea",
+      "sha256": "3be4c57430ec543a4a74c1411ceb5c80128b3354fd5d77799ae4c0179b0788e0",
       "executable": false
     },
     "DEMO.md": {
@@ -948,7 +948,7 @@
       "executable": false
     },
     "scripts/ci/browser-groups.mjs": {
-      "sha256": "a3f78966c9ca3d8b8ad003cb12ec999cae8200879f8852b25cc37f1bfba6fa98",
+      "sha256": "74aaf535fe39a3117afa49c801ffbc08803812bf38d48e6197fb53521786c957",
       "executable": false
     },
     "scripts/ci/chromium-probe.mjs": {
@@ -1461,6 +1461,10 @@
     },
     "src/coaster/card-duplicates.ts": {
       "sha256": "d2aa18aa628c3e119579a2f5e053edfc0859ac84ff68de0fa026456818b8a838",
+      "executable": false
+    },
+    "src/coaster/card-evidence-chases.ts": {
+      "sha256": "f1b5084696e1968c8441c28af806760c59af9566742d4bc27879f8a9b0740e08",
       "executable": false
     },
     "src/coaster/card-expenses.ts": {
@@ -2024,7 +2028,7 @@
       "executable": false
     },
     "src/coaster/reminders.ts": {
-      "sha256": "07712dd3a35f5c358fc69c544f838a84f84d47a9b6aad4b88eb5a79969930f1c",
+      "sha256": "d482a92a150532bde3b16873d692f0aced8cc723e52dc3adb7f92d164e651e14",
       "executable": false
     },
     "src/coaster/report-schedules.ts": {
@@ -4379,6 +4383,10 @@
       "sha256": "327cc09b9010ab40f9add922f0575259abbf6d6e4cee2b719634e256dd296911",
       "executable": false
     },
+    "tests/browser-card-chases.mjs": {
+      "sha256": "170343908ab7115326381d4e521494c31ce125680b347ccabf0afbede8e4fafc",
+      "executable": false
+    },
     "tests/browser-coding.mjs": {
       "sha256": "44e0051e5defedfb43bee75620a636e1352be1f80be741336fa2aa5e2219ed2a",
       "executable": false
@@ -4455,6 +4463,10 @@
       "sha256": "20f861ba1fde71bfab15ef08b015dfad71720d19276332f6d50752b866d4430f",
       "executable": false
     },
+    "tests/card-chase-kit.mjs": {
+      "sha256": "74b939a3a1bb88c91eb4ce0615792798fdc4fc9f8a59944535854898d1770dd8",
+      "executable": false
+    },
     "tests/card-matching.mjs": {
       "sha256": "f8b3653cd93aa77801dc1ec7bbf1c103c5dbd0ecda9d0fcf4db18f5a208b8348",
       "executable": false
@@ -4485,6 +4497,10 @@
     },
     "tests/coaster-capture.test.mjs": {
       "sha256": "b74b1007ce49d0e9aa48dbafd28d3ae20b5efd21290c138c833bfcf1f2f38b02",
+      "executable": false
+    },
+    "tests/coaster-card-chases.test.mjs": {
+      "sha256": "6a7481a3c1bc6ec770377a3a7007eab61954680b58f58e81268d40c4e4208179",
       "executable": false
     },
     "tests/coaster-card-matching-volume.test.mjs": {
