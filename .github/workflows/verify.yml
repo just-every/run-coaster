@@ -68,6 +68,8 @@ jobs:
           echo "skip=$skip" >> "$GITHUB_OUTPUT"
 
   app:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -101,6 +103,8 @@ jobs:
       - run: pnpm run verify
 
   coaster_flows:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -141,6 +145,8 @@ jobs:
           path: ${{ runner.temp }}/payroll-proof
 
   email_receipts:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -178,6 +184,8 @@ jobs:
           path: ${{ runner.temp }}/email-proof
 
   browser:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -218,6 +226,8 @@ jobs:
           path: ${{ runner.temp }}/coaster-proof
 
   capture:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -258,6 +268,8 @@ jobs:
           path: ${{ runner.temp }}/capture-proof
 
   accessibility:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -293,6 +305,8 @@ jobs:
           path: ${{ runner.temp }}/accessibility-proof
 
   cash_drafts:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -328,6 +342,8 @@ jobs:
           path: ${{ runner.temp }}/cash-draft-proof
 
   policy_signals:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -365,6 +381,8 @@ jobs:
           path: ${{ runner.temp }}/policy-signals-proof
 
   card_matching:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -405,6 +423,8 @@ jobs:
           path: ${{ runner.temp }}/card-matching-proof
 
   policy_review:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -458,7 +478,8 @@ jobs:
           for result in $RESULTS; do test "$result" = success; done
 
   receipt_agent_corpus:
-    if: github.event_name == 'workflow_dispatch'
+    needs: plan
+    if: needs.plan.outputs.skip != 'true' && (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -478,6 +499,8 @@ jobs:
         run: node --test --test-name-pattern='Owner sees|Receipt disagreements' tests/coaster-reader.test.mjs
 
   receipt_agents:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
