@@ -12,11 +12,12 @@ export async function openWork(db: D1Database, address: string) {
   const n = async (sql: string, ...params: unknown[]) => (await db.prepare(sql).bind(...params).first<{ n: number }>())!.n;
   const manager = await n("SELECT (SELECT COUNT(*) FROM c_workflow_tasks t WHERE t.email=? AND t.status='waiting' AND t.role='manager') + (SELECT COUNT(*) FROM c_claims WHERE approver_email=? AND status='submitted' AND NOT EXISTS(SELECT 1 FROM c_workflow_tasks t WHERE t.kind='claim' AND t.record_id=c_claims.id AND t.revision=c_claims.revision)) + (SELECT COUNT(*) FROM c_requests WHERE approver_email=? AND status='submitted' AND workflow IS NULL) + (SELECT COUNT(*) FROM c_advances WHERE approver_email=? AND status='submitted') AS n", address, address, address, address);
   const finance = await n("SELECT COUNT(*) AS n FROM c_workflow_tasks WHERE email=? AND status='waiting' AND role='finance'", address);
-  const cards = await n("SELECT COUNT(*) AS n FROM c_card_charges ch JOIN c_items i ON i.id=ch.item_id JOIN c_claims c ON c.id=i.claim_id WHERE ch.employee_email=? AND c.employee_email=? AND c.status IN ('draft','returned')", address, address);
+  const cards = await n("SELECT COUNT(*) AS n FROM c_card_charges ch JOIN c_items i ON i.id=ch.item_id JOIN c_claims c ON c.id=i.claim_id WHERE ch.liability='company' AND ch.employee_email=? AND c.employee_email=? AND c.status IN ('draft','returned')", address, address);
   return { manager, finance, cards };
 }
 
-/** Everything a deactivation hands to the named successor in the same transaction as the deactivation itself: waiting
+/** Individual charges stay with the original cardholder; deactivation grants no successor classification rights.
+ * Everything a deactivation hands to the named successor in the same transaction as the deactivation itself: waiting
  * approvals (the roles each task needs), the person's reports and any department they head, and each unsubmitted card
  * charge. A private inbox original attached to a charge is detached first, on the departing person's own lifecycle, and
  * stays in their inbox: the successor never sees it. */
@@ -30,7 +31,7 @@ export async function handOver(db: D1Database, actor: Actor, from: string, to: s
   );
   const rows = (await db.prepare(`SELECT i.id,i.claim_id,i.receipt_id,i.card_charge_id,c.version,c.title,c.auto_key,a.capture_receipt_id,
       (SELECT COALESCE(MAX(sequence),0) FROM c_capture_lifecycle l WHERE l.receipt_id=a.capture_receipt_id) AS sequence
-    FROM c_items i JOIN c_claims c ON c.id=i.claim_id AND c.employee_email=? AND c.status IN ('draft','returned') JOIN c_card_charges ch ON ch.id=i.card_charge_id AND ch.employee_email=?
+    FROM c_items i JOIN c_claims c ON c.id=i.claim_id AND c.employee_email=? AND c.status IN ('draft','returned') JOIN c_card_charges ch ON ch.id=i.card_charge_id AND ch.employee_email=? AND ch.liability='company'
     LEFT JOIN c_receipts a ON a.id=i.receipt_id ORDER BY c.number,i.position`).bind(from, from).all<Data>()).results;
   const targets = new Map<string, { id: string; position: number; fresh: boolean; version: number | null }>(), sources = new Map<string, number>(), totals = new Set<string>();
   for (const row of rows) {

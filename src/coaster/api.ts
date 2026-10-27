@@ -1,3 +1,4 @@
+import { classifyCharge } from './cards/liability';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
@@ -172,6 +173,7 @@ api.post('/api/coaster/claims', as(async (a, c) => createClaim(db(c), a, await b
 api.post('/api/coaster/expenses', as(async (a, c) => addExpense(db(c), a, await body(c))));
 api.post('/api/coaster/claims/:id/title', as(async (a, c) => renameClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/items', as(async (a, c) => saveItem(db(c), a, param(c, 'id'), await body(c))));
+api.post('/api/coaster/claims/:id/items/classify', as(async (a, c) => classifyCharge(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/items/remove', as(async (a, c) => removeItem(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/receipts', as(async (a, c) => uploadReceipt(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/receipt-signals/review', as(async (a, c) => reviewReceiptSignal(db(c), a, param(c, 'id'), await body(c))));

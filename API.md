@@ -565,6 +565,12 @@ expired bank holds before selecting that day’s reimbursement batch.
 
 CT approved the native policy WITH RIDERS on 27 October 2026; AGENT-007 remains partial. Native conversation proposals carry server-owned custody metadata. Shared agent reads refuse their payloads and both shared decision routes require the person's own session. Older proposals bearing the native assistant label retain that restriction; ordinary agent proposals retain their existing authority. Slack verification, account linking, receipt download, replies, Teams, text messages and a conversational input screen remain unbuilt. No chat credentials or sending authority are restored by this foundation.
 
+## Individual-liability program charges (FEED-006)
+
+`POST /api/coaster/feeds/program` accepts optional `liability: "company" | "individual"` (default `company`) under its existing explicit native connection consent. Each scheduled mapped-CSV charge freezes that program liability and source program ID. Existing manual statement imports remain company liability.
+
+`POST /api/coaster/claims/:id/items/classify` accepts `{version, item, personal: boolean}` from the original cardholder in their own native employee session, on a draft or returned claim. Other people, delegates, agents, stale versions and frozen claims are refused. Ordinary expense editing preserves classification and source money facts. Submission freezes liability and classification with each revision. Only individual business charges contribute to reimbursement totals, accounting lines and once-only source transaction keys; company charges and individual personal charges contribute zero. Individual charges cannot enter the company card ledger or transfer their liability to a successor. Numbered charge, classification and batch events and all financial evidence survive CLI export and restore; program execution credentials do not. These batches establish no provider settlement or QuickBooks bill. CT approved the classification and liability foundation WITH RIDERS on 27 October 2026; scoped human classification delegation remains unfinished. Company feed connections retain owner, admin and finance authority and live Full delegation. Deactivation revokes access while individual charges remain with the original cardholder. Restore validates source amounts and every card reimbursement key before any destination write.
+
 ## Posted card evidence reminders
 
 The hourly scheduled handler chases each native posted card expense missing a receipt,
