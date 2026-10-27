@@ -6,6 +6,7 @@ import {join,resolve} from 'node:path'
 import {command,fresh,freePort,start} from '../browser-runtime.mjs'
 import {api,PEOPLE,session,setUp,inviteRestoredPerson} from '../browser-journey.mjs'
 import {records,rows,tampered} from '../browser-archive.mjs'
+import {cardChaseScreens} from './screens-card-chases.mjs'
 import {statementScreens,statementPrivacyScreens} from './screens-statements.mjs'
 import {readingEdge,readingScreens} from './screens-reading.mjs'
 import {automaticCodingScreens} from './screens-automatic-coding.mjs'
@@ -36,6 +37,7 @@ export async function runMatchingJourney() {
       const preview=await api(owner.context,server.origin,'statements/preview',input)
       return api(owner.context,server.origin,'statements/commit',{...input,fingerprint:preview.fingerprint})
     }
+    if(part===0) await cardChaseScreens(browser,root,server,owner,importRows,evidence)
     for(const [index,width] of [1440,390].entries()) {
       const employee=await session(browser,root,server.origin,'employee',width),{page,context}=employee
       const name=`card-receipt-${width}.png`,amount=(10+index*100).toFixed(2)
