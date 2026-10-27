@@ -587,7 +587,9 @@ no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-
 
 The native HRIS connection is separate from the owner-only payroll connection.
 An owner, admin or finance member, or their currently authorized Full delegate,
-may connect and disconnect through the ADMIN-001 connection row. Other roles
+may connect and disconnect through the ADMIN-001 connection row. Applying a
+roster change additionally requires the People row: owner, admin or their live
+Full delegate. Finance connection rights alone confer no People writes. Other roles
 are refused before provider traffic. Every provider request rechecks current
 authority; every sync brackets its complete native transaction with authority
 and exact roster guards.

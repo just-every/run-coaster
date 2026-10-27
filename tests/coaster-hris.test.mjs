@@ -85,6 +85,12 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
       assert.ok(!sealed.includes(connect.token));
       await h.get(['payroll','gusto'].join('/'),cookie,403);
       const preview=await h.get(hrisRoot+'/preview',cookie);
+      if(role==='finance'){
+        const before=h.outbound.length;
+        await h.post(hrisRoot+'/sync',{employee:edge.employees[0].uuid,email:edge.employees[0].email,fingerprint:preview.fingerprint,consent:true},cookie,403);
+        assert.equal(h.outbound.length,before,'finance connection rights confer no People writes');
+        assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_hris_mappings').first()).n,0);
+      }
       await h.post(['settings', 'members'].join('/'),{email:address,name:'Changed role',employee:true});
       const before=h.outbound.length;
       await h.post(hrisRoot+'/sync',{employee:edge.employees[0].uuid,email:edge.employees[0].email,fingerprint:preview.fingerprint,consent:true},cookie,role==='admin'?401:403);
@@ -94,8 +100,8 @@ test('HRIS connection matrix refuses unsafe identities, stale review and withdra
     await setupHris(h,edge);
     await applyHris(h,edge.employees[1],{email:'owner@harbourfinch.example'},h.owner,403);
     const delegateEmail='synthetic-coaster-820@example.invalid',delegate=await h.person(delegateEmail,{employee:true});
-    const grantor='synthetic-coaster-finance@example.invalid';
-    await h.post(['settings', 'members'].join('/'),{email:grantor,name:'Finance',finance:true});
+    const grantor='synthetic-coaster-admin@example.invalid';
+    await h.post(['settings', 'members'].join('/'),{email:grantor,name:'Admin',admin:true});
     const grant=await h.post('delegates',{grantor,delegate:delegateEmail,level:'full'});
     const acting={'x-coaster-acting-for':grantor};
     const delegated=await h.send('/api/coaster/'+hrisRoot+'/preview',undefined,delegate,acting);
