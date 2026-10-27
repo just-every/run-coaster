@@ -1,6 +1,6 @@
 import { PerDiemBreakdown } from './per-diem';
 import { useCallback, useEffect, useState } from 'react';
-import { amount, apiHref, call, claimNumber, day, exceptionWords, money, moment, plural, rate, type D } from './api';
+import { amount, apiHref, call, claimNumber, day, exceptionWords, fileBase64, money, moment, plural, rate, type D } from './api';
 import { Badge, Details, Empty, Field, Form, Warning } from './parts';
 import { Icon } from './icons';
 import { ItemForm } from './item-form';
@@ -113,6 +113,12 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         return <li className="line" key={item.id}>
           <Receipt item={item} />
           <div className="line-main"><strong>{merchantLine(item, currency)}</strong><span className="muted">{day(item.spent_on)}{item.description ? ` · ${item.description}` : ''}</span>{split(item, currency)}{matchBasis(item) && <p className="muted">{matchBasis(item)}</p>}{item.receipt_resolution&&<p className="muted">Receipt answer confirmed: {JSON.parse(item.receipt_resolution).receiptTotal} {JSON.parse(item.receipt_resolution).receiptCurrency}. Posted card amount unchanged.</p>}
+            {detail.events.some((e: D) => e.action === 'receipt-added' && e.detail.receipt === item.receipt_id && e.detail.afterSubmission) && <span className="split-line">Receipt added after submission; earlier revisions unchanged.</span>}
+            {mine && !editable && item.card_charge_id && !item.receipt_id && <Form label="Attach card receipt" className="record-form-inline" onSubmit={async v => {
+              const file = v.receiptFile as File;
+              await call(`claims/${claim.id}/receipts`, { version: claim.version, item: item.id, name: file.name, base64: await fileBase64(file) });
+              await done();
+            }}><Field label="Missing card receipt" name="receiptFile" type="file" accept={['jpeg', 'png', 'webp', 'heic'].map(type => ['image', type].join('/')).concat([['application', 'pdf'].join('/')]).join(',')} /></Form>}
             {conversion(item, currency) && <span className="split-line">{money(item.amount_minor, currency)} · {conversion(item, currency)}</span>}
             {item.per_diem && <PerDiemBreakdown trip={item.per_diem} />}
             {(item.customer || item.project) && <span className="split-line">{billing(item)}</span>}
