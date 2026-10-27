@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b93e60d8dafa3b47258649b6774f80adbaf82f5d874e79cfb7b25c1fd7340d57",
+      "sha256": "27d869b2c6bb0a15954a2b9cbd55282f449babb9dc0ba04902bf4622e2007087",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3a9e0e9795b599ef21808730a84c5674ac102b52d41f04032391e3356d118fb8",
+      "sha256": "744bc4faa04e3ddbbe5dd6bcd4b1b528f5c055a3aa33ded8a154f7aae0ea4a83",
       "executable": false
     },
     "DEMO.md": {
@@ -4360,7 +4360,7 @@
       "executable": false
     },
     "tests/browser-capture.mjs": {
-      "sha256": "b4c250c446f8366ea74397ca6b8103268ca6194176ae81bab1d4fa662e6d0c3b",
+      "sha256": "327cc09b9010ab40f9add922f0575259abbf6d6e4cee2b719634e256dd296911",
       "executable": false
     },
     "tests/browser-coding.mjs": {
@@ -4460,7 +4460,7 @@
       "executable": false
     },
     "tests/coaster-capture.test.mjs": {
-      "sha256": "7f02031c3d923e29bc37926ed736e698309cac8fd3f6b77f74f810034f0d5cf8",
+      "sha256": "b74b1007ce49d0e9aa48dbafd28d3ae20b5efd21290c138c833bfcf1f2f38b02",
       "executable": false
     },
     "tests/coaster-card-matching-volume.test.mjs": {

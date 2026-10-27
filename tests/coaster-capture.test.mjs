@@ -39,6 +39,7 @@ test('CAPTURE-001 thirty mixed uploads retain exact originals and provenance in 
     for (let index = 0; index < 30; index++) {
       const input = files[index], name = input.name
       const receipt = await upload(h,team.sam,name,input.bytes,{ source: index === 0 ? 'camera' : 'upload' })
+      assert.ok(receipt.id, 'each successful file has an inbox identity')
       assert.deepEqual([receipt.name,receipt.mediaType,receipt.size,receipt.sha256,receipt.uploadedBy],[name,input.mediaType,input.bytes.length,sha(input.bytes),SAM])
       assert.ok(Date.parse(receipt.uploadedAt) >= before && Date.parse(receipt.uploadedAt) <= Date.now())
       assert.equal(receipt.state,'needs-attention')
@@ -59,6 +60,7 @@ test('CAPTURE-001 thirty mixed uploads retain exact originals and provenance in 
     const inbox = await h.get('receipt-inbox',team.sam)
     assert.equal(inbox.receipts.length,30)
     assert.deepEqual(new Set(inbox.receipts.map(r => r.id)),new Set(uploaded.map(({receipt}) => receipt.id)))
+    assert.deepEqual(inbox.receipts.map(r => [r.name,r.state,r.size,r.sha256]).sort(), uploaded.map(({ receipt }) => [receipt.name,'needs-attention',receipt.size,receipt.sha256]).sort(), 'the inbox retains every original and its processing state after the refused file')
     const bucket = await h.mf.getR2Bucket('COASTER_RECEIPTS')
     for (const { receipt,input } of uploaded) {
       const downloaded = await download(h,team.sam,receipt.id)

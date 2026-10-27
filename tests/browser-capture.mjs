@@ -22,8 +22,9 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
     await photograph('intake')
     const before = (await api(context, origin, 'receipt-inbox')).receipts
     if (width === 1440) {
-      // Browser drag/drop emits the same native File objects as a desktop drop.
+      // A refused file in the middle of one drop must not lose either neighbor.
       const payload = files.map(file => ({ name: file.name, type: file.mediaType, data: file.bytes.toString('base64') }))
+      payload.splice(10, 0, { name: 'too-large.pdf', type: 'application/pdf', data: Buffer.alloc(12_000_000).toString('base64') })
       const transfer = await page.evaluateHandle(values => {
         const data = new DataTransfer()
         for (const value of values) {
@@ -34,7 +35,9 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
       }, payload)
       await inbox.getByRole('group', { name: 'Drop receipt files' }).dispatchEvent('drop', { dataTransfer: transfer })
       await transfer.dispose()
-      await inbox.getByRole('status').filter({ hasText: `${files.length} of ${files.length} receipts saved` }).waitFor({ timeout: 120000 })
+      await inbox.getByRole('status').filter({ hasText: `${files.length} of ${files.length + 1} receipts saved; 1 refused` }).waitFor({ timeout: 120000 })
+      await inbox.getByRole('alert').filter({ hasText: /too-large.pdf:.*at most 10 MB/ }).waitFor()
+      assert.equal(await inbox.getByRole('link', { name: 'too-large.pdf', exact: true }).count(), 0)
     } else {
       const camera = inbox.getByLabel('Photograph a receipt', { exact: true })
       assert.equal(await camera.getAttribute('capture'), 'environment')
@@ -56,6 +59,14 @@ export async function captureJourney(browser, root, origin, width, evidence, sho
       assert.equal(response.status(), 200)
       assert.deepEqual(await response.body(), file.bytes)
       await inbox.getByRole('link', { name: file.name, exact: true }).waitFor()
+      if (width === 1440) {
+        const row = inbox.locator('.receipt-inbox-list > li').filter({ has: page.getByRole('link', { name: file.name, exact: true }) })
+        await row.getByText('Needs attention', { exact: true }).waitFor()
+        await row.getByText('File provenance', { exact: true }).click()
+        assert.equal(await row.locator('dd').nth(0).innerText(), `${file.bytes.length.toLocaleString()} bytes · ${file.mediaType}`)
+        assert.equal(await row.locator('.receipt-fingerprint').innerText(), hash(file.bytes))
+        await row.getByText('File provenance', { exact: true }).click()
+      }
     }
     await inbox.scrollIntoViewIfNeeded()
     await photograph('saved')
