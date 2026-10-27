@@ -3,7 +3,7 @@ import { call, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 const root = ['hris','gusto'].join('/');
 
-export function HrisSettings({ reload }: { reload: () => Promise<unknown> }) {
+export function HrisSettings({ reload, canSync }: { reload: () => Promise<unknown>; canSync: boolean }) {
   const [status,setStatus]=useState<D>(),[review,setReview]=useState<D>(),[notice,setNotice]=useState('');
   const load=async()=>setStatus(await call(root));
   useEffect(()=>{load().catch(e=>setNotice(e.message));},[]);
@@ -23,14 +23,14 @@ export function HrisSettings({ reload }: { reload: () => Promise<unknown> }) {
       {review && (review.employees.length ? review.employees.map((person:D)=><div className="sub-form" key={person.employee}>
         <h3>{person.name} · {person.terminated?'Terminated':'Active'}</h3>
         <p className="muted">Manager: {review.employees.find((p:D)=>p.employee===person.manager)?.name ?? (person.manager?'Unmapped manager':'None')}.</p>
-        <Form label={'Sync '+person.name} onSubmit={async v=>{
+        {canSync ? <Form label={'Sync '+person.name} onSubmit={async v=>{
           await call(root+'/sync',{employee:person.employee,email:v.email,successor:v.successor,fingerprint:review.fingerprint,consent:!!v.consent});
           await reload();setReview(await call(root+'/preview'));setNotice('Roster change saved. Card freezing is unavailable.');
         }}>
           <Field label={'Coaster email for '+person.name} name="email" type="email" defaultValue={review.mappings.find((m:D)=>m.employee_uuid===person.employee)?.email ?? person.email ?? ''} />
           {person.terminated && <Field label={'Successor for '+person.name} name="successor" required={false} hint="Leave empty to use the approving manager." options={[...review.members.filter((m:D)=>m.active).map((m:D)=>({value:m.email,label:m.name}))]} />}
           <Field label={'I confirmed the identity and change for '+person.name} name="consent" type="checkbox" />
-        </Form>
+        </Form> : <p className="muted">An owner or admin must apply this reviewed roster change.</p>}
       </div>) : <Empty title="No roster employees">No native person is changed by an empty provider roster.</Empty>)}
       <div className="sub-form"><Form label="Disconnect HRIS" onSubmit={async v=>{
         if(!v.consent)throw new Error('Confirm disconnection first.');

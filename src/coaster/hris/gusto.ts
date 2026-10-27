@@ -16,8 +16,13 @@ function access(actor: Actor) {
   requireThat(actor.kind === 'person' && !actor.publicCredential, 'Use a native session for HRIS', 403);
   return rowAuthority(actor, 'connections');
 }
-async function current(env: Bindings, actor: Actor, c?: Connection) {
-  const auth = all(access(actor), ...(c ? [state(c)] : []));
+function syncAccess(actor: Actor) {
+  access(actor);
+  needRow(actor, 'people');
+  return rowAuthority(actor, 'people');
+}
+async function current(env: Bindings, actor: Actor, c?: Connection, writing = false) {
+  const auth = all(writing ? syncAccess(actor) : access(actor), ...(c ? [state(c)] : []));
   requireThat(await env.DB.prepare(`SELECT (${auth.sql}) AS ok`).bind(...auth.params).first<{ok:number}>().then(r=>r?.ok), 'HRIS access or connection changed; reload', 409);
 }
 export async function hrisStatus(env: Bindings, actor: Actor) {
@@ -45,10 +50,10 @@ export async function disconnectHris(env: Bindings, actor: Actor) {
   await commit(env.DB,all(auth,state(c)),[env.DB.prepare('DELETE FROM c_hris_connection'),env.DB.prepare('DELETE FROM c_hris_mappings'),event(env.DB,actor,'hris-disconnected',{}, {company:c.company_uuid})]);
   return {connection:null};
 }
-async function roster(env: Bindings, actor: Actor, c: Connection) {
+async function roster(env: Bindings, actor: Actor, c: Connection, writing: boolean) {
   const rows: Data[] = [];
   for(let page=1;page<=20;page++) {
-    await current(env,actor,c);
+    await current(env,actor,c,writing);
     const data = await gustoJson(await unseal(env.SESSION_SECRET,'hris:'+c.company_uuid,c.token_sealed),`/v1/companies/${c.company_uuid}/employees?page=${page}&per=100`);
     requireThat(Array.isArray(data),'Invalid Gusto roster',502);
     for(const p of data) {
@@ -67,14 +72,14 @@ const memberColumns = 'email,name,is_employee,is_manager,is_finance,is_auditor,i
 const snapshotQuery = (table: string, columns: string[], order: string) => `SELECT COALESCE(json_group_array(json(row)), '[]') AS value FROM (SELECT json_object(${columns.flatMap(c=>["'"+c+"'",c]).join(',')}) AS row FROM ${table} ORDER BY ${order})`;
 const memberQuery = snapshotQuery('c_members',memberColumns,'email');
 const mappingQuery = snapshotQuery('c_hris_mappings',['employee_uuid','email','company_uuid'],'employee_uuid');
-async function review(env: Bindings, actor: Actor) {
+async function review(env: Bindings, actor: Actor, writing = false) {
   access(actor); const c = await connection(env);
   requireThat(c,'Connect HRIS first',409);
-  const employees = await roster(env,actor,c);
+  const employees = await roster(env,actor,c,writing);
   const memberSnapshot = (await env.DB.prepare(memberQuery).first<{value:string}>())!.value;
   const mappingSnapshot = (await env.DB.prepare(mappingQuery).first<{value:string}>())!.value;
   const members: Data[] = JSON.parse(memberSnapshot), mappings: Data[] = JSON.parse(mappingSnapshot);
-  await current(env,actor,c);
+  await current(env,actor,c,writing);
   return {c,employees,members,mappings,memberSnapshot,mappingSnapshot,fingerprint:await sha256Hex(JSON.stringify([c.company_uuid,employees,members,mappings]))};
 }
 export async function previewHris(env: Bindings, actor: Actor) {
@@ -82,8 +87,9 @@ export async function previewHris(env: Bindings, actor: Actor) {
   return {employees,members:members.map(m=>({email:m.email,name:m.name,active:m.active,is_manager:m.is_manager})),mappings,fingerprint};
 }
 export async function syncHris(env: Bindings, actor: Actor, b: Data) {
+  const auth = syncAccess(actor);
   requireThat(b.consent===true,'Confirm the exact roster change first');
-  const r = await review(env,actor), {c,members,mappings} = r;
+  const r = await review(env,actor,true), {c,members,mappings} = r;
   requireThat(b.fingerprint===r.fingerprint,'The roster changed; review it again',409);
   const p = r.employees.find(p=>p.employee===b.employee);
   requireThat(p,'Choose a reviewed Gusto employee',400);
@@ -102,7 +108,7 @@ export async function syncHris(env: Bindings, actor: Actor, b: Data) {
     let next: string | null = manager; const seen = new Set([address]);
     while(next) { requireThat(!seen.has(next),'The manager hierarchy would contain a cycle',409); seen.add(next); next=members.find(m=>m.email===next)?.approver_email ?? null; }
   }
-  const auth = access(actor), guards: Sql[] = [
+  const guards: Sql[] = [
     {sql:`(${memberQuery})=?`,params:[r.memberSnapshot]},
     {sql:`(${mappingQuery})=?`,params:[r.mappingSnapshot]},
   ];
