@@ -37,7 +37,7 @@ export async function spend(db: D1Database, actor: Actor, query: Record<string, 
   requireThat(isBy(q.by), 'Choose how to group spend', 400);
   const from = isoDate(q.from, 'From'), to = isoDate(q.to, 'Until');
   requireThat(to >= from, 'The period must end on or after it starts');
-  const all = await spendLines(db, from, to, scope(actor)), by = q.by;
+  const all = (await spendLines(db, from, to, scope(actor))).filter(l => !q.department || l.department === q.department), by = q.by;
   if (q.key !== undefined) {
     const picked = all.filter(l => keyOf(by, l)[0] === q.key);
     return { by, from, to, key: q.key, currency: settings.currency, lines: picked.map(l => ({ ...l, receiptLink: l.receipt ? `/api/coaster/receipts/${l.receipt}` : null })), totalMinor: picked.reduce((n, l) => n + l.amountMinor, 0) };

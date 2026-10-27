@@ -22,10 +22,10 @@ try {
   if(!origin) {
     root=await fresh()
     execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root})
-    execFileSync('git',['config','user.email','agent-fixture@example.test'],{cwd:root})
+    execFileSync('git',['config','user.email','synthetic-coaster-1@example.invalid'],{cwd:root})
     server=await start(root,await freePort());origin=server.origin
   }
-  browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
+  browser=await chromium.launch({headless:true,...(process.env.COASTER_CHROMIUM?{executablePath:process.env.COASTER_CHROMIUM}:{}),args:['--use-mock-keychain','--password-store=basic','--no-sandbox']})
   const owner=await session(browser,root,origin,'owner',1440)
   if(!process.env.COASTER_AGENT_ROOT) await setUp(owner,origin)
   try {
@@ -98,6 +98,27 @@ try {
         assert.equal(await dismiss.evaluate(el=>getComputedStyle(el,'::after').visibility),'visible')
         await shot(page,'native-control-tooltip',width)
         await dismiss.click()
+        const conversationMessage=width===1440?'Denver client trip, Oct 6–8':'Denver client trip, Oct 16–18'
+        const conversationDate=width===1440?'2026-10-06':'2026-10-16'
+        const photos=[]
+        for(let i=0;i<4;i++) photos.push({date:conversationDate,merchant:`Conversation receipt ${width}-${i}`,amount:`${i+1}.00`,category:cats.Travel,receipt:{name:`synthetic-coaster-${i}.png`,base64:Buffer.concat([file,Buffer.from(`synthetic-coaster-${width}-${i}`)]).toString('base64')}})
+        const conversation=await api(employee.context,origin,'conversation',{message:conversationMessage,year:2026,receipts:photos,manualRate:'1.50'})
+        await page.goto(origin+'/app#/claims');await page.reload()
+        const conversationStrip=page.getByRole('region',{name:'Prepared for you'})
+        await conversationStrip.getByText(/What is the business purpose/).waitFor()
+        await shot(page,'conversation-proposal',width)
+        if(width===1440) {
+          assert.equal(conversation.proposal.payload.items.length,5)
+          assert.equal(conversation.reviewRequired,true)
+        }
+        await conversationStrip.getByRole('button',{name:'Accept as draft',exact:true}).click()
+        await page.getByRole('heading',{name:conversationMessage,exact:true}).waitFor()
+        await shot(page,'conversation-draft',width)
+        if(width===1440) {
+          const state=await api(employee.context,origin,'state'),prepared=state.claims.find(c=>c.title==='Denver client trip, Oct 6–8')
+          const detail=await api(employee.context,origin,`claims/${prepared.id}`)
+          assert.equal(detail.claim.status,'draft');assert.equal(detail.receipts.length,4);assert.equal(detail.items.length,5)
+        }
         results.push({width,trip:trip.id,items:8,submitted:true,closeAccepted:true})
       } finally {await employee.context.close()}
     }
