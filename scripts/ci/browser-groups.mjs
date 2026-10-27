@@ -35,9 +35,11 @@ export const groups = {
     {"evidence": "accessibility", "commands": [["tests/accessibility.mjs"]]},
   ],
   'policy-signals-scale': [
+    { evidence: 'individual-liability-archive', commands: [['tests/individual-liability-archive.mjs']] },
     {"evidence": "policy-signals-scale", "commands": [["tests/policy-signals-scale.mjs"]]},
   ],
   'policy-review': [
+    { evidence: 'individual-liability', commands: [['tests/browser-individual-liability.mjs']] },
     { evidence: 'bulk-approvals', commands: [['tests/browser-bulk-approvals.mjs']] },
     { evidence: 'card-chases', commands: [['tests/browser-card-chases.mjs']] },
     { evidence: 'bank-archive', commands: [['tests/bank-archive.mjs']] },

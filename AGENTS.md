@@ -125,3 +125,7 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+## Lander-Regenerate
+
+For scoped clause updates on this pinned edition, run `node scripts/coaster-contract-docs.mjs write FEED-006`, then `node scripts/coaster-contract-docs.mjs check FEED-006`. CONTRACT.md supplies acceptance, status, evidence and gaps; regenerate only the touched clauses to preserve unrelated legacy acceptance prose. Summary counts are regenerated too. This edition has no generated uppercase claims file; `docs/claims.md` is the product user guide. Regenerate the source lock last with `node scripts/edition-authoring/cli.mjs lock`, then run its `check`.

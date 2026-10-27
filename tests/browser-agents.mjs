@@ -21,8 +21,6 @@ async function shot(page,name,width) {
 try {
   if(!origin) {
     root=await fresh()
-    execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root})
-    execFileSync('git',['config','user.email','synthetic-coaster-1@example.invalid'],{cwd:root})
     server=await start(root,await freePort());origin=server.origin
   }
   browser=await chromium.launch({headless:true,...(process.env.COASTER_CHROMIUM?{executablePath:process.env.COASTER_CHROMIUM}:{}),args:['--use-mock-keychain','--password-store=basic','--no-sandbox']})

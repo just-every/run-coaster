@@ -35,7 +35,7 @@ export async function receiveDelivery(db: D1Database, f: Feed, delivery: Deliver
     for(const held of plan.importable){
       const [claim,position]=place.where.get(held.id)!.split('|');
       guards.push({sql:'EXISTS(SELECT 1 FROM c_cards c JOIN c_members m ON m.email=c.employee_email AND m.active=1 AND m.is_employee=1 WHERE c.id=? AND c.employee_email=?)',params:[held.cardId,held.employee]});
-      const made=await chargeStatements(db,{system:'automation: program feed'},{file,feed:f.id,issuer:f.issuer,category,costCentre:f.cost_centre,held,claim,position:Number(position),at});
+      const made=await chargeStatements(db,{system:'automation: program feed'},{file,feed:f.id,liability:f.liability,issuer:f.issuer,category,costCentre:f.cost_centre,held,claim,position:Number(position),at});
       guards.push(made.guard);writes.push(...made.statements);
     }
     for(const claim of place.claims.keys())writes.push(claimTotal(db,claim));

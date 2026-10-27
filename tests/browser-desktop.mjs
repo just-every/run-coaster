@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import { chromium } from '@playwright/test'
 import { copyFile, mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { execFileSync } from 'node:child_process'
 import { fresh, freePort, start, command } from './browser-runtime.mjs'
 import { api, session, setUp, PEOPLE } from './browser-journey.mjs'
 import { records, rows } from './browser-archive.mjs'
@@ -14,7 +13,7 @@ await mkdir(evidence,{recursive:true})
 let root=process.env.COASTER_DESKTOP_ROOT,origin=process.env.COASTER_DESKTOP_ORIGIN,server,browser,restored
 const external=!!root
 try {
-  if(!root){root=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root});execFileSync('git',['config','user.email','fleet@example.test'],{cwd:root});await command(root,['install']);server=await start(root,await freePort());origin=server.origin}
+  if(!root){root=await fresh();await command(root,['install']);server=await start(root,await freePort());origin=server.origin}
   browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
   let configured=false
   const tag=crypto.randomUUID()
@@ -87,7 +86,7 @@ try {
   for(const table of ['c_qbd_identity','c_qbd_catalog','c_qbd_mappings','c_qbd_requests'])
     assert.ok(before.some(r=>r.table===table),`archive retains ${table}`)
   assert.ok(before.some(r=>r.table==='c_qbd_requests'&&r.row.kind==='BillAdd'&&r.row.status==='succeeded'&&r.row.attempts===2),'archive retains the failed request and its successful isolated retry')
-  restored=await fresh();execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:restored});execFileSync('git',['config','user.email','fleet@example.test'],{cwd:restored})
+  restored=await fresh()
   await command(restored,['install'])
   await mkdir(join(restored,'exports'),{recursive:true})
   await copyFile(join(evidence,'desktop.rer'),join(restored,'exports/desktop.rer'))

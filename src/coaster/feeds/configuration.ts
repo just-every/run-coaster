@@ -37,10 +37,12 @@ export async function connectProgramFeed(env: Bindings, actor: Actor, body: Data
   requireThat(['purchases-positive','purchases-negative'].includes(body.mapping.sign),'Choose the CSV amount sign convention');
   for(const value of Object.values(body.mapping)) requireThat(typeof value==='string'&&value.length<=100&&!/[\u0000-\u001f]|\d{13,19}/.test(value),'CSV mapping fields must be safe column names');
   await categoryFor(env.DB,category);
+  const liability=body.liability??'company';
+  requireThat(['company','individual'].includes(liability),'Choose company or individual card liability');
   const id=uid(),at=now();
   await commit(env.DB,all(auth,{sql:'EXISTS(SELECT 1 FROM c_categories WHERE id=? AND active=1)',params:[category]}),[
-    env.DB.prepare('INSERT INTO c_program_feeds(id,issuer,credentials_sealed,mapping,category_id,cost_centre,interval_minutes,enabled,version,connected_by,connected_at) VALUES(?,?,?,?,?,?,?,1,1,?,?)').bind(id,issuer,await seal(env,id,credentials),JSON.stringify(body.mapping),category,costCentre,interval,actor.email,at),
-    event(env.DB,actor,'program-feed-connected',{}, {feed:id,issuer,format:'mapped-csv',transport:'sftp-pull',intervalMinutes:interval,channel:'app',consent:true}),
+    env.DB.prepare('INSERT INTO c_program_feeds(id,issuer,credentials_sealed,mapping,category_id,cost_centre,interval_minutes,enabled,version,connected_by,connected_at,liability) VALUES(?,?,?,?,?,?,?,1,1,?,?,?)').bind(id,issuer,await seal(env,id,credentials),JSON.stringify(body.mapping),category,costCentre,interval,actor.email,at,liability),
+    event(env.DB,actor,'program-feed-connected',{}, {feed:id,issuer,format:'mapped-csv',transport:'sftp-pull',intervalMinutes:interval,channel:'app',consent:true,liability}),
   ]);
   return publicFeed((await feed(env.DB,id))!);
 }
