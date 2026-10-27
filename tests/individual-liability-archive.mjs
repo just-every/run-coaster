@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fresh, command } from './browser-runtime.mjs';
@@ -12,7 +11,7 @@ export async function individualArchive() {
   await mkdir(evidence,{recursive:true});
   const roots=[];let h,f;
   try {
-    for(let i=0;i<2;i++){const root=await fresh();roots.push(root);for(const field of ['user.name','user.email'])execFileSync('git',['config',field,execFileSync('git',['config',field],{encoding:'utf8'}).trim()],{cwd:root});await command(root,['install']);}
+    for(let i=0;i<2;i++){const root=await fresh();roots.push(root);await command(root,['install']);}
     const [source,destination]=roots;
     h=await harness({clock:Date.parse('2031-06-10T10:00:00Z'),persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only',bindings:origin=>({RER_DEV_ORIGIN:origin})});
     f=await individualProgram(h);await classifyAndBatch(h,f);
