@@ -82,8 +82,8 @@ export async function runReminders(env: Bindings, at: Date) {
       for (let step = (record.sent ?? 0) + 1; step <= due; step++) await remind(env, mail, item, age, step, record.sent ?? 0, at);
     } else {
       await remind(env, mail, item, age, due, record.sent ?? 0, at);
-      await escalate(env, settings, mail, item, age, at);
     }
+    await escalate(env, settings, mail, item, age, at);
   }
 }
 

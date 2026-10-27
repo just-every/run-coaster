@@ -575,5 +575,9 @@ statement posting date; business quiet hours and holidays still apply. Late disc
 catches up each due step with a distinct durable mail-adapter identity. Replayed ticks
 create no duplicate delivery or reminder history. The native expense edit and receipt
 attachment doors resolve evidence; resolved expenses receive no later chase step.
+Both reminder branches retain the shared escalation service: after the last reminder
+plus the configured gap, the evidence task escalates to its manager, then finance.
+Card evidence uses posting age for these steps; the independent unsubmitted-claim
+task continues to use discovery age. Each task records its own once-only history.
 Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).
