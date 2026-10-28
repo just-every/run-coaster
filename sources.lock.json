@@ -4636,7 +4636,7 @@
       "executable": false
     },
     "tests/coaster-slack-answers.test.mjs": {
-      "sha256": "b591c3eb6267bd21393142ccbf8b19c4e00381ad0546720d138b46bce8565c46",
+      "sha256": "ba41b3b9781130398dde406567d5f46cf446720faa2e0886ad497693f5a73966",
       "executable": false
     },
     "tests/coaster-statements.test.mjs": {

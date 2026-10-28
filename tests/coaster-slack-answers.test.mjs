@@ -86,6 +86,9 @@ test('Slack named-person answers close the ordinary question once without changi
     assert.equal(approved.status,'approved');
     const final=await h.get(`claims/${claim.id}`,t.priya); assert.deepEqual(final.revisions,original.revisions); assert.equal(final.decisions.at(-1).revision,claim.revision);
     assert.equal(final.comments.find(c=>c.id===answer.id).body,answer.body);
+    await h.post('claims',{title:'Old session remains revoked'},t.sam,401);
+    assert.equal((await h.send('/auth/magic-link',{email:address('sam')})).status,202);
+    t.sam=await h.confirmMail(address('sam'));
     let later=await h.post('claims',{title:'Revised client visit'},t.sam);
     later=await h.post(`claims/${later.id}/items`,{version:later.version,kind:'receipt',date:'2026-05-22',merchant:'Client office',amount:'31.00',explanation:'Receipt unavailable',allocations:[{category:t.c.meals}]},t.sam);
     later=await h.post(`claims/${later.id}/submit`,{version:later.version},t.sam);
