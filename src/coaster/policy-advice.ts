@@ -74,8 +74,8 @@ export async function adviceInputs(db: D1Database) {
     db.prepare('SELECT * FROM c_business WHERE id=1'),
     db.prepare('SELECT id,name,active,limit_minor FROM c_categories WHERE entity_id=\'primary\' ORDER BY id'),
     db.prepare('SELECT p.version,p.effective_from,p.rules,c.configuration FROM c_policies p JOIN c_policy_configurations c ON c.version=p.version WHERE p.entity_id=\'primary\' ORDER BY p.version'),
-    db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,c.revision,r.snapshot,r.submitted_at,d.at AS decided_at,d.decision,d.exceptions AS approved_exceptions FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_decisions d ON d.claim_id=r.claim_id AND d.revision=r.revision AND ${finalApproval('d')} WHERE c.status IN ('submitted','approved','batched','reimbursed') AND NOT EXISTS(SELECT 1 FROM c_revisions newer WHERE newer.claim_id=c.id AND newer.revision>r.revision) ORDER BY c.number,c.id`),
-    db.prepare('SELECT COALESCE(MAX(seq),0) AS seq FROM c_events'),
+    db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,c.revision,r.snapshot,r.submitted_at,d.at AS decided_at,d.decision,d.exceptions AS approved_exceptions FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_decisions d ON d.claim_id=r.claim_id AND d.revision=r.revision AND ${finalApproval('d')} WHERE c.entity_id='primary' AND c.status IN ('submitted','approved','batched','reimbursed') AND NOT EXISTS(SELECT 1 FROM c_revisions newer WHERE newer.claim_id=c.id AND newer.revision>r.revision) ORDER BY c.number,c.id`),
+    db.prepare('SELECT COALESCE(MAX(seq),0) AS seq,(SELECT COALESCE(MAX(version),0) FROM c_policies) AS latest FROM c_events'),
   ]);
   const businessRow = business.results[0] as { timezone: string; currency: string } | undefined;
   requireThat(businessRow, 'The owner has not set up the business yet', 409);
@@ -83,7 +83,7 @@ export async function adviceInputs(db: D1Database) {
   const policies = (versions.results as Data[]).map(p => ({ ...p, rules: JSON.parse(p.rules), configuration: JSON.parse(p.configuration) })) as HistoricalPolicy[];
   const current = policies.filter(p => p.effective_from <= today).at(-1);
   requireThat(current, 'The active policy configuration is missing; ask the owner to save the business settings', 409);
-  return { business: businessRow, categories: categories.results as Pick<Category, 'id' | 'name' | 'active' | 'limit_minor'>[], policies, current, history: claims.results as History[], window, latest: policies.at(-1)!.version, eventSeq: (events.results[0] as { seq: number }).seq };
+  return { business: businessRow, categories: categories.results as Pick<Category, 'id' | 'name' | 'active' | 'limit_minor'>[], policies, current, history: claims.results as History[], window, latest: (events.results[0] as {latest:number}).latest, eventSeq: (events.results[0] as { seq: number }).seq };
 }
 
 async function calculate(db: D1Database, minutesPerException: number) {

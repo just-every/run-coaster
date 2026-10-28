@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c496fdf29d71df37ea7dcb053e1602c94ca84924d5e8857864c7097582000636",
+      "sha256": "fe5796b8a404ac2ef04758a61f018c34681eed4ee21e05fbef633a4b7c4ff6c9",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d444c2f330ad46dc75bbcf15dd26e7d4ab2c012e4cbd521bdab7729f6cd07149",
+      "sha256": "4764aa338ceca0d1d231a34f5487a6c65206902e9a7e12791a0f267d7bbc20de",
       "executable": false
     },
     "DEMO.md": {
@@ -356,7 +356,7 @@
       "executable": false
     },
     "docs/claims.md": {
-      "sha256": "b11475b4d3d6a441ede59c40e91b196b16a4307fb1339433979c4381dadeb309",
+      "sha256": "a785eabc9a49095c86a9bf1478ef73b6be1fe4892e3ef18d266d52ac26ad868d",
       "executable": false
     },
     "docs/deploy.md": {
@@ -756,7 +756,7 @@
       "executable": false
     },
     "migrations/core/0085_entities.sql": {
-      "sha256": "0f76dfce09e48c3740fc6571b66a698da5205e6fb9ae9ec69af4c650482a2b8e",
+      "sha256": "663189e21045ece667728626dfe99b9b88022e5c6d0e61a4d4eaeb5fc394c8ce",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1640,7 +1640,7 @@
       "executable": false
     },
     "src/coaster/events.ts": {
-      "sha256": "ab11ca95a1aeab98f80a172f8c3b7fe30428a96a7bbeb7b48aca5b58a2a324f5",
+      "sha256": "3b977cf1e9ff9f4102cef43165bb13c6f34903a8b896f2ba01496f8cf4b7909e",
       "executable": false
     },
     "src/coaster/exceptions.ts": {
@@ -1652,7 +1652,7 @@
       "executable": false
     },
     "src/coaster/exports.ts": {
-      "sha256": "22208068765bf516ff17f19d8d2fd1f1b232ed5ab99c9d628528412f923a39dc",
+      "sha256": "d8b09e89c344fa6f67dcbb3266ac3e40f9f1878f7755a1a5fae3c6673ea6e091",
       "executable": false
     },
     "src/coaster/feeds/configuration.ts": {
@@ -1852,7 +1852,7 @@
       "executable": false
     },
     "src/coaster/policy-advice.ts": {
-      "sha256": "e66b1b0636ebcc428e4a94b7034d26d788ab7df2fbf087aa04c5768827717cb3",
+      "sha256": "92ee8289b34dbbc9b0b15e295f98f1a4e69fe8de9f2dc56254f78280e1f78349",
       "executable": false
     },
     "src/coaster/policy-change-preview.ts": {
@@ -2072,7 +2072,7 @@
       "executable": false
     },
     "src/coaster/reports.ts": {
-      "sha256": "96caa34b48ad65713e5215cb508a12edcd9be3f8a8023688b7a8dd7b7179fbc8",
+      "sha256": "32b16be6baef902cdf5eae0be23aa2cf2f43080a8404cec2d763d7ef876cec70",
       "executable": false
     },
     "src/coaster/requests.ts": {
@@ -2092,7 +2092,7 @@
       "executable": false
     },
     "src/coaster/settings.ts": {
-      "sha256": "5ea8978910f7def106b12426a9ff627de1eb1c33f1a790a87f096c5f5ef2274f",
+      "sha256": "bda6284548badc82181a9ea3f5723b0a6cf72cfb3915a72ad3f4f3a4850478cc",
       "executable": false
     },
     "src/coaster/spend-lines.ts": {
@@ -4152,7 +4152,7 @@
       "executable": false
     },
     "src/ui/batches.tsx": {
-      "sha256": "48f7ca4459fa71691af78c8bf1c304cfacd7110db71f13a13b0754411ca41adf",
+      "sha256": "b936610a9d9f9d720130493de795e4c4f84d2b3e85a2726eab94b40b1fed7308",
       "executable": false
     },
     "src/ui/budgets.tsx": {
@@ -4176,7 +4176,7 @@
       "executable": false
     },
     "src/ui/claim-panel.tsx": {
-      "sha256": "20364086650c7aef158ff47387b1df23eee928f4e4fc10e6827e64470f837921",
+      "sha256": "7c6ce509bed5eb3e501181023af7d29c4fd0f8150e683ab106976e04153c9026",
       "executable": false
     },
     "src/ui/claims-table.tsx": {
@@ -4240,7 +4240,7 @@
       "executable": false
     },
     "src/ui/history.ts": {
-      "sha256": "8d0f845d0104e462b4002e83dcbbe0d78923714c6f34ea6acb389d8f457f6af1",
+      "sha256": "b779279c758b5f683cf3c8b742fff4f564f4ed18f390e2031a5da9f390d50d27",
       "executable": false
     },
     "src/ui/icons.tsx": {
@@ -4253,6 +4253,10 @@
     },
     "src/ui/item-form.tsx": {
       "sha256": "8dab0af3625826494e79e0c823766607985853a3ec6984a8bdf69d073e7d74b7",
+      "executable": false
+    },
+    "src/ui/money-totals.ts": {
+      "sha256": "130a112dc46f379a6287eac6c111d301c5d19dc9d16604197a78795b82586e1e",
       "executable": false
     },
     "src/ui/move-in.tsx": {

@@ -127,6 +127,6 @@ function BatchPanel({ id, reload, names, templates, owner }: { id: string; reloa
       <p className="muted field-wide">Coaster does not move money: pay the reimbursements file from your bank, then record it here.</p>
     </Form></section>}
     {batch.status === 'reimbursed' && <p className="paid"><Icon name="check" /><span>Paid on {day(batch.paid_on)} · reference {batch.paid_reference}</span></p>}
-    <section className="panel-block history" aria-label="History"><h3>History</h3><ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol></section>
+    <section className="panel-block history" aria-label="History"><h3>History</h3><ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names,c)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol></section>
   </Side>;
 }

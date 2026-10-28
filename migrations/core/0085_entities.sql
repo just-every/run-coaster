@@ -74,3 +74,13 @@ END;
 CREATE TRIGGER c_item_entity_move BEFORE UPDATE OF claim_id ON c_items BEGIN
  SELECT CASE WHEN EXISTS(SELECT 1 FROM c_allocations a JOIN c_categories g ON g.id=a.category_id JOIN c_claims c ON c.id=NEW.claim_id WHERE a.item_id=OLD.id AND g.entity_id<>c.entity_id) THEN RAISE(ABORT,'Expense belongs to another entity') END;
 END;
+
+CREATE TRIGGER c_primary_entity_business_insert AFTER INSERT ON c_business BEGIN
+ UPDATE c_entities SET name=NEW.name,currency=NEW.currency,timezone=NEW.timezone,receipt_threshold_minor=NEW.receipt_threshold_minor,preapproval_threshold_minor=NEW.preapproval_threshold_minor,sales_tax_account=NEW.sales_tax_account,sales_tax_code=NEW.sales_tax_code,fx_enabled=NEW.fx_enabled,version=version+1,updated_at=NEW.updated_at WHERE id='primary';
+END;
+CREATE TRIGGER c_primary_entity_business_update AFTER UPDATE OF name,currency,timezone,receipt_threshold_minor,preapproval_threshold_minor,sales_tax_account,sales_tax_code,fx_enabled ON c_business BEGIN
+ UPDATE c_entities SET name=NEW.name,currency=NEW.currency,timezone=NEW.timezone,receipt_threshold_minor=NEW.receipt_threshold_minor,preapproval_threshold_minor=NEW.preapproval_threshold_minor,sales_tax_account=NEW.sales_tax_account,sales_tax_code=NEW.sales_tax_code,fx_enabled=NEW.fx_enabled,version=version+1,updated_at=NEW.updated_at WHERE id='primary';
+END;
+CREATE TRIGGER c_entity_currency_immutable BEFORE UPDATE OF currency ON c_entities WHEN NEW.currency<>OLD.currency AND EXISTS(SELECT 1 FROM c_claims WHERE entity_id=OLD.id) BEGIN
+ SELECT RAISE(ABORT,'Entity currency is fixed once claims exist');
+END;

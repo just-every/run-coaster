@@ -47,7 +47,6 @@ export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
   await commit(db, rowAuthority(actor, 'settings'), [
     db.prepare('INSERT INTO c_business(id,name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,sales_tax_account=excluded.sales_tax_account,sales_tax_code=excluded.sales_tax_code,preapproval_threshold_minor=excluded.preapproval_threshold_minor,updated_at=excluded.updated_at').bind(...values),
     db.prepare('UPDATE c_business SET fx_enabled=? WHERE id=1').bind(fxEnabled),
-    db.prepare("UPDATE c_entities SET name=?,currency=?,timezone=?,receipt_threshold_minor=?,preapproval_threshold_minor=?,sales_tax_account=?,sales_tax_code=?,fx_enabled=?,version=version+1,updated_at=? WHERE id='primary'").bind(values[0],currency,timezone,threshold,preapproval,values[5],values[6],fxEnabled,now()),
     ...(seed ? seedIrsRates(db) : []),
     ...ownerPolicyVersion(db, actor.delegate?.email ?? actor.email, timezone, now()),
     event(db, actor, 'business-saved', {}, { name: values[0], currency, timezone, perDiemMinor: values[3], receiptThresholdMinor: values[4], salesTaxAccount: values[5], salesTaxCode: values[6], preapprovalThresholdMinor: values[7], irsMileageRates: seed, fxEnabled: !!fxEnabled }),

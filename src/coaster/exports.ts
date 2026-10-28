@@ -89,6 +89,7 @@ const localDate = (iso: string, timezone: string) => new Intl.DateTimeFormat('en
 async function render(db: D1Database, batches: Batch[], kind: Kind, format: string, template: string | undefined, origin: string) {
   requireThat(['csv', 'xlsx', 'iif'].includes(format), 'Unknown export format', 404);
   requireThat(format !== 'iif' || kind === 'accounting', 'IIF carries the accounting lines only', 404);
+  requireThat(format !== 'iif' || batches.every(batch => batch.entity_id === 'primary'), 'QuickBooks IIF export is available only for the primary entity', 409);
   const rows = (await Promise.all(batches.map(b => batchRows(db, b, kind, origin)))).flat();
   if (format === 'iif') {
     const timezone = (await business(db))?.timezone ?? 'UTC';
@@ -124,7 +125,7 @@ export async function periodFile(db: D1Database, actor: Actor, kind: string, for
   requireThat(settings, 'The owner has not set up the business yet', 409);
   const from = isoDate(q.from, 'From'), to = isoDate(q.to, 'Until');
   requireThat(to >= from, 'The period must end on or after it starts');
-  const { results } = await db.prepare("SELECT * FROM c_batches WHERE status<>'draft' AND reviewed_at>=? AND reviewed_at<? ORDER BY number").bind(startOf(from, settings.timezone), startOf(nextDay(to), settings.timezone)).all<Batch>();
+  const { results } = await db.prepare("SELECT * FROM c_batches WHERE entity_id='primary' AND status<>'draft' AND reviewed_at>=? AND reviewed_at<? ORDER BY number").bind(startOf(from, settings.timezone), startOf(nextDay(to), settings.timezone)).all<Batch>();
   const file = await render(db, results, kind, format, q.template || undefined, origin);
   await commit(db, rowAuthority(actor, 'exportFiles'), [event(db, actor, 'period-exported', {}, { file: kind, format, template: q.template || null, from, to, batches: results.length, rows: file.rows, totalMinor: results.reduce((n, b) => n + b.total_minor, 0) })]);
   return download(file.body, file.type, `coaster-${kind}-${from}-to-${to}.${format}`);

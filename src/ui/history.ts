@@ -1,7 +1,8 @@
-import { day, money, plural, type D } from './api';
+import { day, money as formatMoney, plural, type D } from './api';
 
 /** One history line in plain words; exact values stay in the event detail. */
-export function describe(e: D, names: Record<string, string> = {}) {
+export function describe(e: D, names: Record<string, string> = {}, currency = 'USD') {
+  const money=(minor:number)=>formatMoney(minor,e.detail?.currency??currency);
   const who = names[e.actor_email] ?? e.actor_email, d = e.detail ?? {}, agent = d.agent && !e.action.startsWith('proposal-') ? ` (through ${d.agent})` : '';
   const words: Record<string, string> = {
     'native-work-proposed': `${who} requested a ${d.preparation} proposal`, 'trip-expenses-grouped': `${who} grouped expenses into a trip draft`,

@@ -177,7 +177,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     {claim.status !== 'draft' || mine ? <Comments claim={claim} items={items} comments={detail.comments} state={state} onDone={done} /> : null}
     <section className="panel-block history" aria-label="History">
       <h3>History</h3>
-      <ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol>
+      <ol className="timeline">{[...detail.events].reverse().map((e: D, i: number) => <li key={i}><span>{describe(e, names,currency)}</span><time dateTime={e.at}>{moment(e.at)}</time></li>)}</ol>
       {detail.revisions.length > 0 && <Details label="Earlier revisions and receipts">
         {detail.revisions.map((r: D) => <div key={r.revision} className="revision"><h3>Revision {r.revision} · {money(r.total_minor, currency)} · submitted {moment(r.submitted_at)}</h3><ul className="ruled-list">{r.snapshot.items.map((i: D) => <li key={i.id}>{day(i.spent_on)} · {merchantLine(i, currency)} · {money(i.amount_minor, currency)}{conversion(i, currency) ? ` · ${conversion(i, currency)}` : ''}{billing(i) ? ` · ${billing(i)}` : ''}{matchBasis(i) ? ` · ${matchBasis(i)}` : ''}{i.receipt ? <> · <a href={apiHref(`receipts/${i.receipt.id}`)}>{i.receipt.name}</a></> : ' · no receipt'}</li>)}</ul>{r.snapshot.exceptions.length > 0 && <p className="muted">Exceptions: {r.snapshot.exceptions.map((x: D) => x.message).join('; ')}</p>}</div>)}
         <h3>All receipts on this claim</h3>

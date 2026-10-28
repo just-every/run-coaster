@@ -9,5 +9,6 @@ export function event(db: D1Database, actor: Actor, action: string, target: { cl
 
 /** A history line written under a name rather than by a signed-in actor: the approval rule's "rule vN" (APPROVE-004). */
 export function ruleEvent(db: D1Database, by: string, action: string, target: { claim?: string; batch?: string }, detail: Data = {}) {
-  return db.prepare('INSERT INTO c_events(id,seq,at,actor_email,action,claim_id,batch_id,detail) VALUES(?,(SELECT COALESCE(MAX(seq),0)+1 FROM c_events),?,?,?,?,?,?)').bind(uid(), now(), by, action, target.claim ?? null, target.batch ?? null, JSON.stringify(detail));
+  const source=target.claim?"SELECT json_object('entity',entity_id,'currency',currency) FROM c_claims WHERE id=? AND entity_id<>'primary'":target.batch?"SELECT json_object('entity',entity_id,'currency',currency) FROM c_batches WHERE id=? AND entity_id<>'primary'":null;
+  return db.prepare(`INSERT INTO c_events(id,seq,at,actor_email,action,claim_id,batch_id,detail) VALUES(?,(SELECT COALESCE(MAX(seq),0)+1 FROM c_events),?,?,?,?,?,${source?`json_patch(?,COALESCE((${source}),'{}'))`:'?'})`).bind(uid(), now(), by, action, target.claim ?? null, target.batch ?? null, JSON.stringify(detail),...(source?[target.claim??target.batch]:[]));
 }
