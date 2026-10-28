@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "f5191a9743f1b8146571df1e0f789d809c6403a7955891ffbc79de2fe2c52de5",
+      "sha256": "69476be1e9759fb2ef4cd1f5259dc94458f2c0ac70d75dac2d07f7d923fb9a30",
       "executable": false
     },
     ".gitignore": {
@@ -952,7 +952,7 @@
       "executable": false
     },
     "scripts/ci/verify-app.mjs": {
-      "sha256": "f328401a5b0ad3cb565f8da9d8b8865427e9449705a5f5315cce85e5a35bb496",
+      "sha256": "76616e72be955db445649bf25d528ba48ee39b65a9fd5b0a811b8a91e200faf3",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
@@ -4351,6 +4351,10 @@
       "sha256": "5ec9d8bf178730d56c71dd33ea15182b4cd5be13f7a77d14d593e313f0a03715",
       "executable": false
     },
+    "tests/archive-data.mjs": {
+      "sha256": "9487312bf7a1aa3961b25c8bec870722663439eb2b2eb37897829312642eca59",
+      "executable": false
+    },
     "tests/automatic-coding-quality.mjs": {
       "sha256": "761dd5648e1d1e89f6bb23b42e4748dd2e48a95898539c485b0b4b64988f9c5e",
       "executable": false
@@ -4388,11 +4392,11 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "1220032bef61792dc677f6a964dff0592b05efe1728061bf893989f291be844b",
+      "sha256": "20d743aeff95d1d90d0399db65cb59bc2e8df2b7bce6e8225c6aa05294f2d9b2",
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "ecb1be5043e0972bf5eedae767c922c4de8a2204ad4d41d702e50955d6ad2376",
+      "sha256": "d1aa377928453a50f5ad4a9b996354bdb3ffb74df6b6af8a6b8301a3c5e8088f",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -4472,7 +4476,7 @@
       "executable": false
     },
     "tests/coaster-reader.test.mjs": {
-      "sha256": "9e8fdefd00287b3d7b1c45ff78718af80ce8912b87a3751d55182282b3dedd4a",
+      "sha256": "feafb7988b944484af3be47954dbacd80b6b525d9fb5b584169ed96f21c6fb85",
       "executable": false
     },
     "tests/coaster-receipt-signals.test.mjs": {
@@ -4484,7 +4488,7 @@
       "executable": false
     },
     "tests/coaster-suite.mjs": {
-      "sha256": "dd696be2fac1444adc9f929228facc3884ab03ae527fde5d0d3f5ad173305b5e",
+      "sha256": "8ecd1e775741f14e3952cc818d46cd332512525d3e0f58b0507a0f4bfeb5b4bc",
       "executable": false
     },
     "tests/coaster-worker.ts": {

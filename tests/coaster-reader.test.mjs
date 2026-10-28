@@ -16,7 +16,7 @@ const read=(h,id,cookie,reading=0,life=0,extra={})=>h.post(`receipt-inbox/${id}/
 
 test('Owner sees per-page USD corpus usage and an atomic monthly cap pauses reading and coding while manual expenses work',async()=>{
  let activeLabel=await load(1001),calls=0
- const h=await harness({bindings:aiBindings,aiEdge:async()=>{calls++;const body=await response(raw(activeLabel)).json();body.usage={input_tokens:100000,output_tokens:6250,total_tokens:106250};return Response.json(body)}})
+ const h=await harness({bindings:aiBindings,aiEdge:async request=>{assert.equal(new URL(request.url).pathname,'/v1/responses');assert.equal((await request.json()).store,false);calls++;const body=await response(raw(activeLabel)).json();body.usage={input_tokens:100000,output_tokens:6250,total_tokens:106250};return Response.json(body)}})
  try{
   const t=await agency(h),model='gpt-4.1-2025-04-14',pricing={version:0,model,inputPerMillion:'2',outputPerMillion:'8',reservePerPage:'0.25',monthlyCap:'20'}
   assert.equal((await h.get('settings/provider-costs')).settings,null)

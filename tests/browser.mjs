@@ -12,6 +12,7 @@ import { command, fresh, freePort, report, start } from './browser-runtime.mjs'
 import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
 import { perDiemJourney } from './browser-per-diem.mjs'
 import { captureJourney, assertRestoredInbox } from './browser-capture.mjs'
+import { prepareArchiveData } from './archive-data.mjs'
 import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/coaster-browser-proof')
@@ -54,6 +55,7 @@ try {
   // The sole phone smoke photographs a receipt, reads its provenance and privately discards it.
   await captureJourney(browser, root, server.origin, 390, evidence, shots)
   const captureEmployee = await session(browser, root, server.origin, 'employee', 1440)
+  await prepareArchiveData(owner,captureEmployee,server.origin,server.providers)
   const capturedInbox = (await api(captureEmployee.context, server.origin, 'receipt-inbox')).receipts
   await captureEmployee.context.close()
   const before = await everything(owner.context, server.origin)

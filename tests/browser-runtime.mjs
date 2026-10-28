@@ -1,5 +1,5 @@
-// The browser runs the one emitted production Worker. Only the external mail
-// transport is replaced; sign-in uses its ordinary invitation and email links.
+// The browser runs the one emitted production Worker. Only external mail, bank
+// and AI transports are fixtures; sign-in uses ordinary invitations and email links.
 import { promisify } from 'node:util'
 import { execFile } from 'node:child_process'
 import { mkdtemp, cp, readFile, mkdir, readdir, symlink } from 'node:fs/promises'
@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os'
 import { createServer } from 'node:net'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 import { productionPlan } from '@runeditrun/rer/internal/onboarding/production-options.mjs'
+import { bankFixture } from './fixtures/bank.mjs'
 
 const source=resolve(new URL('..',import.meta.url).pathname)
 const excluded=new Set(['.git','node_modules','.wrangler','.rer','.seed','.cache','.tanstack','exports','test-results'])
@@ -34,16 +35,22 @@ export async function command(root,args,{expected=0,env={}}={}){
 }
 export async function start(root,port){
   const origin=`http://127.0.0.1:${port}`,messages=[]
-  const plan=await productionPlan(root,origin,port)
-  plan.workers[0].bindings={...plan.workers[0].bindings,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-browser-mail',MAIL_FROM:'Coaster <coaster@harbourfinch.example>'}
+  const plan=await productionPlan(root,origin,port),bank=bankFixture(),label=JSON.parse(await readFile('tests/fixtures/receipts/reader/synthetic-coaster-1001.json','utf8'))
+  plan.workers[0].bindings={...plan.workers[0].bindings,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-browser-mail',MAIL_FROM:'Coaster <coaster@harbourfinch.example>',AI_ENABLED:'true',AI_API_KEY:'synthetic-archive-reader'}
   plan.workers[0].outboundService=async request=>{
+    if(new URL(request.url).hostname==='sandbox.plaid.com')return bank.fetch(request)
+    if(new URL(request.url).hostname==='api.openai.com'){
+      if(new URL(request.url).pathname!=='/v1/responses'||request.method!=='POST'||(await request.json()).store!==false)throw new Error('Receipt reading must use the declared no-store provider door')
+      const regions=[{page:1,x:.1,y:.1,width:.5,height:.1}],fields=Object.fromEntries(Object.entries(label.values).map(([name,value])=>[name,{value:name==='lineItems'?value.map(item=>({...item,description:`${item.description} × ${item.quantity}`,confidence:.99,regions})):value,confidence:.99,regions}]))
+      return Response.json({status:'completed',model:'synthetic-archive-reader',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(fields)}]}],usage:{input_tokens:100,output_tokens:100,total_tokens:200}})
+    }
     assertMail(request)
     messages.push(await request.json())
     return Response.json({id:crypto.randomUUID()})
   }
   const runtime=new Miniflare({...convertV4MiniflareOptions(plan),resourcePersistencePath:join(root,'.wrangler/state/v3')})
   try{await runtime.ready}catch(error){await runtime.dispose();throw error}
-  const server={origin,messages,async close(){servers.delete(origin);await runtime.dispose()}}
+  const server={origin,messages,providers:{bank,label},async close(){servers.delete(origin);await runtime.dispose()}}
   servers.set(origin,server)
   return server
 }
