@@ -8,7 +8,8 @@ import { useDesktop, Work } from './shell';
 import { oldestWaiting } from './app';
 import { SpendRequests } from './requests';
 import { CashAdvances } from './advances';
-import { money, plural, type D } from './api';
+import { plural, type D } from './api';
+import { moneyTotals } from './money-totals';
 
 /** Claims routed to this manager, in the main screen's layout: waiting first, then the ones already decided. */
 export function Approvals({ state, reload, id, query }: ViewProps) {
@@ -24,9 +25,9 @@ export function Approvals({ state, reload, id, query }: ViewProps) {
   return <Work panel={panel} selected={!!id}>
     <PageHead title="Approvals" line={`${plural(waiting.length, 'claim')} waiting for your decision, ${decided.length} decided`} />
     <Tiles label="Approval totals" tiles={[
-      { label: 'Approved by you', value: approved.length, note: money(approved.reduce((n: number, c: D) => n + c.total_minor, 0), currency) },
+      { label: 'Approved by you', value: approved.length, note: moneyTotals(approved, currency) },
       { label: 'Returned or rejected', value: sent.length, note: 'Each with its reason in the history' },
-      { label: 'Waiting for you', value: waiting.length, note: money(waiting.reduce((n: number, c: D) => n + c.total_minor, 0), currency), wash: true },
+      { label: 'Waiting for you', value: waiting.length, note: moneyTotals(waiting, currency), wash: true },
     ]} />
     <BulkApprovals waiting={waiting} names={state.names} reload={reload} />
     {shown.length

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { call, claimNumber, money, plural, type D } from './api';
+import { call, claimNumber, plural, type D } from './api';
 import { Choice, Empty, Field, Form, PageHead, Tiles } from './parts';
 import { Icon } from './icons';
 import { ClaimPanel } from './claim-panel';
@@ -11,14 +11,10 @@ import { ReceiptInbox } from './receipt-inbox';
 import { QuickExpense } from './quick-expense';
 import { Side, useDesktop, Work } from './shell';
 import { go, oldestWaiting, waitingFor } from './app';
+import { moneyTotals } from './money-totals';
 
 export type ViewProps = { state: D; reload: () => Promise<D>; id?: string; query: string };
 
-const totals = (claims: D[], defaultCurrency: string) => {
-  const byCurrency = new Map<string, number>();
-  for (const claim of claims) byCurrency.set(claim.currency, (byCurrency.get(claim.currency) ?? 0) + claim.total_minor);
-  return byCurrency.size ? [...byCurrency].map(([currency, total]) => `${money(total, currency)}${currency === 'USD' ? ' USD' : ''}`).join(' · ') : money(0, defaultCurrency);
-};
 /** A claim matches the top bar's search on its number, title or person. */
 export const matches = (c: D, query: string) => `${claimNumber(c.number)} ${c.title} ${c.employee_name}`.toLowerCase().includes(query.trim().toLowerCase());
 
@@ -59,9 +55,9 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
     <PageHead title="Claims" line={`${plural(scoped.length, 'claim')} ${whose}, ${waiting.length} waiting for approval, ${ready.length} approved and ready to pay`}
       action={onNewClaim && <button className="button primary head-action" onClick={onNewClaim}><Icon name="plus-circle" />New claim</button>} />
     <Tiles label="Claim totals" tiles={[
-      { label: 'Claims', value: scoped.length, note: totals(scoped, state.business.currency) },
-      { label: 'Approved', value: approved.length, note: `${paid.length} reimbursed · ${totals(approved, state.business.currency)}` },
-      { label: 'Waiting for approval', value: waiting.length, note: totals(waiting, state.business.currency), wash: true },
+      { label: 'Claims', value: scoped.length, note: moneyTotals(scoped, state.business.currency) },
+      { label: 'Approved', value: approved.length, note: `${paid.length} reimbursed · ${moneyTotals(approved, state.business.currency)}` },
+      { label: 'Waiting for approval', value: waiting.length, note: moneyTotals(waiting, state.business.currency), wash: true },
     ]} />
     {state.actor.roles.employee && <AgentStrip proposals={proposals} reload={reload} currency={state.business.currency} idle={<><strong>Agents:</strong> nothing prepared for you right now. An agent with your key turns receipts into draft claims here for you to accept; it never submits, approves or pays. <a href="#/settings">Agent keys</a></>} />}
     <PrepareNativeWork state={state} reload={reload} />

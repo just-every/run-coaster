@@ -756,7 +756,7 @@
       "executable": false
     },
     "migrations/core/0085_entities.sql": {
-      "sha256": "4c5315092bc5416d28aac1d69bb9c34945c8f285379ae88f841c969563f8af96",
+      "sha256": "0f76dfce09e48c3740fc6571b66a698da5205e6fb9ae9ec69af4c650482a2b8e",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -4136,7 +4136,7 @@
       "executable": false
     },
     "src/ui/approvals.tsx": {
-      "sha256": "672b3a9e2bf320eb4cd5ad813ae3381bfe17cec3399774b04baa67095b46848e",
+      "sha256": "07d14535b115db3291d7b7f2f6d6d9f3adf7b42c04d7e6b6fc0ef53e288c87d8",
       "executable": false
     },
     "src/ui/audit.tsx": {
@@ -4152,7 +4152,7 @@
       "executable": false
     },
     "src/ui/batches.tsx": {
-      "sha256": "319aeece0cf3e28b02a280d8878ca539f40839664216ebb8284f3c633b717657",
+      "sha256": "48f7ca4459fa71691af78c8bf1c304cfacd7110db71f13a13b0754411ca41adf",
       "executable": false
     },
     "src/ui/budgets.tsx": {
@@ -4184,7 +4184,7 @@
       "executable": false
     },
     "src/ui/claims.tsx": {
-      "sha256": "386e8868ff2686e8d847082c7d1315aaa70f970c0c0bbdf8303ea3a0aba5acae",
+      "sha256": "5013a3e23024071eb31e2bdf9b049b8fe9f010c03f948068086795f836e7d736",
       "executable": false
     },
     "src/ui/coding.tsx": {

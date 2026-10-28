@@ -13,17 +13,17 @@ import { AccountablePlan } from './accountable-plan';
 import { Investigations } from './investigations';
 import { CashAdvances } from './advances';
 import { PayrollBatch } from './payroll';
+import { moneyTotals } from './money-totals';
 
 const batchStatus = (b: D) => b.status === 'draft' ? 'draft' : b.status === 'approved' ? 'approved' : 'reimbursed';
 const tone = (b: D) => b.status === 'reimbursed' || batchStage(b) === 'released' ? 'done' : 'wait';
-const sum = (rows: D[]) => rows.reduce((n, r) => n + r.total_minor, 0);
 
 /** Finance turns approved claims into a reviewed batch, releases it, exports it, and records the payment made outside Coaster. */
 export function Batches({ state, reload, id, query }: ViewProps) {
   const ready = state.claims.filter((c: D) => c.status === 'approved'), shown = ready.filter((c: D) => matches(c, query));
   const [chosen, setChosen] = useState<string[]>([]);
   const proposals = state.proposals.filter((p: D) => p.kind === 'batch' && p.status === 'proposed');
-  const total = ready.filter((c: D) => chosen.includes(c.id)).reduce((n: number, c: D) => n + c.total_minor, 0);
+  const selected = ready.filter((c: D) => chosen.includes(c.id));
   const currency = state.business?.currency ?? 'USD';
   const drafts = state.batches.filter((b: D) => b.status === 'draft'), reviewed = state.batches.filter((b: D) => b.status === 'approved'), paid = state.batches.filter((b: D) => b.status === 'reimbursed');
   const panel = id ? <BatchPanel key={id} id={id} reload={reload} names={state.names} templates={state.exportTemplates} owner={state.actor.roles.owner && !state.actor.delegate} />
@@ -31,15 +31,15 @@ export function Batches({ state, reload, id, query }: ViewProps) {
   return <Work panel={panel} wide selected={!!id} className="batches-work">
     <PageHead title="Batches" line={`${plural(ready.length, 'approved claim')} ready to batch, ${plural(drafts.length, 'batch', 'batches')} to review, ${reviewed.length} to release or pay`} />
     <Tiles label="Batch totals" tiles={[
-      { label: 'To review or pay', value: drafts.length + reviewed.length, note: money(sum([...drafts, ...reviewed]), currency) },
-      { label: 'Paid', value: paid.length, note: paid[0] ? `Last paid ${shortDay(paid[0].paid_on)} · ${money(sum(paid), currency)}` : 'None yet' },
-      { label: 'Approved and ready', value: ready.length, note: money(sum(ready), currency), wash: true },
+      { label: 'To review or pay', value: drafts.length + reviewed.length, note: moneyTotals([...drafts, ...reviewed], currency) },
+      { label: 'Paid', value: paid.length, note: paid[0] ? `Last paid ${shortDay(paid[0].paid_on)} · ${moneyTotals(paid, currency)}` : 'None yet' },
+      { label: 'Approved and ready', value: ready.length, note: moneyTotals(ready, currency), wash: true },
     ]} />
     <AgentStrip proposals={proposals} reload={reload} currency={state.business.currency} claims={state.claims} />
     <PrepareNativeWork state={state} reload={reload} close />
     <div className="cards">
       <Section title={`Approved and ready · ${ready.length}`} label="Ready to batch">
-        {ready.length ? <Form label={`Create batch · ${money(total, currency)}`} onSubmit={async () => { const batch = await call('batches', { claims: chosen }); setChosen([]); await reload(); go('batches', batch.id); }}>
+        {ready.length ? <Form label={`Create batch · ${moneyTotals(selected, currency)}`} onSubmit={async () => { const batch = await call('batches', { claims: chosen }); setChosen([]); await reload(); go('batches', batch.id); }}>
           <div className="table-wrap field-wide"><table className="data" aria-label="Approved claims">
             <colgroup><col style={{ width: '34%' }} /><col style={{ width: '36%' }} /><col style={{ width: '16%' }} /><col style={{ width: '14%' }} /></colgroup>
             <thead><tr><th>Person</th><th>Claim</th><th className="figure">Amount</th><th>Approved</th></tr></thead>
