@@ -502,7 +502,7 @@ roles and personal records only to their employee. Explicit
 `POST /api/coaster/plaid/connections/:id/disconnect` first confirms Plaid item
 removal, then drops local custody. If the provider refuses, custody remains for
 an explicit later action. Erasure deletes personal local connection and Link
-custody atomically while retaining financial records and cost estimates without account details; it
+custody atomically while retaining financial records and cost estimates without bank account numbers or execution credentials; it
 makes no claim that the remote provider removed its item. All execution custody
 is excluded from installation archives; numbered native history remains.
 

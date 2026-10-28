@@ -12,6 +12,7 @@ import { noOverflow, payrollBrowserRuntime } from './payroll-browser-runtime.mjs
 const cdn = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
 const linkFixture = `window.Plaid = { create(options) {
   if (!options.token.startsWith('synthetic-coaster-link-')) throw new Error('Invalid synthetic Link token');
+  queueMicrotask(()=>options.onLoad?.());
   const dialog = document.createElement('dialog');
   const label = document.createElement('p'); label.textContent = 'Synthetic card ending 1008'; dialog.append(label);
   const button = document.createElement('button'); button.textContent = 'Choose synthetic card';

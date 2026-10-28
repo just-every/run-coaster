@@ -99,7 +99,7 @@ async function chargesFor(db:D1Database,employee:string) {
   return (await db.prepare(`SELECT ch.*,i.claim_id,c.version,cd.last4 FROM c_card_charges ch JOIN c_items i ON i.id=ch.item_id AND i.card_charge_id=ch.id
     JOIN c_claims c ON c.id=i.claim_id JOIN c_cards cd ON cd.id=ch.card_id JOIN c_card_sources f ON f.id=ch.file_id
     WHERE ch.employee_email=? AND c.employee_email=ch.employee_email AND c.status IN ('draft','returned') AND i.receipt_id IS NULL
-    AND ch.amount_minor>0 AND f.undone_at IS NULL AND NOT EXISTS(SELECT 1 FROM c_plaid_transactions pt WHERE pt.charge_id=ch.id AND pt.status IN ('review','removed'))`).bind(employee).all<Charge>()).results;
+    AND ch.amount_minor>0 AND f.undone_at IS NULL AND NOT EXISTS(SELECT 1 FROM c_plaid_transactions pt LEFT JOIN c_plaid_sync_state sync ON sync.connection_id=pt.connection_id WHERE pt.charge_id=ch.id AND (pt.status IN ('review','removed') OR sync.in_progress=1))`).bind(employee).all<Charge>()).results;
 }
 async function candidates(db:D1Database,original:Original,charges:Charge[],rule:Rule,business:{currency:string},fx:FxResolver) {
   const rejected=new Set((await db.prepare('SELECT transaction_key FROM c_card_match_rejections WHERE receipt_id=?').bind(original.id).all<{transaction_key:string}>()).results.map(r=>r.transaction_key));

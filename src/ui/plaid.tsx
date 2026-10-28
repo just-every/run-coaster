@@ -20,20 +20,23 @@ async function connect(scope: string) {
   await loadLink();
   const start = await call('plaid/link', { scope, consent: true });
   return new Promise<D>((resolve, reject) => {
-    let complete = false;
-    const link = (window as any).Plaid.create({
+    let complete = false, ready = false;
+    let link: D | undefined;
+    const loading = window.setTimeout(()=>{link?.destroy();reject(new Error('Plaid Link did not finish loading. Try connecting again.'));},30_000);
+    link = (window as any).Plaid.create({
       token: start.linkToken,
-      onSuccess: (publicToken: string) => {
+      onLoad: () => {window.clearTimeout(loading);ready=true;link?.open();},
+      onSuccess: (publicToken: string, metadata: D) => {
         complete = true;
-        call('plaid/exchange', { link: start.id, publicToken, consent: true }).then(resolve, reject).finally(() => link.destroy());
+        call('plaid/exchange', { link: start.id, publicToken, selectedAccounts: metadata.accounts?.map((account: D)=>account.id) ?? [], consent: true }).then(resolve, reject).finally(() => link?.destroy());
       },
       onExit: (error: D | null) => {
         if (complete) return;
         reject(new Error(error?.display_message || 'Connecting the feed was cancelled.'));
-        link.destroy();
+        window.clearTimeout(loading);link?.destroy();
       },
     });
-    link.open();
+    if(ready)link?.open();
   });
 }
 
@@ -91,6 +94,7 @@ function Connection({ connection, state, cards, changed }: { connection: D; stat
     <h3>{connection.scope === 'company' ? 'Company feed' : 'Your personal card feed'}</h3>
     <p><span className={`chip tone-${connection.status === 'connected' ? 'done' : 'wait'}`} style={{ fontSize: 13 }}>{connection.status === 'connected' ? 'Connected' : 'Awaiting activation'}</span> · added {moment(connection.connectedAt)}{connection.lastSyncAt && ` · last synced ${moment(connection.lastSyncAt)}`}</p>
     <p role="status" aria-live="polite">{notice}</p>
+    {connection.syncIncomplete && <p className="notice">This sync is incomplete. Its expenses stay on hold until a complete explicit sync succeeds.</p>}
     {connection.accounts.map((account: D) => {
       const assignment = connection.assignments.find((entry: D) => entry.account === account.id);
       return <div key={account.id} className="sub-form" aria-label={`Feed account ending ${account.last4}`}>
@@ -108,7 +112,8 @@ function Connection({ connection, state, cards, changed }: { connection: D; stat
       </div>;
     })}
     {connection.status === 'connected' && <div className="sub-form"><Form label="Sync feed transactions" onSubmit={async () => {
-      const result = await call(path + '/sync', {});
+      let result: D;
+      try { result = await call(path + '/sync', {}); } catch(reason) { await changed(); throw reason; }
       await changed(); setRevision(value => value + 1);
       setNotice(`Sync complete: ${result.added} added, ${result.modified} modified, ${result.removed} removed; ${result.expenses} expenses created.`);
     }}><p className="muted field-wide">Only assigned accounts create expenses. Sync keeps pending, posted and removed transaction history.</p></Form></div>}

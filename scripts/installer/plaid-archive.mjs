@@ -39,7 +39,11 @@ export async function validatePlaidArchive(read) {
     const charge = charges.find(charge => charge.id === alias.charge_id), file = files.find(file => file.id === alias.file_id), card = charge && cards.find(card => card.id === charge.card_id);
     check(charge && file && card && nonempty(alias.transaction_key) && alias.transaction_key.startsWith(`card:${file.issuer.toLowerCase()}|${card.last4}:`), 'statement_alias');
   }
-  for (const state of states) check(nonempty(state.connection_id) && Number.isSafeInteger(state.version) && state.version > 0 && nonempty(state.cursor) && nonempty(state.last_sync_at), 'cursor');
+  for (const state of states) {
+    check(nonempty(state.connection_id) && Number.isSafeInteger(state.version) && state.version > 0 && typeof state.cursor==='string' && [0,1].includes(state.in_progress), 'cursor');
+    check(state.in_progress===1 || nonempty(state.cursor) && nonempty(state.last_sync_at), 'cursor');
+    check(state.attempt_id===null && state.lease_until===null || state.in_progress===1 && nonempty(state.attempt_id) && Number.isSafeInteger(state.lease_until) && state.lease_until>0, 'cursor');
+  }
   for (const row of assignments) {
     check(nonempty(row.connection_id) && nonempty(row.account_id) && members.some(member => member.email === row.employee_email) && categories.some(category => category.id === row.category_id), 'assignment');
     check(row.card_id === null || cards.some(card => card.id === row.card_id), 'assignment');

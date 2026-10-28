@@ -80,6 +80,8 @@ export async function exchangePlaidLink(env: Bindings, actor: Actor, body: Data)
   const flow = await env.DB.prepare('SELECT * FROM c_plaid_links WHERE id=?').bind(id).first<Data>();
   requireThat(flow && flow.member_email === actor.email && flow.session_id === actor.session && flow.delegate_grant === (actor.delegate?.grant ?? null), 'This Link request belongs to another native session', 403);
   const auth = await plaidPermission(env, actor, flow.scope), token = text(body.publicToken, 'Plaid public token', 1000);
+  const selected = body.selectedAccounts === undefined ? null : body.selectedAccounts;
+  requireThat(selected === null || Array.isArray(selected) && selected.length > 0 && selected.length <= 100 && selected.every((value: unknown)=>typeof value==='string'&&value.length>0&&value.length<=200) && new Set(selected).size===selected.length, 'Confirm the exact accounts selected in Plaid Link');
   requireThat(body.consent === true, 'Explicitly confirm the accounts returned by Plaid Link');
   const state: Sql = { sql: 'EXISTS(SELECT 1 FROM c_plaid_links WHERE id=? AND reserved_at IS NULL AND expires_at>? AND settings_version=?)', params: [id, Date.now(), s.version] };
   const reserve = { sql: 'NOT EXISTS(SELECT 1 FROM c_plaid_links WHERE public_token_hash=?)', params: [await sha256Hex(token)] };
@@ -97,7 +99,8 @@ export async function exchangePlaidLink(env: Bindings, actor: Actor, body: Data)
   await check(env, all(auth, settingsState(s)));
   const result = await plaidJson(access, '/accounts/get');
   requireThat(result.item?.item_id === response.item_id && Array.isArray(result.accounts) && result.accounts.length > 0 && result.accounts.length <= 100, 'Plaid returned incomplete account ownership', 502);
-  const accounts = result.accounts.map((a: Data) => {
+  requireThat(selected === null || selected.every((id: string)=>result.accounts.some((a: Data)=>a.account_id===id)), 'Plaid did not verify every selected account',409);
+  const accounts = result.accounts.filter((a: Data)=>selected === null || selected.includes(a.account_id)).map((a: Data) => {
     requireThat(typeof a.account_id === 'string' && /^\d{4}$/.test(a.mask) && ((a.type === 'credit' && a.subtype === 'credit card') || (flow.scope === 'company' && a.type === 'depository' && ['checking', 'savings'].includes(a.subtype))), 'Only masked US card accounts and company checking or savings accounts are supported', 409);
     return { id: a.account_id, last4: a.mask, type: a.type, subtype: a.subtype };
   });
@@ -120,8 +123,9 @@ export async function plaidConnections(env: Bindings, actor: Actor) {
   native(actor, true);
   const rows = (await env.DB.prepare('SELECT id,scope,personal_email,status,accounts,connected_at FROM c_plaid_connections ORDER BY connected_at,id').all<Connection>()).results;
   const assignments = (await env.DB.prepare('SELECT connection_id,account_id AS account,employee_email AS employee,category_id AS category FROM c_plaid_assignments').all<Data>()).results;
+  const states=(await env.DB.prepare('SELECT connection_id,in_progress,last_sync_at FROM c_plaid_sync_state').all<Data>()).results;
   const cards = actor.roles.owner || actor.roles.admin || actor.roles.finance ? (await env.DB.prepare('SELECT id,issuer,last4,employee_email FROM c_cards ORDER BY issuer,last4').all()).results : [];
-  return { cards, costs: await plaidCosts(env,actor), environment: 'sandbox', connections: rows.filter(c => c.scope === 'personal' ? !actor.delegate && c.personal_email === actor.email : actor.roles.owner || actor.roles.admin || actor.roles.finance).map(c => ({ id: c.id, scope: c.scope, status: c.status, accounts: JSON.parse(c.accounts), connectedAt: c.connected_at, assignments: assignments.filter(a=>a.connection_id===c.id).map(({connection_id,...a})=>a) })), transactionSync: true };
+  return { cards, costs: await plaidCosts(env,actor), environment: 'sandbox', connections: rows.filter(c => c.scope === 'personal' ? !actor.delegate && c.personal_email === actor.email : actor.roles.owner || actor.roles.admin || actor.roles.finance).map(c => ({ id: c.id, scope: c.scope, status: c.status, accounts: JSON.parse(c.accounts), connectedAt: c.connected_at, syncIncomplete:states.some(state=>state.connection_id===c.id&&state.in_progress===1), lastSyncAt:states.find(state=>state.connection_id===c.id)?.last_sync_at, assignments: assignments.filter(a=>a.connection_id===c.id).map(({connection_id,...a})=>a) })), transactionSync: true };
 }
 export async function disconnectPlaid(env: Bindings, actor: Actor, id: string) {
   native(actor, true);

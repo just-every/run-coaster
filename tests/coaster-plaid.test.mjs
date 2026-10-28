@@ -12,3 +12,8 @@ test('Connected Plaid account months accrue once, owner caps preserve manual cla
 
 import { personalCreditJourney } from './plaid-sync.mjs';
 test('A later personal-card credit pauses payment of the original purchase without rewriting financial evidence or stopping manual claims', personalCreditJourney);
+import { selectedPlaidJourney } from './plaid-selection.mjs';
+test('Plaid Link grants only explicitly selected verified accounts and sync discards unselected financial data', selectedPlaidJourney);
+
+import { largePlaidJourney } from './plaid-large-sync.mjs';
+test('A complete first month syncs across bounded financial batches, safely resumes interruption and fences revoked authority', largePlaidJourney);

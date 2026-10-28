@@ -37,6 +37,8 @@ export async function companyTransactionJourney() {
     await h.post(base+'/assign',{account:connection.accounts[0].id,employee:t.email,category:t.category});
     await h.post(base+'/assign',{account:'synthetic-coaster-unverified',employee:t.email,category:t.category},h.owner,409);
     const rule=await h.get('settings/card-matching');await h.post('settings/card-matching',{version:rule.version,enabled:true,windowDays:7,tipPercent:0,fxPercent:0});
+    const financeCategory=(await h.post('settings/categories',{name:'Finance supplies',accountCode:'6510',taxCode:'NONE'})).id;
+    await h.post('coding/automatic/rules',{version:(await h.get('coding/automatic/rules')).version,scope:'finance',merchant:'Harbour Stationery',coding:{category:financeCategory},active:true});
     const pending=plaidTransaction({transaction_id:'synthetic-coaster-355',pending:true});
     const receipt=await uploadWaiting(h,t.employee,pending);
     const overlap=plaidTransaction({transaction_id:'synthetic-coaster-357',merchant_name:'Harbor Parking Inc',name:'Harbour Parking',amount:12});
@@ -49,7 +51,7 @@ export async function companyTransactionJourney() {
     const synced=await h.post(base+'/sync',{});assert.deepEqual([synced.added,synced.removed,synced.expenses],[1,1,1]);
     const txs=(await h.get(base+'/transactions')).transactions;assert.deepEqual(txs.map(r=>r.status).sort(),['overlap','posted','removed']);
     let claims=(await h.get('state',t.employee)).claims;assert.equal(claims.length,1);
-    let detail=await h.get(`claims/${claims[0].id}`,t.employee);assert.equal(detail.items.length,1);assert.equal(detail.items[0].amount_minor,4250);assert.ok(detail.items[0].card_charge_id);assert.ok(detail.items[0].receipt_id);assert.equal(detail.claim.total_minor,0);
+    let detail=await h.get(`claims/${claims[0].id}`,t.employee);assert.equal(detail.items.length,1);assert.equal(detail.items[0].amount_minor,4250);assert.equal(detail.items[0].allocations[0].category_id,financeCategory,'the Plaid feed inherits exact native finance coding before receipt attachment');assert.ok(detail.items[0].card_charge_id);assert.ok(detail.items[0].receipt_id);assert.equal(detail.claim.total_minor,0);
     inbox=await h.get('receipt-inbox',t.employee);assert.equal(inbox.receipts.find(r=>r.id===receipt).attachment.itemId,detail.items[0].id);
     const attached=(await h.db.prepare("SELECT * FROM c_capture_lifecycle WHERE receipt_id=? AND kind='attached'").bind(receipt).all()).results;assert.equal(attached.length,1);assert.equal(attached[0].actor_email,'automation: card match');
     edge.pages.push(page([posted],[],[],'synthetic-coaster-cursor-3'));
