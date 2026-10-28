@@ -99,7 +99,7 @@ async function roundTrip(stage) {
     assert.deepEqual(tableRows(restored,'c_plaid_costs'),plaidCosts);
     if(stage==='confirmed'){
       assert.deepEqual(await h.db.prepare('SELECT * FROM c_payroll_handoffs WHERE batch_id=?').bind(batch.id).first(),handoff,'restored handoff remains exact before expiry');
-      await h.post('settings/retention',{years:1});
+      await h.post(['settings','retention'].join('/'),{years:1});
       await (await h.mf.getWorker()).scheduled({scheduledTime:Date.parse('2032-06-02T09:17:00Z'),cron:'17 * * * *'});
       const proposal=(await h.get('retention')).proposal;
       assert.deepEqual(proposal.claims.map(unit=>[unit.batch,unit.claims.map(claim=>claim.id)]),[[batch.id,t.claims]]);
@@ -128,6 +128,21 @@ async function roundTrip(stage) {
       const expiredRestored=await records(join(after,'exports/restored-expired-payroll.rer'));
       assert.deepEqual(rows(expiredRestored),rows(expired),'post-expiry CLI restore preserves every remaining portable row exactly');
       absent(expiredRestored);
+      h=await harness({clock,existingDatabase:true,persistencePath:join(after,'.wrangler/state/v3'),databaseId:'local-foundation-only'});
+      await h.get(`batches/${batch.id}`,h.owner,404);
+      await h.get(path,h.owner,404);
+      for(const id of t.claims)await h.get(`claims/${id}`,h.owner,404);
+      assert.deepEqual((await h.get('retention')).receipts,[receipt],'the restored owner can still read the exact expiry receipt');
+      const employee=await h.person(t.memberEmail,{employee:true},t.managerEmail);
+      const category=(await h.get('state')).categories.find(row=>row.name==='Office').id;
+      let replay=await h.post('claims',{title:'Restored expired purchase'},employee);
+      replay=await h.post(`claims/${replay.id}/items`,{version:replay.version,kind:'receipt',date:'2026-04-10',merchant:'Office stationery',amount:'10.00',allocations:[{category}],explanation:'Synthetic acceptance expense'},employee);
+      replay=await h.post(`claims/${replay.id}/submit`,{version:replay.version},employee);
+      const manager=await h.person(t.managerEmail,{manager:true,employee:true});
+      replay=await h.post(`claims/${replay.id}/decision`,{version:replay.version,revision:replay.revision,decision:'approved',acknowledge:true},manager);
+      const batches=(await h.db.prepare('SELECT * FROM c_batches').all()).results;
+      assert.match((await h.post('batches',{claims:[replay.id]},h.owner,409)).error,/since removed under the retention policy/);
+      assert.deepEqual((await h.db.prepare('SELECT * FROM c_batches').all()).results,batches,'real restore preserves refusal of a second reimbursement');
       await Promise.all([
         copyFile(expiredArchive,join(evidence,'payroll-expired.rer')),
         copyFile(join(after,'exports/restored-expired-payroll.rer'),join(evidence,'payroll-expired-restored.rer')),

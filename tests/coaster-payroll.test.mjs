@@ -5,15 +5,16 @@ import {harness} from './harness.mjs';
 import {gustoFixture} from './fixtures/payroll.mjs';
 import {connectFixture,payrollBatch} from './payroll-kit.mjs';
 
-test('Payroll retention keeps unpaid and held handoffs, expires the confirmed batch only with owner consent, and never reimburses it again',async()=>{
+async function payrollRetention(){
   const clock=Date.parse('2031-06-02T09:17:00Z'),edge=gustoFixture(),h=await harness({clock,gustoEdge:r=>edge.fetch(r)});
   try {
     const t=await payrollBatch(h);
     await connectFixture(h,edge,t.memberEmail);
     const batch=await h.post(`batches/${t.batch.id}/release`,{version:t.batch.version});
     const root=`batches/${batch.id}/payroll`;
-    await h.post(root,{version:batch.version,payroll:edge.payrollId,consent:true});
-    await h.post('settings/retention',{years:1});
+    edge.lostAck=true;
+    await h.post(root,{version:batch.version,payroll:edge.payrollId,consent:true},h.owner,502);
+    await h.post(['settings','retention'].join('/'),{years:1});
     const worker=await h.mf.getWorker();
     const tick=at=>worker.scheduled({scheduledTime:Date.parse(at),cron:'17 * * * *'});
     const retained=async expected=>{
@@ -22,9 +23,16 @@ test('Payroll retention keeps unpaid and held handoffs, expires the confirmed ba
       for(const id of t.claims)assert.equal((await h.get(`claims/${id}`,t.employee)).claim.status,expected.status==='confirmed'?'reimbursed':'batched');
     };
     const pending=(await h.get(root)).handoff;
+    assert.equal(pending.status,'reserved');
     await tick('2036-06-02T09:17:00Z');
     assert.equal((await h.get('retention')).proposal,null,'an unpaid payroll handoff never becomes eligible merely through age');
     await retained(pending);
+    assert.equal((await h.post(root+'/confirm',{})).confirmed,false);
+    const sent=(await h.get(root)).handoff;
+    assert.equal(sent.status,'sent');
+    await tick('2036-06-02T10:17:00Z');
+    assert.equal((await h.get('retention')).proposal,null,'a sent but unconfirmed handoff also remains unpaid and ineligible');
+    await retained(sent);
     edge.payroll={...edge.payroll,processed:true,processing_request:{status:'submit_success'}};
     assert.equal((await h.post(root+'/confirm',{})).confirmed,true);
     const confirmed=(await h.get(root)).handoff;
@@ -81,7 +89,7 @@ test('Payroll retention keeps unpaid and held handoffs, expires the confirmed ba
     assert.deepEqual((await h.db.prepare('SELECT * FROM c_batches').all()).results,batches,'expired reimbursement protection refuses a new payable batch');
     assert.equal(edge.writes.length,1,'retention never resends payroll');
   } finally {await h.close();}
-});
+}
 
 test('Payroll preserves the reviewed split, waits for exact provider confirmation, and retains immutable numbered history',async()=>{
   const edge=gustoFixture(),h=await harness({gustoEdge:r=>edge.fetch(r)});
@@ -134,6 +142,7 @@ test('Payroll preserves the reviewed split, waits for exact provider confirmatio
     assert.deepEqual([retained.status,JSON.parse(retained.lines)[0].reimbursementMinor,JSON.parse(retained.lines)[0].taxableMinor],['confirmed',1000,1200]);
     assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_gusto_employees').first()).n,0,'erasure drops payroll identity mappings');
   } finally {await h.close();}
+  await payrollRetention();
 });
 
 test('Payroll refuses unauthorized handoffs and recovers a lost provider acknowledgement without another payment write',async()=>{

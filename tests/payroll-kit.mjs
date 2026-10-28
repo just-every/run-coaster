@@ -21,7 +21,7 @@ export async function payrollBatch(h) {
   let batch=await h.post('batches',{claims:[claim.id,stipend.id]},finance);
   assert.equal(batch.total_minor,2200);
   batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:2200},finance);
-  return {batch,employee,manager,finance,memberEmail,claims:[claim.id,stipend.id]};
+  return {batch,employee,manager,finance,memberEmail,managerEmail,claims:[claim.id,stipend.id]};
 }
 export async function connectFixture(h,fixture,memberEmail) {
   const root=['payroll','gusto'].join('/');

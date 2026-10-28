@@ -4568,7 +4568,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "767286657ca876dd18160a63651d5d197fc246244abcafb637634a3ddfa788a0",
+      "sha256": "f26dcb02824828cb1c73d9b9c02f84430c03d3a6d30ce5aeb5f7e59efff76cf5",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -6724,7 +6724,7 @@
       "executable": false
     },
     "tests/payroll-archive.mjs": {
-      "sha256": "a625b296ed9cedbccece0f0b1b5d84205f4a740b2001c81b3e62fb87a46e4cda",
+      "sha256": "2d8088bb2fcf4aba353b0de35d3fc8c07c2051de2992f00feba9e0c896b1e8d2",
       "executable": false
     },
     "tests/payroll-browser-runtime.mjs": {
@@ -6732,7 +6732,7 @@
       "executable": false
     },
     "tests/payroll-kit.mjs": {
-      "sha256": "7e641fd641bc989c3ccf5dfa920890548105d1d0fcddd82c774a204a721f35ce",
+      "sha256": "113d876bb9c5c4a416e219cfc00693bec17a91bb4dc7b0662da2227c48a0a444",
       "executable": false
     },
     "tests/plaid-native.mjs": {
