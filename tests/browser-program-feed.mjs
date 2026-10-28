@@ -1,9 +1,11 @@
 import { assertAccessible } from './browser-accessibility.mjs'
 import assert from 'node:assert/strict'
-import { writeFile, rm } from 'node:fs/promises'
+import { readdir, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { api, PEOPLE, session } from './browser-journey.mjs'
 import { issuerServer } from './fixtures/feed/server.mjs'
+import { readDevKey, signInAs } from '../src/modules/operator-auth/dev/sign-in-as.mjs'
 
 /** Native configuration and scheduled delivery through a real read-only SSH/SFTP issuer edge. */
 export async function programFeedScreens(browser, root, server, evidence) {
@@ -25,8 +27,32 @@ export async function programFeedScreens(browser, root, server, evidence) {
         await writeFile(keyFile, issuer.credentials.privateKey, { mode: 0o600 })
         await panel.getByLabel('Issuer-authorized private key file', { exact: true }).setInputFiles(keyFile)
         await panel.getByLabel('I authorize scheduled read-only connections and imports from this issuer directory', { exact: true }).check()
+        const stale = await nativeSession(owner.context, server.origin)
+        await ageSession(root, stale.id)
+        assert.equal((await nativeSession(owner.context, server.origin)).id, stale.id, 'the aged native session remains signed in')
+        const before = (await api(owner.context, server.origin, 'feeds/program')).feeds
+        const readsBefore = issuer.requests.length
+        const [refused] = await Promise.all([owner.page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname.endsWith('/feeds/program')), panel.getByRole('button', { name: 'Connect program feed', exact: true }).click()])
+        assert.equal(refused.status(), 401)
+        const refusal = (await refused.json()).error
+        assert.match(refusal, /sign in again.*10 minutes/i)
+        await panel.getByRole('alert').filter({ hasText: refusal }).waitFor()
+        const after = (await api(owner.context, server.origin, 'feeds/program')).feeds
+        assert.equal(after.length, before.length, 'stale consent creates no program feed')
+        assert.equal(after.some(feed => feed.issuer === issuerName), false)
+        assert.equal(issuer.requests.length, readsBefore, 'stale consent does not contact the issuer')
+        assert.equal(await panel.getByLabel('Issuer name', { exact: true }).inputValue(), issuerName)
+        assert.equal(await panel.getByLabel('Issuer-authorized private key file', { exact: true }).evaluate(input => input.files.length), 1)
+        assert.equal(await panel.getByLabel('I authorize scheduled read-only connections and imports from this issuer directory', { exact: true }).isChecked(), true)
+        await shot(owner.page, panel, evidence, 'program-feed-stale-sign-in', width)
+        const login = await signInAs({ origin: server.origin, key: await readDevKey(root), as: 'owner', returnTo: '/app' })
+        await owner.context.addCookies(login.cookies.map(cookie => ({ ...cookie, url: server.origin })))
+        const fresh = await nativeSession(owner.context, server.origin)
+        assert.notEqual(fresh.id, stale.id, 'ordinary local sign-in issues a new session for the retry')
+        assert.equal(fresh.operator.id, stale.operator.id, 'the same owner retries the authorized form')
         const [connected] = await Promise.all([owner.page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname.endsWith('/feeds/program')), panel.getByRole('button', { name: 'Connect program feed', exact: true }).click()])
         assert.equal(connected.status(), 200, await connected.text())
+        assert.equal(JSON.stringify(connected.request().postDataJSON()) === JSON.stringify(refused.request().postDataJSON()), true, 'fresh sign-in retries the same authorized connection and column mapping')
         await rm(keyFile)
         await panel.getByRole('heading', { name: issuerName, exact: true }).waitFor()
         await shot(owner.page, panel, evidence, 'program-feed-connected', width)
@@ -54,6 +80,25 @@ export async function programFeedScreens(browser, root, server, evidence) {
       } finally { await rm(keyFile, { force: true }); await owner.context.close(); await employee.context.close() }
     }
   } finally { await issuer.close() }
+}
+async function nativeSession(context, origin) {
+  const response = await context.request.get(origin + '/auth/session')
+  assert.equal(response.status(), 200, 'native session remains valid')
+  return response.json()
+}
+async function ageSession(root, id) {
+  const directory = join(root, '.wrangler', 'state', 'v3', 'd1', 'miniflare-D1DatabaseObject')
+  const paths = (await readdir(directory, { recursive: true })).filter(path => path.endsWith('.sqlite'))
+  let updated = 0
+  for (const path of paths) {
+    const db = new DatabaseSync(join(directory, path))
+    try {
+      db.exec('PRAGMA busy_timeout=5000')
+      if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='oa_sessions'").get()) continue
+      updated += Number(db.prepare('UPDATE oa_sessions SET created_at=? WHERE id=?').run(Date.now() - 11 * 60000, id).changes)
+    } finally { db.close() }
+  }
+  assert.equal(updated, 1, 'only the fixture native session is aged in canonical local D1')
 }
 async function shot(page, target, evidence, name, width) {
   await assertAccessible(page, `${name} at ${width}`)

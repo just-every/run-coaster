@@ -70,6 +70,59 @@ test('Payroll refuses unauthorized handoffs and recovers a lost provider acknowl
     const before=h.outbound.length;
     await h.post(root+'/connect',{company:edge.company,token:'synthetic-coaster-120'},h.owner,400);
     assert.equal(h.outbound.length,before);
+    const connect={company:edge.company,token:'synthetic-coaster-120',consent:true};
+    const ownerIdentity=(await h.send('/auth/session',undefined,h.owner)).value;
+    const signIn=async()=>{
+      assert.equal((await h.send('/auth/magic-link',{email:ownerIdentity.operator.email})).status,202);
+      return h.confirmMail(ownerIdentity.operator.email);
+    };
+    const custody=async()=>({
+      connection:(await h.db.prepare('SELECT * FROM c_gusto_connection').all()).results,
+      history:(await h.db.prepare("SELECT * FROM c_events WHERE action='payroll-connected' ORDER BY seq").all()).results,
+    });
+    const stale=await signIn(),staleSession=(await h.send('/auth/session',undefined,stale)).value;
+    await h.db.prepare('UPDATE oa_sessions SET created_at=? WHERE id=?').bind(Date.now()-11*60000,staleSession.id).run();
+    const empty=await custody(),requests=h.outbound.length;
+    const refused=await h.post(root+'/connect',connect,stale,401);
+    assert.match(refused.error,/sign in again.*10 minutes/i);
+    assert.equal(h.outbound.length,requests,'stale connection cannot contact Gusto');
+    assert.deepEqual(await custody(),empty,'stale connection persists neither credentials nor connection history');
+    const fresh=await signIn(),freshSession=(await h.send('/auth/session',undefined,fresh)).value;
+    await h.post(root+'/connect',connect,fresh);
+    assert.equal((await h.get(root,fresh)).connection.company_uuid,edge.company);
+    await h.db.prepare('UPDATE oa_sessions SET created_at=? WHERE id=?').bind(Date.now()-11*60000,freshSession.id).run();
+    await h.post(root+'/disconnect',{},fresh);
+    assert.equal((await custody()).connection.length,0,'disconnect remains available after the sign-in becomes stale');
+    const inFlight=await signIn(),inFlightSession=(await h.send('/auth/session',undefined,inFlight)).value;
+    for(const withdraw of ['freshness','session']){
+      const snapshot=await custody();
+      edge.hold=async()=>{
+        edge.hold=null;
+        if(withdraw==='freshness')await h.db.prepare('UPDATE oa_sessions SET created_at=? WHERE id=?').bind(Date.now()-11*60000,inFlightSession.id).run();
+        else assert.equal((await h.send('/auth/session/revoke',{sessionId:inFlightSession.id},h.owner)).status,204);
+      };
+      await h.post(root+'/connect',connect,inFlight,409);
+      assert.deepEqual(await custody(),snapshot,`${withdraw} withdrawal while Gusto responds prevents all connection writes`);
+      if(withdraw==='freshness')await h.db.prepare('UPDATE oa_sessions SET created_at=? WHERE id=?').bind(Date.now(),inFlightSession.id).run();
+    }
+    const snapshot=await custody();
+    await h.db.prepare('CREATE TRIGGER synthetic_connection_expiry AFTER INSERT ON c_gusto_connection BEGIN UPDATE oa_sessions SET created_at=0; END').run();
+    try {
+      await h.post(root+'/connect',connect,h.owner,409);
+      assert.deepEqual(await custody(),snapshot,'the authority guard after the write also checks freshness and rolls back credentials and history');
+    } finally { await h.db.prepare('DROP TRIGGER synthetic_connection_expiry').run(); }
+    const deniedRoles={cardAdmin:true,auditor:true,bookkeeper:true};
+    for(const [role,index]of Object.keys(deniedRoles).map((role,index)=>[role,index])){
+      const cookie=await h.person(`synthetic-coaster-${140+index}${t.memberEmail.slice(t.memberEmail.indexOf('@'))}`,{[role]:true});
+      await h.post(root+'/connect',connect,cookie,403);
+    }
+    await h.post('settings/members',{email:ownerIdentity.operator.email,name:'Rose',employee:true});
+    const financeIdentity=(await h.send('/auth/session',undefined,t.finance)).value;
+    await h.post('delegates',{delegate:financeIdentity.operator.email,level:'full'});
+    assert.equal((await h.send('/api/coaster/'+root+'/connect',connect,t.finance,{'x-coaster-acting-for':ownerIdentity.operator.email})).status,403);
+    const key=await h.post('agent-keys',{label:'Synthetic connection refusal'},t.finance);
+    assert.equal((await h.send('/api/coaster/'+root+'/connect',connect,'',{authorization:`Bearer ${key.token}`})).status,401);
+    assert.deepEqual(await custody(),snapshot,'denied roles, delegates and keys cannot persist connection custody or history');
     await connectFixture(h,edge,t.memberEmail);
     let batch=await h.post(`batches/${t.batch.id}/release`,{version:t.batch.version});
     const path=`batches/${batch.id}/payroll`,body={version:batch.version,payroll:edge.payrollId,consent:true};

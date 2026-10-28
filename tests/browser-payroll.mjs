@@ -41,6 +41,31 @@ async function journey(width) {
       assert.equal(reply.status(), 200, `${path}: ${await reply.text()}`);
       return reply.json();
     };
+    const signInAgain = async email => {
+      const requested = await h.send('/auth/magic-link', { email, returnTo: '/app' }, '', { 'CF-Connecting-IP': '192.0.2.120' });
+      assert.equal(requested.status, 202, 'ordinary native sign-in accepts the request');
+      const message = h.messages.findLast(message => message.to.includes(email));
+      assert.ok(message, 'the fixture mail edge receives the actual sign-in link');
+      const link = message.text.match(/http:\/\/[^\s]+\/auth\/confirm\?token=[^\s]+/)?.[0];
+      assert.ok(link, 'the sign-in message contains a confirmation link');
+      const confirmation = await context.newPage();
+      try {
+        await confirmation.setExtraHTTPHeaders({ 'CF-Connecting-IP': '192.0.2.120' });
+        await confirmation.goto(link);
+        const confirmed = confirmation.waitForResponse(reply => new URL(reply.url()).pathname === '/auth/confirm' && reply.request().method() === 'POST');
+        await confirmation.getByRole('button', { name: 'Confirm', exact: true }).click();
+        assert.equal((await confirmed).status(), 303, 'the real confirmation creates a new native session');
+        await confirmation.waitForURL(h.origin + '/app');
+      } finally { await confirmation.close(); }
+      const cookie = (await context.cookies(h.origin)).find(cookie => cookie.name === h.owner.slice(0, h.owner.indexOf('=')));
+      assert.ok(cookie, 'native confirmation installs the session cookie');
+      const header = cookie.name + '=' + cookie.value;
+      const signedIn = await h.send('/auth/session', undefined, header);
+      assert.equal(signedIn.status, 200);
+      assert.equal(signedIn.value.kind, 'native');
+      assert.equal(signedIn.value.operator.email, email);
+      return { cookie: header, session: signedIn.value };
+    };
     await page.goto(h.origin + '/app#/settings');
     const settings = page.locator('section[aria-label="Gusto sandbox payroll"]');
     await expect(settings.getByRole('button', { name: 'Connect Gusto sandbox', exact: true })).toBeVisible();
@@ -48,8 +73,30 @@ async function journey(width) {
     await settings.getByLabel('Sandbox access token', { exact: true }).fill('synthetic-coaster-120');
     await settings.getByRole('checkbox', { name: /I authorize reading/ }).check();
     const connectionPath = ['payroll', 'gusto'].join('/');
+    const originalSession = await h.send('/auth/session', undefined, h.owner);
+    assert.equal(originalSession.status, 200);
+    assert.equal(originalSession.value.kind, 'native');
+    await h.db.prepare('UPDATE oa_sessions SET created_at=? WHERE id=?').bind(Date.now() - 11 * 60000, originalSession.value.id).run();
+    assert.equal((await h.send('/auth/session', undefined, h.owner)).status, 200, 'the stale native session remains valid');
+    const providerRequests = h.outbound.filter(request => new URL(request.url).hostname === 'api.gusto-demo.com').length;
+    const refused = page.waitForResponse(reply => reply.url() === h.origin + '/api/coaster/' + connectionPath + '/connect' && reply.request().method() === 'POST');
+    await settings.getByRole('button', { name: 'Connect Gusto sandbox', exact: true }).click();
+    const rejection = await refused;
+    assert.equal(rejection.status(), 401);
+    const refusal = (await rejection.json()).error;
+    assert.match(refusal, /sign in again.*10 minutes/i);
+    await expect(settings.getByRole('alert')).toHaveText(refusal);
+    assert.equal((await h.get(connectionPath)).connection, null, 'stale consent creates no payroll connection');
+    assert.equal(h.outbound.filter(request => new URL(request.url).hostname === 'api.gusto-demo.com').length, providerRequests, 'stale consent makes no provider request');
+    await expect(settings.getByLabel('Sandbox company UUID', { exact: true })).toHaveValue(edge.company);
+    await expect(settings.getByRole('checkbox', { name: /I authorize reading/ })).toBeChecked();
+    await capture('stale-sign-in', settings);
+    const fresh = await signInAgain(originalSession.value.operator.email);
+    assert.notEqual(fresh.session.id, originalSession.value.id, 'retry uses a newly confirmed session');
     await submit(settings, 'Connect Gusto sandbox', connectionPath + '/connect');
     await expect(settings.getByLabel('Coaster person', { exact: true })).toBeVisible();
+    assert.equal((await h.get(connectionPath)).connection.company_uuid, edge.company);
+    await capture('fresh-sign-in-connected', settings);
     await settings.getByLabel('Coaster person', { exact: true }).selectOption(t.memberEmail);
     await settings.getByLabel('Gusto employee', { exact: true }).selectOption(edge.employee);
     await submit(settings, 'Map payroll employee', connectionPath + '/employees');
@@ -57,7 +104,7 @@ async function journey(width) {
     assert.deepEqual((await h.get(connectionPath)).mappings.map(mapping => [mapping.email, mapping.employee_uuid]), [[t.memberEmail, edge.employee]]);
     await capture('connected', settings);
 
-    const batch = await h.post(`batches/${t.batch.id}/release`, { version: t.batch.version });
+    const batch = await h.post(`batches/${t.batch.id}/release`, { version: t.batch.version }, fresh.cookie);
     await page.goto(h.origin + '/app#/batches/' + batch.id);
     const panel = page.locator('.batch-detail'), payroll = panel.locator('section[aria-label="Gusto sandbox payroll"]');
     await expect(payroll.getByRole('button', { name: 'Send to Gusto sandbox', exact: true })).toBeVisible();
