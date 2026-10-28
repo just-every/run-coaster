@@ -171,7 +171,8 @@ async function original(h,cookie,name='private-card.png',headers={},bytes) {
   assert.equal(r.status,200);return (await r.json()).receipt
 }
 async function choose(h,t,r,over={}) {return h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:r.lifecycleSequence,enabled:true,merchant:'Different typed private merchant',date:'2026-10-02',total:'48.20',currency:'AUD',notice:NOTICE,...over},t.sam)}
-const tick = async h => (await h.mf.getWorker()).scheduled({scheduledTime:Date.now(),cron:'17 * * * *'})
+// Match-only ticks use a fixed Sydney quiet hour so unrelated overdue-card reminders cannot add mail.
+const tick = async h => (await h.mf.getWorker()).scheduled({scheduledTime:Date.parse('2026-10-22T12:17:00Z'),cron:'17 * * * *'})
 async function statement(h,t,rows,{last4='1111',employee=SAM,name='matching.csv'}={}) {
   await h.post('statements/cards',{issuer:ISSUER,last4,employee})
   const base={format:'csv',name,issuer:ISSUER,category:t.c.office,content:'Posted,Transaction,Merchant,Amount,Id,Status\n'+rows.map((r,i)=>`${r.date??'2026-10-03'},${r.transaction??'2026-10-02'},${r.merchant??'Harbour View Bistro'},${r.amount??'48.20'},${r.id??name+'-'+i},${r.status??'posted'}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Posted',transactionDate:'Transaction',description:'Merchant',amount:'Amount',transactionId:'Id',status:'Status',wholeFileLast4:last4}}
