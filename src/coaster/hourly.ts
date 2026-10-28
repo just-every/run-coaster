@@ -1,3 +1,4 @@
+import { deliverNotifications } from './notifications/dispatch';
 import { runProgramFeeds } from './feeds';
 import { deliverWebhooks } from './public-api/webhooks';
 import { runQboDaily } from './accounting/qbo';
@@ -31,4 +32,5 @@ export async function runHourly(original: Bindings, at: Date) {
   await runPaySchedule(env.DB, at);
   await deliverWebhooks(env, at);
   await runQboDaily(env, at);
+  await deliverNotifications(env, at);
 }

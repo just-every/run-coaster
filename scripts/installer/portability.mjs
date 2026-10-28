@@ -6,6 +6,7 @@ import { validateProgramFeedArchive } from './program-feed-archive.mjs';
 import { validateReceiptReadingArchive } from './receipt-reading-archive.mjs';
 import { validatePayrollArchive } from './payroll-archive.mjs';
 import { validateBankArchive } from './bank-archive.mjs';
+import { validateNotificationArchive } from './notification-archive.mjs';
 import { validateCodingArchive } from './coding-archive.mjs';
 import { validateStatementArchive } from './statement-archive.mjs';
 
@@ -101,6 +102,7 @@ export async function validateCoasterArchive(read, manifest) {
   await validateProgramFeedArchive(read);
   await validatePayrollArchive(read);
   await validateBankArchive(read);
+  await validateNotificationArchive(read);
   return true;
 }
 

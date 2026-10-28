@@ -38,6 +38,7 @@ export const groups = {
     {"evidence": "policy-signals-scale", "commands": [["tests/policy-signals-scale.mjs"]]},
   ],
   'policy-review': [
+    { evidence: 'notifications', commands: [['tests/browser-notifications.mjs'], ['tests/notifications-archive.mjs']] },
     { evidence: 'bulk-approvals', commands: [['tests/browser-bulk-approvals.mjs']] },
     { evidence: 'card-chases', commands: [['tests/browser-card-chases.mjs']] },
     { evidence: 'bank-archive', commands: [['tests/bank-archive.mjs']] },

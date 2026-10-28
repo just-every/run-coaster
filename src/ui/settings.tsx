@@ -1,3 +1,4 @@
+import { NotificationPreferences } from './notification-preferences';
 import { Desktop } from './desktop';
 import { ProviderCosts } from './provider-costs';
 import { CaptureWindow } from './capture-window';
@@ -69,6 +70,7 @@ export function Settings({ state, reload }: ViewProps) {
       </Form></div>
     </Section>}
     </div>
+    {b && !state.actor.delegate && <NotificationPreferences />}
     {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
     {b && (roles.employee || roles.finance || owner) && <Allowances state={state} reload={reload} onNotice={setNotice} />}
     {(owner || roles.finance) && b && <CaptureWindow />}

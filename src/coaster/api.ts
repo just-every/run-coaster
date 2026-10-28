@@ -1,3 +1,5 @@
+import { notificationPreferences, saveNotificationPreferences } from './notifications/preferences';
+import { deliverNotifications } from './notifications/dispatch';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
@@ -106,9 +108,13 @@ async function body(c: C, limit = 3_000_000): Promise<Data> {
 const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => {
   const signedIn = await person(c.req.raw, c.env), actingFor = (c.req.header('x-coaster-acting-for') || c.req.query('actingFor') || '').toLowerCase();
   const result = await handler(actingFor && actingFor !== signedIn.email ? await actingAs(db(c), signedIn, actingFor) : signedIn, c);
+  if (c.req.method === 'POST') await deliverNotifications(runtimeBindings(c.env), new Date(), true);
   return result instanceof Response ? result : c.json(result);
 };
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
+
+api.get('/api/coaster/settings/notifications', as(async(a,c)=>notificationPreferences(db(c),a)));
+api.post('/api/coaster/settings/notifications', as(async(a,c)=>saveNotificationPreferences(db(c),a,await body(c))));
 
 api.post('/api/coaster/accounting/desktop/soap', c => desktopSoap(runtimeBindings(c.env),c.req.raw));
 api.get('/api/coaster/accounting/desktop', as(async(a,c)=>desktopStatus(db(c),a)));

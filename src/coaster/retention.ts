@@ -114,6 +114,7 @@ export async function confirmExpiry(db: D1Database, actor: Actor, id: string) {
       db.prepare(`UPDATE c_advances SET kept_applied_minor=(SELECT CASE WHEN c.status='reimbursed' THEN MIN(c_advances.amount_minor-c_advances.returned_minor,c.total_minor) ELSE 0 END FROM c_claims c WHERE c.id=c_advances.claim_id) WHERE claim_id ${inClaims}`).bind(list),
       db.prepare(`DELETE FROM c_auto_coding_feedback WHERE suggestion_id IN (SELECT s.id FROM c_auto_coding_suggestions s JOIN c_items i ON i.id=s.target_id WHERE s.target_kind='item' AND i.claim_id ${inClaims})`).bind(list),
       ...['c_auto_coding_suggestions','c_auto_coding_observations','c_auto_coding_contexts'].map(table=>db.prepare(`DELETE FROM ${table} WHERE target_kind='item' AND target_id IN (SELECT id FROM c_items WHERE claim_id ${inClaims})`).bind(list)),
+      db.prepare(`UPDATE c_notification_events SET cancelled_at=? WHERE claim_id ${inClaims} AND delivery_id IS NULL AND cancelled_at IS NULL`).bind(at,list),
       db.prepare(`DELETE FROM c_escalations WHERE key IN (SELECT key FROM c_reminder_items WHERE claim_id ${inClaims})`).bind(list),
       db.prepare(`DELETE FROM c_reminders WHERE key IN (SELECT key FROM c_reminder_items WHERE claim_id ${inClaims})`).bind(list),
       db.prepare(`DELETE FROM c_workflow_tasks WHERE kind='claim' AND record_id ${inClaims}`).bind(list),

@@ -1,3 +1,4 @@
+import { queueReminder } from './notifications/queue';
 import { cardEvidenceChases } from './card-evidence-chases';
 import { receiptQuestions } from './receipts/questions';
 import { authority, commit } from './session';
@@ -71,11 +72,15 @@ export async function runReminders(env: Bindings, at: Date) {
   const items = await openItems(db, settings);
   if (items.length) await db.batch(items.map(i => db.prepare('INSERT INTO c_reminder_items(key,person,claim_id,first_seen_at) VALUES(?,?,?,?) ON CONFLICT DO NOTHING').bind(i.key, i.person, i.claim, at.toISOString())));
   const today = localDate(at.toISOString(), settings.timezone);
-  if (!isBusinessDay(today) || quiet(localHour(at, settings.timezone), settings.quiet_from, settings.quiet_until)) return;
+  const businessOpen = isBusinessDay(today) && !quiet(localHour(at, settings.timezone), settings.quiet_from, settings.quiet_until);
   const seen = new Map((await db.prepare('SELECT r.key,r.first_seen_at,(SELECT MAX(step) FROM c_reminders s WHERE s.key=r.key) AS sent FROM c_reminder_items r').all<Data>()).results.map(r => [r.key, r]));
   const mail = operatorMail(env);
   for (const item of items) {
-    const record = seen.get(item.key)!, age = businessDaysBetween(item.postedOn ?? localDate(record.first_seen_at, settings.timezone), today);
+    const preference = await db.prepare('SELECT timezone FROM c_notification_preferences WHERE recipient=?').bind(item.person).first<{timezone:string}>();
+    if (!preference && !businessOpen) continue;
+    const zone = preference?.timezone ?? settings.timezone, personalDay = localDate(at.toISOString(),zone);
+    if (!isBusinessDay(personalDay)) continue;
+    const record = seen.get(item.key)!, age = businessDaysBetween(item.postedOn ?? localDate(record.first_seen_at, zone), personalDay);
     const due = settings.reminder_days.filter(d => d <= age).length;
     // An overdue imported charge still owes every configured step, each with its own durable delivery identity.
     if (item.postedOn) {
@@ -83,7 +88,10 @@ export async function runReminders(env: Bindings, at: Date) {
     } else {
       await remind(env, mail, item, age, due, record.sent ?? 0, at);
     }
-    await escalate(env, settings, mail, item, age, at);
+    if (businessOpen) {
+      const businessAge = businessDaysBetween(item.postedOn ?? localDate(record.first_seen_at,settings.timezone),today);
+      await escalate(env, settings, mail, item, businessAge, at);
+    }
   }
 }
 
@@ -95,6 +103,8 @@ async function remind(env: Bindings, mail: ReturnType<typeof operatorMail>, item
   if (!claimed) return;
   const link = `${env.AUTH_ORIGIN}/app#/claims/${item.claim}`;
   const words = `${item.action} “${item.title}”: it has waited ${age} business ${age === 1 ? 'day' : 'days'}. Open it in Coaster: ${link}`;
-  const sent = mail ? await mail.send({ deliveryId: `reminder-${item.key}-${step}`, from: env.MAIL_FROM ?? '', to: [item.person], subject: `Reminder: ${item.action}`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
-  await ruleEvent(db, 'reminder', 'reminder-sent', { claim: item.claim }, { item: item.key.startsWith('receipt-question:')?'private-employee-task':item.key, step, to: item.person, businessDays: age, ...(item.postedOn ? { postedOn: item.postedOn, channel: 'email' } : {}), mail: sent?.status ?? 'mail not set up' }).run();
+  const personal = await db.prepare('SELECT 1 FROM c_notification_preferences WHERE recipient=?').bind(item.person).first();
+  if (personal) await queueReminder(db,item.person,item.claim,item.key,step,at).run();
+  const sent = mail && !personal ? await mail.send({ deliveryId: `reminder-${item.key}-${step}`, from: env.MAIL_FROM ?? '', to: [item.person], subject: `Reminder: ${item.action}`, text: words, html: `<p>${words.replace(link, '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}<a href="${link}">${link}</a></p>`, headers: {} }) : null;
+  await ruleEvent(db, 'reminder', 'reminder-sent', { claim: item.claim }, { item: item.key.startsWith('receipt-question:')?'private-employee-task':item.key, step, to: item.person, businessDays: age, ...(item.postedOn ? { postedOn: item.postedOn, channel: 'email' } : {}), mail: personal ? 'queued by personal preference' : sent?.status ?? 'mail not set up' }).run();
 }
