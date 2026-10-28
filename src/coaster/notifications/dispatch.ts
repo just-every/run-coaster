@@ -34,7 +34,7 @@ export async function deliverNotifications(env: Bindings, at: Date, immediateOnl
   for (const row of pending) {
     if (row.created_at > at.toISOString()) continue;
     // Restores carry domain people but no native accounts. Wait for fresh sign-in without changing the pending identity.
-    const awaitingSignIn = await db.prepare("SELECT 1 FROM c_members m WHERE m.email=? AND m.active=1 AND NOT EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=m.email)").bind(row.recipient).first();
+    const awaitingSignIn = await db.prepare("SELECT 1 FROM c_members m WHERE m.email=? AND m.active=1 AND NOT EXISTS(SELECT 1 FROM oa_operators o WHERE lower(o.email)=m.email AND o.status IN ('active','inactive'))").bind(row.recipient).first();
     if (awaitingSignIn) continue;
     if (!await authorized(db,row,tasks)) {
       await db.prepare('UPDATE c_notification_events SET cancelled_at=? WHERE id=? AND delivery_id IS NULL').bind(at.toISOString(),row.id).run();
