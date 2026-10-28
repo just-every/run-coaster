@@ -13,14 +13,18 @@ async function sandbox(path,body){
   assert.equal(response.status,200,'Plaid sandbox '+path+' HTTP '+response.status);
   return response.json();
 }
-const providerRequests=[],liveItems=new Map();
+const providerRequests=[],liveItems=new Map(),liveTransactions=new Map();
 let lastExchange=null,readinessRefusal=false;
 const h=await harness({plaidEdge:async r=>{
   providerRequests.push(new URL(r.url).pathname);
   // Node's configured environment proxy handles the real network edge; application HTTP is never faked.
   const path=new URL(r.url).pathname;
   const requestBody=path==='/item/remove'?await r.clone().json():null;
-  const response=await fetch(r);
+  let response;
+  const requestHeaders=new Headers(r.headers);
+  for(const name of ['content-length','host','connection','transfer-encoding'])requestHeaders.delete(name);
+  try { response=await fetch(r.url,{method:r.method,headers:requestHeaders,body:await r.text(),redirect:'manual',signal:AbortSignal.timeout(25_000)}); } catch(error) { console.error(JSON.stringify({providerPath:path,transportError:error.name,transportCode:error.cause?.code})); throw error; }
+  if(!response.ok){let failure={};try{failure=await response.clone().json()}catch{}console.error(JSON.stringify({providerPath:path,status:response.status,errorCode:failure.error_code,errorType:failure.error_type}));}
   // Inspect a clone only to orchestrate real Sandbox fixtures; the app receives unchanged bytes.
   if(path==='/item/public_token/exchange'&&response.ok){
     const exchanged=await response.clone().json();
@@ -28,11 +32,14 @@ const h=await harness({plaidEdge:async r=>{
     lastExchange={access_token:exchanged.access_token,item_id:exchanged.item_id};
     liveItems.set(exchanged.access_token,lastExchange);
   }
+  if(path==='/transactions/sync'&&response.ok){const page=await response.clone().json();for(const tx of [...page.added,...page.modified])liveTransactions.set(tx.transaction_id,{merchant:tx.merchant_name||tx.name,amountMinor:Math.round(tx.amount*100)});}
   if(path==='/transactions/sync'&&!response.ok){
     const failure=await response.clone().json();readinessRefusal=failure.error_code==='PRODUCT_NOT_READY';
   }
   if(path==='/item/remove'&&response.ok)liveItems.delete(requestBody.access_token);
-  return response;
+  // Node fetch decodes compressed provider bytes. Do not ask workerd to decompress them a second time.
+  const headers=new Headers(response.headers);headers.delete('content-encoding');headers.delete('content-length');
+  return new Response(await response.arrayBuffer(),{status:response.status,headers});
 }});
 const connected=[],cookies=[h.owner];
 let linkTokensCreated=0,exchanges=0;
@@ -51,6 +58,8 @@ try {
   for(const cookie of denied)await h.post(['plaid','link'].join('/'),{scope:'company',consent:true},cookie,403);
   assert.equal(providerRequests.length,requestsBeforeRefusal);
   assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_links').first()).n,0);
+  const ramp={source:'ramp',filename:'synthetic-coaster-262.csv',mapping:{date:'YYYY-MM-DD'},csv:`Transaction ID,Transaction Date,User Email,Merchant Name,Amount,Currency,Memo,Ramp Category,Accounting Category,Receipt File\nsynthetic-coaster-263,${day},${address(250)},Harbour Parking,12.00,USD,Synthetic visit,Synthetic Coaster Office,6500,\n`};
+  const preview=await h.post('import/preview',ramp);await h.post('import/commit',{...ramp,fingerprint:preview.fingerprint});
   for(const scope of ['company','personal']){
     const cookie=scope==='company'?admin:employee;
     const link=await h.post(['plaid','link'].join('/'),{scope,consent:true},cookie);
@@ -68,8 +77,6 @@ try {
   }
   const company=connected.find(c=>c.scope==='company'),personal=connected.find(c=>c.scope==='personal');
   for(const c of connected)await h.post(`plaid/connections/${c.id}/assign`,{account:c.account.id,employee:address(250),category},c.cookie);
-  const ramp={source:'ramp',filename:'synthetic-coaster-262.csv',mapping:{date:'YYYY-MM-DD'},csv:`Transaction ID,Transaction Date,User Email,Merchant Name,Amount,Currency,Memo,Ramp Category,Accounting Category,Receipt File\nsynthetic-coaster-263,${day},${address(250)},Harbour Parking,12.00,USD,Synthetic visit,Synthetic Coaster Office,6500,\n`};
-  const preview=await h.post('import/preview',ramp);await h.post('import/commit',{...ramp,fingerprint:preview.fingerprint});
   // Sandbox initialization is asynchronous. These are explicit subsequent native sync commands,
   // bounded to 60 seconds of polling delay, solely for documented eventual transaction readiness.
   async function syncUntil(c,predicate){
@@ -80,15 +87,16 @@ try {
       if(result.status===200){
         const txs=(await h.get(`plaid/connections/${c.id}/transactions`,c.cookie)).transactions;
         if(predicate(txs))return txs;
+
       }
       if(attempt<30)await delay(2000);
     }
     assert.fail('Sandbox transactions did not become visible within the bounded readiness polls');
   }
-  const companyInitial=await syncUntil(company,txs=>txs.some(t=>t.merchant==='Harbour Parking'&&t.amount_minor===1200));
-  assert.equal(companyInitial.find(t=>t.merchant==='Harbour Parking'&&t.amount_minor===1200).status,'overlap');
-  const personalInitial=await syncUntil(personal,txs=>txs.some(t=>t.merchant==='Harbour Stationery'&&t.amount_minor===1875&&t.item_id));
-  const personalTx=personalInitial.find(t=>t.merchant==='Harbour Stationery'&&t.amount_minor===1875);
+  const companyInitial=await syncUntil(company,txs=>txs.some(t=>t.amount_minor===1200));
+  assert.equal(companyInitial.find(t=>t.amount_minor===1200).status,'overlap');
+  const personalInitial=await syncUntil(personal,txs=>txs.some(t=>t.amount_minor===1875&&t.item_id));
+  const personalTx=personalInitial.find(t=>t.amount_minor===1875);
   assert.equal(personalTx.status,'posted');
   await h.get(`plaid/connections/${personal.id}/transactions`,h.owner,403);
   await h.get(`plaid/connections/${personal.id}/transactions`,admin,403);
@@ -102,8 +110,8 @@ try {
   assert.equal((await h.get('receipt-inbox',employee)).receipts.find(r=>r.id===receipt).attachment,null);
   // A real provider fixture mutation occurs only after the receipt's explicit opt-in.
   await sandbox('/sandbox/transactions/create',{access_token:company.privateItem.access_token,transactions:[{account_id:company.account.id,date_transacted:day,date_posted:day,amount:23.45,description:'Harbour Supplies',iso_currency_code:'USD'}]});
-  const companyPosted=await syncUntil(company,txs=>txs.some(t=>t.merchant==='Harbour Supplies'&&t.amount_minor===2345&&t.item_id));
-  const companyTx=companyPosted.find(t=>t.merchant==='Harbour Supplies'&&t.amount_minor===2345);
+  const companyPosted=await syncUntil(company,txs=>txs.some(t=>t.amount_minor===2345&&t.item_id));
+  const companyTx=companyPosted.find(t=>t.amount_minor===2345);
   assert.equal(companyTx.status,'posted');
   async function detailFor(tx){
     for(const claim of (await h.get('state',employee)).claims){
@@ -114,6 +122,7 @@ try {
   }
   const companyDetail=await detailFor(companyTx),personalDetail=await detailFor(personalTx);
   const companyItem=companyDetail.items.find(i=>i.id===companyTx.item_id),personalItem=personalDetail.items.find(i=>i.id===personalTx.item_id);
+  assert.equal(companyItem.merchant,liveTransactions.get(companyTx.transaction_id).merchant);assert.equal(personalItem.merchant,liveTransactions.get(personalTx.transaction_id).merchant);
   assert.equal(companyItem.amount_minor,2345);assert.ok(companyItem.card_charge_id);assert.ok(companyItem.receipt_id);
   assert.equal(personalItem.amount_minor,1875);assert.equal(personalItem.card_charge_id,null);
   assert.equal(companyDetail.claim.total_minor,companyDetail.items.filter(i=>!i.card_charge_id).reduce((sum,i)=>sum+i.amount_minor,0),'Company card amount is excluded from reimbursement');

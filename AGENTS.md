@@ -125,3 +125,10 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+## Scoped contract projections
+
+Lander-Regenerate: `node scripts/coaster-contract-docs.mjs write` followed by
+`node scripts/coaster-contract-docs.mjs check`. For a clause's first projection,
+append its ID to both commands. These projections preserve the existing guide
+and every unrelated acceptance entry until ct's separate standard conversion.

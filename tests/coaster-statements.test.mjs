@@ -11,6 +11,7 @@ const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example', ISSU
 const FULL = ['4111111111111111', '4111 1111 1111 1111', '5500 0000 0000 0004', '5500000000000004']
 const fixture = name => readFile(`tests/fixtures/statements/${name}`, 'utf8')
 const sum = (csv, column) => { const [head, ...rows] = csv.trim().split('\r\n').map(r => r.split('","').map(x => x.replace(/^"|"$/g, ''))); const i = head.indexOf(column); return Math.round(rows.reduce((n, r) => n + Number(r[i]) * 100, 0)) }
+const MATCH_CLOCK = Date.now();
 async function withAgency(run) { const h = await harness(); try { await run(h, await agency(h)) } finally { await h.close() } }
 const ofx = async (extra = {}) => ({ format: 'ofx', name: 'october.ofx', issuer: ISSUER, content: await fixture('synthetic-card.ofx'), ...extra })
 const edit = (h, cookie, claim, item, over = {}) => h.post(`claims/${claim.id}/items`, { version: claim.version, item: item.id, kind: 'receipt', date: item.spent_on, merchant: item.merchant, amount: (item.amount_minor / 100).toFixed(2), category: item.allocations[0].category_id, ...over }, cookie)
@@ -171,10 +172,10 @@ async function original(h,cookie,name='private-card.png',headers={},bytes) {
   assert.equal(r.status,200);return (await r.json()).receipt
 }
 async function choose(h,t,r,over={}) {return h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:r.lifecycleSequence,enabled:true,merchant:'Different typed private merchant',date:'2026-10-02',total:'48.20',currency:'AUD',notice:NOTICE,...over},t.sam)}
-const tick = async h => (await h.mf.getWorker()).scheduled({scheduledTime:Date.now(),cron:'17 * * * *'})
+const tick = async h => (await h.mf.getWorker()).scheduled({scheduledTime:MATCH_CLOCK,cron:'17 * * * *'})
 async function statement(h,t,rows,{last4='1111',employee=SAM,name='matching.csv'}={}) {
   await h.post('statements/cards',{issuer:ISSUER,last4,employee})
-  const base={format:'csv',name,issuer:ISSUER,category:t.c.office,content:'Posted,Transaction,Merchant,Amount,Id,Status\n'+rows.map((r,i)=>`${r.date??'2026-10-03'},${r.transaction??'2026-10-02'},${r.merchant??'Harbour View Bistro'},${r.amount??'48.20'},${r.id??name+'-'+i},${r.status??'posted'}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Posted',transactionDate:'Transaction',description:'Merchant',amount:'Amount',transactionId:'Id',status:'Status',wholeFileLast4:last4}}
+  const base={format:'csv',name,issuer:ISSUER,category:t.c.office,content:'Posted,Transaction,Merchant,Amount,Id,Status\n'+rows.map((r,i)=>`${r.date??new Date(MATCH_CLOCK).toISOString().slice(0,10)},${r.transaction??'2026-10-02'},${r.merchant??'Harbour View Bistro'},${r.amount??'48.20'},${r.id??name+'-'+i},${r.status??'posted'}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Posted',transactionDate:'Transaction',description:'Merchant',amount:'Amount',transactionId:'Id',status:'Status',wholeFileLast4:last4}}
   const preview=await h.post('statements/preview',base,t.morgan)
   assert.deepEqual(preview.errors,[])
   return preview.importable ? h.post('statements/commit',{...base,fingerprint:preview.fingerprint},t.morgan) : preview

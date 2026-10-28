@@ -83,7 +83,7 @@ function Transactions({ connection, revision }: { connection: D; revision: numbe
   </details>;
 }
 
-function Connection({ connection, state, cards, changed }: { connection: D; state: D; cards: D[]; changed: () => Promise<void> }) {
+function Connection({ connection, state, cards, changed }: { connection: D; state: D; cards: D[]; changed: (notice?: string) => Promise<void> }) {
   const [notice, setNotice] = useState(''), [revision, setRevision] = useState(0);
   const path = `plaid/connections/${connection.id}`;
   const employees = state.members.filter((member: D) => member.active && member.is_employee && (connection.scope === 'company' || member.email === state.actor.email));
@@ -115,7 +115,7 @@ function Connection({ connection, state, cards, changed }: { connection: D; stat
     <Transactions connection={connection} revision={revision} />
     <Details label="Disconnect this feed"><Form label="Disconnect Plaid feed" onSubmit={async values => {
       if (!values.consent) throw new Error('Confirm disconnect first.');
-      await call(path + '/disconnect', {}); await changed();
+      await call(path + '/disconnect', {}); await changed('Plaid feed disconnected.');
     }}><Field label="I confirm this feed must stop future imports" name="consent" type="checkbox" /></Form></Details>
   </div>;
 }
@@ -139,7 +139,7 @@ export function PlaidFeeds({ state }: { state: D }) {
     {costs && <Costs costs={costs} />}
     {settings && <Credentials data={settings} changed={async () => { await load(); setNotice('Plaid sandbox settings updated.'); }} />}
     {data && <>
-      {data.connections.length ? data.connections.map((connection: D) => <Connection key={connection.id} connection={connection} state={state} cards={data.cards} changed={load} />) : <Empty title="No Plaid feeds connected" />}
+      {data.connections.length ? data.connections.map((connection: D) => <Connection key={connection.id} connection={connection} state={state} cards={data.cards} changed={async notice=>{await load();if(notice)setNotice(notice);}} />) : <Empty title="No Plaid feeds connected" />}
       {!costs?.configured ? <p>Ask the owner to configure Plaid sandbox credentials and USD estimates.</p> : capped ? <p className="notice">The monthly estimate cap pauses new connections. You can still enter manual claims.</p> : <Details label="Connect a transaction feed"><Form label="Open Plaid Link" onSubmit={async (values, form) => {
         if (!values.consent) throw new Error('Authorize sharing accounts and the estimated costs first.');
         setNotice('');

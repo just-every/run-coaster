@@ -1,3 +1,4 @@
+import { noPersonalFeedDuplicates } from './plaid/duplicates';
 import { requirePlaidClear, requirePlaidBatchClear, plaidBatchClear } from './plaid/holds';
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { finalApproval } from './approval-chain';
@@ -25,7 +26,7 @@ const batchState = (id: string, version: number, status: string): Sql => ({ sql:
 /** Keys every expense of these claims reimburses under; refuses any key already taken. */
 async function reimbursementKeys(db: D1Database, claims: Claim[]) {
   const keys: { key: string; claim: Claim; item: string }[] = [];
-  for (const claim of claims) await requirePlaidClear(db,claim.id);
+  for (const claim of claims) { await requirePlaidClear(db,claim.id); await noPersonalFeedDuplicates(db,claim.employee_email,await claimItems(db,claim.id)); }
   for (const claim of claims) for (const item of await claimItems(db, claim.id)) {
     // The company paid a card expense: it never reimburses, so it has no reimbursement key (FEED-004).
     if (isCardExpense(item)) continue;

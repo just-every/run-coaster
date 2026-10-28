@@ -9,3 +9,6 @@ test('Plaid cursor sync creates posted company expenses once, excludes imported 
 test('Personal Plaid purchases reimburse once and retain financial evidence after same-transaction erasure of connection custody', personalTransactionJourney);
 import { monthlyPlaidJourney } from './plaid-sync.mjs';
 test('Connected Plaid account months accrue once, owner caps preserve manual claims and disconnection fences in-flight sync', monthlyPlaidJourney);
+
+import { personalCreditJourney } from './plaid-sync.mjs';
+test('A later personal-card credit pauses payment of the original purchase without rewriting financial evidence or stopping manual claims', personalCreditJourney);

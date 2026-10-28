@@ -495,7 +495,7 @@ provider exchange and checks the owner cap, including concurrent requests.
 Verified account counts settle the full estimate. Unknown outcomes keep their
 reservation; an overrun is fully recorded and pauses subsequent activation.
 This caps native estimates and provides no guarantee about provider invoices. Disconnect never erases that cost. These are estimates, not Plaid
-invoices, and recurring monthly metering is not yet implemented.
+invoices. The hourly schedule records each connected account month once; the same monthly cap guards optional sync.
 
 `GET /api/coaster/plaid/connections` lists company records to the connection
 roles and personal records only to their employee. Explicit
@@ -506,11 +506,12 @@ custody atomically while retaining financial records and cost estimates without 
 makes no claim that the remote provider removed its item. All execution custody
 is excluded from installation archives; numbered native history remains.
 
-This foundation implements no transaction sync, expense creation, bank-detail
-editing, reimbursement or notification. Transaction lifecycle handling, native
-Link screens, account assignment, receipt matching, recurring metering, provider
-erasure follow-up and full restored-history proof remain FEED-001 work. The
-complete target remains binding. Production Plaid hosts are not accepted.
+Native Settings opens Plaid Link, shows estimated costs, assigns verified accounts and invokes explicit sync.
+`POST /api/coaster/plaid/connections/:id/assign` takes `account`, `employee`, `category` and optionally an existing company `card` whose last four and employee must match. Assignment stays fixed while connected. Personal accounts can only name their own employee.
+`POST /api/coaster/plaid/connections/:id/sync` gathers an incremental cursor update before atomically writing minimized facts, expenses and the next cursor. Pending facts create no expense. Company purchases use immutable card expenses and opted-in receipt matching; personal purchases are reimbursable ordinary expenses. Exact history overlap is excluded, including a bank descriptor that Plaid enriches into a different merchant label. Later statement imports link the existing company charge for reconciliation without another expense.
+`GET /api/coaster/plaid/connections/:id/transactions` reads the same connection scope and returns its minimized financial facts and pending, posted, removed, credit, overlap or review status.
+
+Posted changes retain the original expense and place a reconciliation hold on submission and payment. Personal credits likewise pause payment of linked feed expenses. No automatic source correction changes a submitted revision or moves money. A resolution door, complete provider lifecycle qualification and updates above the current 150-change bound remain open FEED-001 work. Source facts, changes, costs and numbered history travel in archives; restored financial data carries no execution credentials. Production hosts are not accepted. The original complete target remains binding.
 
 The bounded native assertions in `tests/plaid-native.mjs` are registered by
 `tests/coaster-plaid.test.mjs` in the mandatory push Verify HTTP flow suite.

@@ -31,15 +31,15 @@ export async function uploadWaiting(h,employee,tx) {
 export async function companyTransactionJourney() {
   const t=await plaidSetup(),{h,edge}=t;
   try {
+    const ramp={source:'ramp',filename:'synthetic-coaster-ramp.csv',mapping:{date:'YYYY-MM-DD'},csv:`Transaction ID,Transaction Date,User Email,Merchant Name,Amount,Currency,Memo,Ramp Category,Accounting Category,Receipt File\nsynthetic-coaster-356,2026-10-15,${t.email},Harbour Parking,12.00,USD,Synthetic visit,Office,6500,\n`};
+    const preview=await h.post('import/preview',ramp);await h.post('import/commit',{...ramp,fingerprint:preview.fingerprint});
     const connection=await t.connect(),base=`plaid/connections/${connection.id}`;
     await h.post(base+'/assign',{account:connection.accounts[0].id,employee:t.email,category:t.category});
     await h.post(base+'/assign',{account:'synthetic-coaster-unverified',employee:t.email,category:t.category},h.owner,409);
     const rule=await h.get('settings/card-matching');await h.post('settings/card-matching',{version:rule.version,enabled:true,windowDays:7,tipPercent:0,fxPercent:0});
     const pending=plaidTransaction({transaction_id:'synthetic-coaster-355',pending:true});
     const receipt=await uploadWaiting(h,t.employee,pending);
-    const ramp={source:'ramp',filename:'synthetic-coaster-ramp.csv',mapping:{date:'YYYY-MM-DD'},csv:`Transaction ID,Transaction Date,User Email,Merchant Name,Amount,Currency,Memo,Ramp Category,Accounting Category,Receipt File\nsynthetic-coaster-356,2026-10-15,${t.email},Harbour Parking,12.00,USD,Synthetic visit,Office,6500,\n`};
-    const preview=await h.post('import/preview',ramp);await h.post('import/commit',{...ramp,fingerprint:preview.fingerprint});
-    const overlap=plaidTransaction({transaction_id:'synthetic-coaster-357',merchant_name:'Harbour Parking',amount:12});
+    const overlap=plaidTransaction({transaction_id:'synthetic-coaster-357',merchant_name:'Harbor Parking Inc',name:'Harbour Parking',amount:12});
     edge.pages.push(page([pending,overlap]));
     assert.deepEqual(await h.post(base+'/sync',{}),{added:2,modified:0,removed:0,expenses:0,cursor:'synthetic-coaster-cursor-1'});
     assert.equal((await h.get('state',t.employee)).claims.length,0);
@@ -75,6 +75,7 @@ export async function companyTransactionJourney() {
     edge.pages.push(page([],[],[posted.transaction_id],'synthetic-coaster-cursor-5'));
     await h.post(base+'/sync',{});assert.equal((await h.get(`claims/${claims[0].id}`,t.employee)).items.length,1);
     const events=(await h.get('history')).lines.filter(e=>e.action==='plaid-synced');assert.equal(events.length,5);assert.ok(events.every(e=>e.actor_email&&e.channel==='app'&&e.at));assert.deepEqual(events.map(e=>e.seq),events.map(e=>e.seq).sort((a,b)=>a-b));
+    for(const request of edge.calls){const payload=JSON.stringify(request.body);assert.ok(!payload.includes(t.email)&&!payload.includes('Harbour Stationery')&&!payload.includes('Harbour Parking')&&!payload.includes(receipt),'provider requests contain only declared connection and cursor inputs');}
     const requests=edge.calls.length;await h.post(base+'/sync',{},t.other,403);assert.equal(edge.calls.length,requests);
     await h.post(base+'/disconnect',{});await h.post(base+'/sync',{},h.owner,404);assert.equal(edge.items.size,0);
   }finally{await h.close();}
@@ -129,5 +130,33 @@ export async function monthlyPlaidJourney() {
     assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_transactions').first()).n,0,'revocation fences the in-flight financial commit');
     assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_items').first()).n,0);
     assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_sync_state').first()).n,0);
+  }finally{await h.close();}
+}
+
+export async function personalCreditJourney() {
+  const t=await plaidSetup(),{h,edge}=t;
+  try {
+    const finance=await h.person(address(360),{employee:true,finance:true});
+    const connection=await t.connect('personal',t.employee),base=`plaid/connections/${connection.id}`;
+    await h.post(base+'/assign',{account:connection.accounts[0].id,employee:t.email,category:t.category},t.employee);
+    edge.pages.push(page([plaidTransaction()]));await h.post(base+'/sync',{},t.employee);
+    const claim=(await h.get('state',t.employee)).claims[0],detail=await h.get(`claims/${claim.id}`,t.employee);
+    const edited=await h.post(`claims/${claim.id}/items`,{version:detail.claim.version,item:detail.items[0].id,kind:'receipt',date:'2026-10-15',merchant:'Harbour Stationery',amount:'42.50',category:t.category,explanation:'Original receipt unavailable'},t.employee);
+    const submitted=await h.post(`claims/${claim.id}/submit`,{version:edited.version},t.employee);
+    const approved=await h.post(`claims/${claim.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'approved',acknowledge:true},t.manager);
+    const draft=await h.post('batches',{claims:[approved.id]},finance),reviewed=await h.post(`batches/${draft.id}/approve`,{version:draft.version,expectedTotal:4250});
+    const released=await h.post(`batches/${draft.id}/release`,{version:reviewed.version});
+    edge.pages.push(page([plaidTransaction({transaction_id:'synthetic-coaster-361',amount:-10})],[],[],'synthetic-coaster-cursor-2'));
+    assert.equal((await h.post(base+'/sync',{},t.employee)).expenses,0);
+    const refused=await h.post(`batches/${draft.id}/paid`,{version:released.version,reference:'Synthetic manual payment',paidOn:'2026-10-20'},h.owner,409);
+    assert.match(refused.error,/Plaid.*credit.*reconciliation/);
+    assert.equal((await h.db.prepare('SELECT status FROM c_batches WHERE id=?').bind(draft.id).first()).status,'approved');
+    assert.equal((await h.db.prepare('SELECT amount_minor FROM c_items WHERE id=?').bind(detail.items[0].id).first()).amount_minor,4250);
+    let manual=await h.post('claims',{title:'Manual expenses remain available despite an unresolved feed credit'},t.employee);
+    manual=await h.post(`claims/${manual.id}/items`,{version:manual.version,kind:'receipt',date:'2026-10-15',merchant:'Harbour Stationery',amount:'42.50',category:t.category,explanation:'Synthetic receipt missing'},t.employee);
+    const duplicate=await h.post(`claims/${manual.id}/submit`,{version:manual.version},t.employee,409);assert.match(duplicate.error,/personal Plaid source expense/);
+    const manualDetail=await h.get(`claims/${manual.id}`,t.employee);
+    manual=await h.post(`claims/${manual.id}/items`,{version:manual.version,item:manualDetail.items[0].id,kind:'receipt',date:'2026-10-15',merchant:'Unrelated manual supplies',amount:'1.00',category:t.category,explanation:'Synthetic receipt missing'},t.employee);
+    assert.equal((await h.post(`claims/${manual.id}/submit`,{version:manual.version},t.employee)).status,'submitted');
   }finally{await h.close();}
 }

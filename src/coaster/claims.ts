@@ -1,3 +1,4 @@
+import { noPersonalFeedDuplicates } from './plaid/duplicates';
 import { requirePlaidClear } from './plaid/holds';
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { can } from './permissions';
@@ -218,7 +219,7 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const coding = await checkedCoding(db,await claimItems(db, claim.id));
   const items = coding.items;
   requireThat(items.length > 0, 'Add at least one expense before submitting');
-  const cardGuards = [await requirePlaidClear(db,claim.id), ...await noCardDuplicates(db, claim.employee_email, items)];
+  const cardGuards = [await noPersonalFeedDuplicates(db,claim.employee_email,items), await requirePlaidClear(db,claim.id), ...await noCardDuplicates(db, claim.employee_email, items)];
   const configured = await configuredChain(db, claim.employee_email);
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(claim.employee_email).first<{ approver_email: string | null }>();
   const first = configured.chain?.steps[0].email ?? member?.approver_email;

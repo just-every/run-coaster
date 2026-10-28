@@ -30,7 +30,7 @@ export async function syncPlaid(env: Bindings, actor: Actor, id: string) {
   const assignments = (await db.prepare('SELECT * FROM c_plaid_assignments WHERE connection_id=? ORDER BY account_id').bind(id).all<Data>()).results;
   requireThat(assignments.length === JSON.parse(c.accounts).length, 'Assign every verified account to an active cardholder and category before syncing', 409);
   const credentials = await openPlaid(env, 'plaid:' + id, c.credentials_sealed);
-  const changes: { kind: string; tx?: Transaction; removed?: string }[] = [];
+  const changes: { kind: string; tx?: Transaction; merchants?: string[]; removed?: string }[] = [];
   let cursor = state.cursor, pages = 0, more = true;
   while (more) {
     await check(db, all(paid,stable));
@@ -38,7 +38,7 @@ export async function syncPlaid(env: Bindings, actor: Actor, id: string) {
     requireThat(Array.isArray(page.added) && Array.isArray(page.modified) && Array.isArray(page.removed) && typeof page.has_more === 'boolean', 'Plaid returned an incomplete sync page', 502);
     const next = text(page.next_cursor, 'Plaid next cursor', 2000);
     requireThat(!page.has_more || next !== cursor, 'Plaid did not advance its sync cursor', 502);
-    for (const kind of ['added', 'modified'] as const) for (const raw of page[kind]) changes.push({ kind, tx: transactionFacts(raw) });
+    for (const kind of ['added', 'modified'] as const) for (const raw of page[kind]) changes.push({ kind, tx: transactionFacts(raw), merchants: [raw.name,raw.merchant_name].filter((value): value is string=>typeof value==='string'&&value.length>0).map(normalDescriptor) });
     for (const raw of page.removed) changes.push({ kind: 'removed', removed: text(raw.transaction_id, 'Removed transaction id', 200) });
     requireThat(changes.length <= 150 && ++pages <= 20, 'This sync update exceeds the bounded import size; no cursor or expense was committed', 409);
     cursor = next; more = page.has_more;
@@ -64,8 +64,8 @@ export async function syncPlaid(env: Bindings, actor: Actor, id: string) {
       status: item ? previous && sameFacts(previous, tx) ? previous.status : 'review' : tx.pending ? 'pending' : tx.amount_minor <= 0 ? 'credit' : 'posted' };
     if (!tx.pending && tx.amount_minor > 0 && !item) {
       const history = (await db.prepare("SELECT value FROM c_history WHERE kind='expense' AND json_extract(value,'$.employee')=? AND json_extract(value,'$.date')=? AND json_extract(value,'$.amountMinor')=?").bind(assignment.employee_email, tx.spent_on, tx.amount_minor).all<{value:string}>()).results;
-      const overlap = history.some(h => normalDescriptor(JSON.parse(h.value).merchant) === normalDescriptor(tx.merchant));
-      const native = (await db.prepare('SELECT id,item_id,descriptor FROM c_card_charges WHERE employee_email=? AND COALESCE(transaction_on,posted_on)=? AND amount_minor=?').bind(assignment.employee_email, tx.spent_on, tx.amount_minor).all<Data>()).results.find(ch => normalDescriptor(ch.descriptor) === normalDescriptor(tx.merchant));
+      const overlap = history.some(h => (change.merchants??[normalDescriptor(tx.merchant)]).includes(normalDescriptor(JSON.parse(h.value).merchant)));
+      const native = (await db.prepare('SELECT id,item_id,descriptor FROM c_card_charges WHERE employee_email=? AND COALESCE(transaction_on,posted_on)=? AND amount_minor=?').bind(assignment.employee_email, tx.spent_on, tx.amount_minor).all<Data>()).results.find(ch => (change.merchants??[normalDescriptor(tx.merchant)]).includes(normalDescriptor(ch.descriptor)));
       if (overlap || native) { row.status = 'overlap'; row.charge_id = native?.id ?? null; row.item_id = native?.item_id ?? null; }
       else {
         planned.set(tx.transaction_id, assignment);

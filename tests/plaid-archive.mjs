@@ -10,7 +10,8 @@ import { plaidTransaction, plaidConfig } from './fixtures/plaid.mjs';
 import { plaidSetup, page } from './plaid-sync.mjs';
 
 const tableRows = (archive, table) => rows(archive).filter(item => item.table === table).map(item => item.row);
-const ordered = values => [...values].sort((left, right) => String(left.id ?? left.seq ?? JSON.stringify([left.connection_id, left.transaction_id, left.account_id, left.kind])).localeCompare(String(right.id ?? right.seq ?? JSON.stringify([right.connection_id, right.transaction_id, right.account_id, right.kind]))));
+const orderKey = row => JSON.stringify(Object.keys(row).sort().map(key => [key,row[key]]));
+const ordered = values => [...values].sort((left,right)=>orderKey(left).localeCompare(orderKey(right)));
 const numbered = events => [...events].sort((left, right) => left.seq - right.seq);
 const financialTables = ['c_plaid_sync_state', 'c_plaid_assignments', 'c_plaid_transactions', 'c_plaid_changes', 'c_plaid_sources', 'c_plaid_costs', 'c_card_charges', 'c_card_charge_aliases', 'c_claims', 'c_items', 'c_allocations'];
 const roots = [];

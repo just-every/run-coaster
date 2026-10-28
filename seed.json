@@ -188,12 +188,12 @@
     {
       "id": "plaid-sandbox-connections",
       "required": false,
-      "requiredWhen": "The native owner configures the optional sandbox app and a current authorized person explicitly starts or disconnects a connection",
-      "why": "FEED-001 sandbox Link and account verification only, at https://sandbox.plaid.com; off by default, with no transaction sync or payment authority.",
+      "requiredWhen": "The owner configures the optional sandbox app and a currently authorized person explicitly connects, synchronizes or disconnects a feed",
+      "why": "FEED-001 sandbox Link, verified accounts and incremental transaction sync at https://sandbox.plaid.com; off by default. It never transfers money.",
       "data": [
         "Installation-sealed app client id and sandbox secret, the transactions product scope, US country and credit-card or company-depository filters, and a random request identifier used as the Plaid client user id",
-        "One-use public token exchanged for an installation-sealed item access token; authenticated account metadata retrieval and explicit item removal",
-        "No Coaster member email, claim, receipt, expense, bank number or card number is sent. Only provider account identifiers, type and last four are retained; no returned names or balances. Execution custody is excluded from archives."
+        "One-use public token exchanged for an installation-sealed item access token; authenticated account verification, incremental sync with provider cursor and requested page count, and explicit item removal",
+        "No Coaster member email, claim, receipt, expense, bank number or card number is sent. Returned account identifiers, type and last four plus minimized transaction identities, dates, merchant, amount, currency and pending or removed state are retained. No account names or balances are retained. Execution custody is excluded from archives."
       ],
       "adapters": []
     }
