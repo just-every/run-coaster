@@ -1,5 +1,5 @@
-// The HTTP flow suite (tests/coaster*.test.mjs), one file at a time. Push Verify splits it across the app job and the
-// coaster_flows job with COASTER_SHARD=1/2 and 2/2 (node --test-shard); without it every file runs, as `rer verify` does.
+// The HTTP flow suite (tests/coaster*.test.mjs), one file at a time. Push Verify maps
+// COASTER_SHARD=1/2 and 2/2 to independent CI groups (node --test-shard); without it every file runs, as `rer verify` does.
 // This discovery also registers tests/coaster-bulk-approvals.test.mjs.
 import { spawnSync } from 'node:child_process'
 import { readdirSync } from 'node:fs'

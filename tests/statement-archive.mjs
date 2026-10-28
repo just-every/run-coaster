@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { command } from './browser-runtime.mjs';
+import { command, refusalCases } from './browser-runtime.mjs';
 import { records, rows, tampered } from './browser-archive.mjs';
 
 const numbers = ['4111111111111111', '5500000000000004'];
@@ -138,8 +138,7 @@ export async function rejectUnsafeStatementArchives(destination, archive, { part
     { code: 'size', format: 'csv', metadata: row => { row.size++; } },
     { code: 'sha256', format: 'qfx', metadata: row => { row.sha256 = '0'.repeat(64); } },
   ];
-  for (const [index, entry] of cases.entries()) {
-    if (index % of !== part) continue;
+  await refusalCases(destination, cases.filter((_, index) => index % of === part), async (destination, entry) => {
     // Statement ids are random: an unrelated reconciliation fixture may have no timestamp to corrupt.
     const fixture = statementPrivacyFixtures('unused').find(fixture => fixture.input.format === entry.format);
     const invalid = await tampered(archive, 'c_statement_files', row => {
@@ -158,5 +157,5 @@ export async function rejectUnsafeStatementArchives(destination, archive, { part
     const after = `exports/statement-after-${entry.code}.rer`;
     await command(destination, ['export', '--output', after]);
     assert.deepEqual(rows(await records(join(destination, after))), empty, 'unsafe statement restore writes no row or object');
-  }
+  });
 }

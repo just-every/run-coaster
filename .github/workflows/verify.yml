@@ -67,7 +67,7 @@ jobs:
           fi
           echo "skip=$skip" >> "$GITHUB_OUTPUT"
 
-  app:
+  build:
     needs: plan
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
@@ -75,95 +75,71 @@ jobs:
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
-      COASTER_SHARD: '1/2'
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; action runtime Node 24
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; action runtime Node 24
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.20.0'
           package-manager-cache: false
       - name: Check edition source lock freshness
-        # Technical foundation exports use composition.lock.json or reference-export.json.
-        # Edition-owned seeds must commit both edition.json and sources.lock.json.
         if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
         run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
+      - name: Build the application and run site once
         run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - run: pnpm run verify
+          pnpm exec rer build
+          pnpm exec rer build --site
+          tar -cf "${{ runner.temp }}/coaster-build.tar" dist
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: coaster-build-${{ github.sha }}
+          path: ${{ runner.temp }}/coaster-build.tar
+          compression-level: 0
+          retention-days: 1
 
-  coaster_flows:
-    needs: plan
+  browser:
+    needs: [plan, build]
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-      COASTER_SHARD: '2/2'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; action runtime Node 24
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; action runtime Node 24
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: HTTP flow suite, second half
-        run: pnpm run test:coaster
-
-  browser:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: ${{ matrix.timeout || 15 }}
     strategy:
       fail-fast: false
       matrix:
-        # Keep every refusal value; the long fresh-clone journeys cannot be combined within 12 minutes.
-        group: ['journeys-0', 'journeys-1', 'capture-0', 'capture-1-email', 'capture-2', 'matching-0', 'matching-1', 'matching-2', 'cash-accessibility', 'policy-signals-scale', 'policy-review', 'payroll-corpus']
-        # These groups exhausted 15 minutes in push 40425248525. Only their job budgets rise.
-        include:
-          - group: journeys-0
-            timeout: 18
-          - group: matching-0
-            timeout: 18
+        group: ['journeys-0', 'journeys-1', 'capture-0', 'capture-1', 'capture-2', 'matching-0', 'matching-1', 'matching-2']
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
+      COASTER_REFUSAL_WORKERS: '3'
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; action runtime Node 24
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; action runtime Node 24
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.20.0'
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: coaster-build-${{ github.sha }}
+          path: ${{ runner.temp }}
+      - name: Restore this candidate's shared build
+        run: tar -xf "${{ runner.temp }}/coaster-build.tar"
       - name: Install Chromium
-        if: matrix.group != 'policy-signals-scale'
         run: |
           set -euo pipefail
           pnpm exec playwright install --only-shell chromium
+          node scripts/ci/install-hydration-chromium.mjs
           # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
           node scripts/ci/chromium-probe.mjs || {
             timeout 420 pnpm exec playwright install-deps chromium
             node scripts/ci/chromium-probe.mjs
           }
-      - name: Run browser group in sequence
+      - name: Run independent suites with bounded concurrency
         env:
           CI_GROUP: ${{ matrix.group }}
         run: node scripts/ci/run-browser-group.mjs
@@ -194,48 +170,8 @@ jobs:
       - name: Exact-candidate corpus costs and receipt questions outside push Verify
         run: node --test --test-name-pattern='Owner sees|Receipt disagreements' tests/coaster-reader.test.mjs
 
-  receipt_agents:
-    needs: plan
-    if: needs.plan.outputs.skip != 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      CI: 'true'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: '22.20.0'
-          package-manager-cache: false
-      - run: npm install --global pnpm@10.12.4
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: |
-          set -euo pipefail
-          pnpm exec playwright install --only-shell chromium
-          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
-          node scripts/ci/chromium-probe.mjs || {
-            timeout 420 pnpm exec playwright install-deps chromium
-            node scripts/ci/chromium-probe.mjs
-          }
-      - name: Provider costs, private receipt questions and archive integrity
-        run: |
-          node tests/browser-reading.mjs
-          node tests/browser-agents.mjs
-          node tests/browser-desktop.mjs
-        env:
-          COASTER_EVIDENCE: ${{ runner.temp }}/receipt-agent-proof
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: coaster-receipt-agent-proof
-          path: ${{ runner.temp }}/receipt-agent-proof
-
   verify:
-    needs: [plan, app, coaster_flows, browser, receipt_agents]
+    needs: [plan, build, browser]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 1

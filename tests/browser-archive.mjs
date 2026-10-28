@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { makePart, ContentVerifier, ArchiveVerifier } from '@runeditrun/rer/modules/portability/format'
-import { command } from './browser-runtime.mjs'
+import { command, refusalCases } from './browser-runtime.mjs'
 
 export const records = async path => (await readFile(path, 'utf8')).trim().split('\n').map(line => JSON.parse(line))
 export const rows = archive => archive.filter(r => r.kind === 'part').flatMap(r => r.items)
@@ -33,13 +33,13 @@ export async function rejectInconsistentArchives(root, archive, { part = 0, of =
     capture_reason: ['c_capture_lifecycle', row => { row.reason = 'x'.repeat(1001) }, row => row.kind === 'discarded'],
     decision_revision: ['c_decisions', row => { row.revision += 7 }],
   }
-  for (const [code, [table, change, pick]] of Object.entries(cases).filter((_, index) => index % of === part)) {
+  await refusalCases(root, Object.entries(cases).filter((_, index) => index % of === part), async (root, [code, [table, change, pick]]) => {
     await writeFile(join(root, `exports/${code}.rer`), await tampered(archive, table, change, pick), { mode: 0o600 })
     const log = await command(root, ['import', '--input', `exports/${code}.rer`, '--yes'], { expected: 4 })
     assert.match(log, new RegExp('coaster_' + code), `restore refused ${code}`)
     await command(root, ['export', '--output', `exports/empty-after-${code}.rer`])
     assert.deepEqual(rows(await records(join(root, `exports/empty-after-${code}.rer`))), empty, `refused ${code} archive wrote nothing`)
-  }
+  })
 }
 
 /** CAPTURE-004 / AUDIT-001: re-sealed lifecycle corruption is still refused (the capture Verify shard, tests/capture.mjs).
@@ -84,15 +84,16 @@ export async function rejectCaptureLifecycleArchives(root, archive, { part = 0, 
     attribution: row => { row.on_behalf_of = 'somebody-else@example.test' },
     duplicate: row => { Object.assign(row, source[1].row) },
   };
-  for (const [name, change] of Object.entries(cases).filter((_, index) => index % of === part)) {
+  await refusalCases(root, Object.entries(cases).filter((_, index) => index % of === part), async (root, [name, change]) => {
     const kind = name.startsWith('merge_') ? 'merged' : name.startsWith('discard_') ? 'discarded' : undefined;
     await writeFile(join(root, 'exports/invalid-lifecycle.rer'), await tampered(archive, 'c_capture_lifecycle', change, row => !kind || row.kind === kind), { mode: 0o600 });
     const log = await command(root, ['import', '--input', 'exports/invalid-lifecycle.rer', '--yes'], { expected: 4 });
     assert.match(log, name === 'forged_marker' ? /schema_mismatch/ : /coaster_capture_(history|reason|merge|lifecycle_provenance|erasure_guard)/, `CAPTURE-004 refuses ${name}`);
     assert.ok(!log.includes('finance@dev.localhost') && !log.includes('Sam Taylor'), 'refusal never echoes identity or reason text');
-  }
-  await command(root, ['export', '--output', 'exports/lifecycle-after.rer']);
-  assert.deepEqual(rows(await records(join(root, 'exports/lifecycle-after.rer'))), before, 'CAPTURE-004 refused archives leave the destination untouched');
+  }, async root => {
+    await command(root, ['export', '--output', 'exports/lifecycle-after.rer']);
+    assert.deepEqual(rows(await records(join(root, 'exports/lifecycle-after.rer'))), before, 'CAPTURE-004 refused archives leave the destination untouched');
+  });
 }
 
 /** COA-012 / CLAIM-002: receipt-less per diems can be newest; verify every actual restored receipt. */
