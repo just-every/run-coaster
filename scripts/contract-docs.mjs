@@ -89,7 +89,14 @@ async function verifyEvidence(row, journey) {
   return candidates.size;
 }
 
-function implementationSection(help, selected) {
+function implementationSection(help, selected, rows) {
+  const previous = help.includes(begin) ? help.slice(help.indexOf(begin), help.indexOf(end)) : '';
+  const retained = [...previous.matchAll(new RegExp('^- \\*\\*(' + clauseIdSource + ') — ', 'gm'))].map(match => match[1]);
+  selected = [...new Set([...retained, ...selected.map(row => row.id)])].map(id => {
+    const row = rows.get(id);
+    if (!row) throw new Error(`Generated status references an unknown clause: ${id}`);
+    return row;
+  });
   const section = `${begin}\n## Implementation status\n\nSource: [CONTRACT.md](../CONTRACT.md#status). Only the selected clauses below are generated; the help above is maintained separately.\n\n${selected.map(row => `- **${row.id} — ${row.title}. Status: ${row.status}.**${row.evidence ? ` Existing evidence: ${row.evidence}.` : ''}${row.gap ? ` Open scope: ${row.gap}` : ''}`).join('\n\n')}\n${end}`;
   const start = help.indexOf(begin), finish = help.indexOf(end);
   if ((start < 0) !== (finish < 0) || (start >= 0 && finish < start)) throw new Error('docs/claims.md has incomplete generated status markers.');
@@ -116,7 +123,7 @@ async function main() {
     const block = clauseBlock(nextAcceptance, row.id);
     nextAcceptance = nextAcceptance.slice(0, block.start) + generated.paragraph + nextAcceptance.slice(block.end);
   }
-  const next = [summaries(contract, [...rows.values()]), summaries(nextAcceptance, [...rows.values()]), implementationSection(help, selected)];
+  const next = [summaries(contract, [...rows.values()]), summaries(nextAcceptance, [...rows.values()]), implementationSection(help, selected, rows)];
   parseContract(next[0]);
   const changed = paths.filter((_, index) => next[index] !== original[index]);
   if (mode === 'check' && changed.length) throw new Error(`Generated documentation is stale: ${changed.join(', ')}. Run write with the same clause IDs.`);

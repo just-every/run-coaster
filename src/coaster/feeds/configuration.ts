@@ -1,6 +1,7 @@
 import type { Bindings } from '../../auth.server';
 import { parsePrivateKey } from '@workeryard/undershell';
 import { all, commit } from '../session';
+import { recentProviderSignIn } from '../provider-step-up';
 import { event } from '../events';
 import { categoryFor } from '../cards/plan';
 import { issuerLabel } from '../cards/statement';
@@ -16,7 +17,7 @@ export async function programFeeds(env: Bindings, actor: Actor) {
   return { feeds: rows.map(publicFeed), deliveries };
 }
 export async function connectProgramFeed(env: Bindings, actor: Actor, body: Data) {
-  const auth=connectionAuthority(actor);
+  const auth=all(connectionAuthority(actor),await recentProviderSignIn(env,actor,'connecting an SFTP program feed'));
   requireThat(body.consent===true,'Confirm this installation may read files from this SFTP host');
   const host=text(body.host,'SFTP host',100); permittedHost(env,host);
   const port=body.port??22;

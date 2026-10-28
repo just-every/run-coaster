@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "889604bf7171dda3126fa00560bf22c98639846e4048da8c5727999e051e63fe",
+      "sha256": "11c17c7e343387835664c110d0a7b6528b6be226367d89298fc7fbba366354f5",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "10484a4e220b51e25a02ff62deed3322788fd71f57d0cddcc95222945aa5f4c8",
+      "sha256": "7f5f02846051f4c920b9c77cbe217a288c0210522ec865aff7ee919cb6dc5f52",
       "executable": false
     },
     "DEMO.md": {
@@ -356,7 +356,7 @@
       "executable": false
     },
     "docs/claims.md": {
-      "sha256": "a785eabc9a49095c86a9bf1478ef73b6be1fe4892e3ef18d266d52ac26ad868d",
+      "sha256": "e433f1eeda25b357f61d5b9f13f84c79cd2719cf089ee0a11215fba1315917a3",
       "executable": false
     },
     "docs/deploy.md": {
@@ -964,7 +964,7 @@
       "executable": false
     },
     "scripts/contract-docs.mjs": {
-      "sha256": "404afd8f90d108b5c82c336f63582e2eeb67b6f31446f98d4e83dc13cf830b81",
+      "sha256": "68add23bfeec796ac4679741f1f7d170ed914e26aacd68abe4cb90f6f8c8cb49",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
@@ -1656,7 +1656,7 @@
       "executable": false
     },
     "src/coaster/feeds/configuration.ts": {
-      "sha256": "791da191d82dc9f4e379db91efa9bc97a71c11e3a8d5dbeb156dbf12117cc2d0",
+      "sha256": "5b1c66ca3c37fa1113948b0ed91d236c971159ec4b71d89c18aac79093e9be0e",
       "executable": false
     },
     "src/coaster/feeds/delivery.ts": {
@@ -1788,7 +1788,7 @@
       "executable": false
     },
     "src/coaster/payroll/connection.ts": {
-      "sha256": "5008689e383698bca00b60a2b9e897735c015e1a0999959a404bbc49e15a65c6",
+      "sha256": "3fb0a7257b37a641d6064357a20db46d8ab12818bb398298e289621a71efed56",
       "executable": false
     },
     "src/coaster/payroll/handoff.ts": {
@@ -1889,6 +1889,10 @@
     },
     "src/coaster/provider-costs.ts": {
       "sha256": "054f437661c95944f468c32733b561a7d053d4037453b246ad00a5e58c2f8af4",
+      "executable": false
+    },
+    "src/coaster/provider-step-up.ts": {
+      "sha256": "60860ad3a4102c1861fe77c34364e319e3eca73958dcf2a41f841e4c37e0f1c5",
       "executable": false
     },
     "src/coaster/public-api/credentials.ts": {
@@ -4464,7 +4468,7 @@
       "executable": false
     },
     "tests/browser-payroll.mjs": {
-      "sha256": "27dee1a1c63a58022f41f195e4e98bddf73e6a4e8270821fbdd2905a407bd81d",
+      "sha256": "45df238ae795f7313317713a238ae9ac8494bcd1b21ffcad733987d6169b3c28",
       "executable": false
     },
     "tests/browser-per-diem.mjs": {
@@ -4476,7 +4480,7 @@
       "executable": false
     },
     "tests/browser-program-feed.mjs": {
-      "sha256": "0d6b124ef55e95176bda910bc771a090755291f9efed718f1555bf475ffe44f8",
+      "sha256": "473e950a5da25b2c8284d910bc1cb0db89241f5b4bf94c4c25e3bf19fd9a961f",
       "executable": false
     },
     "tests/browser-reading.mjs": {
@@ -4580,7 +4584,7 @@
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
-      "sha256": "49024857ff2a156b132c102135e661f65f6abee680f13c8be036d1b577b759dc",
+      "sha256": "9934a8dd81458d60d94c4969bcdb7f2702170e378e91d4879387932cfe208b56",
       "executable": false
     },
     "tests/coaster-finance-delegation.test.mjs": {
@@ -4600,7 +4604,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "b749fb36c059fce85f1b7b5f327cca1a60191ef3dc358bf92b1b40cceaa2d165",
+      "sha256": "d0b59cb4f76347027e359aed1b73c17de3eb30566a359ff828880a4f6c1df7dd",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -4668,7 +4672,7 @@
       "executable": false
     },
     "tests/d1-edge.ts": {
-      "sha256": "567c8c643fc1b2a7e512be9918d0c1d9c0bff5c4aa7b62a4ed0d323a542f1266",
+      "sha256": "08da59953c826535723a3717d9294e5f435259ff59a12c54e3eda711656d550a",
       "executable": false
     },
     "tests/email-archive.mjs": {
