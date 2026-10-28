@@ -171,7 +171,9 @@ async function original(h,cookie,name='private-card.png',headers={},bytes) {
   assert.equal(r.status,200);return (await r.json()).receipt
 }
 async function choose(h,t,r,over={}) {return h.post(`receipt-inbox/${r.id}/card-match`,{expectedSequence:r.lifecycleSequence,enabled:true,merchant:'Different typed private merchant',date:'2026-10-02',total:'48.20',currency:'AUD',notice:NOTICE,...over},t.sam)}
-const tick = async h => (await h.mf.getWorker()).scheduled({scheduledTime:Date.now(),cron:'17 * * * *'})
+const tick = async (h, at = Date.now()) => (await h.mf.getWorker()).scheduled({scheduledTime:at,cron:'17 * * * *'})
+// Matching itself sends no mail; keep these fixtures before unrelated overdue reminder steps.
+const MATCHING_NOW = Date.parse('2026-10-05T01:00:00Z')
 async function statement(h,t,rows,{last4='1111',employee=SAM,name='matching.csv'}={}) {
   await h.post('statements/cards',{issuer:ISSUER,last4,employee})
   const base={format:'csv',name,issuer:ISSUER,category:t.c.office,content:'Posted,Transaction,Merchant,Amount,Id,Status\n'+rows.map((r,i)=>`${r.date??'2026-10-03'},${r.transaction??'2026-10-02'},${r.merchant??'Harbour View Bistro'},${r.amount??'48.20'},${r.id??name+'-'+i},${r.status??'posted'}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Posted',transactionDate:'Transaction',description:'Merchant',amount:'Amount',transactionId:'Id',status:'Status',wholeFileLast4:last4}}
@@ -190,7 +192,7 @@ test('CAPTURE-004 FEED-004 G6 APPROVE-004 matching never approves or samples a p
   assert.equal(d.items[0].receipt_id,null,'import itself does not attach or approve')
   const statementFields=['card_charge_id','card_transaction_key','spent_on','merchant','amount_minor','original_minor','original_currency','card_issuer','card_last4']
   const statementFacts=Object.fromEntries(statementFields.map(k=>[k,d.items[0][k]]))
-  await Promise.all([tick(h),tick(h)])
+  await Promise.all([tick(h, MATCHING_NOW),tick(h, MATCHING_NOW)])
   const matched=await inbox(h,t,r.id)
   assert.ok(matched.attachment);assert.deepEqual([matched.lifecycle.at(-1).kind,matched.lifecycle.at(-1).actorEmail,matched.lifecycle.at(-1).onBehalfOf,matched.lifecycle.at(-1).channel],['attached','automation: card match',SAM,'schedule'])
   d=await h.get(`claims/${job.claims[0]}`,t.sam)
@@ -212,7 +214,7 @@ test('CAPTURE-004 FEED-004 G6 APPROVE-004 matching never approves or samples a p
     assert.deepEqual((await h.get(`receipt-inbox/${r.id}/card-match-question`,cookie)).candidates,[])
   }
   assert.equal(h.messages.length,before,'matching never notifies')
-  await Promise.all([tick(h),tick(h)])
+  await Promise.all([tick(h, MATCHING_NOW),tick(h, MATCHING_NOW)])
   assert.equal((await inbox(h,t,r.id)).lifecycle.filter(e=>e.kind==='attached').length,1)
   assert.equal((await h.get('history?q=card-charge-matched',t.morgan)).lines.length,1)
   const submitted=await h.post(`claims/${d.claim.id}/submit`,{version:d.claim.version},t.sam)
@@ -479,7 +481,7 @@ test('CAPTURE-004 complete role/privacy matrix: employee and both live delegates
     assert.equal(opted.state,r.state);assert.deepEqual(opted.history,r.history,'typed matching details never claim receipt reading')
     assert.equal((await h.send(`/api/coaster/receipt-inbox/${r.id}`,undefined,cookie,headers)).status,200)
     const job=await statement(h,t,[{amount:total},{amount:total,id:`synthetic-tie-${level}`}],{name:`synthetic-privacy-${level}.csv`})
-    await tick(h)
+    await tick(h, MATCHING_NOW)
     const q=await h.send(`/api/coaster/receipt-inbox/${r.id}/card-match-question`,undefined,cookie,headers)
     assert.equal(q.value.ambiguous,true);assert.equal(q.value.candidates.length,2)
     for(const who of roles) {
@@ -503,7 +505,7 @@ test('CAPTURE-004 complete role/privacy matrix: employee and both live delegates
     await statement(h,t,[{amount:(Number(total)+1).toFixed(2)}],{name:`synthetic-unique-${level}.csv`})
     assert.equal((await h.send(`/api/coaster/receipt-inbox/${r.id}/card-match`,{...choice,expectedSequence:2,total:(Number(total)+1).toFixed(2)},cookie,headers)).status,200)
     const messagesBefore=h.messages.length
-    await Promise.all([tick(h),tick(h)])
+    await Promise.all([tick(h, MATCHING_NOW),tick(h, MATCHING_NOW)])
     let d=await h.get(`claims/${job.claims[0]}`,t.sam),item=d.items.find(i=>i.receipt_id)
     assert.ok(item);const basis=JSON.parse(item.card_match_basis)
     for(const expense of d.items.filter(i=>!i.receipt_id)) {
