@@ -75,6 +75,7 @@ test('Slack named-person answers close the ordinary question once without changi
     const answer=answered.comments.find(c=>c.parent_id===next.comment);
     assert.equal(answer.body,'Harbour Bank, the pitch team'); assert.equal(answer.author_email,address('sam')); assert.equal(answer.item_id,item);
     assert.equal(answered.comments.find(c=>c.id===next.comment).open,false);
+    await h.post(`comments/${next.comment}/edit`,{body:'A different question after the answer'},t.priya,409);
     assert.deepEqual(answered.revisions,original.revisions); assert.deepEqual(answered.claim,original.claim);
     assert.equal(answered.events.find(e=>e.action==='question-answered').detail.channel,'slack');
     const after=await snapshot(h);
@@ -85,6 +86,15 @@ test('Slack named-person answers close the ordinary question once without changi
     assert.equal(approved.status,'approved');
     const final=await h.get(`claims/${claim.id}`,t.priya); assert.deepEqual(final.revisions,original.revisions); assert.equal(final.decisions.at(-1).revision,claim.revision);
     assert.equal(final.comments.find(c=>c.id===answer.id).body,answer.body);
+    let later=await h.post('claims',{title:'Revised client visit'},t.sam);
+    later=await h.post(`claims/${later.id}/items`,{version:later.version,kind:'receipt',date:'2026-05-22',merchant:'Client office',amount:'31.00',explanation:'Receipt unavailable',allocations:[{category:t.c.meals}]},t.sam);
+    later=await h.post(`claims/${later.id}/submit`,{version:later.version},t.sam);
+    await h.post(`claims/${later.id}/comments`,{body:'Which client was this for?',asks:address('sam')},t.priya);
+    const oldEvent=edge.reply();
+    later=await h.post(`claims/${later.id}/decision`,{revision:later.revision,version:later.version,decision:'returned',reason:'Correct the expense',acknowledge:true},t.priya);
+    later=await h.post(`claims/${later.id}/submit`,{version:later.version},t.sam);
+    assert.equal(later.revision,2);
+    await refuse(oldEvent,undefined,409);
     for(const name of ['card','approver','auditor','bookkeeper']) {const before=await snapshot(h);await h.post('chat/slack/disconnect',{consent:true},people[name],403);assert.deepEqual(await snapshot(h),before);}
     await h.post('chat/slack/disconnect',{consent:true},people.finance); await refuse(edge.reply());
     const encoded=JSON.stringify((await h.db.prepare('SELECT detail FROM c_events').all()).results);
