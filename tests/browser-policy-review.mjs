@@ -25,7 +25,8 @@ export async function inspectPolicyReview(person, origin, claimId, width, eviden
  * native screens. Set-up calls use the same signed-in public API as the app. */
 export async function policyAgentScreens(browser,root,server,evidence){
  const {readFile}=await import('node:fs/promises'),{session,PEOPLE}=await import('./browser-journey.mjs'),{assertAccessible}=await import('./browser-accessibility.mjs');
- const origin=server.origin,run=Date.now();
+ // Opaque references must not turn a timestamp into a card-shaped number in the retained statement.
+ const origin=server.origin,run=crypto.randomUUID().replace(/\d/g,digit=>'ghijklmnop'[Number(digit)]);
  for(const width of [1440,390]){
   const owner=await session(browser,root,origin,'owner',width),employee=await session(browser,root,origin,'employee',width),manager=await session(browser,root,origin,'manager',width),finance=await session(browser,root,origin,'finance',width);
   try{
