@@ -7,6 +7,7 @@ import { payrollReview, sendPayroll, confirmPayroll } from './payroll/handoff';
 import { bankProviders, connectBankProvider, disconnectBankProvider, setBankHold } from './bank/connection';
 import { bankPeople, cancelBank, completeBank, myBank, refreshBank, startBank, verifyBank } from './bank/accounts';
 import { desktopStatus, connectDesktop, disconnectDesktop, syncDesktop, retryDesktop, mapDesktop, desktopSoap, configuration, connection as desktopConnection } from './accounting/desktop';
+import { applyExpenseCoding } from './agents/coding-application';
 import { prepareClose, prepareTrip, prepareExpense } from './agents/preparations';
 import { receiptQuestion, answerReceiptQuestion } from './receipts/questions';
 import { providerCosts, saveProviderCosts } from './provider-costs';
@@ -244,6 +245,7 @@ api.post('/api/coaster/conversation', as(async (a, c) => conversation(db(c), a, 
 api.post('/api/coaster/preparations/close', as(async (a, c) => prepareClose(db(c), a, await body(c))));
 api.post('/api/coaster/preparations/trip', as(async (a, c) => prepareTrip(db(c), a, await body(c))));
 api.post('/api/coaster/preparations/expenses/:id', as(async (a, c) => prepareExpense(db(c), a, param(c, 'id'))));
+api.post('/api/coaster/proposals/:id/apply-coding', as(async (a, c) => applyExpenseCoding(db(c), a, await proposal(db(c), param(c, 'id')), await body(c))));
 api.post('/api/coaster/proposals/:id/accept', as(async (a, c) => acceptProposal(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/proposals/:id/decline', as(async (a, c) => declineProposal(db(c), a, param(c, 'id'), await body(c))));
 

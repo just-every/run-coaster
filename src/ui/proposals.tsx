@@ -7,6 +7,15 @@ import { go } from './app';
     choices. Nothing happens until they accept; agents never submit, approve or pay. */
 export function AgentStrip({ proposals, reload, claims = [], idle, currency = 'USD' }: { proposals: D[]; reload: () => Promise<D>; claims?: D[]; idle?: ReactNode; currency?: string }) {
   const [error, setError] = useState('');
+  const [codingReview, setCodingReview] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  async function applyCoding(p: D) {
+    setError('');
+    try {
+      const result = await call(`proposals/${p.id}/apply-coding`, { confirm: confirmed, fingerprint: p.payload.codingApplication.fingerprint });
+      await reload(); setCodingReview(''); setConfirmed(false); go('claims', result.claim.id);
+    } catch (e) { setError((e as Error).message); }
+  }
   async function decide(p: D, accept: boolean) {
     setError('');
     try {
@@ -42,6 +51,14 @@ export function AgentStrip({ proposals, reload, claims = [], idle, currency = 'U
               {item.issues?.length > 0 && <ul>{item.issues.map((issue: string) => <li key={issue}>{issue}</li>)}</ul>}
             </li>)}</ul>
           </details>}
+          {preparation === 'expense' && p.payload.codingApplication?.review.entries.some((e: D) => e.changes.length) && <>
+            {codingReview !== p.id ? <button className="link-button" disabled={p.payload.stopped} onClick={() => { setCodingReview(p.id); setConfirmed(false); }}>Review coding changes</button> : <div className="panel-block" role="group" aria-label="Confirm coding changes">
+              <p><strong>Apply these exact coding changes to your draft?</strong> Amounts, source charges and receipt evidence stay as recorded. You still submit the claim yourself.</p>
+              <ul>{p.payload.codingApplication.review.entries.filter((e: D) => e.changes.length).map((entry: D) => <li key={entry.item}><strong>{entry.merchant}</strong><ul>{entry.changes.map((change: D) => <li key={change.field}>{change.label}: {change.beforeLabel} → {change.afterLabel}</li>)}</ul></li>)}</ul>
+              <label className="check"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} /> I confirm these exact coding changes</label>
+              <div className="agent-actions"><button className="agent-pill" disabled={!confirmed || p.payload.stopped} onClick={() => applyCoding(p)}>Apply reviewed coding</button><button className="link-button" onClick={() => { setCodingReview(''); setConfirmed(false); }}>Cancel coding changes</button></div>
+            </div>}
+          </>}
         </div>
         <div className="agent-actions"><button className="agent-pill" onClick={() => decide(p, true)}>{preparation === 'close' ? 'Accept checklist' : preparation === 'expense' ? 'Accept review plan' : 'Accept as draft' + (p.kind === 'batch' ? ' batch' : '')}</button><button className="link-button" onClick={() => decide(p, false)}>Decline</button></div>
       </div>;

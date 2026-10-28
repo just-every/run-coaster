@@ -1392,7 +1392,7 @@
       "executable": false
     },
     "src/coaster/agents/preparations.ts": {
-      "sha256": "70b0657f7a057e2336208fa0f33dec4ad5b9c08407f2795e2577afb273da548e",
+      "sha256": "7e9bbd4703d4d0b7b6f025b416ad664120fc2125bbd95c2fad70e3998357d6e2",
       "executable": false
     },
     "src/coaster/allowances.ts": {
@@ -1400,7 +1400,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "6630d4fd5b3556a0761e43194b707034a7bd3e4d3edcc4bfc525e5b401f18bfb",
+      "sha256": "7c0150504f37cae176639e32edb514d6204260a3241b7950af3fcaec6e0e635c",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -4272,7 +4272,7 @@
       "executable": false
     },
     "src/ui/proposals.tsx": {
-      "sha256": "202a963ced49689b8c81e882ad2ba77c56bd23770511de09132d7dba95fb3f03",
+      "sha256": "88feacca419fb23ddbd595fee5dbc5fbca6e3b04caf2861e0a982060caf14e7f",
       "executable": false
     },
     "src/ui/provider-costs.tsx": {
