@@ -10,7 +10,7 @@ import { advanceNumber, advancesUnchanged, appliedTo } from './advances';
 import { batchNotHeld, requireBatchNotHeld, requireNotHeld, heldAmong } from './bank/holds';
 import { isoDate, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Batch = { id: string; number: number; status: string; currency: string; total_minor: number; version: number; created_by: string; created_at: string; prepared_by: string | null; reviewed_by: string | null; reviewed_at: string | null; paid_reference: string | null; paid_on: string | null; paid_by: string | null; first_released_by: string | null; first_released_at: string | null; released_by: string | null; released_at: string | null };
+export type Batch = { entity_id: string; id: string; number: number; status: string; currency: string; total_minor: number; version: number; created_by: string; created_at: string; prepared_by: string | null; reviewed_by: string | null; reviewed_at: string | null; paid_reference: string | null; paid_on: string | null; paid_by: string | null; first_released_by: string | null; first_released_at: string | null; released_by: string | null; released_at: string | null };
 export const batchNumber = (n: number) => `RB-${String(n).padStart(4, '0')}`;
 
 export async function loadBatch(db: D1Database, id: unknown): Promise<Batch> {
@@ -60,6 +60,7 @@ export async function createBatch(db: D1Database, actor: Actor, b: Data, prepare
     requireThat(claim.total_minor > 0, `${claimNumber(claim.number)} holds only company-card expenses; there is nothing to reimburse`, 409);
     claims.push(claim);
   }
+  requireThat(new Set(claims.map(c => c.entity_id)).size === 1,'A batch belongs to one legal entity',409);
   requireThat(new Set(claims.map(c => c.currency)).size === 1, 'A batch reimburses in one currency');
   await requireNotHeld(db, claims.map(c => c.employee_email));
   const keys = await reimbursementKeys(db, claims), id = uid(), applied = await appliedTo(db, claims);
@@ -76,7 +77,7 @@ async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awai
   const at = now(), pays = (c: Claim) => c.total_minor - (applied.get(c.id)?.appliedMinor ?? 0), total = claims.reduce((n, c) => n + pays(c), 0);
   const next = await db.prepare('SELECT COALESCE(MAX(number),0)+1 AS n FROM c_batches').first<{ n: number }>(), number = next?.n ?? 1;
   return [
-    db.prepare("INSERT INTO c_batches(id,number,status,currency,total_minor,created_by,created_at,prepared_by) VALUES(?,?,'draft',?,?,?,?,?)").bind(id, number, claims[0].currency, total, by, at, detail.preparedBy ?? null),
+    db.prepare("INSERT INTO c_batches(id,number,status,currency,total_minor,created_by,created_at,prepared_by,entity_id) VALUES(?,?,'draft',?,?,?,?,?,?)").bind(id, number, claims[0].currency, total, by, at, detail.preparedBy ?? null,claims[0].entity_id),
     ...claims.flatMap(c => [
       db.prepare('INSERT INTO c_batch_claims(batch_id,claim_id,revision,amount_minor) VALUES(?,?,?,?)').bind(id, c.id, c.revision, pays(c)),
       db.prepare("UPDATE c_claims SET status='batched',batch_id=?,version=version+1,updated_at=? WHERE id=?").bind(id, at, c.id),
@@ -104,7 +105,7 @@ export async function runPaySchedule(db: D1Database, at: Date) {
   if (parts.weekday !== WEEKDAYS[settings.pay_weekday] || Number(parts.hour) < PAY_HOUR) return;
   const day = `${parts.year}-${parts.month}-${parts.day}`;
   if (await db.prepare('SELECT 1 FROM c_pay_runs WHERE day=?').bind(day).first()) return;
-  const { results } = await db.prepare("SELECT * FROM c_claims WHERE status='approved' AND currency=? AND total_minor>0 ORDER BY number LIMIT 200").bind(settings.currency).all<Claim>();
+  const { results } = await db.prepare("SELECT * FROM c_claims WHERE status='approved' AND entity_id='primary' AND currency=? AND total_minor>0 ORDER BY number LIMIT 200").bind(settings.currency).all<Claim>();
   // A person whose bank details just changed waits for a later pay day (PAY-002).
   const held = new Set((await heldAmong(db, results.map(c => c.employee_email))).map(h => h.email));
   const claims: Claim[] = [];

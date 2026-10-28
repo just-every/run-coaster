@@ -15,9 +15,9 @@ const isBy = (v: unknown): v is By => typeof v === 'string' && Object.hasOwn(GRO
 /** Whoever reads every record (ADMIN-001 matrix) sees everyone's spend; a manager sees the people below them in the manager hierarchy
  * and every member of a department they head. */
 function scope(actor: Actor) {
-  if (can(actor, 'readAll')) return { sql: '', params: [] as unknown[] };
+  if (can(actor, 'readAll')) return { sql: " AND c.entity_id='primary'", params: [] as unknown[] };
   requireThat(actor.roles.manager, 'Finance, auditor, owner, admin, bookkeeper or manager access required', 403);
-  return { sql: ` AND ${inScope('c.employee_email')}`, params: scopeParams(actor.email) };
+  return { sql: ` AND c.entity_id='primary' AND ${inScope('c.employee_email')}`, params: scopeParams(actor.email) };
 }
 
 const keyOf = (by: By, l: Data): [string, string] => by === 'card' ? [l.card ?? '', l.cardLabel ?? 'Out of pocket'] : by === 'employee' ? [l.employee, l.employeeName] : by === 'category' ? [l.category, l.categoryName] : by === 'merchant' ? [l.merchant.trim().toLowerCase(), l.merchant.trim()] : by === 'cost-centre' ? [l.costCentre, l.costCentre || 'No cost centre'] : by === 'project' ? [l.projectId || l.project || '', l.project || 'No project'] : by === 'department' ? [l.department ?? '', l.departmentName || 'No department'] : [l.date.slice(0, 7), l.date.slice(0, 7)];

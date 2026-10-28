@@ -14,7 +14,7 @@ export function unreviewedCoding(item:Data){
 }
 export type ExpenseApproval={item:string;source:'rule'|'agent';version:number;actor:string;onBehalfOf?:string;reason:string;at:string;sampled:boolean;ordinal:number;samplePercent:number|null};
 const actions="action IN ('expense-approved-by-rule','policy-agent-expense-approved')";
-export async function expenseApprovals(db:D1Database,items:ClaimItem[],exceptions:PolicyException[],review:Data,rule:ApprovalRule|null,envelope:Envelope|null,employee:string,currency:string){
+export async function expenseApprovals(db:D1Database,items:ClaimItem[],exceptions:PolicyException[],review:Data,rule:ApprovalRule|null,envelope:Envelope|null,employee:string,currency:string,entityId='primary'){
  const n=(await db.prepare(`SELECT COUNT(*) n FROM c_events WHERE ${actions}`).first<{n:number}>())!.n;
  const percent=(await db.prepare('SELECT audit_sample_percent percent FROM c_business WHERE id=1').first<{percent:number|null}>())!.percent;
  const liveOwner=envelope?!!await db.prepare("SELECT 1 FROM oa_operators WHERE lower(email)=? AND role='owner' AND status='active'").bind(envelope.set_by).first():false;
@@ -28,6 +28,6 @@ export async function expenseApprovals(db:D1Database,items:ClaimItem[],exception
   const ordinal=n+approvals.length+1;
   approvals.push({item:item.id,source,version,actor:source==='rule'?`rule v${version}`:`policy agent v${version}`,...(source==='agent'?{onBehalfOf:envelope!.set_by}:{}),reason:source==='rule'?`Matched company-card expense under ${currency} ${decimal(limit)} with its receipt and no policy exception`:`Compliant expense under ${currency} ${decimal(limit)}; policy v${review.policyVersion}, receipt evidence and reviewed coding verified`,at,sampled:!!percent&&Math.floor(ordinal*percent/100)>Math.floor((ordinal-1)*percent/100),ordinal,samplePercent:percent});
  }
- const guard=all(envelopeStill(envelope?.version??0),{sql:`(SELECT COUNT(*) FROM c_events WHERE ${actions})=? AND (SELECT audit_sample_percent FROM c_business WHERE id=1) IS ?`,params:[n,percent]},...(approvals.some(a=>a.source==='agent')?[{sql:"EXISTS(SELECT 1 FROM oa_operators WHERE lower(email)=? AND role='owner' AND status='active')",params:[envelope!.set_by]}]:[]));
+ const guard=all(entityId==='primary'?envelopeStill(envelope?.version??0):{sql:'1',params:[]},{sql:`(SELECT COUNT(*) FROM c_events WHERE ${actions})=? AND (SELECT audit_sample_percent FROM c_business WHERE id=1) IS ?`,params:[n,percent]},...(approvals.some(a=>a.source==='agent')?[{sql:"EXISTS(SELECT 1 FROM oa_operators WHERE lower(email)=? AND role='owner' AND status='active')",params:[envelope!.set_by]}]:[]));
  return {approvals,guard,writes:(claim:string,revision:number)=>approvals.map(a=>ruleEvent(db,a.actor,a.source==='rule'?'expense-approved-by-rule':'policy-agent-expense-approved',{claim},{revision,item:a.item,version:a.version,reason:a.reason,onBehalfOf:a.onBehalfOf??null,sampled:a.sampled,ordinal:a.ordinal,samplePercent:a.samplePercent}))};
 }

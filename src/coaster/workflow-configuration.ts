@@ -1,3 +1,4 @@
+import { entity, requireEntityMember } from './entities';
 import { all, commit, type Sql } from './session';
 import { needRow, rowAuthority } from './permissions';
 import { event } from './events';
@@ -9,15 +10,16 @@ export type Reviewer = { kind: 'manager' | 'named' | 'finance' | 'department-hea
 const HIERARCHY = ['manager', 'department-head', 'managers-manager', 'projectOwner'];
 export type WorkflowRule = { label: string; condition: { kind: 'always' | 'amount' | 'category' | 'project' | 'exception' | 'spend-request' | 'department'; value: string }; stages: Reviewer[][] };
 export type Workflow = { version: number; rules: WorkflowRule[] };
-export async function currentWorkflow(db: D1Database): Promise<Workflow | null> {
- const row = await db.prepare('SELECT version,rules FROM c_approval_workflows ORDER BY version DESC LIMIT 1').first<{version:number;rules:string}>();
+export async function currentWorkflow(db: D1Database, entityId = 'primary'): Promise<Workflow | null> {
+ const row = await db.prepare('SELECT version,rules FROM c_approval_workflows WHERE entity_id=? ORDER BY version DESC LIMIT 1').bind(entityId).first<{version:number;rules:string}>();
  return row ? {version:row.version,rules:JSON.parse(row.rules)} : null;
 }
-export const workflowState = (version: number): Sql => ({sql:'COALESCE((SELECT MAX(version) FROM c_approval_workflows),0)=?',params:[version]});
-export async function saveWorkflow(db: D1Database, actor: Actor, b: Data) {
+export const workflowState = (version: number, entityId = 'primary'): Sql => ({sql:'COALESCE((SELECT MAX(version) FROM c_approval_workflows WHERE entity_id=?),0)=?',params:[entityId,version]});
+export async function saveWorkflow(db: D1Database, actor: Actor, b: Data, entityId = 'primary') {
  needRow(actor,'settings');
  requireThat(actor.kind==='person','Only a person configures approval workflows',403);
- const current=await currentWorkflow(db);
+ await entity(db,entityId);
+ const current=await currentWorkflow(db,entityId);
  requireThat(b.version===(current?.version??0),'Workflow changed; reload before saving',409);
  requireThat(Array.isArray(b.rules)&&b.rules.length<=20,'Use at most 20 workflow rules');
  const rules: WorkflowRule[]=[];
@@ -27,7 +29,7 @@ export async function saveWorkflow(db: D1Database, actor: Actor, b: Data) {
   const value=['amount','category','project','department'].includes(c.kind)?text(c.value,'Condition value',200):'';
   if(c.kind==='amount') amount(value,'Amount');
   if(c.kind==='department') requireThat(await db.prepare('SELECT 1 FROM c_departments WHERE id=? AND active=1').bind(value).first(),'Choose an active department');
-  if(c.kind==='category') requireThat(await db.prepare('SELECT 1 FROM c_categories WHERE id=? AND active=1').bind(value).first(),'Choose an active category');
+  if(c.kind==='category') requireThat(await db.prepare('SELECT 1 FROM c_categories WHERE id=? AND active=1 AND entity_id=?').bind(value,entityId).first(),'Choose an active category');
   requireThat(Array.isArray(input.stages)&&input.stages.length>0&&input.stages.length<=10,'Use one to ten stages per rule');
   const stages: Reviewer[][]=[];
   for(const stage of input.stages) {
@@ -39,6 +41,7 @@ export async function saveWorkflow(db: D1Database, actor: Actor, b: Data) {
     else {
      const address=email(r.email,'Reviewer');
      requireThat(await db.prepare(`SELECT 1 FROM c_members WHERE email=? AND active=1 AND ${r.kind==='finance'?'is_finance':'is_manager'}=1`).bind(address).first(),'Choose an active reviewer with the matching role');
+     await requireEntityMember(db,entityId,address);
      reviewers.push({kind:r.kind,email:address});
     }
    }
@@ -47,9 +50,9 @@ export async function saveWorkflow(db: D1Database, actor: Actor, b: Data) {
   }
   rules.push({label,condition:{kind:c.kind,value},stages});
  }
- const version=(current?.version??0)+1;
- await commit(db,all(rowAuthority(actor,'settings'),workflowState(version-1)),[
-  db.prepare('INSERT INTO c_approval_workflows(version,rules,created_by,created_at) VALUES(?,?,?,?)').bind(version,JSON.stringify(rules),actor.delegate?.email??actor.email,now()),
+ const version=((await db.prepare('SELECT COALESCE(MAX(version),0) AS n FROM c_approval_workflows').first<{n:number}>())?.n??0)+1;
+ await commit(db,all(rowAuthority(actor,'settings'),workflowState(current?.version??0,entityId)),[
+  db.prepare('INSERT INTO c_approval_workflows(version,rules,created_by,created_at,entity_id) VALUES(?,?,?,?,?)').bind(version,JSON.stringify(rules),actor.delegate?.email??actor.email,now(),entityId),
   event(db,actor,'approval-workflow-saved',{}, {version,rules}),
  ]);
  return {version,rules};

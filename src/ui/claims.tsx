@@ -14,16 +14,23 @@ import { go, oldestWaiting, waitingFor } from './app';
 
 export type ViewProps = { state: D; reload: () => Promise<D>; id?: string; query: string };
 
-const sum = (claims: D[]) => claims.reduce((n, c) => n + c.total_minor, 0);
+const totals = (claims: D[], defaultCurrency: string) => {
+  const byCurrency = new Map<string, number>();
+  for (const claim of claims) byCurrency.set(claim.currency, (byCurrency.get(claim.currency) ?? 0) + claim.total_minor);
+  return byCurrency.size ? [...byCurrency].map(([currency, total]) => `${money(total, currency)}${currency === 'USD' ? ' USD' : ''}`).join(' · ') : money(0, defaultCurrency);
+};
 /** A claim matches the top bar's search on its number, title or person. */
 export const matches = (c: D, query: string) => `${claimNumber(c.number)} ${c.title} ${c.employee_name}`.toLowerCase().includes(query.trim().toLowerCase());
 
-function NewClaim({ reload, onClose }: { reload: () => Promise<D>; onClose: () => void }) {
+function NewClaim({ state, reload, onClose }: { state: D; reload: () => Promise<D>; onClose: () => void }) {
+  const entities = state.entities.filter((entity: D) => entity.members.includes(state.actor.email));
   return <Side className="side" label="New claim">
     <div className="panel-head"><h2>New claim</h2><button type="button" className="panel-close button-reset" onClick={onClose} data-tooltip="Close new claim" aria-label="Close new claim"><Icon name="cross" /></button></div>
     <p className="panel-date">Name it for the trip or project, then add each expense with its receipt.</p>
-    <Form label="Start claim" className="record-form-inline" onSubmit={async v => { const claim = await call('claims', { title: v.title }); await reload(); onClose(); go('claims', claim.id); }} secondary={<button type="button" className="button" onClick={onClose}>Cancel</button>}>
+    <Form label="Start claim" className="record-form-inline" onSubmit={async v => { const claim = await call('claims', { title: v.title, entityId: v.entityId }); await reload(); onClose(); go('claims', claim.id); }} secondary={<button type="button" className="button" onClick={onClose}>Cancel</button>}>
       <Field label="Claim title" name="title" placeholder="Denver client trip" autoFocus />
+      <Field label="Entity" name="entityId" options={entities.map((entity: D) => ({ value: entity.id, label: `${entity.name} · ${entity.currency}` }))} defaultValue={entities.length === 1 ? entities[0].id : undefined} />
+      {!entities.length && <p role="status">Ask an administrator to add you to an entity before starting a claim.</p>}
     </Form>
   </Side>;
 }
@@ -44,7 +51,7 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
   const desktop = useDesktop();
   const landing = !id && !creating && desktop ? oldestWaiting(state, shown) : undefined;
   const open: string | undefined = id ?? landing?.id, elsewhere = waitingFor(state).filter((c: D) => !shown.includes(c)).length;
-  const panel = creating ? <NewClaim reload={reload} onClose={() => onCreating(false)} />
+  const panel = creating ? <NewClaim state={state} reload={reload} onClose={() => onCreating(false)} />
     : open ? <ClaimPanel key={open} id={open} state={state} reload={reload} back="claims" closable={!!id} />
     : elsewhere ? <aside className="side side-empty"><Empty large title={`${plural(elsewhere, 'claim')} waiting for your decision`}><a href="#/approvals">Open Approvals</a> to decide; a claim you choose here opens in this panel.</Empty></aside>
     : <aside className="side side-empty"><Empty large title="Nothing is waiting for your decision">Choose a claim to see its expenses, receipts, policy exceptions and history here.</Empty></aside>;
@@ -52,9 +59,9 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
     <PageHead title="Claims" line={`${plural(scoped.length, 'claim')} ${whose}, ${waiting.length} waiting for approval, ${ready.length} approved and ready to pay`}
       action={onNewClaim && <button className="button primary head-action" onClick={onNewClaim}><Icon name="plus-circle" />New claim</button>} />
     <Tiles label="Claim totals" tiles={[
-      { label: 'Claims', value: scoped.length, note: money(sum(scoped), state.business.currency) },
-      { label: 'Approved', value: approved.length, note: `${paid.length} reimbursed · ${money(sum(approved), state.business.currency)}` },
-      { label: 'Waiting for approval', value: waiting.length, note: money(sum(waiting), state.business.currency), wash: true },
+      { label: 'Claims', value: scoped.length, note: totals(scoped, state.business.currency) },
+      { label: 'Approved', value: approved.length, note: `${paid.length} reimbursed · ${totals(approved, state.business.currency)}` },
+      { label: 'Waiting for approval', value: waiting.length, note: totals(waiting, state.business.currency), wash: true },
     ]} />
     {state.actor.roles.employee && <AgentStrip proposals={proposals} reload={reload} currency={state.business.currency} idle={<><strong>Agents:</strong> nothing prepared for you right now. An agent with your key turns receipts into draft claims here for you to accept; it never submits, approves or pays. <a href="#/settings">Agent keys</a></>} />}
     <PrepareNativeWork state={state} reload={reload} />

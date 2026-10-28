@@ -29,8 +29,10 @@ export function validateCoding<T extends Data>(catalog: Catalog, item: T): T & {
   requireThat(!item.billable || customer || item.customer, 'A billable expense needs a customer');
   return { ...item, ...(project ? { project: project.name } : {}), ...(customer ? { customer: customer.name } : {}), ...(costCentre ? { allocations: item.allocations.map((a: Data) => ({ ...a, cost_centre: costCentre.name })) } : {}), coding, codingSnapshot: snapshot, codingVersion: catalog.version };
 }
-export async function checkedCoding<T extends Data>(db: D1Database, items: T[]) {
-  const catalog = await codingCatalog(db);
+export async function checkedCoding<T extends Data>(db: D1Database, items: T[], entityId = 'primary') {
+  const whole = await codingCatalog(db);
+  const catalog = entityId==='primary'?whole:{...whole,dimensions:[],values:[],requirements:[]};
+  if(entityId!=='primary')requireThat(items.every(i=>!Object.keys(i.coding??{}).length),'Provider and shared catalog choices are unavailable for this legal entity',409);
   const mappings = new Map<string,Data>();
   for (const item of items) for (const part of item.allocations ?? []) if (part.ledger_account_snapshot !== undefined) mappings.set(part.category_id,part);
   const expected = [...mappings.values()].map(p => ({ id:p.category_id,account:p.ledger_account_id,snapshot:p.ledger_account_snapshot,code:p.account_code,tax:p.tax_code }));

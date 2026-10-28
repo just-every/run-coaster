@@ -1,3 +1,4 @@
+import { requireEntityMember } from './entities';
 import { projectOwners } from './coding/project-owners';
 import { configuredChain } from './approval-chain';
 import { currentWorkflow, workflowState, type Reviewer } from './workflow-configuration';
@@ -7,8 +8,8 @@ import { amount, requireThat, type Data } from './types';
 
 export type Task = {kind:'claim'|'request';record_id:string;revision:number;slot:number;stage:number;email:string;on_behalf_of:string|null;role:'manager'|'finance';status:'waiting'|'approved'};
 export type Plan = {version:number; stages:Reviewer[][]; matched:string[]};
-export async function workflowPlan(db:D1Database,employee:string,total:number,items:Data[],exceptions:Data[],request=false) {
- const workflow=await currentWorkflow(db);
+export async function workflowPlan(db:D1Database,employee:string,total:number,items:Data[],exceptions:Data[],request=false,entityId='primary') {
+ const workflow=await currentWorkflow(db,entityId);
  if(!workflow?.rules.length) return null;
  const configured=await configuredChain(db,employee);
  const member=await db.prepare('SELECT m.approver_email,m.department_id,(SELECT a.approver_email FROM c_members a WHERE a.email=m.approver_email AND a.active=1) AS managers_manager,(SELECT d.head_email FROM c_departments d WHERE d.id=m.department_id AND d.active=1) AS department_head FROM c_members m WHERE m.email=? AND m.active=1').bind(employee).first<{approver_email:string;department_id:string|null;managers_manager:string|null;department_head:string|null}>();
@@ -19,7 +20,7 @@ export async function workflowPlan(db:D1Database,employee:string,total:number,it
   const match=c.kind==='always'||c.kind==='amount'&&total>amount(c.value,'Amount')||c.kind==='exception'&&exceptions.length>0||c.kind==='category'&&items.some(i=>i.allocations?.some((a:Data)=>a.category_id===c.value))||c.kind==='project'&&items.some(i=>i.project===c.value||i.codingSnapshot?.some((v:Data)=>v.kind==='project'&&v.id===c.value))||c.kind==='spend-request'&&(request||items.some(i=>i.request_id))||c.kind==='department'&&!!member?.department_id&&member.department_id===c.value;
   if(match){stages.push(...rule.stages);matched.push(rule.label);}
  }
- const guards:Sql[]=[workflowState(workflow.version),...configured.guards];
+ const guards:Sql[]=[workflowState(workflow.version,entityId),...configured.guards];
  const frozen:Reviewer[][]=[];
  for(const stage of stages){
   const reviewers:Reviewer[]=[];
@@ -39,7 +40,7 @@ export async function workflowPlan(db:D1Database,employee:string,total:number,it
    const role=r.kind==='finance'?'finance':'manager';
    const guard={sql:`EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_${role}=1)`,params:[address]};
    requireThat(await db.prepare(`SELECT 1 WHERE ${guard.sql}`).bind(...guard.params).first(),'Every workflow reviewer must be active with the matching role',409);
-   guards.push(guard);reviewers.push({kind:r.kind==='finance'?'finance':'named',email:address});
+   guards.push(guard,await requireEntityMember(db,entityId,address));reviewers.push({kind:r.kind==='finance'?'finance':'named',email:address});
   }
   requireThat(new Set(reviewers.map(r=>r.email)).size===reviewers.length,'Parallel reviewers resolve to the same person; ask the owner to correct the workflow',409);
   frozen.push(reviewers);
@@ -79,5 +80,6 @@ export async function nextWorkflow(db:D1Database,kind:'claim'|'request',id:strin
  const remaining=active.filter(t=>t!==task),stage=task.stage+1;
  const resolved=advance&&remaining.length===0&&stage<plan.stages.length?await resolveStage(db,plan.stages[stage],employee,timezone):null;
  const next=remaining[0]??resolved?.tasks[0]??null;
+ if(kind==='claim'&&resolved){const claim=await db.prepare('SELECT entity_id FROM c_claims WHERE id=?').bind(id).first<{entity_id:string}>();for(const t of resolved.tasks)resolved.guards.push(await requireEntityMember(db,claim!.entity_id,t.email));}
  return {task,next,final:!next,guards:resolved?.guards??[],writes:[db.prepare("UPDATE c_workflow_tasks SET status='approved' WHERE kind=? AND record_id=? AND revision=? AND slot=?").bind(kind,id,revision,task.slot),...(resolved?insertTasks(db,kind,id,revision,stage,tasks.length,resolved.tasks):[])]};
 }

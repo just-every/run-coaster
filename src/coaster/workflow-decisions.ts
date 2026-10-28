@@ -1,3 +1,4 @@
+import { entityBusiness, entityMember } from './entities';
 import { all, authority, commit } from './session';
 import { event } from './events';
 import { claimState, loadClaim, type Claim } from './claims';
@@ -15,7 +16,7 @@ export async function decideWorkflowClaim(db:D1Database,actor:Actor,claim:Claim,
  requireThat(claim.status==='submitted','This claim is not waiting for a decision',409);
  requireThat(b.version===claim.version&&b.revision===claim.revision,'The claim changed since you opened it; reload and review it again',409);
  requireThat(['approved','returned','rejected'].includes(b.decision),'Choose approve, return or reject');
- const route=await nextWorkflow(db,'claim',claim.id,claim.revision,plan,actor.email,claim.employee_email,(await requireBusiness(db)).timezone,b.decision==='approved');
+ const route=await nextWorkflow(db,'claim',claim.id,claim.revision,plan,actor.email,claim.employee_email,(await entityBusiness(db,claim.entity_id)).timezone,b.decision==='approved');
  requireThat(actor.roles[route.task.role],'The reviewer role is no longer held',403);
  const reason=optionalText(b.reason,'Reason',1000);
  requireThat(b.decision==='approved'||reason,'Give a reason to return or reject');
@@ -26,7 +27,7 @@ export async function decideWorkflowClaim(db:D1Database,actor:Actor,claim:Claim,
  }
  requireThat(!approved||!exceptions.length||b.acknowledge===true,'Review and acknowledge the policy exceptions before approving',409);
  const override=approved?preApprovalOverride(exceptions,b):null,at=now(),onBehalfOf=actor.delegate?actor.email:route.task.on_behalf_of;
- await commit(db,all(authority(actor,route.task.role),claimState(claim.id,claim.version,['submitted']),...route.guards),[
+ await commit(db,all(entityMember(claim.entity_id,actor.email),authority(actor,route.task.role),claimState(claim.id,claim.version,['submitted']),...route.guards),[
   db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step,workflow_final) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(uid(),claim.id,claim.revision,b.decision,override??reason,actor.delegate?.email??actor.email,at,JSON.stringify(exceptions),onBehalfOf,route.task.slot,approved&&route.final?1:0),
   ...(approved?route.writes:[]),
   db.prepare('UPDATE c_claims SET status=?,approver_email=?,on_behalf_of=?,version=version+1,updated_at=? WHERE id=?').bind(approved&&!route.final?'submitted':b.decision,approved?route.next?.email??claim.approver_email:claim.approver_email,approved?route.next?.on_behalf_of??null:claim.on_behalf_of,at,claim.id),

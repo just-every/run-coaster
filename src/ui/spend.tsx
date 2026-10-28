@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { apiHref, call, money, type D } from './api';
-import { Empty, Field, Form, Section } from './parts';
+import { apiHref, call, day, money, type D } from './api';
+import { Details, Empty, Field, Form, Section } from './parts';
 
 const GROUPINGS = [['employee', 'Employee'], ['category', 'Category'], ['merchant', 'Merchant'], ['cost-centre', 'Cost centre'], ['department', 'Department'], ['project', 'Project'], ['month', 'Month'], ['card', 'Card']].map(([value, label]) => ({ value, label }));
 
 /** Spend grouped by employee, department, category, merchant, cost centre, card or month, drilled to each expense and its receipt, with saved views (REPORT-001). */
-export function SpendAnalytics({ currency }: { currency: string }) {
+export function SpendAnalytics({ currency, canConsolidate = false }: { currency: string; canConsolidate?: boolean }) {
   const [result, setResult] = useState<D>(), [drill, setDrill] = useState<D>(), [views, setViews] = useState<D[]>();
   const run = async (q: Record<string, string>) => { const r = await call(`spend?${new URLSearchParams(q)}`); setResult(r); setViews(r.views); setDrill(undefined); };
   return <Section title="Spend">
@@ -29,5 +29,34 @@ export function SpendAnalytics({ currency }: { currency: string }) {
       <table className="plain"><thead><tr><th>Date</th><th>Claim</th><th>Employee</th><th>Merchant</th><th>Category</th><th className="figure">Amount</th><th>Receipt</th></tr></thead><tbody>
         {drill.lines.map((l: D, i: number) => <tr key={i}><td>{l.date}</td><td><a href={`#/claims/${l.claim}`}>{l.number}</a></td><td>{l.employeeName}</td><td>{l.merchant}</td><td>{l.categoryName}</td><td className="figure">{money(l.amountMinor, currency)}</td><td>{l.receiptLink ? <a href={apiHref(l.receiptLink.replace('/api/coaster/', '') + '?inline=1')} target="_blank" rel="noreferrer">Open</a> : '—'}</td></tr>)}
       </tbody></table></div>}
+    {canConsolidate && <ConsolidatedSpend />}
   </Section>;
+}
+
+/** A saved conversion report keeps its exact rates available for later review. */
+function ConsolidatedSpend() {
+  const [report, setReport] = useState<D>();
+  return <div className="sub-form"><Details label="Consolidated entity report">
+    <Form label="Create USD report" onSubmit={async values => setReport(await call('spend/consolidated', { from: values.from, to: values.to, currency: 'USD' }))}>
+      <Field label="Report from" name="from" type="date" />
+      <Field label="Report until" name="to" type="date" />
+    </Form>
+    <div className="sub-form"><Form label="Open saved report" onSubmit={async values => setReport(await call(`spend/consolidated/${encodeURIComponent(values.reportId)}`))}>
+      <Field label="Saved report ID" name="reportId" />
+    </Form></div>
+    {report && <div className="report" role="region" aria-label="Consolidated report result">
+      <h3>{money(report.totalMinor, report.currency)} {report.currency}</h3>
+      <p>{day(report.from)} to {day(report.to)}</p>
+      <Field label="Report ID" value={report.id} readOnly />
+      {report.lines.length ? <table className="plain"><thead><tr><th>Entity</th><th>Expense</th><th className="figure">Native amount</th><th className="figure">USD amount</th><th>Exchange rate</th></tr></thead><tbody>
+        {report.lines.map((line: D, index: number) => <tr key={index}>
+          <td>{line.entityName}</td>
+          <td>{line.merchant}<span className="muted"> · {day(line.date)} · <a href={`#/claims/${line.claim}`}>{line.number}</a></span></td>
+          <td className="figure">{money(line.nativeMinor, line.currency)}{line.currency === 'USD' ? ' USD' : ''}</td>
+          <td className="figure">{money(line.amountMinor, report.currency)}</td>
+          <td><Details label="Conversion evidence"><p>1 {line.currency} = {line.fx_rate} {report.currency}</p><p>{day(line.fx_date)} · {line.fx_source}</p></Details></td>
+        </tr>)}
+      </tbody></table> : <Empty title="No spend in this period" />}
+    </div>}
+  </Details></div>;
 }

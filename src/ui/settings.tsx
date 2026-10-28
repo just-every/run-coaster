@@ -2,6 +2,7 @@ import { Desktop } from './desktop';
 import { ProviderCosts } from './provider-costs';
 import { CaptureWindow } from './capture-window';
 import { WorkflowEditor } from './workflow-editor';
+import { EntitySettings } from './entities';
 import { useState } from 'react';
 import { amountText, call, day, money, moment, rate, today, type D } from './api';
 import { Badge, Empty, Field, Form, PageHead, Section } from './parts';
@@ -38,6 +39,8 @@ export function Settings({ state, reload }: ViewProps) {
   const auditorOnly = roles.auditor && !roles.employee && !roles.manager && !roles.finance && !owner;
   const [category, setCategory] = useState<D | null>(null), [member, setMember] = useState<D | null>(null), [notice, setNotice] = useState(''), [token, setToken] = useState<D>();
   const saved = async (message: string) => { setNotice(message); await reload(); };
+  const primaryCategories = state.categories.filter((c: D) => (c.entity_id ?? 'primary') === 'primary');
+  const primaryState = { ...state, categories: primaryCategories };
   const managers = state.members.filter((m: D) => m.is_manager && m.active);
   const mileageNow = b?.mileage_rates.filter((r: D) => r.effective_from <= today()).at(-1);
   const zones = b && !US_ZONES.some(z => z.value === b.timezone) ? [...US_ZONES, { value: b.timezone, label: b.timezone }] : US_ZONES;
@@ -69,6 +72,7 @@ export function Settings({ state, reload }: ViewProps) {
       </Form></div>
     </Section>}
     </div>
+    {admin && b && !state.actor.delegate && <EntitySettings state={state} reload={reload} onNotice={setNotice} />}
     {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
     {b && (roles.employee || roles.finance || owner) && <Allowances state={state} reload={reload} onNotice={setNotice} />}
     {(owner || roles.finance) && b && <CaptureWindow />}
@@ -91,14 +95,14 @@ export function Settings({ state, reload }: ViewProps) {
     {b && owner && !state.actor.delegate && <ProviderCosts />}
     {b && admin && !state.actor.delegate && <ReceiptReadingSettings />}
     {b && roles.employee && !state.actor.delegate && <ReceiptEmailSettings />}
-    {b && admin && <CodingSettings state={state} reload={reload} />}
+    {b && admin && <CodingSettings state={primaryState} reload={reload} />}
     {b && !auditorOnly && <AutomaticCoding state={state} />}
     {b && (reader || roles.cardAdmin) && <CardReconciliation state={state} />}
-    {b && (reader || roles.manager) && <SpendAnalytics currency={b.currency} />}
+    {b && (reader || roles.manager) && <SpendAnalytics currency={b.currency} canConsolidate={reader} />}
     {b && reader && <Budgets state={state} canSet={admin || roles.finance} />}
     {reader && <Reports owner={owner} schedules={owner || roles.finance} />}
     {(admin || roles.finance || roles.auditor) && <AuditRecords state={state} />}
-    {admin && b && <WorkflowEditor state={state} reload={reload} />}
+    {admin && b && <WorkflowEditor state={primaryState} reload={reload} />}
     {admin && b && <Section title="Approval by rule">
       <p className="muted">{state.approvalRule?.enabled ? `Rule v${state.approvalRule.version}: a claim approves itself when every expense is under ${money(state.approvalRule.limit_minor, b.currency)}, has its receipt attached and raises no policy exception. Every other claim goes to its approver.` : 'Off: every claim goes to its approver.'} Rule approvals are recorded with the rule's version and audit-sampled like any approval.</p>
       <Form key={state.approvalRule?.version ?? 0} label="Save approval rule" onSubmit={async v => { await call('settings/approval-rule', v); await saved('Approval rule saved.'); }}>
@@ -131,7 +135,7 @@ export function Settings({ state, reload }: ViewProps) {
     </Section>}
     {admin && b && <Departments state={state} reload={reload} onNotice={setNotice} />}
     {(admin || roles.finance) && b && <EscalationChains state={state} reload={reload} onNotice={setNotice} />}
-    {(admin || roles.finance) && b && <PolicyRules state={state} onNotice={setNotice} onChanged={reload} />}
+    {(admin || roles.finance) && b && <PolicyRules state={primaryState} onNotice={setNotice} onChanged={reload} />}
     {(admin || roles.finance) && b && <PolicyAdvice state={state} onNotice={setNotice} onChanged={reload} />}
     {owner && b && <Retention state={state} onNotice={setNotice} />}
     {admin && b && <Section title="Mileage rates">
@@ -145,8 +149,8 @@ export function Settings({ state, reload }: ViewProps) {
       </Form></div>
     </Section>}
     {admin && b && <Section title="Expense categories">
-      {state.categories.length ? <table className="plain"><thead><tr><th>Category</th><th>Account</th><th>Tax code</th><th className="figure">Limit per expense</th><th>Receipt</th><th>Status</th><th><span className="visually-hidden">Change</span></th></tr></thead><tbody>
-        {state.categories.map((c: D) => <tr key={c.id}><td>{c.name}{c.required_fields.length > 0 && <small className="muted"> · needs {c.required_fields.join(', ')}</small>}</td><td><span className="mobile-label">Account </span>{c.account_code}{c.ledger_account && <small className="muted"><br />Mapped: {c.ledger_account.name} · {c.ledger_account.source === 'native' ? 'Coaster' : 'QuickBooks'} · {c.ledger_account.sourceId || c.ledger_account.id}{!c.ledger_account_available && ' · unavailable'}</small>}</td><td><span className="mobile-label">Tax </span>{c.tax_code}</td><td className="figure">{c.limit_minor == null ? 'No limit' : money(c.limit_minor, b.currency)}{c.per_person_limit_minor != null ? ` · ${money(c.per_person_limit_minor, b.currency)} a person` : ''}</td><td>{c.receipt_always ? 'Always' : 'Over the threshold'}</td><td>{c.active ? 'In use' : 'Retired'}</td><td><button className="button small" onClick={() => setCategory(c)}>Change</button></td></tr>)}
+      {primaryCategories.length ? <table className="plain"><thead><tr><th>Category</th><th>Account</th><th>Tax code</th><th className="figure">Limit per expense</th><th>Receipt</th><th>Status</th><th><span className="visually-hidden">Change</span></th></tr></thead><tbody>
+        {primaryCategories.map((c: D) => <tr key={c.id}><td>{c.name}{c.required_fields.length > 0 && <small className="muted"> · needs {c.required_fields.join(', ')}</small>}</td><td><span className="mobile-label">Account </span>{c.account_code}{c.ledger_account && <small className="muted"><br />Mapped: {c.ledger_account.name} · {c.ledger_account.source === 'native' ? 'Coaster' : 'QuickBooks'} · {c.ledger_account.sourceId || c.ledger_account.id}{!c.ledger_account_available && ' · unavailable'}</small>}</td><td><span className="mobile-label">Tax </span>{c.tax_code}</td><td className="figure">{c.limit_minor == null ? 'No limit' : money(c.limit_minor, b.currency)}{c.per_person_limit_minor != null ? ` · ${money(c.per_person_limit_minor, b.currency)} a person` : ''}</td><td>{c.receipt_always ? 'Always' : 'Over the threshold'}</td><td>{c.active ? 'In use' : 'Retired'}</td><td><button className="button small" onClick={() => setCategory(c)}>Change</button></td></tr>)}
       </tbody></table> : <Empty title="No categories yet">Add the categories your accountant expects, with their account and tax codes.</Empty>}
       <div className="sub-form"><h3>{category ? `Change ${category.name}` : 'Add a category'}</h3><Form key={category?.id ?? 'new'} label={category ? 'Save category' : 'Add category'} onSubmit={async v => { await call('settings/categories', { ...v, id: category?.id }); setCategory(null); await saved('Category saved.'); }} secondary={category ? <button type="button" className="button" onClick={() => setCategory(null)}>Cancel</button> : undefined}>
         <Field label="Category name" name="name" defaultValue={category?.name} />

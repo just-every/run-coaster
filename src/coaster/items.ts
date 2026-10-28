@@ -6,7 +6,7 @@ import { rateOn } from './mileage';
 import { pricePerDiem, type PerDiemTrip } from './per-diem';
 import { amount, distance, email, isoDate, mileageMinor, optionalAmount, optionalText, requireThat, text, type Data } from './types';
 
-export type Category = { id: string; name: string; account_code: string; tax_code: string; limit_minor: number | null; active: number; receipt_always: number; per_person_limit_minor: number | null; required_fields: string[]; ledger_account_id?: string | null; ledger_account_snapshot?: string; ledger_account?: CategoryAccount | null; ledger_account_available?: boolean };
+export type Category = { entity_id?: string; id: string; name: string; account_code: string; tax_code: string; limit_minor: number | null; active: number; receipt_always: number; per_person_limit_minor: number | null; required_fields: string[]; ledger_account_id?: string | null; ledger_account_snapshot?: string; ledger_account?: CategoryAccount | null; ledger_account_available?: boolean };
 /** One categorized part of an expense; an itemized folio names each part (room, tax, in-room dining). */
 export type Allocation = { category_id: string; cost_centre: string; amount_minor: number; description?: string; original_minor?: number };
 /** Someone at a meal: a colleague (by their Coaster email) or a guest. */
@@ -26,8 +26,8 @@ export type ItemInput = Partial<FxConversion> & {
   receipt_resolution?: string | null;
 };
 
-export async function categories(db: D1Database): Promise<Category[]> {
-  const rows = (await db.prepare('SELECT * FROM c_categories ORDER BY name').all<Category & { required_fields: string }>()).results;
+export async function categories(db: D1Database, entityId = 'primary'): Promise<Category[]> {
+  const rows = (await db.prepare('SELECT * FROM c_categories WHERE entity_id=? ORDER BY name').bind(entityId).all<Category & { required_fields: string }>()).results;
   return categoryAccountViews(db,rows.map(c => ({ ...c, required_fields: JSON.parse(c.required_fields) })));
 }
 

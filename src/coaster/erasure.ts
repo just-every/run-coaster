@@ -14,6 +14,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
+  ['c_entity_reports',['created_by']],
   ['c_plaid_settings', ['set_by']], ['c_plaid_connections', ['connected_by']],
   ['c_receipt_mail_messages',['sender','owner_email']], ['c_receipt_mail_settings',['set_by']],
   ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']], ['c_bank_providers', ['connected_by']], ['c_bank_settings', ['set_by']],
@@ -149,6 +150,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql("DELETE FROM c_auto_coding_contexts WHERE target_kind='receipt' AND employee_email=?",address),
     sql("DELETE FROM c_auto_coding_observations WHERE target_kind='receipt' AND employee_email=?",address),
     sql("DELETE FROM c_auto_coding_rules WHERE scope='personal' AND owner_email=?",address),
+    sql('UPDATE c_entity_members SET active=0 WHERE email=?',address),
     sql('DELETE FROM c_agent_keys WHERE member_email=?', address),
     sql('DELETE FROM c_public_keys WHERE member_email=?', address),
     sql('UPDATE c_capture_receipts SET uploaded_by=? WHERE uploaded_by IN (SELECT email FROM c_receipt_mail_aliases WHERE owner_email=?)',subject,address),

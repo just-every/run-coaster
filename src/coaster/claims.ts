@@ -1,3 +1,4 @@
+import { entity, entityBusiness, entityMember, requireEntityMember } from './entities';
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { can } from './permissions';
 import { event, ruleEvent } from './events';
@@ -24,7 +25,7 @@ import { noCardDuplicates } from './card-duplicates';
 import { keepsStatementFacts, reimbursableMinor, REIMBURSABLE_SUM } from './card-expenses';
 import { Fault, now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Claim = { id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null; assigned_emails?: string[]; workflow_readers?: string[] };
+export type Claim = { entity_id: string; id: string; number: number; employee_email: string; approver_email: string | null; title: string; status: string; revision: number; version: number; total_minor: number; currency: string; prepared_by: string | null; batch_id: string | null; created_at: string; updated_at: string; on_behalf_of: string | null; held_from: string | null; held_by: string | null; held_at: string | null; hold_reason: string | null; assigned_emails?: string[]; workflow_readers?: string[] };
 
 export const claimNumber = (n: number) => `CL-${String(n).padStart(4, '0')}`;
 export const RECEIPT_LIMIT = 1_500_000;
@@ -58,9 +59,9 @@ function editable(actor: Actor, claim: Claim, b: Data) {
 /** Recount a claim's reimbursable total from its expenses (company-card expenses are not reimbursed) and move its version on. */
 export const claimTotal = (db: D1Database, id: string) => db.prepare(`UPDATE c_claims SET total_minor=(SELECT ${REIMBURSABLE_SUM} FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?`).bind(id, now(), id);
 
-export function insertClaim(db: D1Database, id: string, employee: string, title: string, currency: string, preparedBy: string | null) {
+export function insertClaim(db: D1Database, id: string, employee: string, title: string, currency: string, preparedBy: string | null, entityId = 'primary') {
   const at = now();
-  return db.prepare('INSERT INTO c_claims(id,number,employee_email,title,status,currency,prepared_by,created_at,updated_at) VALUES(?,(SELECT COALESCE(MAX(number),0)+1 FROM c_claims),?,?,\'draft\',?,?,?,?)').bind(id, employee, title, currency, preparedBy, at, at);
+  return db.prepare('INSERT INTO c_claims(id,number,employee_email,title,status,currency,prepared_by,created_at,updated_at,entity_id) VALUES(?,(SELECT COALESCE(MAX(number),0)+1 FROM c_claims),?,?,\'draft\',?,?,?,?,?)').bind(id, employee, title, currency, preparedBy, at, at, entityId);
 }
 
 export function insertItem(db: D1Database, claimId: string, itemId: string, position: number, item: ItemInput, receiptId: string | null) {
@@ -73,8 +74,9 @@ export function insertItem(db: D1Database, claimId: string, itemId: string, posi
 export async function createClaim(db: D1Database, actor: Actor, b: Data) {
   need(actor, 'employee');
   requireThat(actor.kind === 'person', 'Agents prepare proposals instead of claims', 403);
-  const business = await requireBusiness(db), id = uid(), title = text(b.title, 'Claim title', 200);
-  await commit(db, authority(actor, 'employee'), [insertClaim(db, id, actor.email, title, business.currency, null), event(db, actor, 'claim-created', { claim: id }, { title })]);
+  const entityId=b.entityId===undefined?'primary':text(b.entityId,'Legal entity',64), business = await entityBusiness(db,entityId), id = uid(), title = text(b.title, 'Claim title', 200);
+  const membership=await requireEntityMember(db,entityId,actor.email);
+  await commit(db, all(authority(actor, 'employee'),membership), [insertClaim(db, id, actor.email, title, business.currency, null,entityId), event(db, actor, 'claim-created', { claim: id }, { title })]);
   return loadClaim(db, id);
 }
 
@@ -99,11 +101,12 @@ async function ownReceipt(db: D1Database, claim: Claim, receiptId: unknown, item
 export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
   editable(actor, claim, b);
-  const business = await requireBusiness(db), receiptId = await ownReceipt(db, claim, b.receipt, b.item);
+  const business = await entityBusiness(db,claim.entity_id), membership=await requireEntityMember(db,claim.entity_id,actor.email), receiptId = await ownReceipt(db, claim, b.receipt, b.item);
   const proposedId=typeof b.item==='string'&&b.item?b.item:uid();
-  const automatic=b.kind==='receipt'?await prepareItemInput(db,claim.employee_email,claim.id,proposedId,b):null;
-  let item: ItemInput = { ...await pricedItem(automatic?.input??b, business, await categories(db)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
-  const coding = await checkedCoding(db,[item]);
+  requireThat(claim.entity_id==='primary'||(b.kind==='receipt'&&!b.request&&!b.allowance&&!Object.keys(b.coding??{}).length),'This entity currently supports manual receipt expenses with its native chart',409);
+  const automatic=claim.entity_id==='primary'&&b.kind==='receipt'?await prepareItemInput(db,claim.employee_email,claim.id,proposedId,b):null;
+  let item: ItemInput = { ...await pricedItem(automatic?.input??b, business, await categories(db,claim.entity_id)), request_id: await linkableRequest(db, claim.employee_email, b.request) };
+  const coding = await checkedCoding(db,[item],claim.entity_id);
   item = coding.items[0];
   // A purchase claimed against a cap is reimbursed up to what is left of it (CLAIM-009).
   const allowance = b.allowance ? await capToAllowance(db, claim.employee_email, item, b.allowance, typeof b.item === 'string' ? b.item : null) : null;
@@ -138,7 +141,7 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
     if(Object.keys(flatten(human)).length)statements.push(...humanObservation(db,automatic.target,human,item.spent_on));
   }
   statements.push(...insertItem(db, claim.id, itemId, position, item, receiptId), claimTotal(db, claim.id), event(db, actor, b.item ? 'expense-changed' : 'expense-added', { claim: claim.id }, { item: itemId, merchant: item.merchant, amountMinor: item.amount_minor, receipt: receiptId, request: item.request_id, allowance: item.allowance_id ?? null, claimedMinor: item.claimed_minor ?? null }));
-  await commit(db, all(authority(actor, 'employee'), coding.guard, ...(automatic?[automatic.guard]:[]), ...(allowance ? [allowance.guard] : []), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
+  await commit(db, all(authority(actor, 'employee'), membership, coding.guard, ...(automatic?[automatic.guard]:[]), ...(allowance ? [allowance.guard] : []), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
   return loadClaim(db, id);
 }
 
@@ -214,7 +217,8 @@ export async function submitScheduled(db: D1Database, id: string, by: string, bu
 
 /** Everything a submission checks and writes once the submitter's authority is known. */
 async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, history: (action: string, detail: Data) => D1PreparedStatement, note: string, bucket?: R2Bucket) {
-  const coding = await checkedCoding(db,await claimItems(db, claim.id));
+  const membership=await requireEntityMember(db,claim.entity_id,claim.employee_email), business=await entityBusiness(db,claim.entity_id);
+  const coding = await checkedCoding(db,await claimItems(db, claim.id),claim.entity_id);
   const items = coding.items;
   requireThat(items.length > 0, 'Add at least one expense before submitting');
   const cardGuards = await noCardDuplicates(db, claim.employee_email, items);
@@ -222,27 +226,29 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(claim.employee_email).first<{ approver_email: string | null }>();
   const first = configured.chain?.steps[0].email ?? member?.approver_email;
   requireThat(member && first && first !== claim.employee_email, 'Ask the owner to set your approving manager before submitting', 409);
-  const active = await policyConfiguration(db, await requireBusiness(db), await categories(db));
+  const active = await policyConfiguration(db, business, await categories(db,claim.entity_id));
   const known = active.categories, missing = missingFields(items, known);
   requireThat(!missing.length, `Fill in the required ${missing.length === 1 ? 'field' : 'fields'} before submitting: ${missing.join('; ')} (policy v${active.version})`, 409);
-  const business = await requireBusiness(db), { approver, onBehalfOf } = await routeFor(db, first, claim.employee_email, localDay(business.timezone));
+  const { approver, onBehalfOf } = await routeFor(db, first, claim.employee_email, localDay(business.timezone));
+  const reviewers=[approver,...(resolved?.tasks.map(t=>t.email)??[])];
+  const reviewerGuards=await Promise.all([...new Set(reviewers)].map(address=>requireEntityMember(db,claim.entity_id,address)));
   const repeated = repeatedInClaim(claim.employee_email, items);
   requireThat(!repeated.length, `${repeated.map(i => i.merchant).join(', ')} appears twice on this claim with the same ${repeated.some(i => i.receipt_sha256) ? 'receipt' : 'date, merchant and amount and no receipt'}; only one could be reimbursed. Attach each one's own receipt, or correct or remove one, before submitting`, 409);
   const exceptions = await findExceptions(db, claim, items, business, known, active), hard = exceptions.filter(e => e.hard);
   requireThat(!hard.length, `This claim breaks a hard policy rule and cannot be submitted: ${hard.map(e => e.message).join('; ')}`, 409);
   const unexplained = exceptions.filter(e => !items.find(i => i.id === e.item)?.explanation);
   requireThat(!unexplained.length, `Explain each policy exception before submitting: ${unexplained.map(e => e.message).join('; ')}`, 409);
-  const workflow = await workflowPlan(db, claim.employee_email, claim.total_minor, items, exceptions);
+  const workflow = await workflowPlan(db, claim.employee_email, claim.total_minor, items, exceptions,false,claim.entity_id);
   const resolved = workflow ? await resolveStage(db, workflow.plan.stages[0], claim.employee_email, business.timezone) : null;
   const routed = resolved?.tasks[0];
-  const rule = await currentRule(db), byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
+  const rule = claim.entity_id==='primary'?await currentRule(db):null, byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
   const evidenced=await evidencedPolicyReview(db,items,exceptions,active,claim.employee_email,claim.currency);
-  const envelope=await currentEnvelope(db),individual=await expenseApprovals(db,items,exceptions,evidenced.review,rule,envelope,claim.employee_email,claim.currency);
+  const envelope=claim.entity_id==='primary'?await currentEnvelope(db):null,individual=await expenseApprovals(db,items,exceptions,evidenced.review,rule,envelope,claim.employee_email,claim.currency,claim.entity_id);
   const byAgent=!workflow&&!configured.chain&&individual.approvals.length===items.length&&individual.approvals.some(a=>a.source==='agent');
   const approved=byRule||byAgent;
   const revision = claim.revision + 1, total = reimbursableMinor(items), at = now();
-  const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: evidenced.review, ...(individual.approvals.length?{expenseApprovals:individual.approvals}:{}), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(auth, coding.guard, evidenced.guard, individual.guard, ...cardGuards, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(rule ? [ruleStill(rule)] : [])), [
+  const snapshot = { entity: await entity(db,claim.entity_id), receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: evidenced.review, ...(individual.approvals.length?{expenseApprovals:individual.approvals}:{}), ...(workflow ? { workflow: workflow.plan } : {}), policyVersion: active.version, title: claim.title, approver: routed?.email ?? approver, onBehalfOf: routed?.on_behalf_of ?? onBehalfOf, ...(configured.chain ? { approvalChain: configured.chain } : {}), currency: claim.currency, total_minor: total, exceptions, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
+  await commit(db, all(auth, membership, ...reviewerGuards, coding.guard, evidenced.guard, individual.guard, ...cardGuards, ...(workflow?.guards ?? []), ...(resolved?.guards ?? []), ...configured.guards, policyStill(active.version, business.timezone,claim.entity_id), claimState(claim.id, claim.version, ['draft', 'returned']), { sql: 'EXISTS(SELECT 1 FROM c_members WHERE email=? AND is_manager=1 AND active=1)', params: [approver] }, ...(rule ? [ruleStill(rule)] : [])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,?,?,?,?,?)').bind(claim.id, revision, by, at, total, JSON.stringify(snapshot)),
     ...(workflow && resolved ? insertTasks(db, 'claim', claim.id, revision, 0, 0, resolved.tasks) : []),
     ...(!workflow && configured.chain ? [freezeChain(db, claim.id, revision, configured.chain.id, configured.chain.steps)] : []),

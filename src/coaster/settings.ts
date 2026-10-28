@@ -1,3 +1,4 @@
+import { entityBusiness } from './entities';
 import { all, authority, commit, need } from './session';
 import { needRow, rowAuthority } from './permissions';
 import { handOver, openWork } from './handoff';
@@ -8,7 +9,7 @@ import { categoryAccountInput } from './coding/category-accounts';
 import { ownerPolicyVersion } from './policy-configuration';
 import { email, now, optionalAmount, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 
-export type Business = { fx_enabled: number; name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; reminder_days: number[]; quiet_from: number; quiet_until: number; service_level_days: number; escalation_days: number | null; auto_submit: 'daily' | 'weekly' | 'twice-monthly' | 'monthly' | null; retention_years: number; dual_release_over_minor: number | null; pay_weekday: number | null; advance_account: string; mileage_rates: MileageRate[] };
+export type Business = { entity_id?: string; fx_enabled: number; name: string; currency: string; timezone: string; per_diem_minor: number; receipt_threshold_minor: number; sales_tax_account: string; sales_tax_code: string; preapproval_threshold_minor: number | null; audit_sample_percent: number | null; reminder_days: number[]; quiet_from: number; quiet_until: number; service_level_days: number; escalation_days: number | null; auto_submit: 'daily' | 'weekly' | 'twice-monthly' | 'monthly' | null; retention_years: number; dual_release_over_minor: number | null; pay_weekday: number | null; advance_account: string; mileage_rates: MileageRate[] };
 
 /** The IRS documentary-evidence line: a new business needs receipts above $75 unless the owner sets another threshold. */
 export const DEFAULT_RECEIPT_THRESHOLD_MINOR = 7500;
@@ -45,6 +46,7 @@ export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
   await commit(db, rowAuthority(actor, 'settings'), [
     db.prepare('INSERT INTO c_business(id,name,currency,timezone,per_diem_minor,receipt_threshold_minor,sales_tax_account,sales_tax_code,preapproval_threshold_minor,updated_at) VALUES(1,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,per_diem_minor=excluded.per_diem_minor,receipt_threshold_minor=excluded.receipt_threshold_minor,sales_tax_account=excluded.sales_tax_account,sales_tax_code=excluded.sales_tax_code,preapproval_threshold_minor=excluded.preapproval_threshold_minor,updated_at=excluded.updated_at').bind(...values),
     db.prepare('UPDATE c_business SET fx_enabled=? WHERE id=1').bind(fxEnabled),
+    db.prepare("UPDATE c_entities SET name=?,currency=?,timezone=?,receipt_threshold_minor=?,preapproval_threshold_minor=?,sales_tax_account=?,sales_tax_code=?,fx_enabled=?,version=version+1,updated_at=? WHERE id='primary'").bind(values[0],currency,timezone,threshold,preapproval,values[5],values[6],fxEnabled,now()),
     ...(seed ? seedIrsRates(db) : []),
     ...ownerPolicyVersion(db, actor.delegate?.email ?? actor.email, timezone, now()),
     event(db, actor, 'business-saved', {}, { name: values[0], currency, timezone, perDiemMinor: values[3], receiptThresholdMinor: values[4], salesTaxAccount: values[5], salesTaxCode: values[6], preapprovalThresholdMinor: values[7], irsMileageRates: seed, fxEnabled: !!fxEnabled }),
@@ -75,14 +77,17 @@ export async function savePaymentControls(db: D1Database, actor: Actor, b: Data)
 const flag = (v: unknown) => v === true || v === 'true' || v === 'on' ? 1 : 0;
 const LODGING = /\b(lodging|hotels?|motels?)\b/i;
 
-export async function saveCategory(db: D1Database, actor: Actor, b: Data) {
+export async function saveCategory(db: D1Database, actor: Actor, b: Data, entityId = 'primary') {
   needRow(actor, 'settings');
   const id = typeof b.id === 'string' && b.id ? b.id : uid();
-  const previous = b.id ? await db.prepare('SELECT ledger_account_id,ledger_account_snapshot FROM c_categories WHERE id=?').bind(id).first<Data>() : null;
+  const previous = b.id ? await db.prepare('SELECT entity_id,ledger_account_id,ledger_account_snapshot FROM c_categories WHERE id=?').bind(id).first<Data>() : null;
   if (b.id) requireThat(previous, 'Category not found', 404);
+  requireThat(!previous || previous.entity_id === entityId, 'Category belongs to another legal entity', 409);
+  const settings = await entityBusiness(db,entityId);
+  requireThat(entityId === 'primary' || !b.ledgerAccountId, 'Provider chart accounts belong to the primary entity; use the native entity chart code', 409);
   const ledgerAccount = await categoryAccountInput(db,b.ledgerAccountId,previous);
   const name = text(b.name, 'Category name', 100);
-  const clash = await db.prepare('SELECT id FROM c_categories WHERE name=? AND id<>?').bind(name, id).first();
+  const clash = await db.prepare('SELECT id FROM c_categories WHERE name=? AND id<>? AND entity_id=?').bind(name, id, entityId).first();
   requireThat(!clash, 'Another category already has that name', 409);
   // Lodging always needs a receipt at any amount (IRS); the owner can ask the same of any other category.
   const receiptAlways = LODGING.test(name) ? 1 : flag(b.receiptAlways);
@@ -90,11 +95,11 @@ export async function saveCategory(db: D1Database, actor: Actor, b: Data) {
   const values = [id, name, text(b.accountCode, 'Account code', 40), text(b.taxCode, 'Tax code', 40), optionalAmount(b.limit, 'Limit per expense'), b.active === false || b.active === 'false' ? 0 : 1, receiptAlways, optionalAmount(b.perPersonLimit, 'Limit per person'), JSON.stringify(required),ledgerAccount.id,ledgerAccount.snapshot];
   const mappingState = previous ? [{ sql:'EXISTS(SELECT 1 FROM c_categories WHERE id=? AND ledger_account_id IS ? AND ledger_account_snapshot=?)',params:[id,previous.ledger_account_id,previous.ledger_account_snapshot] }] : [];
   await commit(db, all(rowAuthority(actor, 'settings'),...ledgerAccount.guards,...mappingState), [
-    db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always,per_person_limit_minor,required_fields,ledger_account_id,ledger_account_snapshot) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,account_code=excluded.account_code,tax_code=excluded.tax_code,limit_minor=excluded.limit_minor,active=excluded.active,receipt_always=excluded.receipt_always,per_person_limit_minor=excluded.per_person_limit_minor,required_fields=excluded.required_fields,ledger_account_id=excluded.ledger_account_id,ledger_account_snapshot=excluded.ledger_account_snapshot').bind(...values),
-    ...ownerPolicyVersion(db, actor.delegate?.email ?? actor.email, (await requireBusiness(db)).timezone, now()),
+    db.prepare('INSERT INTO c_categories(id,name,account_code,tax_code,limit_minor,active,receipt_always,per_person_limit_minor,required_fields,ledger_account_id,ledger_account_snapshot,entity_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,account_code=excluded.account_code,tax_code=excluded.tax_code,limit_minor=excluded.limit_minor,active=excluded.active,receipt_always=excluded.receipt_always,per_person_limit_minor=excluded.per_person_limit_minor,required_fields=excluded.required_fields,ledger_account_id=excluded.ledger_account_id,ledger_account_snapshot=excluded.ledger_account_snapshot').bind(...values,entityId),
+    ...ownerPolicyVersion(db, actor.delegate?.email ?? actor.email, settings.timezone, now(),entityId),
     event(db, actor, 'category-saved', {}, { id, name, accountCode: values[2], taxCode: values[3], limitMinor: values[4], active: values[5] === 1, receiptAlways: values[6] === 1, perPersonLimitMinor: values[7], requiredFields: required, ledgerAccount: ledgerAccount.id ? JSON.parse(ledgerAccount.snapshot) : null }),
   ]);
-  return (await categories(db)).find(c => c.id === id);
+  return (await categories(db,entityId)).find(c => c.id === id);
 }
 
 /** Custom fields every expense in a category must fill, such as business purpose, client or flight class: a list or comma-separated names. */

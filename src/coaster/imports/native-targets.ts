@@ -26,7 +26,7 @@ export function nativeMatch(r:TargetRow|null|undefined,kind:string,id:string){
   return sql(`EXISTS(SELECT 1 FROM ${tables[kind]} WHERE ${idColumn(kind)}=? AND ${fields[kind].map(f=>`${f} IS ?`).join(' AND ')}) AND COALESCE((SELECT revision FROM c_import_targets WHERE kind=? AND id=?),'native')=?`,id,...fields[kind].map(f=>value[f]),kind,id,r.revision);
 }
 const policy=(day:string)=>[
- sql("INSERT INTO c_policies(version,effective_from,rules,published_by,published_at) SELECT COALESCE(MAX(version),0)+1,?,COALESCE((SELECT rules FROM c_policies WHERE effective_from<=? ORDER BY version DESC LIMIT 1),'[]'),'role:owner',strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM c_policies",day,day),
+ sql("INSERT INTO c_policies(version,effective_from,rules,published_by,published_at) SELECT COALESCE(MAX(version),0)+1,?,COALESCE((SELECT rules FROM c_policies WHERE entity_id='primary' AND effective_from<=? ORDER BY version DESC LIMIT 1),'[]'),'role:owner',strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM c_policies",day,day),
  sql(`INSERT INTO c_policy_configurations(version,configuration) SELECT (SELECT MAX(version) FROM c_policies),${configurationSql} FROM c_business b WHERE b.id=1`)
 ];
 export function writeNative(r:TargetRow,timezone:string){

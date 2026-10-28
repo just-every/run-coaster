@@ -61,6 +61,8 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
   if (error && !detail) return <Side className="side detail" label="Claim"><div className="panel-head"><h2>Claim</h2>{close}</div><p role="alert">{error}</p></Side>;
   if (!detail) return <Side className="side detail" label="Claim"><p className="muted">Opening claim…</p></Side>;
   const { claim, items, exceptions } = detail, me = state.actor.email, currency = claim.currency;
+  const entity = detail.entity;
+  const claimState = { ...state, business: { ...state.business, ...entity }, categories: entity.categories, policyFields: detail.policyFields ?? state.policyFields };
   const mine = claim.employee_email === me, editable = mine && ['draft', 'returned'].includes(claim.status);
   const deciding = claim.status === 'submitted' && (claim.assigned_emails?.length ? claim.assigned_emails.includes(me) : claim.approver_email === me) && !mine;
   const names: Record<string, string> = state.names;
@@ -90,7 +92,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     </div></div>}
     <section className="panel-block" aria-label="Details">
       <h3>Details</h3>
-      <div className="metadata"><Badge status={claim.status} />{claim.revision > 0 && <span className="muted">Revision {claim.revision}</span>}</div>
+      <div className="metadata"><Badge status={claim.status} /><span className="muted">{entity.name} · {currency}</span>{claim.revision > 0 && <span className="muted">Revision {claim.revision}</span>}</div>
       <ul className="facts">
         <li><Icon name="person" /><span>{names[claim.employee_email] ?? claim.employee_email}</span></li>
         <li><Icon name="users" /><span className="approver">Approver: {claim.approver_email ? names[claim.approver_email] ?? claim.approver_email : 'set at submission'}{claim.on_behalf_of ? ` on behalf of ${names[claim.on_behalf_of] ?? claim.on_behalf_of}` : ''}{claim.assigned_emails?.length > 1 ? ` · Also waiting for ${claim.assigned_emails.filter((e: string) => e !== claim.approver_email).map((e: string) => names[e] ?? e).join(', ')}` : ''}</span></li>
@@ -101,7 +103,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
     </section>
     <PolicyReview revision={detail.revisions.at(-1)} claim={claim} agreement={state.reviewerAgreement} feedback={detail.events.filter((e:D)=>e.action==='policy-review-feedback'&&e.actor_email===(state.actor.delegate?.email??me))} mayRecord={deciding} onDone={done} />
     <ReceiptSignals revision={detail.revisions.at(-1)} events={detail.events} mayReview={state.actor.roles.finance} claimId={claim.id} done={done} />
-    <ClaimAdvance state={state} claim={claim} advance={detail.advance} editable={editable} done={done} />
+    {claim.entity_id === 'primary' && <ClaimAdvance state={state} claim={claim} advance={detail.advance} editable={editable} done={done} />}
     {detail.requests.length > 0 && <section className="panel-block" aria-label="Spend requests">
       <h3>Spend requests</h3>
       <ul className="facts">{detail.requests.map((r: D) => <li key={r.id}><Icon name="document" /><span>SR-{String(r.number).padStart(4, '0')} {r.title}: estimate {money(r.estimate_minor, currency)}, spent {money(r.actual_minor, currency)}{r.actual_minor !== r.claim_minor ? ` (${money(r.claim_minor, currency)} on this claim)` : ''}{r.actual_minor > r.estimate_minor ? ` · ${money(r.actual_minor - r.estimate_minor, currency)} over` : ''}</span></li>)}</ul>
@@ -119,7 +121,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
             {item.attendees?.length > 0 && <span className="split-line">Attendees: {item.attendees.map((a: D) => a.kind === 'guest' ? `${a.name} (guest)` : a.name).join(', ')}</span>}
             {(item.per_person ?? []).map((p: D) => <span key={p.category} className="split-line">{money(p.share_minor, currency)} a person · {p.over ? 'over' : p.amount_minor === p.limit_minor * p.people ? 'at' : 'under'} {money(p.limit_minor, currency)}</span>)}
             {Object.entries(item.fields ?? {}).map(([name, value]) => <span key={name} className="split-line">{name}: {String(value)}</span>)}
-            <CodingSuggestions claim={claim} item={item} state={state} editable={editable || deciding} onDone={done} /></div>
+            {claim.entity_id === 'primary' && <CodingSuggestions claim={claim} item={item} state={claimState} editable={editable || deciding} onDone={done} />}</div>
           <span className="amount">{amount(item.amount_minor)}</span>
           {(flags.length > 0 || editable) && <span className="line-extra">
             {flags.map((f: D) => <Warning key={f.code}>{exceptionWords[f.code] ?? f.code}</Warning>)}
@@ -131,7 +133,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
       <div className="total"><span>Claim total ({currency})</span><span>{money(claim.total_minor, currency)}</span></div>
       {error && <p className="form-error" role="alert">{error}</p>}
       {editable && (editing
-        ? <ItemForm key={editing} claim={claim} state={state} item={editing === 'new' ? undefined : items.find((i: D) => i.id === editing)} onDone={done} onCancel={() => setEditing(null)} />
+        ? <ItemForm key={editing} claim={claim} state={claimState} item={editing === 'new' ? undefined : items.find((i: D) => i.id === editing)} onDone={done} onCancel={() => setEditing(null)} />
         : <div className="claim-actions">
             <button className="button wide" onClick={() => setEditing('new')}><Icon name="plus" />Add expense</button>
             <Form label={claim.status === 'returned' ? 'Resubmit for approval' : 'Submit for approval'} className="record-form-inline submit-form" onSubmit={async () => { await call(`claims/${claim.id}/submit`, { version: claim.version }); await done(); }}>

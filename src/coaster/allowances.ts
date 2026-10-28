@@ -24,7 +24,7 @@ const today = async (db: D1Database) => localDate(new Date().toISOString(), (awa
 const setter = (actor: Actor) => { needRow(actor, 'policy'); requireThat(actor.kind === 'person', 'Only a person sets allowances', 403); return rowAuthority(actor, 'policy'); };
 const period = (v: unknown) => { requireThat(PERIODS.includes(String(v)), 'An allowance is monthly, quarterly or yearly'); return String(v) as Period; };
 async function activeCategory(db: D1Database, id: unknown) {
-  requireThat(typeof id === 'string' && await db.prepare('SELECT 1 FROM c_categories WHERE id=? AND active=1').bind(id).first(), 'Choose an active category');
+  requireThat(typeof id === 'string' && await db.prepare("SELECT 1 FROM c_categories WHERE entity_id='primary' AND id=? AND active=1").bind(id).first(), 'Choose an active category');
   return id as string;
 }
 

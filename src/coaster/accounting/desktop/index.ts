@@ -14,7 +14,7 @@ export const catalogKinds = ['Account','Class','Customer','Vendor','Employee'];
 export async function desktopStatus(db: D1Database, a: Actor) {
   nativeAuthority(a, can(a,'connections') ? 'connections' : 'sync');
   const c = await connection(db);
-  const accounts=(await db.prepare('SELECT DISTINCT account_code FROM c_categories ORDER BY account_code').all<{account_code:string}>()).results;
+  const accounts=(await db.prepare("SELECT DISTINCT account_code FROM c_categories WHERE entity_id='primary' ORDER BY account_code").all<{account_code:string}>()).results;
   const people=(await db.prepare('SELECT email,name FROM c_members ORDER BY name').all<{email:string;name:string}>()).results;
   const cards=(await db.prepare('SELECT id,issuer,last4 FROM c_cards ORDER BY issuer,last4').all<{id:string;issuer:string;last4:string}>()).results;
   const journal=(await db.prepare('SELECT debit_account AS name FROM c_card_ledger UNION SELECT credit_account AS name FROM c_card_ledger').all<{name:string}>()).results;

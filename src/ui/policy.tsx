@@ -71,12 +71,12 @@ function ConfigurationSummary({ configuration, currency }: { configuration: D; c
 }
 
 /** Each publication preserves both the rule set and its owner-controlled configuration. */
-export function PolicyRules({ state, onNotice, onChanged }: { state: D; onNotice: (words: string) => void; onChanged: () => Promise<unknown> }) {
+export function PolicyRules({ state, onNotice, onChanged, endpoint = 'policy', configuredVersions }: { state: D; onNotice: (words: string) => void; onChanged: () => Promise<unknown>; endpoint?: string; configuredVersions?: D[] }) {
   const [versions, setVersions] = useState<D[]>(), [kind, setKind] = useState('daily-limit'), currency = state.business.currency;
-  useEffect(() => { call('policy').then(r => setVersions(r.versions), () => setVersions(undefined)); }, [state]);
+  useEffect(() => { if (configuredVersions) { setVersions(configuredVersions); return; } call(endpoint).then(r => setVersions(r.versions), () => setVersions(undefined)); }, [state, endpoint, configuredVersions]);
   if (!versions) return null;
   const now = new Intl.DateTimeFormat('en-CA', { timeZone: state.business.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()), current = versions.find(v => v.effective_from <= now), rules: D[] = current?.rules ?? [];
-  const publish = async (next: D[], effectiveFrom: string | undefined, notice: string) => { const r = await call('policy', { effectiveFrom, rules: next }); setVersions(r.versions); await onChanged(); onNotice(notice); };
+  const publish = async (next: D[], effectiveFrom: string | undefined, notice: string) => { const r = await call(endpoint, { effectiveFrom, rules: next }); if (r.versions) setVersions(r.versions); await onChanged(); onNotice(notice); };
   return <Section title="Expense policy">
     <p className="muted">{current ? `Version ${current.version}, in effect since ${day(current.effective_from)}.` : 'No policy published yet.'} Each change publishes the next version from the day you choose; exceptions name the version that raised them, and claims already submitted keep theirs.</p>
     {rules.length ? <ul className="ruled-list">{rules.map((r, i) => <li key={i} className="job"><span>{ruleWords(r, current?.configuration?.categories ?? state.categories, currency)}</span><button className="button small" onClick={() => publish(rules.filter((_, j) => j !== i).map(ruleInput), undefined, 'Rule removed in a new version.')}>Remove</button></li>)}</ul> : <Empty title="No rules in effect" />}

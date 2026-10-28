@@ -12,6 +12,7 @@ export const cents = (value: unknown): number => {
 };
 export const dollars = (amount: number) => (amount / 100).toFixed(2);
 export async function payrollLines(env: Bindings, batch: Batch): Promise<PayrollLine[]> {
+  requireThat(batch.entity_id==='primary','This payroll connection belongs to the primary legal entity',409);
   const { people } = await batchLines(env.DB, batch.id);
   const mappings = (await env.DB.prepare('SELECT email,employee_uuid FROM c_gusto_employees').all<{ email: string; employee_uuid: string }>()).results;
   return people.map(p => ({ email: p.email, name: p.name, employeeUuid: mappings.find(m => m.email === p.email)?.employee_uuid ?? '', reimbursementMinor: p.amountMinor - p.taxableMinor, taxableMinor: p.taxableMinor }));

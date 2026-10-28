@@ -67,7 +67,7 @@ export async function saveCodingRequirements(db: D1Database, actor: Actor, b: Da
   const auth = catalogSetter(actor); await requireBusiness(db);
   const catalog = await codingCatalog(db), category = text(b.category, 'Category', 100);
   requireThat(b.version === catalog.version, 'Accounting dimensions changed; reload before saving', 409);
-  requireThat(await db.prepare('SELECT 1 FROM c_categories WHERE id=? AND active=1').bind(category).first(), 'Choose an active category');
+  requireThat(await db.prepare("SELECT 1 FROM c_categories WHERE entity_id='primary' AND id=? AND active=1").bind(category).first(), 'Choose an active category');
   requireThat(Array.isArray(b.dimensions) && b.dimensions.length <= 40, 'Choose at most 40 dimensions');
   const rows = b.dimensions.map((r: Data) => {
     requireThat(catalog.dimensions.some(d => d.id === r.dimension && d.active), 'Choose an active dimension');

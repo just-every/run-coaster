@@ -1,3 +1,5 @@
+import { entities, entityBusiness, saveEntity, saveEntityMember } from './entities';
+import { consolidate, consolidatedReport } from './entity-reports';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
@@ -86,6 +88,18 @@ export const api = new Hono<{ Bindings: Bindings }>();
 
 api.get('/health', c => c.json({ status: 'ok', ...deploymentHealth(c.env) }));
 api.use('/api/coaster/*', async (c, next) => { await next(); c.header('cache-control', 'no-store'); c.header('x-content-type-options', 'nosniff'); });
+api.use('/api/coaster/*',async(c,next)=>{
+ const path=c.req.path;
+ if(/\/(?:accounting|payroll|plaid|bank|feeds)(?:\/|$)/.test(path)) {
+  const query=c.req.query('entityId');
+  requireThat(!query||query==='primary','This provider connection belongs to the primary legal entity',409);
+  if(c.req.method==='POST'&&c.req.header('content-type')?.includes('application/json')) {
+   const input=await c.req.raw.clone().json() as Data;
+   requireThat(input.entityId===undefined||input.entityId==='primary','This provider connection belongs to the primary legal entity',409);
+  }
+ }
+ await next();
+});
 api.onError((error, c) => {
   if (error instanceof Fault) return c.json({ error: error.message }, error.status as 400);
   if (error instanceof SyntaxError) return c.json({ error: 'The request body must be JSON' }, 400);
@@ -199,6 +213,17 @@ api.post('/api/coaster/delegates', as(async (a, c) => grantDelegate(db(c), runti
 api.post('/api/coaster/delegates/:id/revoke', as(async (a, c) => revokeDelegate(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/receipts/:id', as(async (a, c) => receiptFile(db(c), a, param(c, 'id'), c.req.query('inline') === '1', runtimeBindings(c.env).COASTER_RECEIPTS)));
 
+api.get('/api/coaster/settings/entities',as(async(a,c)=>entities(db(c),a)));
+api.post('/api/coaster/settings/entities',as(async(a,c)=>saveEntity(db(c),a,await body(c))));
+api.post('/api/coaster/settings/entities/:id/members',as(async(a,c)=>saveEntityMember(db(c),a,param(c,'id'),await body(c))));
+api.post('/api/coaster/settings/entities/:id/categories',as(async(a,c)=>saveCategory(db(c),a,await body(c),param(c,'id'))));
+api.post('/api/coaster/settings/entities/:id/workflow',as(async(a,c)=>saveWorkflow(db(c),a,await body(c),param(c,'id'))));
+api.post('/api/coaster/settings/entities/:id/policy',as(async(a,c)=>{
+ const id=param(c,'id'),settings=await entityBusiness(db(c),id);
+ return {versions:await publishPolicy(db(c),a,await body(c),await categories(db(c),id),settings.timezone,id)};
+}));
+api.post('/api/coaster/spend/consolidated',as(async(a,c)=>consolidate(db(c),a,await body(c))));
+api.get('/api/coaster/spend/consolidated/:id',as(async(a,c)=>consolidatedReport(db(c),a,param(c,'id'))));
 api.post('/api/coaster/settings/business', as(async (a, c) => saveBusiness(db(c), a, await body(c))));
 api.post('/api/coaster/settings/mileage-rates', as(async (a, c) => saveMileageRate(db(c), a, await body(c))));
 api.post('/api/coaster/settings/categories', as(async (a, c) => saveCategory(db(c), a, await body(c))));

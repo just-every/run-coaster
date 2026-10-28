@@ -12,7 +12,8 @@ const parseAttendees = (text: string) => text.split('\n').map(line => line.trim(
 
 /** Add or change one expense: a receipt purchase, mileage or per diem, optionally split across categories. */
 export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; state: D; item?: D; onDone: () => Promise<void>; onCancel: () => void }) {
-  const business = state.business, active = state.categories.filter((c: D) => c.active === 1).map((c: D) => ({ ...c, required_fields: [...new Set([...c.required_fields, ...(state.policyFields ?? []).filter((r: D) => r.category === c.id).map((r: D) => r.field)])] }));
+  const primary = claim.entity_id === 'primary';
+  const business = state.business, active = state.categories.filter((c: D) => c.active === 1 && (c.entity_id ?? 'primary') === claim.entity_id).map((c: D) => ({ ...c, required_fields: [...new Set([...c.required_fields, ...(state.policyFields ?? []).filter((r: D) => r.category === c.id).map((r: D) => r.field)])] }));
   const [date, setDate] = useState(item?.spent_on ?? today());
   const [perDiem, setPerDiem] = useState<D>({ method: item?.per_diem?.method ?? (item?.kind === 'per_diem' ? 'company' : 'gsa'), locationId: item?.per_diem?.locationId ?? '', endDate: item?.per_diem?.endDate ?? today(), component: item?.per_diem?.component ?? 'mie' });
   const [coding, setCoding] = useState<Record<string,string>>(item?.coding ?? {});
@@ -24,10 +25,10 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
   const categoryOptions = active.map((c: D) => ({ value: c.id, label: c.name }));
   // Custom fields the owner requires in any active category, each saying where it is required.
   const fieldNames: string[] = [...new Set<string>(active.flatMap((c: D) => c.required_fields))];
-  const requests = state.requests.filter((r: D) => r.employee_email === claim.employee_email && r.status === 'approved').map((r: D) => ({ value: r.id, label: `SR-${String(r.number).padStart(4, '0')} ${r.title}` }));
+  const requests = (primary ? state.requests : []).filter((r: D) => r.employee_email === claim.employee_email && r.status === 'approved').map((r: D) => ({ value: r.id, label: `SR-${String(r.number).padStart(4, '0')} ${r.title}` }));
   // Caps this employee claims purchases against, with what is left this period (CLAIM-009).
-  const caps = claim.employee_email === state.actor.email ? state.allowances.mine.filter((a: D) => a.type === 'cap').map((a: D) => ({ value: a.id, label: `${a.name} · ${money(a.remaining_minor, business.currency)} left for ${a.period_key}` })) : [];
-  const kinds = [{ value: 'receipt', label: 'Purchase with receipt' }, ...(business.mileage_rates.length ? [{ value: 'mileage', label: 'Mileage at the rate for its date' }] : []), { value: 'per_diem', label: 'Per diem · location or company rate' }];
+  const caps = primary && claim.employee_email === state.actor.email ? state.allowances.mine.filter((a: D) => a.type === 'cap').map((a: D) => ({ value: a.id, label: `${a.name} · ${money(a.remaining_minor, business.currency)} left for ${a.period_key}` })) : [];
+  const kinds = [{ value: 'receipt', label: 'Purchase with receipt' }, ...(primary && business.mileage_rates.length ? [{ value: 'mileage', label: 'Mileage at the rate for its date' }] : []), ...(primary ? [{ value: 'per_diem', label: 'Per diem · location or company rate' }] : [])];
   async function save(v: D) {
     let version = claim.version, receipt = item?.receipt_id ?? null;
     const file = v.receiptFile as File | undefined;
@@ -57,7 +58,7 @@ export function ItemForm({ claim, state, item, onDone, onCancel }: { claim: D; s
     <Field label="Description" name="description" required={false} defaultValue={item?.description} />
     {!selectedCatalog('customer') && <Field label="Customer" name="customer" required={false} defaultValue={item?.customer} />}
     {!selectedCatalog('project') && <Field label="Project" name="project" required={false} defaultValue={item?.project} />}
-    <CodingFields catalog={state.coding} value={coding} categories={split ? split.map(p => p.category) : [category]} onChange={setCoding} />
+    {primary && <CodingFields catalog={state.coding} value={coding} categories={split ? split.map(p => p.category) : [category]} onChange={setCoding} />}
     <Field label="Billable to this customer" name="billable" type="checkbox" required={false} defaultChecked={!!item?.billable} />
     {split
       ? <fieldset className="split field-wide"><legend>Split across categories{kind === 'receipt' ? ` (${currency})` : ''}</legend>

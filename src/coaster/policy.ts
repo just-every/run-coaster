@@ -21,12 +21,12 @@ export type Policy = { version: number; effective_from: string; rules: Rule[]; c
 
 const parse = (p: Data): Policy => ({ ...p, rules: JSON.parse(p.rules), configuration: JSON.parse(p.configuration) } as Policy);
 
-export async function policies(db: D1Database): Promise<Policy[]> {
-  return (await db.prepare('SELECT p.*,c.configuration FROM c_policies p JOIN c_policy_configurations c ON c.version=p.version ORDER BY p.version DESC').all<Data>()).results.map(parse);
+export async function policies(db: D1Database, entityId = 'primary'): Promise<Policy[]> {
+  return (await db.prepare('SELECT p.*,c.configuration FROM c_policies p JOIN c_policy_configurations c ON c.version=p.version WHERE p.entity_id=? ORDER BY p.version DESC').bind(entityId).all<Data>()).results.map(parse);
 }
 /** The version in effect on a day: the newest one whose effective day has come. */
-export async function policyOn(db: D1Database, day: string): Promise<Policy | null> {
-  const found = await db.prepare('SELECT p.*,c.configuration FROM c_policies p JOIN c_policy_configurations c ON c.version=p.version WHERE p.effective_from<=? ORDER BY p.version DESC LIMIT 1').bind(day).first<Data>();
+export async function policyOn(db: D1Database, day: string, entityId = 'primary'): Promise<Policy | null> {
+  const found = await db.prepare('SELECT p.*,c.configuration FROM c_policies p JOIN c_policy_configurations c ON c.version=p.version WHERE p.effective_from<=? AND p.entity_id=? ORDER BY p.version DESC LIMIT 1').bind(day,entityId).first<Data>();
   return found ? parse(found) : null;
 }
 
@@ -50,7 +50,7 @@ export function parseRule(r: Data, known: Category[]): Rule {
 }
 
 /** Finance (or the owner) publishes the next version, in effect from today or a later day. */
-export async function publishPolicy(db: D1Database, actor: Actor, b: Data, known: Category[], timezone: string) {
+export async function publishPolicy(db: D1Database, actor: Actor, b: Data, known: Category[], timezone: string, entityId = 'primary') {
   needRow(actor, 'policy');
   const today = localDay(timezone), from = b.effectiveFrom ? isoDate(b.effectiveFrom, 'Effective from') : today;
   requireThat(from >= today, 'A new version takes effect today or on a later day');
@@ -59,9 +59,9 @@ export async function publishPolicy(db: D1Database, actor: Actor, b: Data, known
   requireThat(rules.filter(r => r.kind === 'deadline').length <= 1, 'Set one submission deadline');
   const latest = (await db.prepare('SELECT MAX(version) AS v FROM c_policies').first<{ v: number | null }>())?.v ?? 0, version = latest + 1;
   await commit(db, all(rowAuthority(actor, 'policy'), { sql: 'NOT EXISTS(SELECT 1 FROM c_policies WHERE version>=?)', params: [version] }), [
-    db.prepare('INSERT INTO c_policies(version,effective_from,rules,published_by,published_at) VALUES(?,?,?,?,?)').bind(version, from, JSON.stringify(rules), actor.delegate?.email ?? actor.email, now()),
-    captureConfiguration(db, version),
+    db.prepare('INSERT INTO c_policies(version,effective_from,rules,published_by,published_at,entity_id) VALUES(?,?,?,?,?,?)').bind(version, from, JSON.stringify(rules), actor.delegate?.email ?? actor.email, now(),entityId),
+    captureConfiguration(db, version,entityId),
     event(db, actor, 'policy-published', {}, { version, effectiveFrom: from, rules: rules.length }),
   ]);
-  return policies(db);
+  return policies(db,entityId);
 }

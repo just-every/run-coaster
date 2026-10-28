@@ -8,6 +8,7 @@ import { validatePayrollArchive } from './payroll-archive.mjs';
 import { validateBankArchive } from './bank-archive.mjs';
 import { validateCodingArchive } from './coding-archive.mjs';
 import { validateStatementArchive } from './statement-archive.mjs';
+import { validateEntityArchive } from './entity-archive.mjs';
 
 const refuse = code => { throw new PortabilityError('coaster_' + code, 409); };
 const check = (ok, code) => { if (!ok) refuse(code); };
@@ -16,6 +17,7 @@ const bytes = cell => cell && typeof cell === 'object' && typeof cell.blob === '
 
 /** Read-only checks on the staged archive before any row is written. */
 export async function validateCoasterArchive(read, manifest) {
+  await validateEntityArchive(read, manifest);
   const [claims, items, allocations, receipts, revisions, decisions, batches, batchClaims, keys, captureReceipts] = await Promise.all(['c_claims', 'c_items', 'c_allocations', 'c_receipts', 'c_revisions', 'c_decisions', 'c_batches', 'c_batch_claims', 'c_reimbursement_keys', 'c_capture_receipts'].map(t => read(t)));
   const claimIds = new Set(claims.map(c => c.id)), itemIds = new Set(items.map(i => i.id));
   for (const claim of claims) {

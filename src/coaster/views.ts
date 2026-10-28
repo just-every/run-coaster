@@ -1,3 +1,4 @@
+import { entities, entityBusiness } from './entities';
 import { currentWorkflow } from './workflow-configuration';
 import { claimReceiptBytes } from './receipts/claim-storage';
 import { policyConfiguration } from './policy-configuration';
@@ -28,7 +29,7 @@ import { codingCatalog } from './coding/catalog';
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
   const [claims, members, proposals, keys, batches] = await db.batch([
-    db.prepare("SELECT id,number,employee_email,approver_email,on_behalf_of,title,status,revision,version,total_minor,currency,prepared_by,batch_id,created_at,updated_at,EXISTS(SELECT 1 FROM c_revisions w WHERE w.claim_id=c_claims.id AND json_type(w.snapshot,'$.workflow')='object') AS workflow_history,(SELECT submitted_at FROM c_revisions r WHERE r.claim_id=c_claims.id AND r.revision=c_claims.revision) AS submitted_at FROM c_claims ORDER BY number DESC"),
+    db.prepare("SELECT id,entity_id,number,employee_email,approver_email,on_behalf_of,title,status,revision,version,total_minor,currency,prepared_by,batch_id,created_at,updated_at,EXISTS(SELECT 1 FROM c_revisions w WHERE w.claim_id=c_claims.id AND json_type(w.snapshot,'$.workflow')='object') AS workflow_history,(SELECT submitted_at FROM c_revisions r WHERE r.claim_id=c_claims.id AND r.revision=c_claims.revision) AS submitted_at FROM c_claims ORDER BY number DESC"),
     db.prepare('SELECT member_id,email,name,is_employee,is_manager,is_finance,is_auditor,is_admin,is_card_admin,is_bookkeeper,department_id,may_release,is_contractor,approver_email,active FROM c_members ORDER BY name'),
     db.prepare('SELECT id,kind,agent_label,payload,status,created_at,decided_at,result_id FROM c_proposals WHERE for_email=? ORDER BY created_at DESC').bind(actor.email),
     db.prepare('SELECT id,label,created_at,revoked_at FROM c_agent_keys WHERE member_email=? ORDER BY created_at DESC').bind(actor.email),
@@ -45,6 +46,7 @@ export async function workspace(db: D1Database, actor: Actor) {
   return {
     actor: { email: actor.email, name: actor.name, roles: actor.roles, delegate: actor.delegate ?? null },
     business: await business(db),
+    entities: await entities(db,actor),
     categories: await categories(db),
     coding: await codingCatalog(db),
     policyFields: policy?.rules.filter(r => r.kind === 'required-field').map(r => ({ category: r.category, field: r.field })) ?? [],
@@ -91,7 +93,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
     : actor.email!==claim.employee_email&&['draft','returned'].includes(claim.status)
       ? {...item,receipt_resolution:history.at(-1)?.snapshot.items.find((i:Data)=>i.id===item.id)?.receipt_resolution??null}
       : item);
-  const settings = await business(db), known = await categories(db);
+  const settings = await entityBusiness(db,claim.entity_id), known = await categories(db,claim.entity_id);
   const configured = settings ? await policyConfiguration(db, settings, known, ['draft', 'returned'].includes(claim.status) ? undefined : history.at(-1)?.snapshot.policyVersion) : { categories: known };
   const byId = new Map(configured.categories.map(c => [c.id, c]));
   const exceptions = ['draft', 'returned'].includes(claim.status) && settings
@@ -101,7 +103,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const linked = [...new Set(items.map(i => i.request_id).filter(Boolean))];
   const requests = await Promise.all(linked.map(async id => ({ ...(await loadRequest(db, id)), claim_minor: items.filter(i => i.request_id === id).reduce((n, i) => n + i.amount_minor, 0) })));
   return {
-    claim, requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
+    claim, entity: {...settings,categories:known,policyFields:'rules' in configured?configured.rules.filter(r=>r.kind==='required-field').map(r=>({category:r.category,field:r.field})):[]}, requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
     events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
   };

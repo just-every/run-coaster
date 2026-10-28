@@ -6,7 +6,7 @@ import { ref, tag } from './xml';
 export async function preparePosting(db: D1Database) {
   const out: D1PreparedStatement[]=[];
   const add=(source:string,kind:string,payload:Data)=>out.push(db.prepare("INSERT OR IGNORE INTO c_qbd_requests(id,source,kind,payload,status,created_at) VALUES(?,?,?,?, 'pending',?)").bind(uid(),source,kind,JSON.stringify(payload),now()));
-  for(const batch of (await db.prepare("SELECT * FROM c_batches WHERE status IN('approved','reimbursed') ORDER BY number").all<Data>()).results) {
+  for(const batch of (await db.prepare("SELECT * FROM c_batches WHERE entity_id='primary' AND status IN('approved','reimbursed') ORDER BY number").all<Data>()).results) {
     const {lines,people}=await batchLines(db,batch.id);
     requireThat(lines.reduce((n,l)=>n+l.amountMinor,0)===batch.total_minor,'Batch accounting lines do not equal its total',409);
     for(const person of people) {
@@ -17,7 +17,7 @@ export async function preparePosting(db: D1Database) {
       if(batch.status==='reimbursed' && posted) add(`payment:${batch.id}:${person.email}`,'BillPaymentCheckAdd',{employee:person.email,date:batch.paid_on,txn:posted.txn_id,total:person.amountMinor,reference:batch.paid_reference,currency:batch.currency});
     }
   }
-  const claims=(await db.prepare("SELECT c.id,c.revision,r.snapshot FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision WHERE c.status IN('approved','batched','reimbursed') ORDER BY c.number").all<Data>()).results;
+  const claims=(await db.prepare("SELECT c.id,c.revision,r.snapshot FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision WHERE c.entity_id='primary' AND c.status IN('approved','batched','reimbursed') ORDER BY c.number").all<Data>()).results;
   for(const claim of claims) for(const item of JSON.parse(claim.snapshot).items) if(item.card_charge_id) {
     const charge=await db.prepare('SELECT card_id FROM c_card_charges WHERE id=?').bind(item.card_charge_id).first<{card_id:string}>();
     requireThat(charge,'Card expense has no source charge',409);
@@ -38,6 +38,8 @@ async function mapped(db:D1Database,name:string,kind='Account') {
 }
 export async function renderPosting(db:D1Database,row:Data) {
   const p=JSON.parse(row.payload),rq=row.kind+'Rq',r=ref,t=tag;
+  if(p.batch)requireThat(await db.prepare("SELECT 1 FROM c_batches b WHERE b.id=? AND b.entity_id='primary' AND NOT EXISTS(SELECT 1 FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id WHERE bc.batch_id=b.id AND c.entity_id<>'primary')").bind(p.batch).first(),'This Desktop connection belongs to the primary legal entity',409);
+  if(p.claim)requireThat(await db.prepare("SELECT 1 FROM c_claims WHERE id=? AND entity_id='primary'").bind(p.claim).first(),'This Desktop connection belongs to the primary legal entity',409);
   const line=async (l:Data) => {
     return `<ExpenseLineAdd>${r('AccountRef',await mapped(db,'account:'+l.account))}${t('Amount',decimal(l.amountMinor))}${t('Memo',(l.merchant+' '+l.description).slice(0,4095))}${l.costCentre?r('ClassRef',await mapped(db,'class:'+l.costCentre,'Class')):''}</ExpenseLineAdd>`;
   };

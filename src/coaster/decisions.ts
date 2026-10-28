@@ -1,3 +1,4 @@
+import { entityBusiness, requireEntityMember, entityMember } from './entities';
 import { tasksFor } from './workflow-routing';
 import { decideWorkflowClaim } from './workflow-decisions';
 import { all, authority, commit, need } from './session';
@@ -15,6 +16,7 @@ import { email, now, optionalText, requireThat, uid, type Actor, type Data } fro
 /** The assigned manager approves, returns or rejects the exact submitted revision. */
 export async function decide(db: D1Database, actor: Actor, id: string, b: Data, context: Data = {}) {
   const workflowClaim = await loadClaim(db, id);
+  await requireEntityMember(db,workflowClaim.entity_id,actor.email);
   const frozen = await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(id,workflowClaim.revision).first<{snapshot:string}>();
   const frozenSnapshot = frozen && JSON.parse(frozen.snapshot);
   if(frozenSnapshot?.workflow) return decideWorkflowClaim(db,actor,workflowClaim,b,frozenSnapshot.workflow,frozenSnapshot,context);
@@ -38,10 +40,10 @@ export async function decide(db: D1Database, actor: Actor, id: string, b: Data, 
   requireThat(b.decision !== 'approved' || !exceptions.length || b.acknowledge === true, 'Review and acknowledge the policy exceptions before approving', 409);
   const override = b.decision === 'approved' ? preApprovalOverride(exceptions, b) : null, recorded = override ?? reason;
   const pending = b.decision === 'approved' && chain && chain.position < chain.steps.length - 1;
-  const next = pending ? await chainRoute(db, chain.steps, chain.position + 1, claim.employee_email, localDay((await requireBusiness(db)).timezone)) : null;
+  const next = pending ? await chainRoute(db, chain.steps, chain.position + 1, claim.employee_email, localDay((await entityBusiness(db,claim.entity_id)).timezone)) : null;
   // A Full delegate decides as the approver and is recorded as acting on their behalf, like an approval delegate.
   const at = now(), onBehalfOf = actor.delegate ? actor.email : claim.on_behalf_of;
-  await commit(db, all(authority(actor, 'manager'), claimState(claim.id, claim.version, ['submitted']), decided, chainState(chain, claim.id, claim.revision), ...(next ? [next.guard] : [])), [
+  await commit(db, all(authority(actor, 'manager'),entityMember(claim.entity_id,actor.email), claimState(claim.id, claim.version, ['submitted']), decided, chainState(chain, claim.id, claim.revision), ...(next ? [next.guard] : [])), [
     db.prepare('INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of,decision_step) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(uid(), claim.id, claim.revision, b.decision, recorded, actor.delegate?.email ?? actor.email, at, JSON.stringify(exceptions), onBehalfOf, chain?.position ?? 0),
     db.prepare('UPDATE c_claims SET status=?,approver_email=?,on_behalf_of=?,version=version+1,updated_at=? WHERE id=?').bind(next ? 'submitted' : b.decision, next?.approver ?? claim.approver_email, next ? next.onBehalfOf : claim.on_behalf_of, at, claim.id),
     ...(next ? [advanceChain(db, chain!)] : []),
@@ -66,8 +68,9 @@ export async function reassign(db: D1Database, actor: Actor, id: string, b: Data
   const role=task?.role??'manager';
   requireThat(to !== (task?.email??claim.approver_email), 'The claim is already waiting for that person');
   requireThat(await db.prepare(`SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_${role}=1`).bind(to).first(), 'The new approver must be an active member with the manager role');
+  const membership=await requireEntityMember(db,claim.entity_id,to);
   const reason = optionalText(b.reason, 'Reason', 500);
-  await commit(db, all(rowAuthority(actor, 'settings'), claimState(claim.id, claim.version, ['submitted'])), [
+  await commit(db, all(rowAuthority(actor, 'settings'), membership, claimState(claim.id, claim.version, ['submitted'])), [
     ...(task ? [db.prepare("UPDATE c_workflow_tasks SET email=?,on_behalf_of=NULL WHERE kind='claim' AND record_id=? AND revision=? AND slot=?").bind(to,id,claim.revision,task.slot)] : []),
     db.prepare('UPDATE c_claims SET approver_email=?,on_behalf_of=NULL,version=version+1,updated_at=? WHERE id=?').bind(to, now(), claim.id),
     event(db, actor, 'claim-reassigned', { claim: claim.id }, { from: task?.email??claim.approver_email, to, reason, slot:task?.slot }),

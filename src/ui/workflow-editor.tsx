@@ -47,11 +47,11 @@ function ReviewerEditor({ reviewer, members, label, onChange, onRemove, disabled
 }
 
 /** Owner-authored stages extend the manager or imported chain on new submissions. */
-export function WorkflowEditor({ state, reload }: { state: D; reload: () => Promise<unknown> }) {
+export function WorkflowEditor({ state, reload, endpoint = 'settings/approval-workflow' }: { state: D; reload: () => Promise<unknown>; endpoint?: string }) {
   const configuration = state.approvalWorkflow;
   const [rules, setRules] = useState<Rule[]>(() => configuration?.rules ?? []);
   const [notice, setNotice] = useState(''), [saving, setSaving] = useState(false);
-  useEffect(() => { setRules(configuration?.rules ?? []); }, [configuration]);
+  useEffect(() => { setRules(configuration?.rules ?? []); }, [configuration?.version]);
   const members: D[] = state.members.filter((m: D) => m.active);
   const categories = state.categories.filter((c: D) => c.active).map((c: D) => ({ value: c.id, label: c.name }));
   const changeRule = (index: number, next: Rule) => { setNotice(''); setRules(current => current.map((rule, i) => i === index ? next : rule)); };
@@ -65,7 +65,7 @@ export function WorkflowEditor({ state, reload }: { state: D; reload: () => Prom
         for (const rule of rules) for (const stage of rule.stages) for (const reviewer of stage) {
           if (NAMED.includes(reviewer.kind) && !members.some(m => m.email === reviewer.email && (reviewer.kind === 'finance' ? m.is_finance : m.is_manager))) throw new Error('Choose an active person with the required role for every named reviewer.');
         }
-        await call('settings/approval-workflow', { version: configuration?.version ?? 0, rules });
+        await call(endpoint, { version: configuration?.version ?? 0, rules });
         await reload();
         setNotice('Approval workflow saved. New submissions use these rules.');
       } finally { setSaving(false); }
