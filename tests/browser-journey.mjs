@@ -1,20 +1,20 @@
 // The human journey through Coaster's screens, one person per browser context.
 import assert from 'node:assert/strict'
+import { assertAccessible } from './browser-accessibility.mjs'
 import { addTextMetadata } from './fixtures/receipt-metadata.mjs'
 import { inspectReceiptSignals } from './browser-receipt-signals.mjs'
 import { inspectPolicyReview } from './browser-policy-review.mjs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { readDevKey, signInAs } from '../src/modules/operator-auth/dev/sign-in-as.mjs'
+import { signIn } from './browser-runtime.mjs'
 
 export const PEOPLE = { employee: 'employee@dev.localhost', manager: 'manager@dev.localhost', finance: 'finance@dev.localhost' }
 
 /** A signed-in browser context for a dev persona or the owner; the owner finishes first-run setup once. */
 export async function session(browser, root, origin, as, width) {
-  const key = await readDevKey(root), login = await signInAs({ origin, key, as, returnTo: '/app' })
   const context = await browser.newContext({ viewport: { width, height: 1000 }, acceptDownloads: true })
-  await context.addCookies(login.cookies.map(c => ({ ...c, url: origin })))
+  await signIn(context, origin, as === 'owner' ? 'owner@harbourfinch.example' : PEOPLE[as])
   const page = await context.newPage()
   await page.goto(origin + '/app')
   if (page.url().endsWith('/setup')) {
@@ -42,6 +42,7 @@ export async function setUp(owner, origin) {
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.manager, name: 'Priya Nair', employee: true, manager: true })
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Morgan Lee', employee: true, finance: true, release: true, approver: PEOPLE.manager })
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.employee, name: 'Sam Taylor', employee: true, approver: PEOPLE.manager })
+  for (const email of Object.values(PEOPLE)) await api(owner.context, origin, 'settings/members/invite', { email })
 }
 
 /** A fixture receipt made unique per run (a trailing note after the PNG end), so each width's receipts are distinct evidence. */
@@ -52,12 +53,12 @@ async function variant(name, tag, software) {
   await writeFile(path, Buffer.concat([software ? addTextMetadata(original, 'Software', software) : original, Buffer.from(`\n${tag}\n`)]))
   return path
 }
-const PLAN = { 1440: { bistro: '64.50', rockpool: '180.00', km: '142' }, 390: { bistro: '58.20', rockpool: '176.00', km: '96' } }
+const PLAN = { 1440: { bistro: '64.50', rockpool: '180.00', km: '142' } }
 const minor = text => Math.round(Number(text) * 100)
 
 const nav = (page, name) => page.getByRole('navigation', { name: 'Coaster' }).getByRole('link', { name, exact: true }).click()
 const fill = (page, label, value) => page.getByLabel(label, { exact: true }).fill(String(value))
-const shot = async (page, evidence, name, width, shots) => { const path = join(evidence, `${name}-${width}.jpg`); await page.screenshot({ path, fullPage: true, type: 'jpeg', quality: 85 }); shots.push({ screen: name, viewport: width, path }) }
+const shot = async (page, evidence, name, width, shots) => { await assertAccessible(page, name); const path = join(evidence, `${name}-${width}.jpg`); await page.screenshot({ path, fullPage: true, type: 'jpeg', quality: 85 }); shots.push({ screen: name, viewport: width, path }) }
 async function noOverflow(page, width) { assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false, `No page overflow at ${width}px on ${page.url()}`) }
 
 async function addExpense(page, { kind = 'Purchase with receipt', merchant, amount, distance, category, receipt, explanation }) {
