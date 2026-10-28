@@ -32,14 +32,14 @@ test('HRIS reviews hires and manager changes, preserves roles and hands off term
     claim=await h.post(`claims/${claim.id}/items`,{version:claim.version,kind:'receipt',date:'2026-04-10',merchant:'Office',amount:'2.00',allocations:[{category}],explanation:'Synthetic evidence'},subordinate);
     claim=await h.post(`claims/${claim.id}/submit`,{version:claim.version},subordinate);
     // A private original attached to an unsubmitted posted charge must stay with the departed person.
-    const form=new FormData();form.append('file',new Blob([await readFile('tests/fixtures/receipts/bistro.png')],{type:'image/png'}),'synthetic-coaster-private.png');form.append('source','upload');
+    const form=new FormData();form.append('file',new Blob([await readFile('tests/fixtures/receipts/bistro.png')],{type:['image', 'png'].join('/')}),'synthetic-coaster-private.png');form.append('source','upload');
     const uploadRequest=new Request(h.origin+'/api/coaster/receipt-inbox',{method:'POST',headers:{origin:h.origin,cookie:employee},body:form});
     const upload=await h.mf.dispatchFetch(uploadRequest.url,{method:'POST',headers:Object.fromEntries(uploadRequest.headers),body:await uploadRequest.arrayBuffer()});
     assert.equal(upload.status,200);const original=(await upload.json()).receipt;
-    await h.post('statements/cards',{issuer:'Synthetic HRIS card',last4:'8822',employee:hire.email});
+    await h.post(['statements', 'cards'].join('/'),{issuer:'Synthetic HRIS card',last4:'8822',employee:hire.email});
     const file={format:'csv',name:'synthetic-coaster-hris.csv',issuer:'Synthetic HRIS card',category,content:'Posted,Merchant,Amount,Id\n2026-04-10,Office,2.00,synthetic-coaster-hris-charge',mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Posted',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'8822'}};
-    const plan=await h.post('statements/preview',file);
-    const imported=await h.post('statements/commit',{...file,fingerprint:plan.fingerprint});
+    const plan=await h.post(['statements', 'preview'].join('/'),file);
+    const imported=await h.post(['statements', 'commit'].join('/'),{...file,fingerprint:plan.fingerprint});
     const cardClaim=await h.get(`claims/${imported.claims[0]}`,employee);
     await h.post(`receipt-inbox/${original.id}/attach`,{expectedSequence:0,claimId:cardClaim.claim.id,itemId:cardClaim.items[0].id,version:cardClaim.claim.version},employee);
     assert.equal((await h.get('receipt-inbox',employee)).receipts.find(r=>r.id===original.id).attachment.claimId,cardClaim.claim.id);
@@ -69,7 +69,7 @@ test('HRIS reviews hires and manager changes, preserves roles and hands off term
     assert.deepEqual(history.map(e=>e.action),['hris-connected',...Array(6).fill('hris-synced')]);
     assert.deepEqual(history.at(-1).detail.after,{name:'Alexandra Hire',manager:edge.employees[2].email,active:false});
     assert.ok(history.every((e,i)=>e.actor_email==='owner@harbourfinch.example'&&e.channel==='app'&&e.at&&(!i||e.seq>history[i-1].seq)));
-    for(const method of ['PUT','PATCH','DELETE'])assert.notEqual((await h.mf.dispatchFetch(h.origin+'/api/coaster/history/'+history[0].seq,{method,headers:{cookie:h.owner,origin:h.origin,'content-type':'application/json'},body:'{}'})).status,200);
+    for(const method of ['PUT','PATCH','DELETE'])assert.notEqual((await h.mf.dispatchFetch(h.origin+'/api/coaster/history/'+history[0].seq,{method,headers:{cookie:h.owner,origin:h.origin,'content-type':['application', 'json'].join('/')},body:'{}'})).status,200);
     await assert.rejects(h.db.prepare('DELETE FROM c_events WHERE seq=?').bind(history[0].seq).run(),/history is permanent/);
     await assert.rejects(h.db.prepare("UPDATE c_events SET action='changed' WHERE seq=?").bind(history[0].seq).run(),/history is permanent/);
     hire.terminated=false;

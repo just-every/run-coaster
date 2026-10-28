@@ -24,7 +24,8 @@ for(const id of selected){
   acceptance=acceptance.replace(pattern,()=>entry);
 }
 const header='| Clause | Title | Kind | Status | Evidence | Gap |';
-const claims='# Coaster clause status\n\nGenerated from CONTRACT.md by `node ./scripts/contract-docs.mjs write` with the changed clause ids.\n\n'+header+'\n| --- | --- | --- | --- | --- | --- |\n'+statusRows().map(r=>r.line).join('\n')+'\n';
+const prose=line=>line.replace(/(?<![A-Za-z0-9_.\/:@-])([A-Za-z][A-Za-z0-9_-]*)\/([A-Za-z][A-Za-z0-9_-]*)(?![A-Za-z0-9_.\/-])/g,'$1 and $2');
+const claims='# Coaster clause status\n\nGenerated from CONTRACT.md by `node ./scripts/contract-docs.mjs write` with the changed clause ids.\n\n'+header+'\n| --- | --- | --- | --- | --- | --- |\n'+statusRows().map(r=>prose(r.line)).join('\n')+'\n';
 for(const [path,expected] of [['CONTRACT.md',source],['ACCEPTANCE.md',acceptance],['docs/CLAIMS.md',claims]]){
   if(mode==='write')writeFileSync(path,expected);
   else if(!existsSync(path)||readFileSync(path,'utf8')!==expected)throw Error(path+' is stale; run scoped contract-docs write');

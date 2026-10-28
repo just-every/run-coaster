@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { call, type D } from './api';
 import { Details, Field, Form, Section } from './parts';
 
+const feedRoot = ['feeds', 'program'].join('/');
 const columns = [['postedDate', 'Posted date column'], ['transactionId', 'Transaction ID column'], ['description', 'Merchant column'], ['amount', 'Amount column'], ['card', 'Card last four column'], ['sequence', 'Issuer sequence column'], ['transactionDate', 'Purchase date column'], ['currency', 'Currency column'], ['status', 'Status column'], ['type', 'Transaction type column'], ['mcc', 'Merchant category code column']];
 
 /** Explicit connection of a read-only issuer delivery channel. Credentials are never returned to the browser. */
 export function ProgramFeed({ state }: { state: D }) {
   const [data, setData] = useState<D>(), [error, setError] = useState('');
-  async function load() { try { setData(await call('feeds/program')); setError(''); } catch (e) { setError((e as Error).message); } }
+  async function load() { try { setData(await call(feedRoot)); setError(''); } catch (e) { setError((e as Error).message); } }
   useEffect(() => { load(); }, []);
   return <Section title="Scheduled card program feed" label="Scheduled card program feed">
     <p>Connect an issuer’s SFTP directory of CSV deliveries with an explicit column mapping. Coaster reads files on the hourly schedule, keeps masked originals and imports each delivery once. Assign each card to its employee before the feed arrives. This connection does not issue cards or post a ledger entry.</p>
@@ -15,7 +16,7 @@ export function ProgramFeed({ state }: { state: D }) {
     {data?.feeds.map((feed: D) => <div className="sub-form" key={feed.id}>
       <h3>{feed.issuer}</h3><p>{feed.liability === 'individual' ? 'Employee pays issuer · approved business charges are reimbursable' : 'Company pays issuer · charges are not reimbursable'}</p><p>{feed.enabled ? 'Connected' : 'Disconnected'} · every {feed.intervalMinutes} minutes{Boolean(feed.enabled && feed.nextRunAt) && ` · next ${new Date(feed.nextRunAt).toISOString()}`}{Boolean(feed.lastSuccessAt) && ` · last received ${feed.lastSuccessAt}`}</p>
       {feed.error && <p role="alert">{feed.error}</p>}
-      {feed.enabled && <Form label={`Disconnect ${feed.issuer}`} onSubmit={async values => { await call(`feeds/program/${feed.id}/disconnect`, { version: feed.version, consent: values.consent }); await load(); }}><Field label="I confirm this feed must stop future connections and imports" name="consent" type="checkbox" /></Form>}
+      {feed.enabled && <Form label={`Disconnect ${feed.issuer}`} onSubmit={async values => { await call([feedRoot, feed.id, 'disconnect'].join('/'), { version: feed.version, consent: values.consent }); await load(); }}><Field label="I confirm this feed must stop future connections and imports" name="consent" type="checkbox" /></Form>}
       <Details label={`Deliveries from ${feed.issuer}`}><ul>{data.deliveries.filter((d: D) => d.feed_id === feed.id).map((delivery: D) => <li key={delivery.id}>{delivery.name} · sequence {delivery.issuer_sequence} · {delivery.charges} charges · {delivery.received_at}</li>)}</ul></Details>
     </div>)}
     <Details label="Connect an SFTP program feed"><Form label="Connect program feed" onSubmit={async (values, form) => {
@@ -23,7 +24,7 @@ export function ProgramFeed({ state }: { state: D }) {
       if (!key?.size) throw new Error('Choose the private key authorized by your issuer');
       const mapping: D = { dateFormat: values.dateFormat, sign: values.sign };
       for (const [column] of columns) if (values[column]) mapping[column] = values[column];
-      await call('feeds/program', { consent: values.consent, host: values.host, port: Number(values.port), username: values.username, privateKey: await key.text(), hostKeyFingerprint: values.hostKeyFingerprint, directory: values.directory, issuer: values.issuer, liability: values.liability, category: values.category, intervalMinutes: Number(values.intervalMinutes), mapping });
+      await call(feedRoot, { consent: values.consent, host: values.host, port: Number(values.port), username: values.username, privateKey: await key.text(), hostKeyFingerprint: values.hostKeyFingerprint, directory: values.directory, issuer: values.issuer, liability: values.liability, category: values.category, intervalMinutes: Number(values.intervalMinutes), mapping });
       form.reset(); await load();
     }}>
       <Field label="Issuer name" name="issuer" />

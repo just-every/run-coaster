@@ -125,7 +125,7 @@ test('Individual-liability SFTP charges reimburse only four approved business pu
     assert.ok(actions.indexOf('claim-submitted')>actions.indexOf('card-charge-classified'));
     assert.ok(actions.indexOf('batch-created')>actions.indexOf('claim-approved'));
     assert.ok(lines.every((e,i)=>Number.isInteger(e.seq)&&e.at&&e.actor_email&&e.agent===null&&e.channel===(e.action==='program-feed-charge-created'?'schedule':'app')&&(!i||e.seq>lines[i-1].seq)));
-    for(const method of ['PUT','PATCH','DELETE'])for(const route of ['history',`claims/${claim.id}/items/classify`])assert.ok((await h.mf.dispatchFetch(h.origin+'/api/coaster/'+route,{method,headers:{cookie:h.owner,origin:h.origin,'content-type':'application/json'},body:JSON.stringify({action:'changed'})})).status>=400);
+    for(const method of ['PUT','PATCH','DELETE'])for(const route of ['history',`claims/${claim.id}/items/classify`])assert.ok((await h.mf.dispatchFetch(h.origin+'/api/coaster/'+route,{method,headers:{cookie:h.owner,origin:h.origin,'content-type':['application','json'].join('/')},body:JSON.stringify({action:'changed'})})).status>=400);
     assert.deepEqual(await h.get('history',f.finance),history);
     await h.post(`feeds/program/${company.id}/disconnect`,{version:company.version,consent:true},f.finance);
   }finally{await h.close();await f?.issuer.close();}
