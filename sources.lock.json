@@ -1620,7 +1620,7 @@
       "executable": false
     },
     "src/coaster/entities.ts": {
-      "sha256": "92aecfaca90a03b744369bcd6ee74af26830c20d82e534f50273aedb2584267d",
+      "sha256": "ee07365b0bbc6430dbc641798a8d1933b9283109e99bb1dd6632b342d5a73dd0",
       "executable": false
     },
     "src/coaster/entity-reports.ts": {
@@ -4576,7 +4576,7 @@
       "executable": false
     },
     "tests/coaster-entities.test.mjs": {
-      "sha256": "df009ca4287c333e5a9c16204c9f27ad3d5e95886da0e6fa657f46cd0e5a07b8",
+      "sha256": "00f1a5ab61aef997e76592dd29068b9a4efd50efd11c26b48003a84d8e9a9395",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {

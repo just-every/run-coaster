@@ -32,7 +32,7 @@ export async function entities(db:D1Database,actor:Actor) {
  const rows=(await db.prepare('SELECT * FROM c_entities ORDER BY created_at,id').all<Entity>()).results;
  const members=(await db.prepare('SELECT entity_id,email FROM c_entity_members WHERE active=1').all<{entity_id:string;email:string}>()).results;
  return Promise.all(rows.filter(e=>can(actor,'settings')||can(actor,'readAll')||members.some(m=>m.entity_id===e.id&&m.email===actor.email)).map(async e=>({ ...e,
-  ...(e.id===PRIMARY_ENTITY?await business(db):{}), members:members.filter(m=>m.entity_id===e.id).map(m=>m.email),
+  ...(e.id===PRIMARY_ENTITY?await business(db):{}), members:members.filter(m=>m.entity_id===e.id&&(can(actor,'people')||m.email===actor.email)).map(m=>m.email),
   categories:await categories(db,e.id), workflow:can(actor,'settings')?await currentWorkflow(db,e.id):null,
   policies:can(actor,'policy')?await policies(db,e.id):[],
  })));

@@ -27,6 +27,7 @@ test('Native entities isolate receipt policy and routing, consolidate exact USD 
   const state=await h.get('state',t.sam);
   assert.deepEqual(state.entities.map(e=>e.currency).sort(),['CAD','USD']);
   assert.ok(state.entities.every(e=>e.members.includes(f.employee)));
+  assert.deepEqual([...new Set(state.entities.flatMap(e=>e.members))],[f.employee],'ordinary employees receive only their own entity memberships');
   const before=await h.db.prepare('SELECT COUNT(*) n FROM c_events').first();
   await h.post(settings,{name:'Refused',currency:'CAD',timezone:'America/Toronto'},t.sam,403);
   await h.post(`${settings}/${ca.id}/categories`,{id:f.us.categories[0].id,name:'Foreign',accountCode:'BAD',taxCode:'BAD'},h.owner,409);
