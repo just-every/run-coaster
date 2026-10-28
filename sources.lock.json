@@ -1231,6 +1231,10 @@
       "sha256": "94001da0dc26b58d4ac352b9998451fc5b65985dab130925fe85a53b6261f238",
       "executable": false
     },
+    "src/base/contract-docs.mjs": {
+      "sha256": "d98e14f489c57f60446c2cc68310db09f298f7974d77026dbaa2c62868cc4838",
+      "executable": false
+    },
     "src/base/contract-filter.ts": {
       "sha256": "eec5be7da15653b69dd343fb3cf9f7a2e695eb215c5ee118f3508090e9c29232",
       "executable": false
