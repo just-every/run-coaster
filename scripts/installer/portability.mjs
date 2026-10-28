@@ -8,6 +8,7 @@ import { validatePayrollArchive } from './payroll-archive.mjs';
 import { validateBankArchive } from './bank-archive.mjs';
 import { validateCodingArchive } from './coding-archive.mjs';
 import { validateStatementArchive } from './statement-archive.mjs';
+import { validateSlackArchive } from './slack-archive.mjs';
 
 const refuse = code => { throw new PortabilityError('coaster_' + code, 409); };
 const check = (ok, code) => { if (!ok) refuse(code); };
@@ -101,6 +102,7 @@ export async function validateCoasterArchive(read, manifest) {
   await validateProgramFeedArchive(read);
   await validatePayrollArchive(read);
   await validateBankArchive(read);
+  await validateSlackArchive(read);
   return true;
 }
 
@@ -112,7 +114,7 @@ export async function validateCoasterArchive(read, manifest) {
 export default {
   product: 'just-every/coaster',
   buckets: { COASTER_RECEIPTS: { prefix: 'receipt-', objectReferences: { table: 'c_capture_objects', keyColumn: 'object_key' } } },
-  excludeTables: ['c_plaid_settings', 'c_plaid_links', 'c_plaid_connections', 'c_gusto_connection', 'c_gusto_employees', 'c_bank_providers', 'rer_dependency_keys', 'rer_dependency_pending', 'rer_dependency_codes', 'c_agent_keys', 'c_guard', 'c_card_match_epoch', 'c_card_match_generations', 'c_card_match_checks', 'c_public_keys', 'c_public_oauth_clients', 'c_public_oauth_codes', 'c_public_webhooks', 'c_public_webhook_deliveries', 'c_qbo_connections', 'c_qbo_oauth_states', 'c_qbd_connection', 'c_qbd_tickets'],
+  excludeTables: ['c_slack_connection', 'c_slack_links', 'c_slack_challenges', 'c_slack_threads', 'c_plaid_settings', 'c_plaid_links', 'c_plaid_connections', 'c_gusto_connection', 'c_gusto_employees', 'c_bank_providers', 'rer_dependency_keys', 'rer_dependency_pending', 'rer_dependency_codes', 'c_agent_keys', 'c_guard', 'c_card_match_epoch', 'c_card_match_generations', 'c_card_match_checks', 'c_public_keys', 'c_public_oauth_clients', 'c_public_oauth_codes', 'c_public_webhooks', 'c_public_webhook_deliveries', 'c_qbo_connections', 'c_qbo_oauth_states', 'c_qbd_connection', 'c_qbd_tickets'],
   secretColumns: { c_program_feeds: ['credentials_sealed'] },
   exportRow: (table, row) => table === 'c_qbd_requests' && row.status === 'sent' ? { ...row, status: 'uncertain', message: 'Restored without a QuickBooks response; reconcile in Desktop before reposting' } : table === 'c_program_feeds' ? { ...row, enabled: 0, lease_id: null, lease_until: 0, next_run_at: 0 } : row,
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],

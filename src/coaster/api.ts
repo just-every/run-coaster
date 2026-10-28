@@ -1,4 +1,6 @@
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
+import { slackStatus, connectSlack, disconnectSlack, startSlackLink, confirmSlackLink, unlinkSlack } from './chat/slack-connection';
+import { slackEvent } from './chat/slack-answers';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
 import { receiptEmailSource } from './receipts/mail-intake';
@@ -109,6 +111,14 @@ const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) =
   return result instanceof Response ? result : c.json(result);
 };
 const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
+
+api.get('/api/coaster/chat/slack',as(async(a,c)=>slackStatus(runtimeBindings(c.env),a)));
+api.post('/api/coaster/chat/slack/connect',as(async(a,c)=>connectSlack(runtimeBindings(c.env),a,await body(c,12_000))));
+api.post('/api/coaster/chat/slack/disconnect',as(async(a,c)=>disconnectSlack(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/chat/slack/link/start',as(async(a,c)=>startSlackLink(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/chat/slack/link/confirm',as(async(a,c)=>confirmSlackLink(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/chat/slack/unlink',as(async(a,c)=>unlinkSlack(runtimeBindings(c.env),a)));
+api.post('/api/coaster/chat/slack/events',async c=>c.json(await slackEvent(runtimeBindings(c.env),c.req.raw)));
 
 api.post('/api/coaster/accounting/desktop/soap', c => desktopSoap(runtimeBindings(c.env),c.req.raw));
 api.get('/api/coaster/accounting/desktop', as(async(a,c)=>desktopStatus(db(c),a)));

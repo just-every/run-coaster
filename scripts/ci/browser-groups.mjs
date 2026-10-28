@@ -19,6 +19,7 @@ export const groups = {
     {"evidence": "email", "commands": [["tests/browser-email.mjs"], ["tests/email-archive.mjs"]]},
   ],
   'capture-2': [
+    { evidence: 'slack-answers', commands: [['tests/browser-slack-answers.mjs'], ['tests/slack-archive.mjs']] },
     {"evidence": "capture", "commands": [["tests/capture.mjs"]], "env": {"CAPTURE_REFUSALS": "2/3"}},
   ],
   'matching-0': [

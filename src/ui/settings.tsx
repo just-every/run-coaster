@@ -26,6 +26,7 @@ import { AutomaticCoding } from './automatic-coding';
 import { ProgramFeed } from './program-feed';
 import { ReceiptReadingSettings } from './receipt-reading';
 import { ReceiptEmailSettings } from './receipt-email';
+import { SlackConnection } from './slack-connection';
 import type { ViewProps } from './claims';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -91,6 +92,7 @@ export function Settings({ state, reload }: ViewProps) {
     {b && owner && !state.actor.delegate && <ProviderCosts />}
     {b && admin && !state.actor.delegate && <ReceiptReadingSettings />}
     {b && roles.employee && !state.actor.delegate && <ReceiptEmailSettings />}
+    {b && !state.actor.delegate && <SlackConnection />}
     {b && admin && <CodingSettings state={state} reload={reload} />}
     {b && !auditorOnly && <AutomaticCoding state={state} />}
     {b && (reader || roles.cardAdmin) && <CardReconciliation state={state} />}

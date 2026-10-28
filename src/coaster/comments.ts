@@ -5,16 +5,17 @@ import { operatorMail } from '../mail.server.mjs';
 import type { Bindings } from '../auth.server';
 import { email, now, requireThat, text, uid, type Actor, type Data } from './types';
 import { questionReplyMail } from './comment-email';
+import { deliverSlackQuestion } from './chat/slack-answers';
 
 const escape = (s: string) => s.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 const author = (actor: Actor) => actor.delegate?.email ?? actor.email;
 
 /** App and authenticated native email answers write the same comment and history line. */
-export function commentWrites(db: D1Database, actor: Actor, claim: string, c: { id: string; item: string | null; parent: string | null; asks: string | null; parentAsks: string | null; body: string; at: string }) {
+export function commentWrites(db: D1Database, actor: Actor, claim: string, c: { id: string; item: string | null; parent: string | null; asks: string | null; parentAsks: string | null; body: string; at: string; channel?: string }) {
   const action = c.asks ? 'question-asked' : c.parentAsks === actor.email ? 'question-answered' : 'comment-added';
   return [
     db.prepare('INSERT INTO c_comments(id,claim_id,item_id,parent_id,author_email,on_behalf_of,asks_email,body,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(c.id, claim, c.item, c.parent, author(actor), actor.delegate ? actor.email : null, c.asks, c.body, c.at),
-    event(db, actor, action, { claim }, { comment: c.id, item: c.item, parent: c.parent, asks: c.asks, body: c.body }),
+    event(db, actor, action, { claim }, { comment: c.id, item: c.item, parent: c.parent, asks: c.asks, body: c.body, ...(c.channel ? {channel:c.channel} : {}) }),
   ];
 }
 
@@ -78,7 +79,9 @@ export async function addComment(db: D1Database, env: Bindings, actor: Actor, id
     const sent = mail ? await mail.send({ deliveryId: commentId, from: env.MAIL_FROM ?? '', to: [asks], subject: `${actor.name} has a question about ${claimNumber(claim.number)}${reply ? ` ${reply.subject}` : ''}`, text: words, html: `<p>${escape(words.replace(link, ''))}<a href="${link}">${link}</a></p>`, ...(reply ? { replyTo: reply.destination } : {}), headers: {} }) : null;
     notified = sent?.status ?? 'mail not set up';
   }
-  return { comment: commentId, notified, comments: await claimComments(db, claim.id) };
+  let slack = 'not linked';
+  if(asks) { try { slack=await deliverSlackQuestion(env,commentId); } catch { slack='not delivered'; } }
+  return { comment: commentId, notified, slack, comments: await claimComments(db, claim.id) };
 }
 
 /** The author may correct a comment until anyone replies; the earlier wording stays in the history line. */

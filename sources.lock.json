@@ -755,6 +755,10 @@
       "sha256": "41007c0908b35eef684fe9e1d76cf56583f825e58c6ecb63da944d106336994d",
       "executable": false
     },
+    "migrations/core/0085_slack_answers.sql": {
+      "sha256": "857f22d8f5314138fd94e2756a6ae6d05f64c840bc0c239eef78d1f01970e274",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -948,7 +952,7 @@
       "executable": false
     },
     "scripts/ci/browser-groups.mjs": {
-      "sha256": "74aaf535fe39a3117afa49c801ffbc08803812bf38d48e6197fb53521786c957",
+      "sha256": "78b524e1a9d1ca3861036060be0824e4a7e89cc1a1e865707a8b1257627bf219",
       "executable": false
     },
     "scripts/ci/chromium-probe.mjs": {
@@ -1156,7 +1160,7 @@
       "executable": false
     },
     "scripts/installer/portability.mjs": {
-      "sha256": "5963dd899afb458e203577fedd5c65c2f65e4b8e1c9738d1285860262c95b26a",
+      "sha256": "29426d6d8e1c72a852266f81ab81f887401b30a071c9269558e458123cd0149e",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {
@@ -1169,6 +1173,10 @@
     },
     "scripts/installer/seed.mjs": {
       "sha256": "7bd4e291b926f9744cf262a2bb119502fe7506a8f142a67409c0b32293c949f9",
+      "executable": false
+    },
+    "scripts/installer/slack-archive.mjs": {
+      "sha256": "97591971e56f0943970f87268e92b2b413764c023ec3a17d6c6ad8bed965a780",
       "executable": false
     },
     "scripts/installer/statement-archive.mjs": {
@@ -1400,7 +1408,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "6630d4fd5b3556a0761e43194b707034a7bd3e4d3edcc4bfc525e5b401f18bfb",
+      "sha256": "10275d0ee65d3409d436e86c089d5faa678dcab6f74bd8ff8435eab53ea30707",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1511,6 +1519,18 @@
       "sha256": "8c39d692eec8ad60b2a652980557dc1d226d28ef11ee27e2647e0a3f9e1e55ae",
       "executable": false
     },
+    "src/coaster/chat/slack-answers.ts": {
+      "sha256": "706b58d9b4d2b67a64e1a0a407ac05a9ec7cfc9ddcb14cfdb2b85144a552ce3e",
+      "executable": false
+    },
+    "src/coaster/chat/slack-connection.ts": {
+      "sha256": "dcb3df9b71037a0e9917542abab19d2327fb60be16c8a6114d4db5ab1645be6c",
+      "executable": false
+    },
+    "src/coaster/chat/slack-transport.ts": {
+      "sha256": "ad251662b5fe3e11031ec4235676ddba872080425be602610bcb3786d2f68c35",
+      "executable": false
+    },
     "src/coaster/claim-pdf.ts": {
       "sha256": "e26bae9bcbef4e33352992ae33fa6ce60f691a317f11f6d743299e64cb57c62f",
       "executable": false
@@ -1588,7 +1608,7 @@
       "executable": false
     },
     "src/coaster/comments.ts": {
-      "sha256": "ddca267b2f8458a48009e90fc66767fb613375ccde48c131724ad0e6ca28f3e1",
+      "sha256": "8fa259a80149ef8e9ea0b222ed7ebf34687254f7ad6f3f35083b7e0147cab68b",
       "executable": false
     },
     "src/coaster/decisions.ts": {
@@ -4332,11 +4352,15 @@
       "executable": false
     },
     "src/ui/settings.tsx": {
-      "sha256": "2512d9ffefe4231e4bc73b1bc031f90734852bd5dd4df74aca5e8b0079b8e794",
+      "sha256": "0971ad53afe69783287ae566554e944143c795b017e3d0ec440854de02e767e3",
       "executable": false
     },
     "src/ui/shell.tsx": {
       "sha256": "f6e16286ef00edc5aacb638e7395b8d5aa93ca56d8c0b5d9351e35023200ef53",
+      "executable": false
+    },
+    "src/ui/slack-connection.tsx": {
+      "sha256": "7c2f2567119e79c5600cbc21bb8d7144b8fdfb0916ea30c6d22f5a78d7cbbc83",
       "executable": false
     },
     "src/ui/spend.tsx": {
@@ -4457,6 +4481,10 @@
     },
     "tests/browser-runtime.mjs": {
       "sha256": "9a3fb375ff32282c734140c2126d3cbfa756abec02c7594967ca31d30f619ad7",
+      "executable": false
+    },
+    "tests/browser-slack-answers.mjs": {
+      "sha256": "58c18885321d4e8ae9d35381bb57146c2405d5f4a77b901a7115bb630df8e609",
       "executable": false
     },
     "tests/browser-statements.mjs": {
@@ -4601,6 +4629,10 @@
     },
     "tests/coaster-receipt-signals.test.mjs": {
       "sha256": "b6ded1998ea805164e7fa04149a2c5b9a103b5d3f54ed0e4a30bface4955dea3",
+      "executable": false
+    },
+    "tests/coaster-slack-answers.test.mjs": {
+      "sha256": "958579340e390e1a279949c09b86a5404b8b4a02c35c2057f36bfb3845309a96",
       "executable": false
     },
     "tests/coaster-statements.test.mjs": {
@@ -6671,6 +6703,10 @@
       "sha256": "81d333cf239a2e12022b9adb0ce05df33999db5edd41dd9fcea69f63d294a699",
       "executable": false
     },
+    "tests/fixtures/slack.mjs": {
+      "sha256": "ed3c2273f902aaa7c46cd8536648392346a7cc7699702cf37d4aab27f3e56e7e",
+      "executable": false
+    },
     "tests/fixtures/statements/bank.ofx": {
       "sha256": "b9be82214a063ce83f4db23af95b69fadb5e09f8cbf277ed3a160e31763da93d",
       "executable": false
@@ -6704,7 +6740,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "1c42b2eace99399a35e588099d6a4d519470e7f4de8ea47419341aba19eb0d54",
+      "sha256": "7bba47ecbdc23e9a4b6aeece93bd8d3d00016abe4600443b01c340b1020ac652",
       "executable": false
     },
     "tests/identity-provider.mjs": {
@@ -6769,6 +6805,10 @@
     },
     "tests/site/site.test.mjs": {
       "sha256": "c0dfec467bebce19f47e16ddc7e074c13fdc0e37dd7c0b75d19aceaad2c33264",
+      "executable": false
+    },
+    "tests/slack-archive.mjs": {
+      "sha256": "7a619be3432c70807f129fbb064aff1dd448d59d5440c7501933824ff4421563",
       "executable": false
     },
     "tests/statement-archive.mjs": {
