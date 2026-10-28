@@ -96,6 +96,7 @@ try {
       await comments.getByLabel('Ask', { exact: true }).selectOption(employee);
       await comments.getByRole('button', { name: 'Add comment', exact: true }).click();
       await expect(comments.getByText('Open question', { exact: true })).toBeVisible();
+      await expect(comments.getByRole('status')).toContainText('Question sent to Slack.');
       await expect(comments.getByText(question, { exact: true })).toBeVisible();
       const asked = await h.get(`claims/${claim.id}`, team.priya);
       const thread = asked.comments.find(comment => comment.body === question && !comment.parent_id);
@@ -104,6 +105,7 @@ try {
       assert.ok(edge.messages.at(-1).text.includes(question));
       assert.equal(asked.claim.status, 'submitted');
       assert.deepEqual(asked.revisions, before.revisions);
+      for (const control of await page.locator('[data-tooltip]:visible').all()) await tooltipProof(page, control);
       await capture('slack-question-open', page.locator('.detail'));
 
       const delivered = await deliverSlack(h, edge, edge.reply({ event: { text: answer } }));

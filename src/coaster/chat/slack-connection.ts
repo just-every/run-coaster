@@ -16,7 +16,7 @@ export async function slackStatus(env: Bindings, actor: Actor) {
   native(actor);
   const c=await connection(env), m=await env.DB.prepare('SELECT member_id FROM c_members WHERE email=? AND active=1').bind(actor.email).first<{member_id:string}>();
   const link=m&&c?await env.DB.prepare('SELECT user FROM c_slack_links WHERE member_id=? AND connection_id=?').bind(m.member_id,c.id).first<{user:string}>():null;
-  return { connected:!!c, workspace:c?.workspace, connection:c?.id, canConnect:can(actor,'connections'), linked:!!link, user:link?.user };
+  return { connected:!!c, workspace:c?.workspace, connection:c?.id, canConnect:can(actor,'connections'), linked:!!link, user:link?.user, eventUrl:can(actor,'connections')?env.AUTH_ORIGIN+'/api/coaster/chat/slack/events':undefined };
 }
 export async function connectSlack(env: Bindings, actor: Actor, body: Data) {
   const auth=connectAuthority(actor);

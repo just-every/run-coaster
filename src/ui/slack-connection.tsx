@@ -9,6 +9,7 @@ type SlackStatus = {
   canConnect: boolean;
   linked: boolean;
   user?: string;
+  eventUrl?: string;
 };
 type Changed = (message: string) => Promise<void>;
 
@@ -96,6 +97,7 @@ export function SlackConnection() {
         <p>{status.connected ? <>Connected to <strong>{status.workspace ?? 'Slack'}</strong>.</> : 'No Slack workspace connected.'}</p>
         {!status.connected && !status.canConnect && <p>An owner, admin or finance member can connect the Slack workspace.</p>}
         <WorkspaceConnection status={status} changed={changed} />
+        {status.canConnect && <details><summary>Slack app setup</summary><p>Grant the bot permission to write messages, open direct messages, read workspace members and receive direct-message history. Enable the bot’s message.im event and use this Events request URL:</p><p>{status.eventUrl}</p><p>Slack must grant the bot im:history before thread replies can arrive. Subscribe only to messages sent to the app.</p></details>}
         <PersonalLink status={status} changed={changed} />
       </>}
     </div>

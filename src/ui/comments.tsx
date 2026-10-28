@@ -6,6 +6,7 @@ import { Badge, Field, Form } from './parts';
     until they reply. A comment can be corrected until anyone replies. */
 export function Comments({ claim, items, comments, state, onDone }: { claim: D; items: D[]; comments: D[]; state: D; onDone: () => Promise<void> }) {
   const [editing, setEditing] = useState<string | null>(null), [replying, setReplying] = useState<string | null>(null);
+  const [delivery,setDelivery]=useState('');
   const me = state.actor.delegate?.email ?? state.actor.email, names: Record<string, string> = state.names, name = (email: string) => names[email] ?? email;
   const merchant = (item: string | null) => item ? items.find((i: D) => i.id === item)?.merchant ?? 'a removed expense' : null;
   const top = comments.filter((c: D) => !c.parent_id), replies = (id: string) => comments.filter((c: D) => c.parent_id === id);
@@ -20,6 +21,7 @@ export function Comments({ claim, items, comments, state, onDone }: { claim: D; 
   </>;
   return <section className="panel-block" aria-label="Comments">
     <h3>Comments and questions</h3>
+    {delivery && <p role="status">{delivery}</p>}
     {top.length ? <ul className="ruled-list comments">{top.map((c: D) => <li key={c.id} className="comment">
       {c.asks_email && <Badge status={c.open ? 'submitted' : 'approved'} words={c.open ? 'Open question' : 'Answered'} />}
       {line(c)}
@@ -32,10 +34,10 @@ export function Comments({ claim, items, comments, state, onDone }: { claim: D; 
         <Field label="Reply" name="body" type="textarea" maxLength={2000} />
       </Form>}
     </li>)}</ul> : <p className="muted">No comments yet. Asking a question leaves the claim where it is.</p>}
-    <div className="sub-form"><Form label="Add comment" onSubmit={async (v, form) => { await call(`claims/${claim.id}/comments`, { body: v.body, item: v.item || null, asks: v.asks || null }); form.reset(); await onDone(); }}>
+    <div className="sub-form"><Form label="Add comment" onSubmit={async (v, form) => { const result=await call(`claims/${claim.id}/comments`, { body: v.body, item: v.item || null, asks: v.asks || null }); setDelivery(result.slack==='sent'?'Question sent to Slack.':result.slack==='not delivered'?'Question saved. Slack delivery failed; answer in Coaster.':''); form.reset(); await onDone(); }}>
       <Field label="Comment or question" name="body" type="textarea" maxLength={2000} placeholder="Which client was this for?" />
       {items.length > 0 && <Field label="About" name="item" required={false} options={items.map((i: D) => ({ value: i.id, label: i.merchant }))} hint="Leave empty for the whole claim" />}
-      <Field label="Ask" name="asks" required={false} options={askable.map(email => ({ value: email, label: name(email) }))} hint="Name someone to make it a question they are emailed about" />
+      <Field label="Ask" name="asks" required={false} options={askable.map(email => ({ value: email, label: name(email) }))} hint="Name someone to make it a question" />
     </Form></div>
   </section>;
 }

@@ -40,7 +40,9 @@ try {
   assert.ok(answer && answer.body.length > 0 && answer.asks_email === null, 'the signed answer is an ordinary attributed reply');
   claim = await h.post(`claims/${claim.id}/decision`, { version: claim.version, revision: claim.revision, decision: 'approved', acknowledge: true }, team.priya);
   assert.equal(claim.status, 'approved');
-  const pending = await pendingEmailQuestionClaim(h, team, 'Unanswered Slack archive question');
+  let pending = await h.post('claims',{title:'Unanswered Slack archive question'},team.sam);
+  pending=await h.post(`claims/${pending.id}/items`,{version:pending.version,kind:'receipt',date:'2026-05-22',merchant:'Client office visit',amount:'31.00',explanation:'Original receipt unavailable',allocations:[{category:team.c.meals}]},team.sam);
+  pending=await h.post(`claims/${pending.id}/submit`,{version:pending.version},team.sam);
   assert.equal((await h.post(`claims/${pending.id}/comments`, { body: 'Which office?', asks: sam }, team.priya)).slack, 'sent');
   const pendingEvent = edge.reply();
   await h.post(['chat', 'slack', 'link', 'start'].join('/'), { user: edge.user, consent: true }, team.sam);
