@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { harness } from './harness.mjs';
+import { harness, receipt } from './harness.mjs';
 import { apiPath, cardChaseFixture } from './card-chase-kit.mjs';
 
 // ScheduledController.scheduledTime is fixed by the fixture; authentication keeps its ordinary live session clock.
@@ -28,7 +28,30 @@ export async function proveCardEvidenceReminders() {
       assert.deepEqual(JSON.parse(d.body).to, ['sam@harbourfinch.example']);
       assert.ok(JSON.parse(d.body).text.endsWith(`/app#/claims/${f.id}`));
     }
-    await f.attach();
+    const submitted = await h.post(`claims/${f.id}/submit`, { version: (await f.detail()).claim.version }, f.sam);
+    const approved = await h.post(`claims/${f.id}/decision`, { version: submitted.version, revision: submitted.revision, decision: 'approved', acknowledge: true }, f.priya);
+    const frozen = await f.detail();
+    const file = { version: approved.version, item: item.id, ...(await receipt('officeworks')) };
+    await h.post(`claims/${f.id}/receipts`, file, f.alex, 403);
+    await h.post(`claims/${f.id}/receipts`, { ...file, version: submitted.version }, f.sam, 409);
+    const attempts = await Promise.all([h.send(`/api/coaster/claims/${f.id}/receipts`, file, f.sam), h.send(`/api/coaster/claims/${f.id}/receipts`, file, f.sam)]);
+    assert.deepEqual(attempts.map(r => r.status).sort(), [200, 409], 'one concurrent upload fills the missing receipt');
+    const completed = await f.detail();
+    assert.equal(completed.receipts.length, 1);
+    const finance = await h.get(`claims/${f.id}`, f.morgan);
+    assert.equal(finance.items[0].receipt_id, completed.items[0].receipt_id);
+    const download = await h.mf.dispatchFetch(`${h.origin}/api/coaster/receipts/${completed.items[0].receipt_id}`, { headers: { cookie: f.morgan } });
+    assert.equal(download.status, 200);
+    assert.deepEqual(Buffer.from(await download.arrayBuffer()), Buffer.from(file.base64, 'base64'));
+    assert.equal(completed.claim.status, 'approved');
+    assert.equal(completed.claim.total_minor, 0);
+    assert.deepEqual(completed.revisions, frozen.revisions, 'late evidence never rewrites the approved revision');
+    assert.deepEqual(completed.decisions, frozen.decisions);
+    assert.equal(completed.revisions[0].snapshot.items[0].receipt_id, null);
+    assert.equal(completed.items[0].amount_minor, 1200);
+    assert.ok(completed.events.some(e => e.action === 'receipt-added' && e.detail.afterSubmission === 1));
+    await h.post(`claims/${f.id}/receipts`, { ...file, version: completed.claim.version }, f.sam, 409);
+
     await h.post(apiPath('settings', 'reminders'), { days: '1,3,5,6', quietFrom: '20', quietUntil: '8', escalateAfter: '' }, f.morgan);
     assert.ok((await f.detail()).items[0].receipt_id);
     for (const day of ['2026-06-09', '2026-06-15']) assert.deepEqual(await f.tick(day), []);

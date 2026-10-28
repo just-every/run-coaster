@@ -171,7 +171,13 @@ export function receiptBytes(b: Data) {
 
 export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
-  editable(actor, claim, b);
+  const supplement = !['draft', 'returned'].includes(claim.status);
+  if (supplement) {
+    requireThat(actor.kind === 'person' && claim.employee_email === actor.email, 'Only the employee who owns a claim can add evidence', 403);
+    requireThat(b.version === claim.version, 'This claim changed; reload before trying again', 409);
+    const item = typeof b.item === 'string' ? await db.prepare('SELECT card_charge_id,receipt_id FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first<{ card_charge_id: string | null; receipt_id: string | null }>() : null;
+    requireThat(item?.card_charge_id && !item.receipt_id, 'Only a missing card receipt can be added after submission', 409);
+  } else editable(actor, claim, b);
   const { bytes, media, name } = receiptBytes(b), receiptId = uid(), sha = await sha256Hex(bytes);
   const source = b.source === 'camera' ? 'camera' : 'upload';
   const statements = [db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(receiptId, claim.id, claim.employee_email, name, media, bytes.length, sha, bytes, source, actor.delegate?.email ?? actor.email, now())];
@@ -181,8 +187,10 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
     requireThat(item, 'Expense not found on this claim', 404);
     statements.push(db.prepare('UPDATE c_items SET receipt_id=? WHERE id=?').bind(receiptId, b.item));
   }
-  statements.push(claimTotal(db, claim.id), event(db, actor, 'receipt-added', { claim: claim.id }, { receipt: receiptId, name, sha256: sha, size: bytes.length, item: b.item ?? null, source }));
-  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
+  statements.push(claimTotal(db, claim.id), event(db, actor, 'receipt-added', { claim: claim.id }, { receipt: receiptId, name, sha256: sha, size: bytes.length, item: b.item ?? null, source, ...(supplement ? { afterSubmission: claim.revision } : {}) }));
+  // Supplementary evidence preserves frozen revisions, decisions and financial facts. Exact version guards also
+  // ensure two concurrent uploads cannot both fill the same missing receipt.
+  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, supplement ? [claim.status] : ['draft', 'returned'])), statements);
   return { claim: await loadClaim(db, id), receipt: receiptId };
 }
 

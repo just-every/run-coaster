@@ -125,3 +125,11 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+## Contract documentation
+
+CONTRACT.md is the source. Lander-Regenerate: `node scripts/contract-docs.mjs write CLAUSE...`.
+Lander-Check: `node scripts/contract-docs.mjs check CLAUSE...`. Pass every touched clause id.
+The generator preserves unrelated legacy acceptance entries and regenerates summary counts
+and the clause register. Regenerate the source lock last with
+`node scripts/edition-authoring/cli.mjs lock`, then run its `check`.
