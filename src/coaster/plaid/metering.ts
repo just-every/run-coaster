@@ -49,7 +49,7 @@ export async function reservePlaidMonth(env: Bindings, actor: Actor, connection:
   requireThat(settings, 'Configure Plaid sandbox costs before syncing accounts', 409);
   const stable: Sql = { sql: 'EXISTS(SELECT 1 FROM c_plaid_settings WHERE id=1 AND version=? AND account_monthly_minor=? AND monthly_cap_minor IS ?)',
     params: [settings.version, settings.account_monthly_minor, settings.monthly_cap_minor] };
-  const custody: Sql = { sql: "EXISTS(SELECT 1 FROM c_plaid_connections WHERE id=? AND status='connected' AND accounts=?)", params: [connection.id, connection.accounts] };
+  const custody: Sql = { sql: "EXISTS(SELECT 1 FROM c_plaid_connections WHERE id=? AND status='connected' AND accounts=? AND connected_at<=?)", params: [connection.id, connection.accounts, at.toISOString()] };
   const auth = all(condition, authority(actor), stable, custody);
   await check(env, auth, 'Plaid authority or configuration changed; reload');
   let settlement = await env.DB.prepare("SELECT accounts,account_monthly_minor,usd_minor,recorded_at FROM c_plaid_costs WHERE month=? AND connection_id=? AND kind='settled'")
