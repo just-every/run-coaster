@@ -63,7 +63,7 @@ The owner can review optional AI costs in Settings before enabling receipt readi
 
 ## Contract implementation status
 
-103 clauses: 60 done, 23 partial, 20 missing. See [the contract](/contract) for the full acceptance requirements.
+103 clauses: 60 done, 23 partial, 20 missing. See [the contract](https://run-coaster.com/contract) for the full acceptance requirements.
 
 | Clause | Capability | Status |
 | --- | --- | --- |

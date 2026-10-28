@@ -10,7 +10,7 @@ import { expenseCodingPlan } from './coding-application';
 import { isoDate, now, requireThat, text, uid, type Actor, type Data } from '../types';
 
 function native(actor: Actor) {
-  requireThat(actor.kind === 'person' && !actor.delegate, 'Prepare and review this work in your own native session', 403);
+  requireThat(actor.kind === 'person' && !actor.delegate && !actor.publicCredential, 'Prepare and review this work in your own native session', 403);
 }
 const stampSql = `SELECT json_array(
  (SELECT updated_at FROM c_business WHERE id=1),

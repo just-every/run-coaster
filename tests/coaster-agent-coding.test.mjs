@@ -101,6 +101,7 @@ test('Native coding confirmation fences withdrawn authority and coding inputs at
       ['c_coding_version', 'version=version+1', 'id=1', []],
       ['c_auto_coding_contexts', 'version=version+1', "target_kind='item'", []],
       ['c_claims', 'version=version+1', 'id=?', [id]],
+      ['c_members', 'department_id=NULL', 'email=?', [t.samEmail]],
     ]) {
       const p = await prepare(h, t.sam, id);
       let expected;
@@ -108,12 +109,22 @@ test('Native coding confirmation fences withdrawn authority and coding inputs at
       await confirm(h, t.sam, p, 409);
       assert.deepEqual(await state(), expected, `pre-commit ${table} change permits no application writes`);
     }
+    // Sharing existing human coding changes learning even when the rule epoch itself is unchanged.
+    let historyClaim = await h.post('claims', { title: n(8610) }, t.alex);
+    historyClaim = await h.post(`claims/${historyClaim.id}/items`, { version: historyClaim.version, kind: 'receipt', merchant: n(8611), date: '2026-10-16', amount: '1.00', category: t.cats[0].id }, t.alex);
+    const historyPlan = await prepare(h, t.sam, id), epochBefore = (await h.get(['coding','automatic','rules'].join('/'), t.finance)).version;
+    let expectedHistory;
+    barrier = async () => { barrier = undefined; await h.post(`claims/${historyClaim.id}/submit`, { version: historyClaim.version }, t.alex); expectedHistory = await state(); return new Response('ok'); };
+    await confirm(h, t.sam, historyPlan, 409);
+    assert.equal((await h.get(['coding','automatic','rules'].join('/'), t.finance)).version, epochBefore);
+    assert.deepEqual(await state(), expectedHistory, 'new shared history invalidates in-flight confirmation independently of the rule epoch');
     const p = await prepare(h, t.sam, id), before = await state();
     for (const body of [
       'UPDATE c_auto_coding_epoch SET version=version+1 WHERE id=1;',
       'UPDATE c_coding_version SET version=version+1 WHERE id=1;',
       'UPDATE c_auto_coding_contexts SET version=version+1;',
       'UPDATE c_claims SET revision=1;',
+      'UPDATE c_members SET department_id=(SELECT id FROM c_departments ORDER BY name DESC LIMIT 1);',
       'UPDATE oa_sessions SET revoked_at=1;',
     ]) {
       // Simulate authority or input withdrawal after the writes start, inside real SQLite.

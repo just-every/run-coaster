@@ -40,7 +40,7 @@ let claims = await readFile('docs/claims.md', 'utf8');
 const heading = '## Contract implementation status';
 const offset = claims.indexOf(heading);
 const following = offset < 0 ? -1 : claims.indexOf('\n## ', offset + heading.length);
-const generated = `${heading}\n\n${total} clauses: ${done} done, ${partial} partial, ${missing} missing. See [the contract](/contract) for the full acceptance requirements.\n\n| Clause | Capability | Status |\n| --- | --- | --- |\n${contract.clauses.map(c => `| ${c.id} | ${c.title} | ${c.status} |`).join('\n')}\n`;
+const generated = `${heading}\n\n${total} clauses: ${done} done, ${partial} partial, ${missing} missing. See [the contract](https://run-coaster.com/contract) for the full acceptance requirements.\n\n| Clause | Capability | Status |\n| --- | --- | --- |\n${contract.clauses.map(c => `| ${c.id} | ${c.title} | ${c.status} |`).join('\n')}\n`;
 claims = offset < 0 ? `${claims.trimEnd()}\n\n${generated}` : claims.slice(0, offset) + generated + (following < 0 ? '' : claims.slice(following));
 for (const [file, value] of [['CONTRACT.md', source], ['ACCEPTANCE.md', acceptance], ['docs/claims.md', claims]]) {
   const existing = await readFile(file, 'utf8');

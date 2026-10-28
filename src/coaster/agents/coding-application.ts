@@ -9,6 +9,12 @@ import { codingContext, contextWrite, targetSuggestions, type Target } from '../
 import { event } from '../events';
 import { now, requireThat, uid, type Actor, type Data } from '../types';
 
+// Submission and department changes alter shared learning without necessarily advancing the rule epoch.
+const learningStampSql = `SELECT json_array(
+ (SELECT department_id FROM c_members WHERE email=?),
+ (SELECT group_concat(s) FROM (SELECT c.id||':'||c.revision||':'||c.status||':'||COALESCE(m.department_id,'') AS s
+ FROM c_claims c LEFT JOIN c_members m ON m.email=c.employee_email
+ WHERE c.status IN ('submitted','approved','batched','reimbursed') ORDER BY c.id))) AS stamp`;
 const contextsState = (entries: Data[], applied = false): Sql => ({
   sql: `NOT EXISTS(SELECT 1 FROM json_each(?) e LEFT JOIN c_auto_coding_contexts c ON c.target_kind='item' AND c.target_id=json_extract(e.value,'$.item') WHERE COALESCE(c.version,0)<>json_extract(e.value,'$.version'))`,
   params: [JSON.stringify(entries.map(e => ({ item: e.item, version: e.contextVersion + (applied && e.changes.length ? 1 : 0) })))],
@@ -17,7 +23,8 @@ const distinct = (guards: Sql[]) => [...new Map(guards.map(g => [JSON.stringify(
 
 /** A review snapshot, never an execution grant. Only category and catalog dimensions can change. */
 export async function expenseCodingPlan(db: D1Database, claim: Claim, items: Data[]) {
-  const known = await categories(db), catalog = await codingCatalog(db), entries: Data[] = [], guards: Sql[] = [];
+  const stamp = (await db.prepare(learningStampSql).bind(claim.employee_email).first<{ stamp: string }>())!.stamp;
+  const known = await categories(db), catalog = await codingCatalog(db), entries: Data[] = [], guards: Sql[] = [{ sql: `(${learningStampSql})=?`, params: [claim.employee_email, stamp] }];
   for (const item of items) {
     const context = await codingContext(db, 'item', item.id), suggestions = await targetSuggestions(db, 'item', item.id);
     const target: Target = { kind: 'item', id: item.id, employee: claim.employee_email, claim: claim.id, merchant: item.merchant, mcc: context?.mcc };
@@ -45,7 +52,7 @@ export async function expenseCodingPlan(db: D1Database, claim: Claim, items: Dat
     guards.push(advice.guard, ...(checked ? [checked.guard] : []));
     entries.push({ item: item.id, merchant: item.merchant, contextVersion: context?.version ?? 0, humanFields: human, changes, disputed, advice: proposalView(advice), next: checked?.items[0] ?? candidate, target });
   }
-  const review = { sourceClaim: claim.id, sourceVersion: claim.version, entries: entries.map(({ next, target, ...entry }) => entry) };
+  const review = { sourceClaim: claim.id, sourceVersion: claim.version, learningFingerprint: await sha256Hex(stamp), entries: entries.map(({ next, target, ...entry }) => entry) };
   return { entries, stableGuards: distinct(guards), guards: [...distinct(guards), contextsState(entries)], review, fingerprint: await sha256Hex(JSON.stringify(review)) };
 }
 

@@ -1,6 +1,7 @@
 // Real CLI export and restore of employee-confirmed coding and its numbered agent attribution.
 import assert from 'node:assert/strict';
 import { copyFile, mkdir, rm } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { harness } from './harness.mjs';
 import { fresh, command } from './browser-runtime.mjs';
@@ -12,6 +13,7 @@ const roots = []; let h;
 try {
   await mkdir(evidence, { recursive: true });
   const source = await fresh(), destination = await fresh(); roots.push(source, destination);
+  for (const root of roots) { execFileSync('git', ['config', 'user.name', 'Run Edit Run fleet'], { cwd: root }); execFileSync('git', ['config', 'user.email', ['fleet','runeditrun.com'].join('@')], { cwd: root }); }
   await Promise.all(roots.map(root => command(root, ['install'])));
   h = await harness({ persistencePath: join(source, '.wrangler/state/v3'), databaseId: 'local-foundation-only' });
   const result = await codingCorpus(h);
