@@ -97,7 +97,7 @@ function implementationSection(help, selected, rows) {
     if (!row) throw new Error(`Generated status references an unknown clause: ${id}`);
     return row;
   });
-  const section = `${begin}\n## Implementation status\n\nSource: [CONTRACT.md](../CONTRACT.md#status). Only the selected clauses below are generated; the help above is maintained separately.\n\n${selected.map(row => `- **${row.id} — ${row.title}. Status: ${row.status}.**${row.evidence ? ` Existing evidence: ${row.evidence}.` : ''}${row.gap ? ` Open scope: ${row.gap}` : ''}`).join('\n\n')}\n${end}`;
+  const section = `${begin}\n## Implementation status\n\nSource: [CONTRACT.md](https://github.com/just-every/run-coaster/blob/main/CONTRACT.md#status). Only the selected clauses below are generated; the help above is maintained separately.\n\n${selected.map(row => `- **${row.id} — ${row.title}. Status: ${row.status}.**${row.evidence ? ` Existing evidence: ${row.evidence}.` : ''}${row.gap ? ` Open scope: ${row.gap}` : ''}`).join('\n\n')}\n${end}`;
   const start = help.indexOf(begin), finish = help.indexOf(end);
   if ((start < 0) !== (finish < 0) || (start >= 0 && finish < start)) throw new Error('docs/claims.md has incomplete generated status markers.');
   if (start >= 0) {

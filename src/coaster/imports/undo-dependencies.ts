@@ -10,6 +10,7 @@ export async function importDependencies(db:any,effects:D1UndoEffect[],rows:Targ
  const requests=await query("SELECT json_object('id',id,'employee',employee_email,'approver',approver_email) value FROM c_requests ORDER BY id");
  const allocations=await query("SELECT json_object('item',item_id,'category',category_id) value FROM c_allocations ORDER BY item_id,position");
  const members=await query("SELECT json_object('id',member_id,'email',email,'approver',approver_email) value FROM c_members ORDER BY member_id");
+ const entityMembers=await query("SELECT json_object('entity',e.entity_id,'member',m.member_id,'email',e.email,'active',e.active) value FROM c_entity_members e LEFT JOIN c_members m ON m.email=e.email ORDER BY e.entity_id,e.email");
  const chains=await query("SELECT json_object('id',id,'employee',employee_id,'steps',json(steps)) value FROM c_import_chains ORDER BY id");
  const frozen=await query("SELECT json_object('claim',claim_id,'chain',chain_id,'steps',json(steps)) value FROM c_claim_chains ORDER BY claim_id,revision");
  const workflows=await query("SELECT json_object('version',version,'rules',json(rules)) value FROM c_approval_workflows ORDER BY version");
@@ -32,6 +33,7 @@ export async function importDependencies(db:any,effects:D1UndoEffect[],rows:Targ
  for(const effect of effects){
   const e=effect.expected,id=e.targetId,required=effect.provenance.id,value=e.value as any;
   if(e.targetKind==='member'){
+   for(const membership of entityMembers)if(membership.member===id&&membership.entity!=='primary')edge(required,undefined,'c_entity_members',JSON.stringify([membership.entity,id]));
    for(const c of cards)if(c.employee===value.email)edge(required,key('card',c.id),'c_cards',c.id);
    for(const r of [...claims,...requests])if(r.employee===value.email||r.approver===value.email)edge(required,undefined,'c_claims/c_requests',r.id);
    for(const t of tasks)if(t.email===value.email||t.onBehalfOf===value.email)edge(required,undefined,'c_workflow_tasks',t.id);

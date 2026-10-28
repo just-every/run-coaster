@@ -356,7 +356,7 @@
       "executable": false
     },
     "docs/claims.md": {
-      "sha256": "e433f1eeda25b357f61d5b9f13f84c79cd2719cf089ee0a11215fba1315917a3",
+      "sha256": "94e31246825327c6e816c347d2cc663a0d79a8a2c2c45a657554e0d2397701a0",
       "executable": false
     },
     "docs/deploy.md": {
@@ -964,7 +964,7 @@
       "executable": false
     },
     "scripts/contract-docs.mjs": {
-      "sha256": "68add23bfeec796ac4679741f1f7d170ed914e26aacd68abe4cb90f6f8c8cb49",
+      "sha256": "de56cec5e8df6c585c2546a29377ed73c6f64e44929f5a365d24207352a91392",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
@@ -1760,7 +1760,7 @@
       "executable": false
     },
     "src/coaster/imports/native-targets.ts": {
-      "sha256": "82bad110701fadc43363b7e778f9e1e570d7fac4a0fbd4e2bf974b9874cfbbc7",
+      "sha256": "557c9f59a4453d7bc007b566efe6acaea8797600702c4f2dc5b11720f6e5ddfe",
       "executable": false
     },
     "src/coaster/imports/redaction.ts": {
@@ -1772,7 +1772,7 @@
       "executable": false
     },
     "src/coaster/imports/undo-dependencies.ts": {
-      "sha256": "56c677a8f10bc5da67c55680687a380bdefe27a66208225c69eb7c3c260f9708",
+      "sha256": "f827fcccb5762057293cea8640a5bd1c51877aa200f98242a4163f6591d157a5",
       "executable": false
     },
     "src/coaster/investigations.ts": {

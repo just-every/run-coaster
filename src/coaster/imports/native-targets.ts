@@ -34,7 +34,18 @@ export function writeNative(r:TargetRow,timezone:string){
  const k=r.targetKind, v=r.value as Record<string,unknown>, cols=fields[k];
  return [sql(`INSERT INTO ${tables[k]}(${cols.join(',')}${k==='approval-chain'?',revision':''}) VALUES(${cols.map(()=>'?').join(',')}${k==='approval-chain'?',?':''}) ON CONFLICT(${idColumn(k)}) DO UPDATE SET ${cols.filter(c=>c!==idColumn(k)).map(c=>`${c}=excluded.${c}`).join(',')}${k==='approval-chain'?',revision=excluded.revision':''}`,...cols.map(c=>v[c]),...(k==='approval-chain'?[r.revision]:[])),sql('INSERT INTO c_import_targets(kind,id,revision) VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET revision=excluded.revision',k,r.targetId,r.revision),...(k==='card'?[sql("INSERT INTO c_events(id,seq,at,actor_email,action,claim_id,batch_id,detail) VALUES(lower(hex(randomblob(16))),(SELECT COALESCE(MAX(seq),0)+1 FROM c_events),strftime('%Y-%m-%dT%H:%M:%fZ','now'),'role:owner','import-card-assigned',NULL,NULL,json_object('card',?,'employee',?))",r.targetId,v.employee_email)]:[]),...(k==='category'?policy(localDay(timezone)):[]),...(['tag-dimension','tag'].includes(k)?[sql('UPDATE c_coding_version SET version=version+1 WHERE id=1')]:[])];
 }
-export function removeNative(k:string,id:string,timezone:string){if(k==='card')return [sql('INSERT INTO c_import_card_undo(id) VALUES(?)',id),sql('DELETE FROM c_cards WHERE id=?',id),sql('DELETE FROM c_import_card_undo WHERE id=?',id),sql("DELETE FROM c_import_targets WHERE kind='card' AND id=?",id)];if(k===policyKind)return removeConcurPolicy(id,timezone);return [sql(`DELETE FROM ${tables[k]} WHERE ${idColumn(k)}=?`,id),sql('DELETE FROM c_import_targets WHERE kind=? AND id=?',k,id),...(k==='category'?policy(localDay(timezone)):[]),...(['tag-dimension','tag'].includes(k)?[sql('UPDATE c_coding_version SET version=version+1 WHERE id=1')]:[])];}
+export function removeNative(k:string,id:string,timezone:string){
+ if(k==='card')return [sql('INSERT INTO c_import_card_undo(id) VALUES(?)',id),sql('DELETE FROM c_cards WHERE id=?',id),sql('DELETE FROM c_import_card_undo WHERE id=?',id),sql("DELETE FROM c_import_targets WHERE kind='card' AND id=?",id)];
+ if(k===policyKind)return removeConcurPolicy(id,timezone);
+ return [
+  // Every inserted member receives this derived membership; explicit later entity assignments retain the member.
+  ...(k==='member'?[sql("DELETE FROM c_entity_members WHERE entity_id='primary' AND email=(SELECT email FROM c_members WHERE member_id=?)",id)]:[]),
+  sql(`DELETE FROM ${tables[k]} WHERE ${idColumn(k)}=?`,id),
+  sql('DELETE FROM c_import_targets WHERE kind=? AND id=?',k,id),
+  ...(k==='category'?policy(localDay(timezone)):[]),
+  ...(['tag-dimension','tag'].includes(k)?[sql('UPDATE c_coding_version SET version=version+1 WHERE id=1')]:[]),
+ ];
+}
 export async function nativeRows(db:any,destination:string){
  const markers=(await db.prepare('SELECT kind,id FROM c_import_targets ORDER BY kind,id').all()).results;
  const rows:TargetRow[]=[];
