@@ -5,11 +5,11 @@ const key = row => JSON.stringify([row.connection_id, row.transaction_id]);
 const parse = value => { try { return JSON.parse(value); } catch { check(false); } };
 const body = value => value && typeof value.blob === 'string' ? Buffer.from(value.blob, 'base64') : Buffer.from(value instanceof ArrayBuffer ? new Uint8Array(value) : value ?? []);
 const facts = source => parse(body(source.bytes).toString('utf8'));
-const sameFacts = (a, b) => ['transaction_id','account_id','pending_transaction_id','pending','spent_on','posted_on','merchant','amount_minor','currency'].every(k => a[k] === b[k]);
+const sameFacts = (a, b) => ['transaction_id','account_id','pending_transaction_id','pending','spent_on','posted_on','merchant','amount_minor','provider_amount','currency'].every(k => a[k] === b[k]);
 const nonempty = value => typeof value === 'string' && value.length > 0;
 
 /** Validate correction provenance before the ordinary source validator uses its maps.
- * sources: source id -> { item, charge, personalCharge, snapshot, replacement }; effective: connection/transaction key -> correction.
+ * sources: source id -> { item, charge, personalCharge, snapshot, replacement }; effective: connection and transaction key -> correction.
  */
 export async function validatePlaidCorrections(read) {
   const [corrections, changes, sources, charges, personalCharges, items, claims, revisions, events] = await Promise.all(

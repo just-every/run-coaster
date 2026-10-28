@@ -42,11 +42,12 @@ const h=await harness({plaidEdge:async r=>{
   return new Response(await response.arrayBuffer(),{status:response.status,headers});
 }});
 const connected=[],cookies=[h.owner];
-let linkTokensCreated=0,exchanges=0;
+let linkTokensCreated=0,exchanges=0,fixtureProviderRemovals=0,proof;
 try {
   await h.post(['settings','business'].join('/'),{name:'Synthetic Coaster',currency:'USD',timezone:'UTC',receiptThreshold:''});
   const employee=await h.person(address(250),{employee:true});cookies.push(employee);
-  const admin=await h.person(address(251),{admin:true,employee:true});cookies.push(admin);
+  const admin=await h.person(address(251),{admin:true,employee:true,manager:true});cookies.push(admin);
+  const personalEmployee=await h.person(address(257),{employee:true},address(251));cookies.push(personalEmployee);
   const category=(await h.post('settings/categories',{name:'Synthetic Coaster Office',accountCode:'6500',taxCode:'NONE'})).id;
   const day=new Date(Date.now()-86_400_000).toISOString().slice(0,10);
   const denied=[];
@@ -61,7 +62,7 @@ try {
   const ramp={source:'ramp',filename:'synthetic-coaster-262.csv',mapping:{date:'YYYY-MM-DD'},csv:`Transaction ID,Transaction Date,User Email,Merchant Name,Amount,Currency,Memo,Ramp Category,Accounting Category,Receipt File\nsynthetic-coaster-263,${day},${address(250)},Harbour Parking,12.00,USD,Synthetic visit,Synthetic Coaster Office,6500,\n`};
   const preview=await h.post('import/preview',ramp);await h.post('import/commit',{...ramp,fingerprint:preview.fingerprint});
   for(const scope of ['company','personal']){
-    const cookie=scope==='company'?admin:employee;
+    const cookie=scope==='company'?admin:personalEmployee;
     const link=await h.post(['plaid','link'].join('/'),{scope,consent:true},cookie);
     assert.ok(link.linkToken && link.environment==='sandbox');linkTokensCreated++;
     const custom={version:2,seed:'synthetic-coaster-'+(scope==='company'?260:261),override_accounts:[{type:'credit',subtype:'credit card',starting_balance:100,meta:{name:'Synthetic Coaster card',official_name:'Synthetic Coaster card'},transactions:[{date_transacted:day,date_posted:day,amount:scope==='company'?12:18.75,description:scope==='company'?'Harbour Parking':'Harbour Stationery',currency:'USD'}]}]};
@@ -76,7 +77,7 @@ try {
     assert.ok(!stored.credentials_sealed.includes(keys.secret));
   }
   const company=connected.find(c=>c.scope==='company'),personal=connected.find(c=>c.scope==='personal');
-  for(const c of connected)await h.post(`plaid/connections/${c.id}/assign`,{account:c.account.id,employee:address(250),category},c.cookie);
+  for(const c of connected)await h.post(`plaid/connections/${c.id}/assign`,{account:c.account.id,employee:address(c.scope==='company'?250:257),category},c.cookie);
   // Sandbox initialization is asynchronous. These are explicit subsequent native sync commands,
   // bounded to 60 seconds of polling delay, solely for documented eventual transaction readiness.
   async function syncUntil(c,predicate){
@@ -113,14 +114,14 @@ try {
   const companyPosted=await syncUntil(company,txs=>txs.some(t=>t.amount_minor===2345&&t.item_id));
   const companyTx=companyPosted.find(t=>t.amount_minor===2345);
   assert.equal(companyTx.status,'posted');
-  async function detailFor(tx){
-    for(const claim of (await h.get('state',employee)).claims){
-      const detail=await h.get(`claims/${claim.id}`,employee);
+  async function detailFor(tx,cookie){
+    for(const claim of (await h.get('state',cookie)).claims){
+      const detail=await h.get(`claims/${claim.id}`,cookie);
       if(detail.items.some(i=>i.id===tx.item_id))return detail;
     }
     assert.fail('Synced expense is visible through the employee claim door');
   }
-  const companyDetail=await detailFor(companyTx),personalDetail=await detailFor(personalTx);
+  const companyDetail=await detailFor(companyTx,employee),personalDetail=await detailFor(personalTx,personalEmployee);
   const companyItem=companyDetail.items.find(i=>i.id===companyTx.item_id),personalItem=personalDetail.items.find(i=>i.id===personalTx.item_id);
   assert.equal(companyItem.merchant,liveTransactions.get(companyTx.transaction_id).merchant);assert.equal(personalItem.merchant,liveTransactions.get(personalTx.transaction_id).merchant);
   assert.equal(companyItem.amount_minor,2345);assert.ok(companyItem.card_charge_id);assert.ok(companyItem.receipt_id);
@@ -129,6 +130,12 @@ try {
   assert.ok(personalDetail.claim.total_minor>=1875,'Personal charge contributes to reimbursement');
   const attachment=(await h.get('receipt-inbox',employee)).receipts.find(r=>r.id===receipt).attachment;
   assert.equal(attachment.itemId,companyItem.id);
+  // Settle the personal claim through ordinary expense editing, submission and manager review.
+  // Do this before replay: Sandbox may enrich initial posting facts, correctly creating a reconciliation hold.
+  const edited=await h.post(`claims/${personalDetail.claim.id}/items`,{version:personalDetail.claim.version,item:personalItem.id,kind:personalItem.kind,date:personalItem.spent_on,merchant:personalItem.merchant,amount:'18.75',allocations:[{category}],explanation:'Synthetic stationery purchase without a paper receipt'},personalEmployee);
+  const submitted=await h.post(`claims/${edited.id}/submit`,{version:edited.version},personalEmployee);
+  const rejected=await h.post(`claims/${submitted.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'rejected',reason:'Synthetic personal purchase'},admin);
+  assert.equal(rejected.status,'rejected');
   const before=JSON.stringify((await h.db.prepare('SELECT id,claim_id,amount_minor,card_charge_id,receipt_id FROM c_items ORDER BY id').all()).results);
   for(const c of connected){const replay=await h.post(`plaid/connections/${c.id}/sync`,{},c.cookie);assert.equal(replay.expenses,0);}
   assert.equal(JSON.stringify((await h.db.prepare('SELECT id,claim_id,amount_minor,card_charge_id,receipt_id FROM c_items ORDER BY id').all()).results),before);
@@ -140,20 +147,55 @@ try {
   await h.post(['plaid','link'].join('/'),{scope:'company',consent:true},admin,409);
   assert.equal(providerRequests.length,fullCapRequests);
   assert.ok((await h.post('claims',{title:'Synthetic manual claim at the Plaid cap'},employee)).id);
-  for(const c of connected)await h.post(['plaid','connections',c.id,'disconnect'].join('/'),{},c.cookie);
+  await h.post('settings/members',{email:address(257),name:'synthetic-coaster-257',employee:true,approver:address(251),active:false});
+  const beforeErasureRequests=providerRequests.length;
+  const erased=await h.post('settings/members/erase',{email:address(257)});
+  assert.equal(erased.removed.personalPlaidConnections,1);
+  assert.equal(erased.removed.signInAccount,true);
+  assert.equal(providerRequests.length,beforeErasureRequests,'Local erasure makes no provider request and does not claim provider revocation');
+  assert.ok(erased.retained.claims.some(c=>c.status==='rejected'&&c.totalMinor===1875));
+  const retained=await h.get(`claims/${personalDetail.claim.id}`);
+  assert.deepEqual([retained.claim.employee_email,retained.claim.status,retained.claim.total_minor],[erased.retained.subject,'rejected',1875]);
+  const retainedItem=retained.items.find(i=>i.id===personalItem.id);
+  assert.equal(retainedItem.amount_minor,1875);assert.equal(retainedItem.merchant,personalItem.merchant);
+  assert.ok(retainedItem.personal_card_charge_id,'Personal feed provenance remains with the retained expense');
+  for(const value of [retained,await h.get('state'),await h.get('history'),await h.get('retention')]){
+    const text=JSON.stringify(value);
+    assert.ok(!text.includes(address(257))&&!text.includes('synthetic-coaster-257'),'Public retained records redact the erased name and address');
+  }
+  const beforeErasedReplay=providerRequests.length;
+  await h.get('state',personalEmployee,401);
+  await h.post(`plaid/connections/${personal.id}/sync`,{},personalEmployee,401);
+  await h.get(`plaid/connections/${personal.id}/transactions`,personalEmployee,401);
+  await h.post(`plaid/connections/${personal.id}/disconnect`,{},personalEmployee,401);
+  await h.post(`plaid/connections/${personal.id}/sync`,{},h.owner,404);
+  await h.get(`plaid/connections/${personal.id}/transactions`,h.owner,404);
+  await h.post(`plaid/connections/${personal.id}/disconnect`,{},h.owner,404);
+  assert.equal(providerRequests.length,beforeErasedReplay,'Erased session and deleted connection replays make no physical provider request');
+  assert.ok(!(await h.get('plaid/connections',admin)).connections.some(c=>c.id===personal.id));
+  // Company disconnect retains the normal application/provider removal contract.
+  await h.post(`plaid/connections/${company.id}/disconnect`,{},company.cookie);
   connected.length=0;
   assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_connections').first()).n,0);
-  assert.equal(providerRequests.filter(p=>p==='/item/remove').length,2);
-  console.log(JSON.stringify({sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),environment:'sandbox',companyCard:true,personalCard:true,linkTokensCreated,exchanges,maskedAccountsVerified:2,providerRemovalsConfirmed:2,adminConnection:true,deniedRoles:4,monthToDateMinor:500,capRefusal:true,manualClaimAtCap:true,companyPostedExpense:true,personalPostedExpense:true,companyNonReimbursable:true,personalReimbursable:true,rampOverlap:true,receiptOptInBeforeProviderCharge:true,receiptAttachedOnce:true,replayNoDuplicateExpenses:true,nativeAudit:true,personalPrivacy:true,livePendingTransition:false,livePostedModification:false,livePostedRemoval:false,gaps:['Live pending transition is not exercised by this credit-only custom fixture','No deterministic documented endpoint was used to modify or remove an already posted transaction'],outcome:'PASS'}));
+  assert.equal(providerRequests.filter(p=>p==='/item/remove').length,1);
+  proof={sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),environment:'sandbox',companyCard:true,personalCard:true,linkTokensCreated,exchanges,maskedAccountsVerified:2,providerRemovalsConfirmed:2,applicationProviderRemovalsConfirmed:1,fixtureProviderRemovalsConfirmed:1,personalErasure:true,erasedExpenseRetained:true,erasedSessionReplayRefused:true,erasedIdentityRedacted:true,localErasureDoesNotRevokeProvider:true,adminConnection:true,deniedRoles:4,monthToDateMinor:500,capRefusal:true,manualClaimAtCap:true,companyPostedExpense:true,personalPostedExpense:true,companyNonReimbursable:true,personalReimbursable:true,rampOverlap:true,receiptOptInBeforeProviderCharge:true,receiptAttachedOnce:true,replayNoDuplicateExpenses:true,nativeAudit:true,personalPrivacy:true,livePendingTransition:false,livePostedModification:false,livePostedRemoval:false,gaps:['Live pending transition is not exercised by this credit-only custom fixture','No deterministic documented endpoint was used to modify or remove an already posted transaction'],outcome:'PASS'};
 } finally {
   for(const c of connected){try{await h.post(['plaid','connections',c.id,'disconnect'].join('/'),{},c.cookie);}catch{console.error('Sandbox connection cleanup requires explicit follow-up');}}
   // A refused account validation may leave pending custody for explicit item removal.
   for(const cookie of cookies){
-    for(const c of (await h.get(['plaid','connections'].join('/'),cookie)).connections){try{await h.post(['plaid','connections',c.id,'disconnect'].join('/'),{},cookie);}catch{console.error('Pending sandbox item removal remains unconfirmed');}}
+    const listed=await h.send('/api/coaster/plaid/connections',undefined,cookie);
+    if(listed.status===401||listed.status===403)continue;
+    assert.equal(listed.status,200,'Live fixture cleanup can list native connections');
+    for(const c of listed.value.connections){try{await h.post(['plaid','connections',c.id,'disconnect'].join('/'),{},cookie);}catch{console.error('Pending sandbox item removal remains unconfirmed');}}
   }
-  // Exchange custody captured at the network edge also covers an Item whose native activation failed.
+  // Fixture-only provider cleanup uses in-memory exchange custody, including the locally erased personal Item.
+  // This is separate from application erasure, which does not revoke the provider Item.
   for(const item of liveItems.values()){
-    try{await sandbox('/item/remove',{access_token:item.access_token});}catch{console.error('Sandbox item cleanup requires explicit follow-up');}
+    try{await sandbox('/item/remove',{access_token:item.access_token});fixtureProviderRemovals++;}catch{console.error('Sandbox item cleanup requires explicit follow-up');}
   }
   await h.close();
 }
+
+assert.equal(providerRequests.filter(p=>p==='/item/remove').length+fixtureProviderRemovals,2,'Both real provider fixtures were removed, one by normal disconnect and one by fixture-only cleanup');
+assert.equal(fixtureProviderRemovals,1);
+console.log(JSON.stringify(proof));

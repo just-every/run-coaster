@@ -79,11 +79,12 @@ function Transactions({ connection, revision, canReconcile, changed }: { connect
       {data && (data.transactions.length ? <ul className="ruled-list" aria-label="Plaid transactions">{data.transactions.map((transaction: D) => <li key={transaction.transaction_id}>
         <strong>{transaction.merchant}</strong> · {money(transaction.amount_minor, transaction.currency)}
         <p className="muted">{day(transaction.spent_on)} · {transaction.reconciled ? 'Source change reconciled · original evidence retained' : transactionStatus[transaction.status] ?? transaction.status} · account ends {connection.accounts.find((account: D) => account.id === transaction.account_id)?.last4}</p>
+        {transaction.provider_amount && Number(transaction.provider_amount)*100!==transaction.amount_minor && <p className="muted">Provider amount: {transaction.provider_amount} {transaction.currency}. The native expense uses nearest-cent rounding; exact halves round away from zero.</p>}
         {canReconcile && transaction.status==='review' && !transaction.reconciled && transaction.item_id && <Details label="Reconcile draft source change"><Form label="Apply provider correction" onSubmit={async values=>{
           if(!values.consent)throw new Error('Confirm the exact provider correction first.');
           await call(`plaid/connections/${connection.id}/reconcile`,{transaction:transaction.transaction_id,changeSeq:transaction.changeSeq,version:transaction.claimVersion,consent:true});
           await changed();setData(await call(`plaid/connections/${connection.id}/transactions`));
-        }}><p className="field-wide">Only an untouched draft that has never been submitted can be replaced or removed here. Prior source facts and expense evidence stay permanent. Attached receipts, human edits, submitted claims and closed card periods need separate reconciliation.</p><Field label="I consent to applying this exact provider change to the untouched draft expense" name="consent" type="checkbox" /></Form></Details>}
+        }}><p className="field-wide">Only an untouched draft that has never been submitted can be replaced or removed here. Prior source facts and expense evidence stay permanent. Attached receipts, human edits, linked statements, submitted claims and closed card periods need separate reconciliation.</p><Field label="I consent to applying this exact provider change to the untouched draft expense" name="consent" type="checkbox" /></Form></Details>}
       </li>)}</ul> : <Empty title="No transactions received" />)}
     </div>
   </details>;
@@ -116,7 +117,7 @@ function Connection({ connection, state, cards, changed }: { connection: D; stat
     })}
     {connection.status === 'connected' && <div className="sub-form"><Form label="Sync feed transactions" onSubmit={async () => {
       let result: D;
-      try { result = await call(path + '/sync', {}); } catch(reason) { await changed(); throw reason; }
+      try { result = await call(path + '/sync', {}); } catch(reason) { await changed(); if((reason as Error).message.includes('nothing was changed')) throw new Error('Sync was not confirmed. Inspect retained transactions and any incomplete-sync hold, then sync again explicitly.'); throw reason; }
       await changed(); setRevision(value => value + 1);
       setNotice(`Sync complete: ${result.added} added, ${result.modified} modified, ${result.removed} removed; ${result.expenses} expenses created.`);
     }}><p className="muted field-wide">Only assigned accounts create expenses. Sync keeps pending, posted and removed transaction history.</p></Form></div>}

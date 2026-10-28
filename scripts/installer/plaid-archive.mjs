@@ -1,3 +1,4 @@
+import { plaidMinor } from '../../src/coaster/plaid/money.mjs';
 import { createHash } from 'node:crypto';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 import { validatePlaidCorrections } from './plaid-corrections.mjs';
@@ -10,12 +11,13 @@ const parse = value => { try { return JSON.parse(value); } catch { check(false, 
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 const nonempty = value => typeof value === 'string' && value.length > 0;
 const date = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
-const fields = ['transaction_id', 'account_id', 'pending_transaction_id', 'pending', 'spent_on', 'posted_on', 'merchant', 'amount_minor', 'currency'];
-const same = (left, right, keys = fields) => keys.every(field => left[field] === right[field]);
+const fields = ['transaction_id', 'account_id', 'pending_transaction_id', 'pending', 'spent_on', 'posted_on', 'merchant', 'amount_minor', 'provider_amount', 'currency'];
+const same = (left, right, keys = fields) => keys.every(field => (left[field]??null) === (right[field]??null));
 function facts(value) {
-  check(object(value) && Object.keys(value).length === fields.length && Object.keys(value).every(field => fields.includes(field)), 'facts');
+  check(object(value) && (Object.keys(value).length === fields.length || Object.keys(value).length === fields.length-1 && !Object.hasOwn(value,'provider_amount')) && Object.keys(value).every(field => fields.includes(field)), 'facts');
   check(['transaction_id', 'account_id', 'merchant'].every(field => nonempty(value[field])) && (value.pending_transaction_id === null || nonempty(value.pending_transaction_id)), 'facts');
   check(typeof value.pending === 'boolean' && Number.isSafeInteger(value.amount_minor) && /^[A-Z]{3}$/.test(value.currency) && date(value.spent_on) && date(value.posted_on), 'facts');
+  if(Object.hasOwn(value,'provider_amount')) check(typeof value.provider_amount==='string' && String(Number(value.provider_amount))===value.provider_amount && plaidMinor(Number(value.provider_amount))===value.amount_minor,'facts');
   return value;
 }
 
@@ -111,7 +113,7 @@ export async function validatePlaidArchive(read) {
     if (row.status === 'removed') check(!original && (!row.item_id && !row.charge_id || charge && row.item_id === charge.item_id), 'transaction');
     if (row.status === 'pending') check(previous.value.pending, 'transaction');
     if (row.status === 'credit') check(!previous.value.pending && row.amount_minor <= 0, 'transaction');
-    const correction = corrections.effective.get(key(row)), resolvedRemoval = correction?.reason === 'provider-removal' && correction.change_seq === latest.seq;
+    const correction = corrections.effective.get(key(row)), resolvedRemoval = [...corrections.effective.values()].some(prior=>prior.transaction_id===row.transaction_id && prior.scope===row.scope && prior.employee_email===row.employee_email && prior.reason==='provider-removal') && !row.item_id && !row.charge_id;
     if (correction?.change_seq === latest.seq) check(row.item_id === correction.new_item_id && row.charge_id === correction.new_charge_id, 'transaction');
     if (row.status === 'posted' || row.status === 'review') check(resolvedRemoval ? !row.item_id && !row.charge_id : original && row.item_id, 'transaction');
     if (row.status === 'posted') check(!previous.value.pending && row.amount_minor > 0 && same(previous.value, facts(parse(body(original.bytes).toString('utf8')))), 'transaction');

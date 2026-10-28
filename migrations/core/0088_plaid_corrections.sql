@@ -37,3 +37,6 @@ CREATE TRIGGER c_plaid_corrections_immutable BEFORE UPDATE ON c_plaid_correction
  BEGIN SELECT RAISE(ABORT,'Plaid corrections are permanent'); END;
 CREATE TRIGGER c_plaid_corrections_no_delete BEFORE DELETE ON c_plaid_corrections
  BEGIN SELECT RAISE(ABORT,'Plaid corrections are permanent'); END;
+
+CREATE VIEW c_card_effective_charges AS SELECT ch.* FROM c_card_charges ch
+ WHERE NOT EXISTS(SELECT 1 FROM c_plaid_corrections cr WHERE cr.old_charge_id=ch.id);

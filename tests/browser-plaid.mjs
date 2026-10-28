@@ -97,7 +97,7 @@ export async function plaidBrowserJourney({ widths = [1440, 390], evidence = pro
         const pending = plaidTransaction({ transaction_id: 'synthetic-coaster-332', merchant_name: 'Harbour Cafe', name: 'Harbour Cafe', amount: 8.75, pending: true });
         const posted = plaidTransaction();
         const removed = plaidTransaction({ transaction_id: 'synthetic-coaster-333', merchant_name: 'Harbour Parking', name: 'Harbour Parking', amount: 12, pending: true });
-        const secondPosted = plaidTransaction({ transaction_id: 'synthetic-coaster-336', merchant_name: 'Harbour Books', name: 'Harbour Books', amount: 19 });
+        const secondPosted = plaidTransaction({ transaction_id: 'synthetic-coaster-336', merchant_name: 'Harbour Books', name: 'Harbour Books', amount: 19.1234 });
         edge.pages.push({ added: [pending, posted, removed, secondPosted], modified: [], removed: [], next_cursor: 'synthetic-coaster-334', has_more: false });
         await h.db.exec("CREATE TRIGGER synthetic_plaid_interrupt BEFORE INSERT ON c_items BEGIN SELECT RAISE(ABORT,'Synthetic source interruption'); END;");
         const interrupted=page.waitForResponse(reply=>reply.url()===h.origin+'/api/coaster/'+path+'/sync'&&reply.request().method()==='POST');
@@ -118,6 +118,7 @@ export async function plaidBrowserJourney({ widths = [1440, 390], evidence = pro
         const expenses = expenseLists.flatMap(detail => detail.items);
         assert.ok(expenses.some(item => item.merchant === posted.merchant_name && item.amount_minor === Math.round(posted.amount * 100)), 'UI sync creates a native employee expense');
         assert.ok(!expenses.some(item => item.merchant === pending.merchant_name));
+        await expect(transactions.getByRole('listitem').filter({hasText:secondPosted.merchant_name})).toContainText('Provider amount: 19.1234 USD');
         await capture('pending-posted');
 
         edge.pages.push({ added: [], modified: [plaidTransaction({ amount: 43.50 })], removed: [{ transaction_id: removed.transaction_id }], next_cursor: 'synthetic-coaster-335', has_more: false });

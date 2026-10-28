@@ -8,7 +8,7 @@ import { plaidAccess } from './accounts';
 import { plaidExpense } from './expenses';
 import type { Transaction } from './transactions';
 
-const factsFields = ['transaction_id','account_id','pending_transaction_id','spent_on','posted_on','merchant','amount_minor','currency'];
+const factsFields = ['transaction_id','account_id','pending_transaction_id','spent_on','posted_on','merchant','amount_minor','provider_amount','currency'];
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const rows = async (db: D1Database, sql: string, ...params: unknown[]) => (await db.prepare(sql).bind(...params).all<Data>()).results;
 const neverSubmitted = (item: string, charge: string | null): Sql => ({
@@ -97,12 +97,14 @@ export async function reconcilePlaid(env: Bindings, actor: Actor, id: string, bo
   requireThat(verified && (!charge || card && card.last4===verified.last4 && card.employee_email===tx.employee_email) && (!personalCharge || personalCharge.last4===verified.last4),'The verified card custody changed',409);
   const closed:Sql={sql:'NOT EXISTS(SELECT 1 FROM c_card_statements WHERE card_id=? AND closed_at IS NOT NULL AND period_end>=?)',params:[charge?.card_id??'', [oldFacts.spent_on,oldFacts.posted_on,...(removed?[]:[current.spent_on,current.posted_on])].sort()[0]]};
   requireThat(await db.prepare(`SELECT 1 WHERE ${closed.sql}`).bind(...closed.params).first(),'A closed card period needs separate reconciliation',409);
+  const statementLinks:Sql={sql:'NOT EXISTS(SELECT 1 FROM c_card_charge_aliases WHERE charge_id=?) AND NOT EXISTS(SELECT 1 FROM c_card_statement_resolutions WHERE charge_id=?)',params:[charge?.id??'',charge?.id??'']};
+  requireThat(await db.prepare(`SELECT 1 WHERE ${statementLinks.sql}`).bind(...statementLinks.params).first(),'A statement-linked charge needs separate reconciliation',409);
   const clean:Sql={sql:`NOT EXISTS(SELECT 1 FROM c_batch_claims WHERE claim_id=?) AND NOT EXISTS(SELECT 1 FROM c_events WHERE action IN ('expense-changed','receipt-added') AND json_extract(detail,'$.item')=?) AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE item_id=? AND kind IN ('attached','detached'))`,params:[claim.id,item.id,item.id]};
   requireThat(await db.prepare(`SELECT 1 WHERE ${clean.sql}`).bind(...clean.params).first(),'A submitted, batched or human-edited expense needs separate reconciliation',409);
   const soleSource:Sql={sql:'NOT EXISTS(SELECT 1 FROM c_plaid_transactions WHERE item_id=? AND (connection_id<>? OR transaction_id<>?))',params:[item.id,id,transaction]};
   requireThat(await db.prepare(`SELECT 1 WHERE ${soleSource.sql}`).bind(...soleSource.params).first(),'A shared reconnected source needs separate reconciliation',409);
   const auth=all(access,c.scope==='company'?authority(actor,'owner'):authority(actor,'employee'),{sql:'EXISTS(SELECT 1 FROM c_plaid_settings WHERE id=1 AND version=?)',params:[settings.version]});
-  const guards:Sql[]=[history,closed,clean,soleSource,claimState(claim.id,body.version,['draft','returned']),unchanged('c_items',item),unchanged('c_plaid_transactions',tx),unchanged('c_plaid_sync_state',sync),unchanged('c_plaid_assignments',assignment),unchanged('c_auto_coding_contexts',prior.contexts[0]),
+  const guards:Sql[]=[history,closed,statementLinks,clean,soleSource,claimState(claim.id,body.version,['draft','returned']),unchanged('c_items',item),unchanged('c_plaid_transactions',tx),unchanged('c_plaid_sync_state',sync),unchanged('c_plaid_assignments',assignment),unchanged('c_auto_coding_contexts',prior.contexts[0]),
     {sql:'(SELECT MAX(seq) FROM c_plaid_changes WHERE connection_id=? AND transaction_id=?)=? AND NOT EXISTS(SELECT 1 FROM c_plaid_corrections WHERE connection_id=? AND transaction_id=? AND change_seq=?)',params:[id,transaction,change.seq,id,transaction,change.seq]},
     {sql:`EXISTS(SELECT 1 FROM c_members m WHERE m.email=? AND m.active=1 AND m.is_employee=1 AND ${notDeactivated('m.email')})`,params:[tx.employee_email]},
     {sql:'EXISTS(SELECT 1 FROM c_business WHERE id=1 AND currency=?)',params:[tx.currency]},

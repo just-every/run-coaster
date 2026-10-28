@@ -7,13 +7,13 @@ import { fresh, command } from './browser-runtime.mjs';
 import { records, rows, tampered } from './browser-archive.mjs';
 import { harness } from './harness.mjs';
 import { plaidTransaction, plaidConfig } from './fixtures/plaid.mjs';
-import { plaidSetup, page } from './plaid-sync.mjs';
+import { plaidSetup, page, uploadWaiting } from './plaid-sync.mjs';
 
 const tableRows = (archive, table) => rows(archive).filter(item => item.table === table).map(item => item.row);
 const orderKey = row => JSON.stringify(Object.keys(row).sort().map(key => [key,row[key]]));
 const ordered = values => [...values].sort((left,right)=>orderKey(left).localeCompare(orderKey(right)));
 const numbered = events => [...events].sort((left, right) => left.seq - right.seq);
-const financialTables = ['c_plaid_sync_state', 'c_plaid_assignments', 'c_plaid_transactions', 'c_plaid_changes', 'c_plaid_sources', 'c_plaid_costs', 'c_card_charges', 'c_card_charge_aliases', 'c_claims', 'c_items', 'c_allocations'];
+const financialTables = ['c_plaid_sync_state', 'c_plaid_assignments', 'c_plaid_transactions', 'c_plaid_changes', 'c_plaid_sources', 'c_plaid_corrections', 'c_plaid_personal_charges', 'c_plaid_costs', 'c_card_charges', 'c_card_charge_aliases', 'c_claims', 'c_items', 'c_allocations'];
 const roots = [];
 let h;
 try {
@@ -42,11 +42,13 @@ try {
   edge.pages.push(page([], [], [pending.transaction_id], 'synthetic-coaster-cursor-2', true), page([posting], [], [], 'synthetic-coaster-cursor-3'));
   assert.equal((await h.post(companyPath + '/sync', {})).expenses, 1);
   const purchase = plaidTransaction({ transaction_id: 'synthetic-coaster-406', amount: 11.75, merchant_name: 'Synthetic Coaster Travel' });
+  const rule=await h.get('settings/card-matching');await h.post('settings/card-matching',{version:rule.version,enabled:true,windowDays:7,tipPercent:0,fxPercent:0});
+  const receipt=await uploadWaiting(h,t.employee,purchase);
   edge.pages.push(page([purchase]));
   assert.equal((await h.post(personalPath + '/sync', {}, t.employee)).expenses, 1);
   const personalTransaction = (await h.get(personalPath + '/transactions', t.employee)).transactions[0];
   item = await h.db.prepare('SELECT * FROM c_items WHERE id=?').bind(personalTransaction.item_id).first();
-  assert.equal(item.card_charge_id, null);
+  assert.equal(item.card_charge_id, null);assert.ok(item.personal_card_charge_id);assert.ok(item.receipt_id);assert.equal((await h.get('receipt-inbox',t.employee)).receipts.find(r=>r.id===receipt).attachment.itemId,item.id);
   assert.equal(item.amount_minor, 1175);
   assert.equal((await h.get(`claims/${item.claim_id}`, t.employee)).claim.total_minor, 1175, 'only the native personal purchase is reimbursable');
   const beforeReplay = (await h.db.prepare('SELECT * FROM c_items ORDER BY id').all()).results;
@@ -61,11 +63,17 @@ try {
   assert.equal(transactions.find(row => row.transaction_id === posted.transaction_id).status, 'review');
   assert.deepEqual((await h.db.prepare('SELECT * FROM c_items ORDER BY id').all()).results, beforeReplay, 'provider corrections preserve the original expense facts');
 
+  const reconcile=async transaction=>{const row=(await h.get(companyPath+'/transactions')).transactions.find(row=>row.transaction_id===transaction);return h.post(companyPath+'/reconcile',{transaction,changeSeq:row.changeSeq,version:row.claimVersion,consent:true});};
+  const corrected=await reconcile(posted.transaction_id);assert.notEqual(corrected.item,companyItem);
+  edge.pages.push(page([],[],[posting.transaction_id],'synthetic-coaster-cursor-5'));await h.post(companyPath+'/sync',{});
+  assert.equal((await reconcile(posting.transaction_id)).item,null);
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_corrections').first()).n,2);
+
   const snapshot = new Map(await Promise.all(financialTables.map(async table => {
     const result = (await h.db.prepare(`SELECT * FROM ${table}`).all()).results;
     return [table, ordered(result.map(row => table === 'c_plaid_sources' ? { ...row, bytes: { blob: Buffer.from(row.bytes).toString('base64') } } : row))];
   })));
-  assert.equal(snapshot.get('c_plaid_sources').length, 3, 'only posted original expenses retain a financial source');
+  assert.equal(snapshot.get('c_plaid_sources').length, 4, 'only posted original expenses retain a financial source');
   const history = (await h.db.prepare('SELECT * FROM c_events ORDER BY seq').all()).results;
   const syncHistory = (await h.get('history')).lines.filter(event => event.action === 'plaid-synced');
   assert.ok(syncHistory.length && syncHistory.every((event, index) => event.actor_email && event.channel === 'app' && event.at && (!index || event.seq > syncHistory[index - 1].seq)));
@@ -83,6 +91,9 @@ try {
 
   await command(destination, ['export', '--output', 'exports/empty-before.rer']);
   const empty = rows(await records(join(destination, 'exports/empty-before.rer')));
+  const invalidCorrection=await tampered(archive,'c_plaid_corrections',row=>{row.old_item_id='synthetic-coaster-missing-item';});
+  await writeFile(join(destination,'exports/invalid-correction.rer'),invalidCorrection,{mode:0o600});
+  assert.match(await command(destination,['import','--input','exports/invalid-correction.rer','--yes'],{expected:4}),/coaster_plaid_correction/);
   const corrupted = await tampered(archive, 'c_plaid_sources', row => {
     const value = JSON.parse(Buffer.from(row.bytes.blob, 'base64').toString('utf8'));
     value.amount_minor += 1;

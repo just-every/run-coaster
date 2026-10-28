@@ -23,7 +23,7 @@ export async function analyse(db: D1Database, s: StatementRecord) {
   const statement = readStatement({ content: new TextDecoder().decode(Uint8Array.from(file.bytes as unknown as ArrayLike<number>)), format: file.format, name: file.name, issuer: file.issuer, mapping: JSON.parse(file.mapping) }, business.currency);
   const rows = statement.rows.filter(r => r.last4 === card.last4);
   const [charges, resolutions] = await db.batch([
-    db.prepare('SELECT id,transaction_key,item_id,category_id,amount_minor,descriptor,posted_on FROM c_card_charges WHERE card_id=?').bind(card.id),
+    db.prepare('SELECT id,transaction_key,item_id,category_id,amount_minor,descriptor,posted_on FROM c_card_effective_charges WHERE card_id=?').bind(card.id),
     db.prepare('SELECT line,resolution,amount_minor,charge_id,note,resolved_by,resolved_at FROM c_card_statement_resolutions WHERE statement_id=? ORDER BY line').bind(s.id),
   ]);
   const held = new Map((charges.results as (HeldCharge & { transaction_key: string })[]).map(c => [c.transaction_key, c]));

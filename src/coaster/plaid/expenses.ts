@@ -11,7 +11,7 @@ import type { Transaction } from './transactions';
 /** Retain a minimized provider fact snapshot and use the existing immutable card, coding and expense doors. */
 export async function plaidExpense(db: D1Database, actor: Actor, connection: string, scope: string, tx: Transaction, assignment: Data, held: Held, claim: string, position: number) {
   const source = uid(), at = now(), category = await categoryFor(db, assignment.category_id);
-  const bytes = new TextEncoder().encode(JSON.stringify(Object.fromEntries(['transaction_id','account_id','pending_transaction_id','pending','spent_on','posted_on','merchant','amount_minor','currency'].map(k=>[k,(tx as unknown as Data)[k]]))));
+  const bytes = new TextEncoder().encode(JSON.stringify(Object.fromEntries(['transaction_id','account_id','pending_transaction_id','pending','spent_on','posted_on','merchant','amount_minor','provider_amount','currency'].map(k=>[k,(tx as unknown as Data)[k]]))));
   const sourceWrite = db.prepare('INSERT INTO c_plaid_sources VALUES(?,?,?,?,?,?,?,?)').bind(source, connection, tx.transaction_id, bytes, await sha256Hex(bytes), bytes.length, JSON.stringify({ provider: 'Plaid sandbox', coding: { category: category.id, costCentre: '' } }), at);
   if (scope === 'company') {
     const card = await db.prepare('SELECT issuer FROM c_cards WHERE id=?').bind(assignment.card_id).first<{issuer:string}>();

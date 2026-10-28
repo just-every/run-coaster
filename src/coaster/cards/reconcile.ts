@@ -141,7 +141,7 @@ export async function closeReconciliation(db: D1Database, actor: Actor, id: stri
   const before = await cardAccountMinor(db, a.card);
   const after = before + lines.reduce((n, l) => n + (l.credit.startsWith('Card liability') ? l.amountMinor : 0) - (l.debit.startsWith('Card liability') ? l.amountMinor : 0), 0);
   requireThat(after === s.statement_minor, 'The ledger entries do not reach the statement balance; nothing was closed', 409);
-  await commit(db, all(authority(actor, 'finance'), isOpen(id), { sql: "(SELECT COUNT(*)||':'||COALESCE(SUM(amount_minor),0) FROM c_card_charges WHERE card_id=?)||':'||(SELECT COUNT(*) FROM c_card_statement_resolutions WHERE statement_id=?)=?", params: [s.card_id, id, a.signature] }), [
+  await commit(db, all(authority(actor, 'finance'), isOpen(id), { sql: "(SELECT COUNT(*)||':'||COALESCE(SUM(amount_minor),0) FROM c_card_effective_charges WHERE card_id=?)||':'||(SELECT COUNT(*) FROM c_card_statement_resolutions WHERE statement_id=?)=?", params: [s.card_id, id, a.signature] }), [
     db.prepare('UPDATE c_card_statements SET closed_by=?,closed_at=? WHERE id=? AND closed_at IS NULL').bind(actor.email, at, id),
     ...lines.map((l, i) => db.prepare('INSERT INTO c_card_ledger(id,statement_id,card_id,seq,kind,debit_account,credit_account,amount_minor,ref,memo,posted_on,posted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(uid(), id, s.card_id, i + 1, l.kind, l.debit, l.credit, l.amountMinor, l.ref, l.memo, l.postedOn, at)),
     event(db, actor, 'card-statement-closed', {}, { statement: id, file: s.file_id, issuer: a.card.issuer, last4: a.card.last4, period: { start: s.period_start, end: s.period_end }, statementMinor: s.statement_minor, entries: lines.length, cardAccountMinor: after }),

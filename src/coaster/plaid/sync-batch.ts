@@ -11,7 +11,7 @@ import { plaidExpense } from './expenses';
 import { transactionColumns, type Transaction } from './transactions';
 import type { Change } from './pages';
 
-const sameFacts = (a: Data, b: Transaction) => ['account_id','spent_on','posted_on','merchant','amount_minor','currency'].every(k => a[k] === b[k as keyof Transaction]);
+const sameFacts = (a: Data, b: Transaction) => ['account_id','spent_on','posted_on','merchant','amount_minor','provider_amount','currency'].every(k => a[k] === b[k as keyof Transaction]);
 
 /** Resolve the complete update before any financial write, including cross-page pending removals. */
 export async function prepareSync(db: D1Database, c: Connection, assignments: Data[], changes: Change[]) {
@@ -42,7 +42,7 @@ export async function prepareSync(db: D1Database, c: Connection, assignments: Da
     if (!tx.pending && tx.amount_minor > 0 && !item && !retired) {
       const history = (await db.prepare("SELECT value FROM c_history WHERE kind='expense' AND json_extract(value,'$.employee')=? AND json_extract(value,'$.date')=? AND json_extract(value,'$.amountMinor')=?").bind(assignment.employee_email, tx.spent_on, tx.amount_minor).all<{value:string}>()).results;
       const overlap = history.some(h => (change.merchants??[normalDescriptor(tx.merchant)]).includes(normalDescriptor(JSON.parse(h.value).merchant)));
-      const native = (await db.prepare('SELECT id,item_id,descriptor FROM c_card_charges WHERE employee_email=? AND COALESCE(transaction_on,posted_on)=? AND amount_minor=?').bind(assignment.employee_email, tx.spent_on, tx.amount_minor).all<Data>()).results.find(ch => (change.merchants??[normalDescriptor(tx.merchant)]).includes(normalDescriptor(ch.descriptor)));
+      const native = (await db.prepare('SELECT id,item_id,descriptor FROM c_card_effective_charges WHERE employee_email=? AND COALESCE(transaction_on,posted_on)=? AND amount_minor=?').bind(assignment.employee_email, tx.spent_on, tx.amount_minor).all<Data>()).results.find(ch => (change.merchants??[normalDescriptor(tx.merchant)]).includes(normalDescriptor(ch.descriptor)));
       if (overlap || native) { row.status = 'overlap'; row.charge_id = native?.id ?? null; row.item_id = native?.item_id ?? null; }
       else {
         planned.set(tx.transaction_id, assignment);
@@ -100,7 +100,7 @@ export async function financialBatch(env: Bindings, actor: Actor, c: Connection,
     writes.push(event(db, actor, 'plaid-expense-created', { claim }, { connection: id, transaction: row.transaction_id, item: row.item_id, scope: c.scope, reimbursable: c.scope === 'personal', channel: 'app' }));
   }
   for (const row of rows) {
-    writes.push(db.prepare(`INSERT INTO c_plaid_transactions(${transactionColumns}) VALUES(${transactionColumns.split(',').map(() => '?').join(',')}) ON CONFLICT(connection_id,transaction_id) DO UPDATE SET account_id=excluded.account_id,pending_transaction_id=excluded.pending_transaction_id,status=excluded.status,spent_on=excluded.spent_on,posted_on=excluded.posted_on,merchant=excluded.merchant,amount_minor=excluded.amount_minor,currency=excluded.currency,item_id=excluded.item_id,charge_id=excluded.charge_id,updated_at=excluded.updated_at`).bind(...transactionColumns.split(',').map(k => row[k] ?? null)));
+    writes.push(db.prepare(`INSERT INTO c_plaid_transactions(${transactionColumns}) VALUES(${transactionColumns.split(',').map(() => '?').join(',')}) ON CONFLICT(connection_id,transaction_id) DO UPDATE SET account_id=excluded.account_id,pending_transaction_id=excluded.pending_transaction_id,status=excluded.status,spent_on=excluded.spent_on,posted_on=excluded.posted_on,merchant=excluded.merchant,amount_minor=excluded.amount_minor,provider_amount=excluded.provider_amount,currency=excluded.currency,item_id=excluded.item_id,charge_id=excluded.charge_id,updated_at=excluded.updated_at`).bind(...transactionColumns.split(',').map(k => row[k] ?? null)));
   }
   for (const claim of place.claims.keys()) writes.push(claimTotal(db, claim));
   return { writes, guards, expenses };
