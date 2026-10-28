@@ -69,7 +69,7 @@ test('Native entities isolate receipt policy and routing, consolidate exact USD 
   await h.post(['settings','members'].join('/'),{email:other,name:'Former entity member',employee:true,active:false});
   await h.post(['settings','members','erase'].join('/'),{email:other});
   assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_entity_members WHERE email=?').bind(other).first()).n,0);
-  await h.get('state',t.alex,403);
+  await h.get('state',t.alex,401);
   const revoked=await h.send('/api/coaster/agent/claims',{title:'Refused erased member'},'',{authorization:'Bearer '+key.token});
   assert.equal(revoked.status,401);
   for(const batch of batches) {

@@ -100,7 +100,7 @@ export async function confirmExpiry(db: D1Database, actor: Actor, id: string) {
   const at = now(), holds = await liveHolds(db), expired: Data[] = [], skipped: Data[] = [], writes: D1PreparedStatement[] = [];
   for (const unit of JSON.parse(proposal.claims) as { batch: string | null; claims: { id: string; number: number; updated_at: string }[] }[]) {
     const ids = unit.claims.map(c => c.id), list = JSON.stringify(ids);
-    const current = (await db.prepare('SELECT id,number,employee_email,status,updated_at,total_minor FROM c_claims WHERE id IN (SELECT value FROM json_each(?)) ORDER BY number').bind(list).all<Data>()).results;
+    const current = (await db.prepare('SELECT id,entity_id,currency,number,employee_email,status,updated_at,total_minor FROM c_claims WHERE id IN (SELECT value FROM json_each(?)) ORDER BY number').bind(list).all<Data>()).results;
     const unchanged = current.length === ids.length && unit.claims.every(c => current.some(x => x.id === c.id && x.updated_at === c.updated_at));
     const hold = unchanged ? await holdOn(db, current as Unit['claims'], holds) : null;
     if (!unchanged || hold) { skipped.push(...unit.claims.map(c => ({ claim: claimNumber(c.number), reason: hold ? `legal hold: ${hold.reason}` : 'changed since it was proposed' }))); continue; }
@@ -127,7 +127,7 @@ export async function confirmExpiry(db: D1Database, actor: Actor, id: string) {
     );
     for (const c of current) {
       const own = items.filter(i => i.claim_id === c.id), dates = own.map(i => i.spent_on).sort();
-      const line = { claim: claimNumber(c.number), status: c.status, totalMinor: c.total_minor, expenseDates: dates.length ? { from: dates[0], to: dates.at(-1) } : null, receiptSha256: own.map(i => i.sha256).filter(Boolean) };
+      const line = { ...(c.entity_id!=='primary'?{entity:c.entity_id,currency:c.currency}:{}), claim: claimNumber(c.number), status: c.status, totalMinor: c.total_minor, expenseDates: dates.length ? { from: dates[0], to: dates.at(-1) } : null, receiptSha256: own.map(i => i.sha256).filter(Boolean) };
       expired.push(line);
       writes.push(ruleEvent(db, RETENTION, 'claim-expired', { claim: c.id }, { ...line, proposal: id, confirmedBy: actor.email, retentionYears: proposal.retention_years }));
     }

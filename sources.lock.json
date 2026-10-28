@@ -2080,7 +2080,7 @@
       "executable": false
     },
     "src/coaster/retention.ts": {
-      "sha256": "5fba076d593738d72616bac218157253beb47643239c8d8ae0ed7e7c1f437e41",
+      "sha256": "264c38b918b6c0956103078e10ef30a79968c0e11b446c75a2cf6ef0f5ec3500",
       "executable": false
     },
     "src/coaster/reversals.ts": {
@@ -4576,7 +4576,7 @@
       "executable": false
     },
     "tests/coaster-entities.test.mjs": {
-      "sha256": "29fe94a1e74db2c90e825d8815a4fc845c5b26b32295c62fbad1fcf7eed3a006",
+      "sha256": "10e2295fefd1024f868f4685254525bf03ef9d4cfdc01a4596a659232fb1ef32",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
