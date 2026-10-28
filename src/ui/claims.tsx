@@ -23,7 +23,7 @@ const totals = (claims: D[], defaultCurrency: string) => {
 export const matches = (c: D, query: string) => `${claimNumber(c.number)} ${c.title} ${c.employee_name}`.toLowerCase().includes(query.trim().toLowerCase());
 
 function NewClaim({ state, reload, onClose }: { state: D; reload: () => Promise<D>; onClose: () => void }) {
-  const entities = state.entities.filter((entity: D) => entity.members.includes(state.actor.email));
+  const entities = state.entities.filter((entity: D) => entity.members.includes(state.actor.email) || entity.id==='primary'&&state.actor.roles.owner);
   return <Side className="side" label="New claim">
     <div className="panel-head"><h2>New claim</h2><button type="button" className="panel-close button-reset" onClick={onClose} data-tooltip="Close new claim" aria-label="Close new claim"><Icon name="cross" /></button></div>
     <p className="panel-date">Name it for the trip or project, then add each expense with its receipt.</p>

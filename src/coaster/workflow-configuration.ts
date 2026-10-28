@@ -16,6 +16,7 @@ export async function currentWorkflow(db: D1Database, entityId = 'primary'): Pro
 }
 export const workflowState = (version: number, entityId = 'primary'): Sql => ({sql:'COALESCE((SELECT MAX(version) FROM c_approval_workflows WHERE entity_id=?),0)=?',params:[entityId,version]});
 export async function saveWorkflow(db: D1Database, actor: Actor, b: Data, entityId = 'primary') {
+ requireThat(b.entityId===undefined||b.entityId===entityId,'The configuration belongs to another legal entity',409);
  needRow(actor,'settings');
  requireThat(actor.kind==='person','Only a person configures approval workflows',403);
  await entity(db,entityId);

@@ -76,6 +76,7 @@ export async function createClaim(db: D1Database, actor: Actor, b: Data) {
   requireThat(actor.kind === 'person', 'Agents prepare proposals instead of claims', 403);
   const entityId=b.entityId===undefined?'primary':text(b.entityId,'Legal entity',64), business = await entityBusiness(db,entityId), id = uid(), title = text(b.title, 'Claim title', 200);
   const membership=await requireEntityMember(db,entityId,actor.email);
+  requireThat(b.currency===undefined||b.currency===business.currency,'Claim currency must match its legal entity',409);
   await commit(db, all(authority(actor, 'employee'),membership), [insertClaim(db, id, actor.email, title, business.currency, null,entityId), event(db, actor, 'claim-created', { claim: id }, { title })]);
   return loadClaim(db, id);
 }
@@ -230,8 +231,6 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const known = active.categories, missing = missingFields(items, known);
   requireThat(!missing.length, `Fill in the required ${missing.length === 1 ? 'field' : 'fields'} before submitting: ${missing.join('; ')} (policy v${active.version})`, 409);
   const { approver, onBehalfOf } = await routeFor(db, first, claim.employee_email, localDay(business.timezone));
-  const reviewers=[approver,...(resolved?.tasks.map(t=>t.email)??[])];
-  const reviewerGuards=await Promise.all([...new Set(reviewers)].map(address=>requireEntityMember(db,claim.entity_id,address)));
   const repeated = repeatedInClaim(claim.employee_email, items);
   requireThat(!repeated.length, `${repeated.map(i => i.merchant).join(', ')} appears twice on this claim with the same ${repeated.some(i => i.receipt_sha256) ? 'receipt' : 'date, merchant and amount and no receipt'}; only one could be reimbursed. Attach each one's own receipt, or correct or remove one, before submitting`, 409);
   const exceptions = await findExceptions(db, claim, items, business, known, active), hard = exceptions.filter(e => e.hard);
@@ -241,6 +240,8 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const workflow = await workflowPlan(db, claim.employee_email, claim.total_minor, items, exceptions,false,claim.entity_id);
   const resolved = workflow ? await resolveStage(db, workflow.plan.stages[0], claim.employee_email, business.timezone) : null;
   const routed = resolved?.tasks[0];
+  const reviewers=[approver,...(resolved?.tasks.map(t=>t.email)??[])];
+  const reviewerGuards=await Promise.all([...new Set(reviewers)].map(address=>requireEntityMember(db,claim.entity_id,address)));
   const rule = claim.entity_id==='primary'?await currentRule(db):null, byRule = !workflow && !configured.chain && approvesByRule(rule, items, exceptions);
   const evidenced=await evidencedPolicyReview(db,items,exceptions,active,claim.employee_email,claim.currency);
   const envelope=claim.entity_id==='primary'?await currentEnvelope(db):null,individual=await expenseApprovals(db,items,exceptions,evidenced.review,rule,envelope,claim.employee_email,claim.currency,claim.entity_id);

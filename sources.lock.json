@@ -755,6 +755,10 @@
       "sha256": "41007c0908b35eef684fe9e1d76cf56583f825e58c6ecb63da944d106336994d",
       "executable": false
     },
+    "migrations/core/0085_entities.sql": {
+      "sha256": "4c5315092bc5416d28aac1d69bb9c34945c8f285379ae88f841c969563f8af96",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -1143,6 +1147,10 @@
       "sha256": "a1fe9c8d6d02a4782ec29dd9b997c5f9ca4eda49a4a220ef3b064ddd4bd4f906",
       "executable": false
     },
+    "scripts/installer/entity-archive.mjs": {
+      "sha256": "0fa8b05996edc287d0a1be6a7efb530f62a1479b2ff0a773489fb6a526c78023",
+      "executable": false
+    },
     "scripts/installer/local.mjs": {
       "sha256": "df2e95863b5cd5072b44b7609d28321006dc5a0ed2e0b241d0987e158ddef9d8",
       "executable": false
@@ -1516,7 +1524,7 @@
       "executable": false
     },
     "src/coaster/claims.ts": {
-      "sha256": "cad681c3849477aadd4a1d9d8a30983e17a470636472c0ef0eb28be79d993695",
+      "sha256": "61a135c1a6018870f5affea74c4de94714deba10fae71a674e9eccec03cbc7a5",
       "executable": false
     },
     "src/coaster/coding/automatic/engine.ts": {
@@ -1605,6 +1613,14 @@
     },
     "src/coaster/departments.ts": {
       "sha256": "f2d4dc87e06609112c07b2339051ae1c7733fb17a9c98ca2745cabd9d8eb667d",
+      "executable": false
+    },
+    "src/coaster/entities.ts": {
+      "sha256": "af03578ab512871a8a237b4c5b6e11dab15e5ae19b99ff42d715fbd5b16f7e7a",
+      "executable": false
+    },
+    "src/coaster/entity-reports.ts": {
+      "sha256": "d416665ea740cb23bcbe640178813c8a1ef464b8d6ec26d2c6303c652fed4b8c",
       "executable": false
     },
     "src/coaster/erasure.ts": {
@@ -2072,7 +2088,7 @@
       "executable": false
     },
     "src/coaster/settings.ts": {
-      "sha256": "8e19027de55b5cb4cc6f477883a82aecf7e872298b466bcb859c1bb538e4715d",
+      "sha256": "5ea8978910f7def106b12426a9ff627de1eb1c33f1a790a87f096c5f5ef2274f",
       "executable": false
     },
     "src/coaster/spend-lines.ts": {
@@ -2096,7 +2112,7 @@
       "executable": false
     },
     "src/coaster/workflow-configuration.ts": {
-      "sha256": "72f4c41f51ea6044d632ab8472bc1e6d8a6320db060743ca39e0585d23440f8d",
+      "sha256": "313a8d446a82222d3042e889895cab55a292093c65bb2b30e3b971f22a4b4531",
       "executable": false
     },
     "src/coaster/workflow-decisions.ts": {
@@ -4164,7 +4180,7 @@
       "executable": false
     },
     "src/ui/claims.tsx": {
-      "sha256": "c6b588d0ae58522d93f71300f7c0fc0eac270dfe3533c57996a52f476b20df6f",
+      "sha256": "386e8868ff2686e8d847082c7d1315aaa70f970c0c0bbdf8303ea3a0aba5acae",
       "executable": false
     },
     "src/ui/coding.tsx": {
@@ -4197,6 +4213,10 @@
     },
     "src/ui/emburse-configuration.tsx": {
       "sha256": "7452740af9ce398c7f79d5c8e46c1ea226fa3083dfd46ba1402cb5a10d6e7cbf",
+      "executable": false
+    },
+    "src/ui/entities.tsx": {
+      "sha256": "b1d8c68496409130b0bedd3489a66fd7f43886c97aba1d7bb4db06b0bd75768c",
       "executable": false
     },
     "src/ui/escalation-chains.tsx": {
@@ -4543,6 +4563,10 @@
       "sha256": "014b19f3c875b13f015ac3e6ec30cbc94333103cdc7a5daa0e6fa2a9ecbc0c3b",
       "executable": false
     },
+    "tests/coaster-entities.test.mjs": {
+      "sha256": "76406cb19523089c10ff84299b4852ac8225c5a4c2f4de0fcaaefdf13cf47363",
+      "executable": false
+    },
     "tests/coaster-feed.test.mjs": {
       "sha256": "49024857ff2a156b132c102135e661f65f6abee680f13c8be036d1b577b759dc",
       "executable": false
@@ -4641,6 +4665,14 @@
     },
     "tests/email-link.mjs": {
       "sha256": "14f567429556958cf3888684267db2f94a76808725df95f6b431cf6a2c4552f4",
+      "executable": false
+    },
+    "tests/entities-archive.mjs": {
+      "sha256": "7db76be975c2bc18f13e19f5d593ce4d34d05da9e84e97ce39fc1a61ad38ebff",
+      "executable": false
+    },
+    "tests/entity-kit.mjs": {
+      "sha256": "73390e31df0ac6fd24e6eb39f1abf018b1e1f20d70dd67f3284bdecd38e77204",
       "executable": false
     },
     "tests/fixtures/bank.mjs": {

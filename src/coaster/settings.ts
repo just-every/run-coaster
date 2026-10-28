@@ -25,6 +25,7 @@ export async function requireBusiness(db: D1Database) {
 }
 
 export async function saveBusiness(db: D1Database, actor: Actor, b: Data) {
+  requireThat(b.entityId===undefined||b.entityId==='primary','Use the selected legal entity settings door',409);
   needRow(actor, 'settings');
   const currency = (b.currency === undefined ? 'USD' : text(b.currency, 'Currency', 3)).toUpperCase();
   requireThat(/^[A-Z]{3}$/.test(currency), 'Currency must be a three-letter code such as USD');
@@ -78,6 +79,7 @@ const flag = (v: unknown) => v === true || v === 'true' || v === 'on' ? 1 : 0;
 const LODGING = /\b(lodging|hotels?|motels?)\b/i;
 
 export async function saveCategory(db: D1Database, actor: Actor, b: Data, entityId = 'primary') {
+  requireThat(b.entityId===undefined||b.entityId===entityId,'The configuration belongs to another legal entity',409);
   needRow(actor, 'settings');
   const id = typeof b.id === 'string' && b.id ? b.id : uid();
   const previous = b.id ? await db.prepare('SELECT entity_id,ledger_account_id,ledger_account_snapshot FROM c_categories WHERE id=?').bind(id).first<Data>() : null;
