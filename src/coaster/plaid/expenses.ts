@@ -1,3 +1,4 @@
+import { personalCharge } from './personal-charges';
 import { prepareTarget } from '../coding/automatic/storage';
 import { insertItem } from '../claims';
 import { chargeStatements } from '../cards/charges';
@@ -18,7 +19,9 @@ export async function plaidExpense(db: D1Database, actor: Actor, connection: str
     return { item: result.item, charge: result.charge, guard: result.guard, statements: [sourceWrite, ...result.statements] };
   }
   const id = uid(), automatic = await prepareTarget(db, { kind: 'item', id, employee: held.employee, claim, merchant: tx.merchant }, {}, {}, [], true);
+  const verified=(JSON.parse((await db.prepare('SELECT accounts FROM c_plaid_connections WHERE id=?').bind(connection).first<{accounts:string}>())!.accounts) as Data[]).find(account=>account.id===tx.account_id)!;
+  const provenance=personalCharge(db,source,connection,tx,held.employee,id,category.id,claim,verified.last4);
   const values = automatic.values;
-  const input: ItemInput = { kind: 'receipt', spent_on: tx.spent_on, merchant: tx.merchant, description: values.memo ?? '', amount_minor: tx.amount_minor, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: values.category ?? category.id, cost_centre: '', amount_minor: tx.amount_minor }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: values.customer ?? '', project: values.project ?? '', coding: values.dimensions ?? {} };
-  return { item: id, charge: null, guard: automatic.guard, statements: [sourceWrite, ...insertItem(db, claim, id, position, input, null), ...automatic.writes] };
+  const input: ItemInput = { personal_card_charge_id:provenance.id, kind: 'receipt', spent_on: tx.spent_on, merchant: tx.merchant, description: values.memo ?? '', amount_minor: tx.amount_minor, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: values.category ?? category.id, cost_centre: '', amount_minor: tx.amount_minor }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: values.customer ?? '', project: values.project ?? '', coding: values.dimensions ?? {} };
+  return { item: id, charge: null, guard: automatic.guard, statements: [sourceWrite, provenance.statement, ...insertItem(db, claim, id, position, input, null), ...automatic.writes] };
 }

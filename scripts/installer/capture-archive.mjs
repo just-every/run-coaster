@@ -37,6 +37,8 @@ export async function validateCaptureArchive(read, manifest) {
     return collapsed.length<=200;
   };
   const cards=await read('c_cards');
+  const [companyCharges, undoneCharges, personalCharges] = await Promise.all(['c_card_charges', 'c_card_charge_undo_history', 'c_plaid_personal_charges'].map(read));
+  const chargeRecords = [...companyCharges, ...undoneCharges].map(charge => ({ ...charge, liability: 'company' })).concat(personalCharges.map(charge => ({ ...charge, card_id: null, original_minor: null, original_currency: '', liability: 'personal' })));
   const rules=(await read('c_card_match_rules')).sort((a,b)=>a.version-b.version);
   const ordered = [...lifecycle].sort((a,b) => a.receipt_id.localeCompare(b.receipt_id) || a.sequence-b.sequence);
   const latest = new Map(), associations = new Map();
@@ -64,12 +66,13 @@ export async function validateCaptureArchive(read, manifest) {
       check(event.reason === '' && event.survivor_id === null && typeof event.claim_id === 'string' && event.claim_id.length > 0
         && typeof event.item_id === 'string' && event.item_id.length > 0, 'attachment');
       if(event.channel==='schedule') {
-        const charges=[...await read('c_card_charges'),...await read('c_card_charge_undo_history')];
-        const charge=charges.find(c=>c.item_id===event.item_id);
+        const charge=chargeRecords.find(c=>c.item_id===event.item_id);
         let data;try{data=JSON.parse(event.match_data);}catch{check(false,'match_basis');}
         check(rules.some(r=>r.version===data?.ruleVersion),'match_basis');
         check(data && Number.isSafeInteger(data.ruleVersion)&&['exact','tip','fx'].includes(data.basis)&&data.enteredTotalMinor>0,'match_basis');
         check(charge && charge.employee_email===receipt.owner_email,'match_basis');
+        const liveItem=items.find(item=>item.id===event.item_id);
+        check(!liveItem || (charge.liability==='personal' ? !liveItem.card_charge_id && liveItem.personal_card_charge_id===charge.id : liveItem.card_charge_id===charge.id && !liveItem.personal_card_charge_id),'match_basis');
         const matchingAliases=aliases.filter(a=>a.capture_receipt_id===receipt.id&&a.card_match_basis===event.match_data&&(a.claim_id===event.claim_id||items.some(i=>i.id===event.item_id&&i.receipt_id===a.id)));
         check(!items.some(i=>i.id===event.item_id)||matchingAliases.length>0,'match_basis');
         const choice=ordered.filter(e=>e.receipt_id===receipt.id&&e.sequence<event.sequence&&['match-details','match-withdrawn'].includes(e.kind)).at(-1);
@@ -82,7 +85,7 @@ export async function validateCaptureArchive(read, manifest) {
           && Number.isSafeInteger(data.differenceMinor)&&/^[A-Z]{3}$/.test(data.differenceCurrency),'match_basis');
         const days=(Date.parse((charge.transaction_on??charge.posted_on)+'T00:00:00Z')-Date.parse(details.date+'T00:00:00Z'))/86400000;
         check(rule.enabled===1&&days>=-1&&days<=rule.window_days
-          && (!details.last4||cards.some(c=>c.id===charge.card_id&&c.last4===details.last4)),'match_basis');
+          && (!details.last4 || (charge.liability==='personal' ? charge.last4===details.last4 : cards.some(c=>c.id===charge.card_id&&c.last4===details.last4))),'match_basis');
         const inOriginal=charge.original_currency===details.currency&&charge.original_minor!==null;
         const shared=details.currency===(inOriginal?charge.original_currency:charge.currency);
         const charged=inOriginal?charge.original_minor:charge.amount_minor;
@@ -155,10 +158,9 @@ export async function validateCaptureArchive(read, manifest) {
     check((item.card_match_basis??null)===(alias?.card_match_basis??null),'match_basis');
   }
   const rejections=await read('c_card_match_rejections');
-  const chargeRecords=[...await read('c_card_charges'),...await read('c_card_charge_undo_history')];
   for(const pair of rejections) {
-    check(typeof pair.transaction_key==='string'&&pair.transaction_key.startsWith('card:')&&lifecycle.some(e=>e.receipt_id===pair.receipt_id&&e.sequence===pair.sequence&&['match-rejected','detached'].includes(e.kind)),'match_rejection');
     const charge=chargeRecords.find(c=>c.id===pair.charge_id);
+    check(typeof pair.transaction_key==='string'&&(pair.transaction_key.startsWith('card:') || charge?.liability==='personal' && pair.transaction_key.startsWith('plaid-personal:'))&&lifecycle.some(e=>e.receipt_id===pair.receipt_id&&e.sequence===pair.sequence&&['match-rejected','detached'].includes(e.kind)),'match_rejection');
     check(!charge||charge.transaction_key===pair.transaction_key&&charge.employee_email===byId.get(pair.receipt_id)?.owner_email,'match_rejection');
   }
   check(new Set(rejections.map(p=>p.receipt_id+'|'+p.transaction_key)).size===rejections.length,'match_rejection');

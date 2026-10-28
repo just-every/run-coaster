@@ -20,12 +20,10 @@ async function connect(scope: string) {
   await loadLink();
   const start = await call('plaid/link', { scope, consent: true });
   return new Promise<D>((resolve, reject) => {
-    let complete = false, ready = false;
+    let complete = false;
     let link: D | undefined;
-    const loading = window.setTimeout(()=>{link?.destroy();reject(new Error('Plaid Link did not finish loading. Try connecting again.'));},30_000);
     link = (window as any).Plaid.create({
       token: start.linkToken,
-      onLoad: () => {window.clearTimeout(loading);ready=true;link?.open();},
       onSuccess: (publicToken: string, metadata: D) => {
         complete = true;
         call('plaid/exchange', { link: start.id, publicToken, selectedAccounts: metadata.accounts?.map((account: D)=>account.id) ?? [], consent: true }).then(resolve, reject).finally(() => link?.destroy());
@@ -33,10 +31,10 @@ async function connect(scope: string) {
       onExit: (error: D | null) => {
         if (complete) return;
         reject(new Error(error?.display_message || 'Connecting the feed was cancelled.'));
-        window.clearTimeout(loading);link?.destroy();
+        link?.destroy();
       },
     });
-    if(ready)link?.open();
+    link?.open();
   });
 }
 
@@ -65,7 +63,7 @@ function Credentials({ data, changed }: { data: D; changed: () => Promise<void> 
   </Details>;
 }
 
-function Transactions({ connection, revision }: { connection: D; revision: number }) {
+function Transactions({ connection, revision, canReconcile, changed }: { connection: D; revision: number; canReconcile: boolean; changed: () => Promise<void> }) {
   const [data, setData] = useState<D>(), [error, setError] = useState(''), [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -80,7 +78,12 @@ function Transactions({ connection, revision }: { connection: D; revision: numbe
       {!data && !error && <p>Loading transactions…</p>}
       {data && (data.transactions.length ? <ul className="ruled-list" aria-label="Plaid transactions">{data.transactions.map((transaction: D) => <li key={transaction.transaction_id}>
         <strong>{transaction.merchant}</strong> · {money(transaction.amount_minor, transaction.currency)}
-        <p className="muted">{day(transaction.spent_on)} · {transactionStatus[transaction.status] ?? transaction.status} · account ends {connection.accounts.find((account: D) => account.id === transaction.account_id)?.last4}</p>
+        <p className="muted">{day(transaction.spent_on)} · {transaction.reconciled ? 'Source change reconciled · original evidence retained' : transactionStatus[transaction.status] ?? transaction.status} · account ends {connection.accounts.find((account: D) => account.id === transaction.account_id)?.last4}</p>
+        {canReconcile && transaction.status==='review' && !transaction.reconciled && transaction.item_id && <Details label="Reconcile draft source change"><Form label="Apply provider correction" onSubmit={async values=>{
+          if(!values.consent)throw new Error('Confirm the exact provider correction first.');
+          await call(`plaid/connections/${connection.id}/reconcile`,{transaction:transaction.transaction_id,changeSeq:transaction.changeSeq,version:transaction.claimVersion,consent:true});
+          await changed();setData(await call(`plaid/connections/${connection.id}/transactions`));
+        }}><p className="field-wide">Only an untouched draft that has never been submitted can be replaced or removed here. Prior source facts and expense evidence stay permanent. Attached receipts, human edits, submitted claims and closed card periods need separate reconciliation.</p><Field label="I consent to applying this exact provider change to the untouched draft expense" name="consent" type="checkbox" /></Form></Details>}
       </li>)}</ul> : <Empty title="No transactions received" />)}
     </div>
   </details>;
@@ -117,7 +120,7 @@ function Connection({ connection, state, cards, changed }: { connection: D; stat
       await changed(); setRevision(value => value + 1);
       setNotice(`Sync complete: ${result.added} added, ${result.modified} modified, ${result.removed} removed; ${result.expenses} expenses created.`);
     }}><p className="muted field-wide">Only assigned accounts create expenses. Sync keeps pending, posted and removed transaction history.</p></Form></div>}
-    <Transactions connection={connection} revision={revision} />
+    <Transactions connection={connection} revision={revision} canReconcile={connection.scope==='personal'||!!state.actor.roles.owner} changed={async()=>{await changed();setRevision(value=>value+1);}} />
     <Details label="Disconnect this feed"><Form label="Disconnect Plaid feed" onSubmit={async values => {
       if (!values.consent) throw new Error('Confirm disconnect first.');
       await call(path + '/disconnect', {}); await changed('Plaid feed disconnected.');

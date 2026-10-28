@@ -1,3 +1,4 @@
+import { unresolvedPlaid } from '../plaid/holds';
 import { receiptTransfer, chargeEvidenceForReceipt } from '../coding/automatic/transfer';
 import { codingContext, prepareTarget } from '../coding/automatic/storage';
 import { all, authority, commit, type Sql } from '../session';
@@ -96,10 +97,10 @@ async function basis(details: Data, charge: Charge, rule: Rule, business: {curre
   return {ruleVersion:rule.version,basis:kind,enteredTotalMinor:details.totalMinor,enteredCurrency:details.currency,enteredDate:details.date,differenceMinor:charged-reference,differenceCurrency:same?details.currency:business.currency,...conversion};
 }
 async function chargesFor(db:D1Database,employee:string) {
-  return (await db.prepare(`SELECT ch.*,i.claim_id,c.version,cd.last4 FROM c_card_charges ch JOIN c_items i ON i.id=ch.item_id AND i.card_charge_id=ch.id
-    JOIN c_claims c ON c.id=i.claim_id JOIN c_cards cd ON cd.id=ch.card_id JOIN c_card_sources f ON f.id=ch.file_id
+  return (await db.prepare(`SELECT ch.*,i.claim_id,c.version FROM c_receipt_card_charges ch JOIN c_items i ON i.id=ch.item_id AND (i.card_charge_id=ch.id OR i.personal_card_charge_id=ch.id)
+    JOIN c_claims c ON c.id=i.claim_id JOIN c_card_sources f ON f.id=ch.file_id
     WHERE ch.employee_email=? AND c.employee_email=ch.employee_email AND c.status IN ('draft','returned') AND i.receipt_id IS NULL
-    AND ch.amount_minor>0 AND f.undone_at IS NULL AND NOT EXISTS(SELECT 1 FROM c_plaid_transactions pt LEFT JOIN c_plaid_sync_state sync ON sync.connection_id=pt.connection_id WHERE pt.charge_id=ch.id AND (pt.status IN ('review','removed') OR sync.in_progress=1))`).bind(employee).all<Charge>()).results;
+    AND ch.amount_minor>0 AND f.undone_at IS NULL AND i.amount_minor=ch.amount_minor AND i.merchant=ch.descriptor AND i.spent_on=COALESCE(ch.transaction_on,ch.posted_on) AND NOT EXISTS(SELECT 1 FROM c_plaid_transactions pt LEFT JOIN c_plaid_sync_state sync ON sync.connection_id=pt.connection_id WHERE pt.item_id=ch.item_id AND ((pt.status='removed' OR ${unresolvedPlaid('pt')}) OR sync.in_progress=1))`).bind(employee).all<Charge>()).results;
 }
 async function candidates(db:D1Database,original:Original,charges:Charge[],rule:Rule,business:{currency:string},fx:FxResolver) {
   const rejected=new Set((await db.prepare('SELECT transaction_key FROM c_card_match_rejections WHERE receipt_id=?').bind(original.id).all<{transaction_key:string}>()).results.map(r=>r.transaction_key));
@@ -125,7 +126,7 @@ export async function rejectMatchQuestion(db:D1Database,actor:Actor,id:string,b:
   requireThat(Array.isArray(b.chargeIds)&&JSON.stringify([...b.chargeIds].sort())===JSON.stringify(ids)&&ids.length,'The match question changed; reload it',409);
   await commit(db,all(authority(actor,'employee'),openOriginal(actor,id,sequence,at),noAttachment(id),unchanged(e)),[
     privateMatchLine(db,id,sequence+1,'match-rejected',actor.delegate?.email??actor.email,actor.delegate?actor.email:null,{chargeIds:ids}),
-    ...ids.map(charge=>db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,transaction_key,sequence) SELECT ?,id,transaction_key,? FROM c_card_charges WHERE id=?').bind(id,sequence+1,charge)),
+    ...ids.map(charge=>db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,transaction_key,sequence) SELECT ?,id,transaction_key,? FROM c_receipt_card_charges WHERE id=?').bind(id,sequence+1,charge)),
   ]); return {rejected:ids.length,sequence:sequence+1};
 }
 /** Only the hourly delivery attaches automatically. Candidate uniqueness is checked against every eligible competing

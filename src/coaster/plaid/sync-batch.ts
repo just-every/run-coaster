@@ -37,7 +37,9 @@ export async function prepareSync(db: D1Database, c: Connection, assignments: Da
     const item = previous?.item_id ?? pending?.item_id ?? null, charge = previous?.charge_id ?? pending?.charge_id ?? null;
     const row: Data = { ...tx, connection_id: id, employee_email: assignment.employee_email, scope: c.scope, item_id: item, charge_id: charge, updated_at: at,
       status: item ? previous && sameFacts(previous, tx) ? previous.status : 'review' : tx.pending ? 'pending' : tx.amount_minor <= 0 ? 'credit' : 'posted' };
-    if (!tx.pending && tx.amount_minor > 0 && !item) {
+    const retired=await db.prepare("SELECT 1 FROM c_plaid_corrections WHERE transaction_id=? AND reason='provider-removal'").bind(tx.transaction_id).first();
+    if(retired&&!item)row.status='review';
+    if (!tx.pending && tx.amount_minor > 0 && !item && !retired) {
       const history = (await db.prepare("SELECT value FROM c_history WHERE kind='expense' AND json_extract(value,'$.employee')=? AND json_extract(value,'$.date')=? AND json_extract(value,'$.amountMinor')=?").bind(assignment.employee_email, tx.spent_on, tx.amount_minor).all<{value:string}>()).results;
       const overlap = history.some(h => (change.merchants??[normalDescriptor(tx.merchant)]).includes(normalDescriptor(JSON.parse(h.value).merchant)));
       const native = (await db.prepare('SELECT id,item_id,descriptor FROM c_card_charges WHERE employee_email=? AND COALESCE(transaction_on,posted_on)=? AND amount_minor=?').bind(assignment.employee_email, tx.spent_on, tx.amount_minor).all<Data>()).results.find(ch => (change.merchants??[normalDescriptor(tx.merchant)]).includes(normalDescriptor(ch.descriptor)));

@@ -99,7 +99,14 @@ export async function plaidBrowserJourney({ widths = [1440, 390], evidence = pro
         const removed = plaidTransaction({ transaction_id: 'synthetic-coaster-333', merchant_name: 'Harbour Parking', name: 'Harbour Parking', amount: 12, pending: true });
         const secondPosted = plaidTransaction({ transaction_id: 'synthetic-coaster-336', merchant_name: 'Harbour Books', name: 'Harbour Books', amount: 19 });
         edge.pages.push({ added: [pending, posted, removed, secondPosted], modified: [], removed: [], next_cursor: 'synthetic-coaster-334', has_more: false });
+        await h.db.exec("CREATE TRIGGER synthetic_plaid_interrupt BEFORE INSERT ON c_items BEGIN SELECT RAISE(ABORT,'Synthetic source interruption'); END;");
+        const interrupted=page.waitForResponse(reply=>reply.url()===h.origin+'/api/coaster/'+path+'/sync'&&reply.request().method()==='POST');
+        await section.getByRole('button',{name:'Sync feed transactions',exact:true}).click();assert.equal((await interrupted).status(),500);
+        await expect(section).toContainText('This sync is incomplete.');await capture('incomplete');
+        await h.db.exec('DROP TRIGGER synthetic_plaid_interrupt');
+        edge.pages.push({ added: [pending, posted, removed, secondPosted], modified: [], removed: [], next_cursor: 'synthetic-coaster-334', has_more: false });
         const synced = await submit('Sync feed transactions', path + '/sync');
+        await expect(section.getByText('This sync is incomplete.',{exact:false})).toHaveCount(0);
         assert.equal(synced.added, 4); assert.equal(synced.expenses, 2, 'only posted transactions create expenses');
         await expect(section.getByRole('status').filter({ hasText: 'Sync complete' })).toContainText(`${synced.expenses} expenses created`);
         await section.getByText('Transaction details', { exact: true }).click();
@@ -123,6 +130,17 @@ export async function plaidBrowserJourney({ widths = [1440, 390], evidence = pro
         const retained = (await h.get(`claims/${originalClaim.claim.id}`, employee)).items.find(item => item.merchant === posted.merchant_name);
         assert.equal(retained.amount_minor, Math.round(posted.amount * 100), 'provider correction retains the financial expense for review');
         await capture('removed-reconciled');
+        const correction=transactions.getByRole('listitem').filter({hasText:posted.merchant_name});
+        await correction.getByText('Reconcile draft source change',{exact:true}).click();
+        await correction.getByRole('checkbox',{name:'I consent to applying this exact provider change to the untouched draft expense',exact:true}).check();
+        await capture('correction-consent');
+        await submit('Apply provider correction',path+'/reconcile',correction);
+        await expect(correction).toContainText('Source change reconciled');
+        const replaced=(await h.get(`claims/${originalClaim.claim.id}`,employee)).items.find(item=>item.merchant===posted.merchant_name);
+        assert.equal(replaced.amount_minor,4350);assert.notEqual(replaced.id,retained.id);
+        assert.ok(await h.db.prepare('SELECT id FROM c_card_charges WHERE item_id=?').bind(retained.id).first());
+        assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_corrections WHERE old_item_id=?').bind(retained.id).first()).n,1);
+        await capture('correction-resolved');
 
         await section.getByText('Disconnect this feed', { exact: true }).click();
         await section.getByRole('checkbox', { name: 'I confirm this feed must stop future imports', exact: true }).check();

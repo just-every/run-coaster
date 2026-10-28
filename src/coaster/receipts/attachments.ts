@@ -17,7 +17,7 @@ export async function changeAttachment(db: D1Database, actor: Actor, id: string,
   requireThat(claim.employee_email === actor.email, 'Claim not found', 404);
   requireThat(['draft','returned'].includes(claim.status) && b.version === claim.version, 'Reload an editable draft or returned claim', 409);
   requireThat(typeof b.itemId === 'string', 'Choose an expense');
-  const item = await db.prepare('SELECT id,kind,receipt_id,card_charge_id FROM c_items WHERE id=? AND claim_id=?').bind(b.itemId,claim.id).first<{ id: string; kind: string; receipt_id: string | null; card_charge_id: string | null }>();
+  const item = await db.prepare('SELECT id,kind,receipt_id,card_charge_id,personal_card_charge_id FROM c_items WHERE id=? AND claim_id=?').bind(b.itemId,claim.id).first<{ id: string; kind: string; receipt_id: string | null; card_charge_id: string | null; personal_card_charge_id:string|null }>();
   requireThat(item, 'Expense not found', 404);
   requireThat(item.kind === 'receipt', 'Choose a purchase expense');
   const current = await db.prepare(attachedSql).bind(id).first<{ itemId: string; claimId: string }>();
@@ -29,17 +29,18 @@ export async function changeAttachment(db: D1Database, actor: Actor, id: string,
   statements.push(db.prepare('UPDATE c_items SET receipt_id=?,receipt_resolution=NULL WHERE id=? AND claim_id=?').bind(detach ? null : alias,item.id,claim.id),
     db.prepare(`INSERT INTO c_capture_lifecycle(receipt_id,sequence,kind,reason,claim_id,item_id,at,actor_email,on_behalf_of,channel) VALUES(?,?,?,'',?,?,?,?,?,'app')`)
       .bind(id,sequence+1,detach?'detached':'attached',claim.id,item.id,at,actor.delegate?.email??actor.email,actor.delegate?actor.email:null),claimTotal(db,claim.id));
-  if (item.card_charge_id) {
+  const sourceCharge=item.card_charge_id??item.personal_card_charge_id;
+  if (sourceCharge) {
     const evidence = detach ? await db.prepare('SELECT card_match_basis FROM c_receipts WHERE id=?').bind(item.receipt_id).first<{card_match_basis:string|null}>() : null;
     const version = evidence?.card_match_basis ? JSON.parse(evidence.card_match_basis).ruleVersion : (await matchRule(db))!.version;
-    statements.push(ruleEvent(db, actor.delegate?.email??actor.email, detach ? 'card-charge-unmatched' : 'card-charge-matched', {claim:claim.id}, {charge:item.card_charge_id,ruleVersion:version}));
+    statements.push(ruleEvent(db, actor.delegate?.email??actor.email, detach ? 'card-charge-unmatched' : 'card-charge-matched', {claim:claim.id}, {charge:sourceCharge,ruleVersion:version}));
     if (detach) statements.push(
-      db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,transaction_key,sequence) SELECT ?,id,transaction_key,? FROM c_card_charges WHERE id=?').bind(id,sequence+1,item.card_charge_id),
+      db.prepare('INSERT OR IGNORE INTO c_card_match_rejections(receipt_id,charge_id,transaction_key,sequence) SELECT ?,id,transaction_key,? FROM c_receipt_card_charges WHERE id=?').bind(id,sequence+1,sourceCharge),
       privateMatchLine(db,id,sequence+2,'match-withdrawn',actor.delegate?.email??actor.email,actor.delegate?actor.email:null),
     );
   }
   const fullItem=!detach?(await claimItems(db,claim.id)).find(i=>i.id===item.id):null;
-  const evidence=fullItem?.card_charge_id?await chargeEvidenceForReceipt(db,id,item.id):{writes:[],guards:[]};
+  const evidence=(fullItem?.card_charge_id||fullItem?.personal_card_charge_id)?await chargeEvidenceForReceipt(db,id,item.id):{writes:[],guards:[]};
   statements.push(...evidence.writes);
   const coding=fullItem?await receiptTransfer(db,fullItem,id,actor.delegate?.email??actor.email):{writes:[],guards:[]};
   statements.push(...coding.writes);

@@ -1,3 +1,4 @@
+import { reconcilePlaid } from './plaid/corrections';
 import { assignPlaidAccount, plaidTransactions } from './plaid/accounts';
 import { syncPlaid } from './plaid/sync';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
@@ -376,5 +377,6 @@ api.post('/api/coaster/plaid/link', as(async(a,c)=>createPlaidLink(runtimeBindin
 api.post('/api/coaster/plaid/exchange', as(async(a,c)=>exchangePlaidLink(runtimeBindings(c.env),a,await body(c))));
 api.post('/api/coaster/plaid/connections/:id/assign', as(async(a,c)=>assignPlaidAccount(runtimeBindings(c.env),a,param(c,'id'),await body(c))));
 api.get('/api/coaster/plaid/connections/:id/transactions', as(async(a,c)=>plaidTransactions(runtimeBindings(c.env),a,param(c,'id'))));
+api.post('/api/coaster/plaid/connections/:id/reconcile', as(async(a,c)=>reconcilePlaid(runtimeBindings(c.env),a,param(c,'id'),await body(c))));
 api.post('/api/coaster/plaid/connections/:id/sync', as(async(a,c)=>syncPlaid(runtimeBindings(c.env),a,param(c,'id'))));
 api.post('/api/coaster/plaid/connections/:id/disconnect', as(async(a,c)=>disconnectPlaid(runtimeBindings(c.env),a,param(c,'id'))));

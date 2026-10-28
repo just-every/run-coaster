@@ -25,7 +25,7 @@ export async function crossSources(db:D1Database,id:string):Promise<Source[]> {
   const sources:Source[]=mailSources(await mailReadings(db,id));
   const choice=await db.prepare("SELECT kind,match_data FROM c_capture_lifecycle WHERE receipt_id=? AND kind IN ('match-details','match-withdrawn') ORDER BY sequence DESC LIMIT 1").bind(id).first<{kind:string;match_data:string}>();
   if(choice?.kind==='match-details'){const v=JSON.parse(choice.match_data);sources.push({kind:'confirmed-details',values:{merchant:v.merchant,date:v.date,total:decimal(v.totalMinor),currency:v.currency,...(v.last4?{last4:v.last4}:{})}});}
-  const rows=(await db.prepare('SELECT ch.descriptor,ch.transaction_on,ch.posted_on,ch.amount_minor,ch.currency,c.last4 FROM c_receipts a JOIN c_items i ON i.receipt_id=a.id JOIN c_card_charges ch ON ch.id=i.card_charge_id JOIN c_cards c ON c.id=ch.card_id WHERE a.capture_receipt_id=?').bind(id).all<Data>()).results;
+  const rows=(await db.prepare('SELECT ch.descriptor,ch.transaction_on,ch.posted_on,ch.amount_minor,ch.currency,ch.last4 FROM c_receipts a JOIN c_items i ON i.receipt_id=a.id JOIN c_receipt_card_charges ch ON ch.id=COALESCE(i.card_charge_id,i.personal_card_charge_id) WHERE a.capture_receipt_id=?').bind(id).all<Data>()).results;
   for(const row of rows)sources.push({kind:'card-charge',values:{merchant:row.descriptor,date:row.transaction_on??row.posted_on,total:decimal(row.amount_minor),currency:row.currency,last4:row.last4}});
   return sources;
 }

@@ -14,7 +14,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
-  ['c_plaid_assignments', ['employee_email','assigned_by']], ['c_plaid_transactions', ['employee_email']], ['c_plaid_settings', ['set_by']], ['c_plaid_connections', ['connected_by']],
+  ['c_plaid_corrections',['employee_email','actor_email']], ['c_plaid_personal_charges',['employee_email']], ['c_plaid_assignments', ['employee_email','assigned_by']], ['c_plaid_transactions', ['employee_email']], ['c_plaid_settings', ['set_by']], ['c_plaid_connections', ['connected_by']],
   ['c_receipt_mail_messages',['sender','owner_email']], ['c_receipt_mail_settings',['set_by']],
   ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']], ['c_bank_providers', ['connected_by']], ['c_bank_settings', ['set_by']],
   ['c_program_feeds', ['connected_by']], ['c_receipt_reading_settings', ['set_by']], ['c_receipt_readings', ['actor_email', 'on_behalf_of']],
@@ -57,6 +57,7 @@ const ADDRESS: [string, string[]][] = [
 ];
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
+  ['c_plaid_corrections',['prior_snapshot']],
   ['c_payroll_handoffs', ['lines']],
   ['c_qbd_requests', ['payload']],
   ['c_receipt_readings', ['fields_json']],

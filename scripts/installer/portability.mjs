@@ -1,3 +1,4 @@
+import { validatePlaidCorrections } from './plaid-corrections.mjs';
 import { createHash } from 'node:crypto';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 import { validateCaptureArchive } from './capture-archive.mjs';
@@ -69,6 +70,7 @@ export async function validateCoasterArchive(read, manifest) {
   for (const b of batches) check(b.total_minor === batchClaims.filter(x => x.batch_id === b.id).reduce((n, x) => n + x.amount_minor, 0), 'batch_total');
   for (const k of keys) check(batchClaims.some(x => x.batch_id === k.batch_id && x.claim_id === k.claim_id), 'reimbursement_key');
   if((await read('c_import_card_undo')).length)throw new PortabilityError('coaster_import_card_undo',409);
+  const corrections=await validatePlaidCorrections(read);
   const cards=await read('c_cards'), charges=await read('c_card_charges'), files=await read('c_statement_files'), plaidSources=await read('c_plaid_sources'), events=await read('c_events');
   await validateStatementArchive(read);
   for(const card of cards) check(/^\d{4}$/.test(card.last4),'card_last_four');
@@ -80,6 +82,7 @@ export async function validateCoasterArchive(read, manifest) {
     if(undone.some(c=>c.id===charge.id)) check(!item&&files.some(f=>f.id===charge.file_id&&f.undone_at),'card_charge');
     else if(item) check(claim&&item.card_charge_id===charge.id&&claim.employee_email===charge.employee_email&&item.amount_minor===charge.amount_minor
       && item.merchant===charge.descriptor&&item.spent_on===(charge.transaction_on??charge.posted_on),'card_charge');
+    else if(corrections.sources.get(charge.file_id)?.snapshot) {const saved=corrections.sources.get(charge.file_id);check(saved.charge===charge.id&&saved.item===charge.item_id&&saved.snapshot.item.card_charge_id===charge.id,'card_charge');}
     else check(typeof charge.claim_id==='string'&&charge.claim_id.length>0&&events.some(e=>e.action==='claim-expired'&&e.claim_id===charge.claim_id),'card_charge');
   }
   for(const item of items.filter(i=>i.card_charge_id)) check(charges.some(c=>c.id===item.card_charge_id&&c.item_id===item.id),'card_charge');

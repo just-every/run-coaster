@@ -79,49 +79,65 @@ export async function companyTransactionJourney() {
     const events=(await h.get('history')).lines.filter(e=>e.action==='plaid-synced');assert.equal(events.length,5);assert.ok(events.every(e=>e.actor_email&&e.channel==='app'&&e.at));assert.deepEqual(events.map(e=>e.seq),events.map(e=>e.seq).sort((a,b)=>a-b));
     for(const request of edge.calls){const payload=JSON.stringify(request.body);assert.ok(!payload.includes(t.email)&&!payload.includes('Harbour Stationery')&&!payload.includes('Harbour Parking')&&!payload.includes(receipt),'provider requests contain only declared connection and cursor inputs');}
     const requests=edge.calls.length;await h.post(base+'/sync',{},t.other,403);assert.equal(edge.calls.length,requests);
-    await h.post(base+'/disconnect',{});await h.post(base+'/sync',{},h.owner,404);assert.equal(edge.items.size,0);
+    await monthlyPlaidProof(t,connection,base);await h.post(base+'/sync',{},h.owner,404);assert.equal(edge.items.size,0);
   }finally{await h.close();}
 }
 export async function personalTransactionJourney() {
   const t=await plaidSetup(),{h,edge}=t;
   try {
-    const connection=await t.connect('personal',t.employee),base=`plaid/connections/${connection.id}`;
+    edge.accounts=[{account_id:'synthetic-coaster-203',mask:'1008',type:'credit',subtype:'credit card'},{account_id:'synthetic-coaster-370',mask:'2009',type:'depository',subtype:'checking'},{account_id:'synthetic-coaster-371',mask:'3000',type:'loan',subtype:'student'}];
+    const link=await h.post('plaid/link',{scope:'personal',consent:true},t.employee);
+    const connection=await h.post('plaid/exchange',{link:link.id,publicToken:'synthetic-coaster-372',consent:true,selectedAccounts:['synthetic-coaster-203']},t.employee),base=`plaid/connections/${connection.id}`;
+    assert.deepEqual(connection.accounts,[{id:'synthetic-coaster-203',last4:'1008',type:'credit',subtype:'credit card'}]);assert.equal(connection.estimatedUsdMinor,250);
     await h.post(base+'/assign',{account:connection.accounts[0].id,employee:t.otherEmail,category:t.category},t.employee,403);
     await h.post(base+'/assign',{account:connection.accounts[0].id,employee:t.email,category:t.category},t.employee);
-    edge.pages.push(page([plaidTransaction()]));
+    const rule=await h.get('settings/card-matching');await h.post('settings/card-matching',{version:rule.version,enabled:true,windowDays:7,tipPercent:0,fxPercent:0});
+    const pending=plaidTransaction({transaction_id:'synthetic-coaster-375',pending:true}),receipt=await uploadWaiting(h,t.employee,pending);
+    edge.pages.push(page([pending]));await h.post(base+'/sync',{},t.employee);
+    assert.equal((await h.get('state',t.employee)).claims.length,0);assert.equal((await h.get('receipt-inbox',t.employee)).receipts.find(r=>r.id===receipt).attachment,null);
+    edge.pages.push(page([plaidTransaction({pending_transaction_id:pending.transaction_id}),{transaction_id:'synthetic-coaster-373',account_id:'synthetic-coaster-370',amount:99,pending:false,iso_currency_code:'USD',date:'2026-10-15',name:'Private unselected bank expense'}]));
     assert.equal((await h.post(base+'/sync',{},t.employee)).expenses,1);
+    const selected=(await h.get(base+'/transactions',t.employee)).transactions;assert.equal(selected.filter(tx=>tx.status==='posted').length,1);assert.equal(selected.find(tx=>tx.status==='posted').amount_minor,4250);
+    assert.ok(!JSON.stringify((await h.db.prepare('SELECT * FROM c_plaid_transactions').all()).results).includes('Private unselected bank expense'));
+    assert.ok(!JSON.stringify((await h.db.prepare('SELECT * FROM c_plaid_connections').all()).results).includes('synthetic-coaster-370'));
     const claim=(await h.get('state',t.employee)).claims[0],detail=await h.get(`claims/${claim.id}`,t.employee);
-    assert.equal(detail.items.length,1);assert.equal(detail.items[0].amount_minor,4250);assert.equal(detail.items[0].card_charge_id,null);assert.equal(detail.claim.total_minor,4250);
+    assert.equal(detail.items.length,1);assert.equal(detail.items[0].amount_minor,4250);assert.equal(detail.items[0].card_charge_id,null);assert.ok(detail.items[0].personal_card_charge_id);assert.ok(detail.items[0].receipt_id);assert.equal(detail.claim.total_minor,4250);
+    let original=(await h.get('receipt-inbox',t.employee)).receipts.find(r=>r.id===receipt);assert.equal(original.attachment.itemId,detail.items[0].id);
+    await h.post(`receipt-inbox/${receipt}/detach`,{expectedSequence:original.lifecycleSequence,claimId:claim.id,itemId:detail.items[0].id,version:detail.claim.version},t.employee);
+    const afterDetach=await h.get(`claims/${claim.id}`,t.employee);detail.claim.version=afterDetach.claim.version;assert.equal(afterDetach.items[0].receipt_id,null);
     await h.get(base+'/transactions',h.owner,403);await h.get(base+'/transactions',t.other,403);
     edge.pages.push(page([plaidTransaction()]));assert.equal((await h.post(base+'/sync',{},t.employee)).expenses,0);
     assert.equal((await h.get(`claims/${claim.id}`,t.employee)).items.length,1);
     const edited=await h.post(`claims/${claim.id}/items`,{version:detail.claim.version,item:detail.items[0].id,kind:'receipt',date:'2026-10-15',merchant:'Harbour Stationery',amount:'42.50',category:t.category,explanation:'Original receipt unavailable'},t.employee);
     const submitted=await h.post(`claims/${claim.id}/submit`,{version:edited.version},t.employee);
     await h.post(`claims/${claim.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'rejected',reason:'Synthetic close',acknowledge:true},t.manager);
+    const bad=await h.post('plaid/link',{scope:'personal',consent:true},t.other);
+    await h.post('plaid/exchange',{link:bad.id,publicToken:'synthetic-coaster-374',consent:true,selectedAccounts:['synthetic-coaster-unverified']},t.other,409);
+    assert.equal((await h.get('plaid/connections',t.other)).connections.every(connection=>connection.status!=='connected'),true);
+    for(const pending of (await h.get('plaid/connections',t.other)).connections)await h.post(`plaid/connections/${pending.id}/disconnect`,{},t.other);
     const requests=edge.calls.length;
     await h.post('settings/members',{email:t.email,name:'Synthetic departed employee',employee:true,active:false});
     await h.post('settings/members/erase',{email:t.email});
     assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_connections WHERE id=?').bind(connection.id).first()).n,0);
     await h.post(base+'/sync',{},t.employee,401);assert.equal(edge.calls.length,requests);
     assert.equal((await h.db.prepare('SELECT amount_minor FROM c_items WHERE id=?').bind(detail.items[0].id).first()).amount_minor,4250);
-    for(const table of ['c_plaid_transactions','c_plaid_assignments'])assert.ok(!JSON.stringify((await h.db.prepare(`SELECT * FROM ${table}`).all()).results).includes(t.email));
+    for(const table of ['c_plaid_transactions','c_plaid_assignments','c_plaid_personal_charges','c_plaid_corrections'])assert.ok(!JSON.stringify((await h.db.prepare(`SELECT * FROM ${table}`).all()).results).includes(t.email));
   }finally{await h.close();}
 }
 
-export async function monthlyPlaidJourney() {
-  const t=await plaidSetup(),{h,edge}=t;
-  try {
-    const connection=await t.connect(),base=`plaid/connections/${connection.id}`;
-    await h.post(base+'/assign',{account:connection.accounts[0].id,employee:t.email,category:t.category});
+async function monthlyPlaidProof(t,connection,base) {
+  const {h,edge}=t;
+    const providerBefore=edge.calls.filter(c=>c.path==='/transactions/sync').length;
+    const financialBefore=JSON.stringify((await h.db.prepare('SELECT * FROM c_plaid_transactions ORDER BY transaction_id').all()).results),itemsBefore=JSON.stringify((await h.db.prepare('SELECT * FROM c_items ORDER BY id').all()).results),cursorBefore=JSON.stringify((await h.db.prepare('SELECT * FROM c_plaid_sync_state').all()).results);
     const worker=await h.mf.getWorker(),at=new Date('2040-02-01T00:00:00Z');
     await worker.scheduled({scheduledTime:at,cron:'17 * * * *'});
     await worker.scheduled({scheduledTime:at,cron:'17 * * * *'});
     const costs=(await h.db.prepare("SELECT * FROM c_plaid_costs WHERE month='2040-02' AND kind='settled'").all()).results;
     assert.equal(costs.length,1);assert.equal(costs[0].accounts,1);assert.equal(costs[0].usd_minor,250);
-    assert.equal(edge.calls.filter(c=>c.path==='/transactions/sync').length,0,'cost-only schedule sends no provider request');
+    assert.equal(edge.calls.filter(c=>c.path==='/transactions/sync').length,providerBefore,'cost-only schedule sends no provider request');
     await h.post('plaid/settings',{...plaidConfig,version:1,monthlyCap:'1.00'});
     const requests=edge.calls.length,refused=await h.post(base+'/sync',{},h.owner,409);assert.match(refused.error,/cap/);assert.equal(edge.calls.length,requests);
-    assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_sync_state').first()).n,0);
+    assert.equal(JSON.stringify((await h.db.prepare('SELECT * FROM c_plaid_sync_state').all()).results),cursorBefore);
     assert.ok((await h.post('claims',{title:'Manual claim while optional feed is capped'},t.employee)).id);
     await h.post('plaid/settings',{...plaidConfig,version:2,monthlyCap:'20.00'});
     let revoke=true;
@@ -129,11 +145,11 @@ export async function monthlyPlaidJourney() {
     edge.fetch=async request=>{const response=await nativeFetch(request);if(new URL(request.url).pathname==='/transactions/sync'&&revoke){revoke=false;await h.post(base+'/disconnect',{});}return response;};
     edge.pages.push(page([plaidTransaction()]));
     await h.post(base+'/sync',{},h.owner,409);
-    assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_transactions').first()).n,0,'revocation fences the in-flight financial commit');
-    assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_items').first()).n,0);
-    assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_sync_state').first()).n,0);
-  }finally{await h.close();}
+    assert.equal(JSON.stringify((await h.db.prepare('SELECT * FROM c_plaid_transactions ORDER BY transaction_id').all()).results),financialBefore,'revocation fences the in-flight financial commit');
+    assert.equal(JSON.stringify((await h.db.prepare('SELECT * FROM c_items ORDER BY id').all()).results),itemsBefore);
+    assert.equal(JSON.stringify((await h.db.prepare('SELECT * FROM c_plaid_sync_state').all()).results),cursorBefore);
 }
+
 
 export async function personalCreditJourney() {
   const t=await plaidSetup(),{h,edge}=t;
