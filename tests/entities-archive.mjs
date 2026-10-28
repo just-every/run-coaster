@@ -1,4 +1,4 @@
-// Real CLI exit/restore proof for native entities, submitted evidence and consolidated reports.
+// Real CLI export and restore proof for native entities, submitted evidence and consolidated reports.
 import assert from 'node:assert/strict';
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -31,7 +31,7 @@ try {
 
   await command(source, ['export', '--output', 'exports/entities.rer']);
   const archive = join(source, 'exports/entities.rer'), exported = await records(archive);
-  const byIdentity = values => [...values].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  const byIdentity = values => [...values].sort((a, b) => JSON.stringify(a,Object.keys(a).sort()).localeCompare(JSON.stringify(b,Object.keys(b).sort())));
   for (const table of tables) assert.deepEqual(byIdentity(tableRows(exported, table)), byIdentity(expected[table]), `${table} exports exact native rows`);
 
   await command(destination, ['export', '--output', 'exports/empty-before.rer']);

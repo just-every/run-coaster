@@ -39,7 +39,10 @@ try {
    const categorySection=page.locator('section').filter({has:page.getByRole('heading',{name:'Harbour Finch Canada · Expense categories',exact:true})});
    await expect(categorySection).toContainText('CA-6300');await shot('entity-chart',categorySection);
    const workflowSection=page.locator('section').filter({has:page.getByRole('heading',{name:'Approval workflows',exact:true})});
-   await shot('entity-routing',workflowSection.last());
+   await expect(workflowSection.first()).toContainText('Canadian finance review');
+   await shot('entity-routing',workflowSection.first());
+   const policySection=page.locator('section').filter({has:page.getByRole('heading',{name:'Expense policy',exact:true})});
+   await shot('entity-policy',policySection.first());
    await actor(f.team.sam);
    for(const [index,id] of ['primary',f.ca.id].entries()) {
     const title=`Browser ${width} ${id==='primary'?'US':'Canada'}`;
@@ -85,6 +88,7 @@ try {
    await page.getByLabel('Report until',{exact:true}).fill('2026-10-31');
    await page.getByRole('button',{name:'Create USD report',exact:true}).click();
    const result=page.getByRole('region',{name:'Consolidated report result',exact:true});
+   await expect(result.getByRole('heading')).toHaveText('$204.08 USD');
    await expect(result).toContainText('Harbour Finch Canada');
    await expect(result).toContainText('Harbour Finch US');
    assert.equal((await result.textContent()).includes('Private Canadian draft'),false);
