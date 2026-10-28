@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { fresh, command } from './browser-runtime.mjs';
 import { records, rows, tampered } from './browser-archive.mjs';
 import { harness } from './harness.mjs';
-import { entityScenario, entityRates, entityClock } from './entity-kit.mjs';
+import { entityScenario, entityRates } from './entity-kit.mjs';
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/entity-proof');
 const tableRows = (archive, table) => rows(archive).filter(item => item.kind === 'row' && item.table === table).map(item => item.row);
@@ -18,7 +18,7 @@ try {
   const source = await fresh(); roots.push(source);
   const destination = await fresh(); roots.push(destination);
   for (const root of roots) await command(root, ['install']);
-  h = await harness({ fxRates:entityRates,clock:entityClock,persistencePath: join(source, '.wrangler/state/v3'), databaseId: 'local-foundation-only' });
+  h = await harness({ fxRates:entityRates,persistencePath: join(source, '.wrangler/state/v3'), databaseId: 'local-foundation-only' });
   await entityScenario(h);
   const expected = {};
   for (const table of tables) expected[table] = (await h.db.prepare(`SELECT * FROM ${table}`).all()).results;

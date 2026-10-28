@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { agency, receipt } from './harness.mjs';
 
 export const entityRates = `<Envelope><Cube><Cube time="2026-10-02"><Cube currency="USD" rate="1.2"/><Cube currency="CAD" rate="1.6"/></Cube></Cube></Envelope>`;
-export const entityClock = Date.parse('2026-10-15T16:00:00Z');
 const settings = ['settings','entities'].join('/');
 export async function entityScenario(h) {
  const team=await agency(h);

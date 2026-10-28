@@ -4564,7 +4564,7 @@
       "executable": false
     },
     "tests/coaster-entities.test.mjs": {
-      "sha256": "76406cb19523089c10ff84299b4852ac8225c5a4c2f4de0fcaaefdf13cf47363",
+      "sha256": "73f084deac26deadd9e63b69a4094f3a6e600ed0efac7003ee49661a12b5f393",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
@@ -4668,11 +4668,11 @@
       "executable": false
     },
     "tests/entities-archive.mjs": {
-      "sha256": "7db76be975c2bc18f13e19f5d593ce4d34d05da9e84e97ce39fc1a61ad38ebff",
+      "sha256": "273f51c53b1e48ca6e9d662c78ea773113013ad00e8f404ca975b1cf701854a6",
       "executable": false
     },
     "tests/entity-kit.mjs": {
-      "sha256": "73390e31df0ac6fd24e6eb39f1abf018b1e1f20d70dd67f3284bdecd38e77204",
+      "sha256": "545cb926dfe1d5b93034549510982cf863efb4456ec2ab402110f1da740b0092",
       "executable": false
     },
     "tests/fixtures/bank.mjs": {

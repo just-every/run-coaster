@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { harness } from './harness.mjs';
-import { entityScenario, entityRates, entityClock } from './entity-kit.mjs';
+import { entityScenario, entityRates } from './entity-kit.mjs';
 
 const settings=['settings','entities'].join('/');
 test('Native entities isolate receipt policy and routing, consolidate exact USD evidence, and fence configuration, batches and provider authority',async()=>{
- const h=await harness({fxRates:entityRates,clock:entityClock});
+ const h=await harness({fxRates:entityRates});
  try {
   const f=await entityScenario(h),{team:t,ca,category,claims,submitted,report,batches}=f;
   assert.deepEqual(claims.map(c=>[c.entity_id,c.currency,c.total_minor,c.status]),[['primary','USD',10001,'approved'],[ca.id,'CAD',10002,'approved']]);
