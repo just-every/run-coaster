@@ -25,7 +25,8 @@ export async function inspectPolicyReview(person, origin, claimId, width, eviden
  * native screens. Set-up calls use the same signed-in public API as the app. */
 export async function policyAgentScreens(browser,root,server,evidence){
  const {readFile}=await import('node:fs/promises'),{session,PEOPLE}=await import('./browser-journey.mjs'),{assertAccessible}=await import('./browser-accessibility.mjs');
- const origin=server.origin,run=Date.now();
+ // Alphabetic fixture IDs cannot resemble a card number during archive validation.
+ const origin=server.origin,run=crypto.randomUUID().replace(/[0-9]/g,n=>String.fromCharCode(97+Number(n)));
  for(const width of [1440,390]){
   const owner=await session(browser,root,origin,'owner',width),employee=await session(browser,root,origin,'employee',width),manager=await session(browser,root,origin,'manager',width),finance=await session(browser,root,origin,'finance',width);
   try{
@@ -124,7 +125,7 @@ async function main(){
  const {chromium}=await import('@playwright/test'),{fresh,freePort,command,start}=await import('./browser-runtime.mjs'),{session,setUp,api}=await import('./browser-journey.mjs'),{mkdir,rm,writeFile}=await import('node:fs/promises'),{resolve}=await import('node:path'),{execFileSync}=await import('node:child_process');
  const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/policy-agent-proof');let root,server,browser;
  try{
-  await mkdir(evidence,{recursive:true});root=await fresh();await command(root,['install']);const port=await freePort();await command(root,['setup','--owner-email','owner@harbourfinch.example','--port',String(port)]);server=await start(root,port);browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
+  await mkdir(evidence,{recursive:true});root=await fresh();await command(root,['install']);const port=await freePort();await command(root,['setup','--owner-email','owner@harbourfinch.example','--port',String(port)]);server=await start(root,port);browser=await chromium.launch({headless:true,...(process.env.COASTER_CHROMIUM?{executablePath:process.env.COASTER_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});
   const owner=await session(browser,root,server.origin,'owner',1440);await setUp(owner,server.origin);await api(owner.context,server.origin,'settings/business',{name:'Synthetic Coaster',currency:'USD',timezone:'America/New_York',receiptThreshold:''});await owner.context.close();
   const {expensifyJourney}=await import('./browser-concur.mjs'),moveOwner=await session(browser,root,server.origin,'owner',1440);
   for(const width of [1440,390])await expensifyJourney(moveOwner,server.origin,width,evidence,[]);await moveOwner.context.close();
