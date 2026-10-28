@@ -304,7 +304,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "91122fe9c9e1018e2ea796a6d41b179ac4253eafead05bd924374e1be7d2f8cc",
+      "sha256": "d562e6b051bdbaf007ec25eacf6bd7a42150e4413aeaa9116f83dc86fea91892",
       "executable": false
     },
     "API.md": {
@@ -964,7 +964,7 @@
       "executable": false
     },
     "scripts/contract-docs.mjs": {
-      "sha256": "4b93457a556457a16d628cf214bfdbf37ac9b910daaea37f00cf2da2cd23be0d",
+      "sha256": "113a3d8268cf0098e84952f8ceb4d7bcaf9f5b9d8085394bedf5e1a701268b98",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {

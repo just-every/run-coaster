@@ -4,7 +4,7 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const paths = ['CONTRACT.md', 'ACCEPTANCE.md', 'docs/CLAIMS.md'];
+const paths = ['CONTRACT.md', 'ACCEPTANCE.md', 'docs/claims.md'];
 const begin = '<!-- contract-docs:implementation-status:start -->';
 const end = '<!-- contract-docs:implementation-status:end -->';
 const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -89,9 +89,9 @@ async function verifyEvidence(row, journey) {
 function implementationSection(help, selected) {
   const section = `${begin}\n## Implementation status\n\nSource: [CONTRACT.md](../CONTRACT.md#status). Only the selected clauses below are generated; the help above is maintained separately.\n\n${selected.map(row => `- **${row.id} — ${row.title}. Status: ${row.status}.**${row.evidence ? ` Existing evidence: ${row.evidence}.` : ''}${row.gap ? ` Open scope: ${row.gap}` : ''}`).join('\n\n')}\n${end}`;
   const start = help.indexOf(begin), finish = help.indexOf(end);
-  if ((start < 0) !== (finish < 0) || (start >= 0 && finish < start)) throw new Error('docs/CLAIMS.md has incomplete generated status markers.');
+  if ((start < 0) !== (finish < 0) || (start >= 0 && finish < start)) throw new Error('docs/claims.md has incomplete generated status markers.');
   if (start >= 0) {
-    if (help.indexOf(begin, start + begin.length) >= 0 || help.indexOf(end, finish + end.length) >= 0) throw new Error('docs/CLAIMS.md has duplicate generated status markers.');
+    if (help.indexOf(begin, start + begin.length) >= 0 || help.indexOf(end, finish + end.length) >= 0) throw new Error('docs/claims.md has duplicate generated status markers.');
     return help.slice(0, start) + section + help.slice(finish + end.length);
   }
   return help + (help.endsWith('\n\n') ? '' : help.endsWith('\n') ? '\n' : '\n\n') + section + '\n';

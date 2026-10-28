@@ -140,7 +140,7 @@ Replace `ADMIN-004` with the touched clause IDs, separated by spaces. Use the
 same IDs for write and check. The command reads each selected clause's original
 Acceptance evidence and Status evidence/gap, checks cited local evidence paths,
 and updates only its `ACCEPTANCE.md` journey and the marked implementation-status
-section in `docs/CLAIMS.md`. Existing summary counts in `CONTRACT.md` and
+section in `docs/claims.md`. Existing summary counts in `CONTRACT.md` and
 `ACCEPTANCE.md` are recalculated from the full Status table; all untouched clause
 evidence and the existing user help stay intact. Check fails when generated
 content is stale or a cited local evidence path is missing. It runs no Base
