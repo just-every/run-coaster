@@ -4,7 +4,7 @@ import { all, authority, commit, need, sha256Hex, type Sql } from '../session';
 import { needRow, rowAuthority } from '../permissions';
 import { event } from '../events';
 import { amount, Fault, now, requireThat, text, uid, type Actor, type Data } from '../types';
-import { plaidCosts } from './metering';
+import { plaidCosts, settlePlaidMonths } from './metering';
 import { plaidJson, type Credentials } from './network';
 
 type Settings = { version: number; credentials_sealed: string; account_monthly_minor: number; monthly_cap_minor: number | null };
@@ -37,6 +37,7 @@ export async function openPlaid(env: Bindings, label: string, encrypted: string)
 }
 export async function plaidSettings(env: Bindings, actor: Actor) {
   native(actor); need(actor, 'owner');
+  await settlePlaidMonths(env,new Date());
   const s = await settings(env);
   return { configured: !!s, version: s?.version ?? 0, environment: 'sandbox', accountMonthlyMinor: s?.account_monthly_minor ?? null, monthlyCapMinor: s?.monthly_cap_minor ?? null, month: month(), monthToDateMinor: await usage(env), basis: 'Owner-configured USD estimate per connected account; not a provider invoice. Each exchange reserves at least one full account month; verified accounts settle the full estimate. Unknown outcomes retain reservations and overruns pause activation. Disconnect does not refund estimates. No provider billing guarantee is made.' };
 }
@@ -54,6 +55,7 @@ export async function savePlaidSettings(env: Bindings, actor: Actor, body: Data)
   return plaidSettings(env, actor);
 }
 export async function createPlaidLink(env: Bindings, actor: Actor, body: Data) {
+  await settlePlaidMonths(env,new Date());
   const scope = body.scope, auth = await plaidPermission(env, actor, scope), s = await settings(env);
   requireThat(s, 'The owner must configure Plaid sandbox credentials and USD costs first', 409);
   requireThat(body.consent === true, 'Explicitly authorize sharing this connection with Plaid sandbox');
@@ -72,6 +74,7 @@ export async function createPlaidLink(env: Bindings, actor: Actor, body: Data) {
 }
 export async function exchangePlaidLink(env: Bindings, actor: Actor, body: Data) {
   native(actor, true);
+  await settlePlaidMonths(env,new Date());
   const id = text(body.link, 'Link request', 100), s = await settings(env);
   requireThat(s, 'Configure Plaid sandbox first', 409);
   const flow = await env.DB.prepare('SELECT * FROM c_plaid_links WHERE id=?').bind(id).first<Data>();
@@ -117,7 +120,8 @@ export async function plaidConnections(env: Bindings, actor: Actor) {
   native(actor, true);
   const rows = (await env.DB.prepare('SELECT id,scope,personal_email,status,accounts,connected_at FROM c_plaid_connections ORDER BY connected_at,id').all<Connection>()).results;
   const assignments = (await env.DB.prepare('SELECT connection_id,account_id AS account,employee_email AS employee,category_id AS category FROM c_plaid_assignments').all<Data>()).results;
-  return { costs: await plaidCosts(env,actor), environment: 'sandbox', connections: rows.filter(c => c.scope === 'personal' ? !actor.delegate && c.personal_email === actor.email : actor.roles.owner || actor.roles.admin || actor.roles.finance).map(c => ({ id: c.id, scope: c.scope, status: c.status, accounts: JSON.parse(c.accounts), connectedAt: c.connected_at, assignments: assignments.filter(a=>a.connection_id===c.id).map(({connection_id,...a})=>a) })), transactionSync: true };
+  const cards = actor.roles.owner || actor.roles.admin || actor.roles.finance ? (await env.DB.prepare('SELECT id,issuer,last4,employee_email FROM c_cards ORDER BY issuer,last4').all()).results : [];
+  return { cards, costs: await plaidCosts(env,actor), environment: 'sandbox', connections: rows.filter(c => c.scope === 'personal' ? !actor.delegate && c.personal_email === actor.email : actor.roles.owner || actor.roles.admin || actor.roles.finance).map(c => ({ id: c.id, scope: c.scope, status: c.status, accounts: JSON.parse(c.accounts), connectedAt: c.connected_at, assignments: assignments.filter(a=>a.connection_id===c.id).map(({connection_id,...a})=>a) })), transactionSync: true };
 }
 export async function disconnectPlaid(env: Bindings, actor: Actor, id: string) {
   native(actor, true);

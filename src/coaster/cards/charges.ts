@@ -79,11 +79,12 @@ export async function commitStatement(db: D1Database, actor: Actor, b: Data) {
   requireThat(!plan.alreadyImported, 'This file and mapping were already imported; undo that import first to import it again', 409);
   requireThat(!review.errors.length, `Resolve the file errors before importing: ${review.errors.slice(0, 3).join('; ')}`, 409);
   requireThat(!review.unassigned.length, `Assign card ····${review.unassigned.join(', ····')} to an employee, or exclude it, before importing`, 409);
-  requireThat(plan.importable.length > 0, 'This file has no new purchases to import', 409);
+  requireThat(plan.importable.length > 0 || plan.aliases.length > 0, 'This file has no new purchases or Plaid statement links to import', 409);
   const id = uid(), at = now(), issuer = plan.statement.issuer, place = await placements(db, plan.importable, issuer, plan.statement.period.end);
   const statements: D1PreparedStatement[] = [
     db.prepare('INSERT INTO c_statement_files(id,name,format,issuer,fingerprint,sha256,size,bytes,period_start,period_end,mapping,excluded_cards,included_rows,charges,total_minor,imported_by,imported_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id, plan.statement.name, plan.statement.format, plan.statement.issuer, plan.fingerprint, plan.sha, plan.bytes.length, plan.bytes, plan.statement.period.start, plan.statement.period.end, JSON.stringify({ ...plan.statement.mapping, coding: { category: plan.category, costCentre: plan.costCentre } }), JSON.stringify(plan.exclude), JSON.stringify(plan.include), plan.importable.length, review.totalMinor, actor.email, at),
     ...place.statements,
+    ...plan.aliases.map(a=>db.prepare('INSERT INTO c_card_charge_aliases VALUES(?,?,?) ON CONFLICT(transaction_key) DO NOTHING').bind(a.key,a.charge,id)),
   ];
   const cardGuards: Sql[] = [...new Set(plan.importable.map(h => `${h.cardId}|${h.employee}`))].map(x => { const [card, holder] = x.split('|'); return { sql: 'EXISTS(SELECT 1 FROM c_cards c JOIN c_members m ON m.email=c.employee_email AND m.active=1 AND m.is_employee=1 WHERE c.id=? AND c.employee_email=?)', params: [card, holder] }; });
   const automaticGuards:Sql[]=[];
@@ -94,7 +95,7 @@ export async function commitStatement(db: D1Database, actor: Actor, b: Data) {
   }
   for (const c of place.claims.keys()) statements.push(claimTotal(db, c));
   statements.push(event(db, actor, 'import-statement-committed', {}, { file: id, name: plan.statement.name, format: plan.statement.format, issuer, sha256: plan.sha, charges: plan.importable.length, totalMinor: review.totalMinor, period: plan.statement.period, excludedCards: plan.exclude, includedRows: plan.include, duplicates: review.duplicates.length, excludedRows: review.excluded.length, masked: true }));
-  await commit(db, all(rowAuthority(actor, 'connections'), ...place.guards, ...cardGuards, ...[...new Map(automaticGuards.map(g=>[JSON.stringify(g),g])).values()], { sql: 'NOT EXISTS(SELECT 1 FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL)', params: [plan.fingerprint] }), statements);
+  await commit(db, all(rowAuthority(actor, 'connections'), ...place.guards, ...cardGuards, ...[...new Map(automaticGuards.map(g=>[JSON.stringify(g),g])).values()], ...plan.aliases.map(a=>({sql:'NOT EXISTS(SELECT 1 FROM c_card_charge_aliases WHERE transaction_key=? AND charge_id<>?)',params:[a.key,a.charge]})), { sql: 'NOT EXISTS(SELECT 1 FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL)', params: [plan.fingerprint] }), statements);
   return { ...review, file: id, claims: [...place.claims.keys()] };
 }
 

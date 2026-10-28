@@ -27,6 +27,8 @@ export async function analyse(db: D1Database, s: StatementRecord) {
     db.prepare('SELECT line,resolution,amount_minor,charge_id,note,resolved_by,resolved_at FROM c_card_statement_resolutions WHERE statement_id=? ORDER BY line').bind(s.id),
   ]);
   const held = new Map((charges.results as (HeldCharge & { transaction_key: string })[]).map(c => [c.transaction_key, c]));
+  const aliases=(await db.prepare('SELECT a.transaction_key,a.charge_id FROM c_card_charge_aliases a JOIN c_card_charges ch ON ch.id=a.charge_id WHERE ch.card_id=?').bind(s.card_id).all<{transaction_key:string;charge_id:string}>()).results;
+  for(const alias of aliases) { const charge=(charges.results as (HeldCharge & {transaction_key:string})[]).find(c=>c.id===alias.charge_id); if(charge)held.set(alias.transaction_key,charge); }
   const resolved = new Map((resolutions.results as Resolution[]).map(r => [r.line, r]));
   const differences: Difference[] = [], postings: Posting[] = [], t = { purchases: 0, held: 0, explained: 0, credits: 0, creditsAccounted: 0, payments: 0, fees: 0, interest: 0 };
   const diff = (row: StatementRow, kind: Difference['kind'], amountMinor: number, effectMinor: number, resolvable: boolean) => differences.push({ line: row.line, kind, descriptor: row.descriptor, postedOn: row.postedOn, amountMinor, effectMinor, resolvable, resolution: resolved.get(row.line) ?? null });
@@ -57,7 +59,7 @@ export async function analyse(db: D1Database, s: StatementRecord) {
   return {
     card, file, statement, postings, differences,
     totals: { openingMinor: s.opening_minor, statementMinor: s.statement_minor, purchasesMinor: t.purchases, heldMinor: t.held, explainedMinor: t.explained, creditsMinor: t.credits, creditsAccountedMinor: t.creditsAccounted, paymentsMinor: t.payments, feesMinor: t.fees, interestMinor: t.interest, coasterMinor, differenceMinor: s.statement_minor - coasterMinor },
-    unresolved: differences.filter(d => !d.resolution).length, signature: `${held.size}:${[...held.values()].reduce((n, c) => n + c.amount_minor, 0)}:${resolved.size}`,
+    unresolved: differences.filter(d => !d.resolution).length, signature: `${charges.results.length}:${(charges.results as HeldCharge[]).reduce((n,c)=>n+c.amount_minor,0)}:${resolved.size}`,
   };
 }
 export type Analysis = Awaited<ReturnType<typeof analyse>>;

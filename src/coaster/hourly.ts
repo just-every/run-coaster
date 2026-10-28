@@ -1,3 +1,4 @@
+import { settlePlaidMonths } from './plaid/metering';
 import { runProgramFeeds } from './feeds';
 import { deliverWebhooks } from './public-api/webhooks';
 import { runQboDaily } from './accounting/qbo';
@@ -18,6 +19,7 @@ import { runBankHolds } from './bank/holds';
  * scheduled reports (REPORT-002), opens the pay-day batch (PAY-004) and releases bank-change holds whose cooling-off period passed (PAY-002). */
 export async function runHourly(original: Bindings, at: Date) {
   const env = runtimeBindings(original);
+  await settlePlaidMonths(env, at);
   await runProgramFeeds(env, at);
   await runCardMatching(env.DB, at);
   await runCashDrafts(env.DB, at);

@@ -42,6 +42,7 @@ export async function planStatement(db: D1Database, b: Data) {
   const perCard = new Map(statement.cards.map(c => [c.last4, { last4: c.last4, assignedTo: cards.get(c.last4)?.employee_email ?? null, excluded: exclude.includes(c.last4), rows: 0, totalMinor: 0 }]));
   const unassigned = statement.cards.filter(c => !exclude.includes(c.last4) && !(cards.get(c.last4)?.active && cards.get(c.last4)?.is_employee)).map(c => c.last4);
   if (statement.currency !== business.currency) errors.push(`The statement is in ${statement.currency}; this business is in ${business.currency}, and foreign-currency statements are not imported yet`);
+  const aliases: {key:string;charge:string}[] = [];
   const seen = new Set<string>(), reasons: Record<string, string> = { payment: 'a payment to the card account', fee: 'a fee', interest: 'interest', other: 'not a purchase or credit' };
   for (const row of statement.rows) {
     const card = perCard.get(row.last4), id = `${row.last4}:${row.key}`;
@@ -63,13 +64,15 @@ export async function planStatement(db: D1Database, b: Data) {
     if (await db.prepare('SELECT 1 FROM c_card_charges WHERE transaction_key=?').bind(key).first()) { duplicates.push({ line: row.line, reason: 'this transaction was imported before' }); continue; }
     const history = await db.prepare("SELECT COALESCE(json_extract(value,'$.label'),'history') AS label FROM c_history WHERE kind='expense' AND json_extract(value,'$.employee')=? AND json_extract(value,'$.date')=? AND json_extract(value,'$.amountMinor')=? AND lower(trim(json_extract(value,'$.merchant')))=? LIMIT 1").bind(held.employee_email, date, row.amountMinor, normalDescriptor(row.descriptor)).first<{ label: string }>();
     if (history) { excluded.push({ line: row.line, reason: `already in imported ${history.label}` }); continue; }
+    const live = (await db.prepare('SELECT ch.id,ch.descriptor FROM c_card_charges ch JOIN c_plaid_sources ps ON ps.id=ch.file_id WHERE ch.card_id=? AND ch.posted_on=? AND ch.amount_minor=?').bind(held.id,row.postedOn,row.amountMinor).all<{id:string;descriptor:string}>()).results.filter(c=>normalDescriptor(c.descriptor)===normalDescriptor(row.descriptor));
+    if(live.length===1) { aliases.push({key,charge:live[0].id}); duplicates.push({line:row.line,reason:'already received through Plaid; linked for statement reconciliation'}); continue; }
     const overlap = (await db.prepare('SELECT descriptor FROM c_card_charges WHERE card_id=? AND posted_on=? AND amount_minor=?').bind(held.id, row.postedOn, row.amountMinor).all<{ descriptor: string }>()).results.find(c => normalDescriptor(c.descriptor) === normalDescriptor(row.descriptor));
     if (overlap && !include.includes(id)) { possible.push({ line: row.line, id, descriptor: row.descriptor, amountMinor: row.amountMinor!, reason: 'same card, posted date, amount and description as a charge imported from another file' }); continue; }
     importable.push({ row, id, employee: held.employee_email, cardId: held.id, date });
   }
   if (importable.length > CHARGE_LIMIT) errors.push(`Import at most ${CHARGE_LIMIT} new charges per file; split the statement`);
   const alreadyImported = !!await db.prepare('SELECT 1 FROM c_statement_files WHERE fingerprint=? AND undone_at IS NULL').bind(fingerprint).first();
-  return { statement, bytes, sha, fingerprint, category, costCentre, exclude, include, importable, alreadyImported, review: {
+  return { statement, bytes, sha, fingerprint, category, costCentre, exclude, include, importable, aliases, alreadyImported, review: {
     fingerprint, format: statement.format, issuer: statement.issuer, period: statement.period, masking: 'Card numbers are masked to their last four before anything is kept; the retained original is the masked file.',
     cards: [...perCard.values()], unassigned, importable: importable.length, totalMinor: importable.reduce((n, h) => n + h.row.amountMinor!, 0), credits, excluded, duplicates, possibleDuplicates: possible, errors, alreadyImported,
   } };

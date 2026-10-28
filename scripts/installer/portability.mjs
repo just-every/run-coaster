@@ -8,6 +8,7 @@ import { validatePayrollArchive } from './payroll-archive.mjs';
 import { validateBankArchive } from './bank-archive.mjs';
 import { validateCodingArchive } from './coding-archive.mjs';
 import { validateStatementArchive } from './statement-archive.mjs';
+import { validatePlaidArchive } from './plaid-archive.mjs';
 
 const refuse = code => { throw new PortabilityError('coaster_' + code, 409); };
 const check = (ok, code) => { if (!ok) refuse(code); };
@@ -68,13 +69,13 @@ export async function validateCoasterArchive(read, manifest) {
   for (const b of batches) check(b.total_minor === batchClaims.filter(x => x.batch_id === b.id).reduce((n, x) => n + x.amount_minor, 0), 'batch_total');
   for (const k of keys) check(batchClaims.some(x => x.batch_id === k.batch_id && x.claim_id === k.claim_id), 'reimbursement_key');
   if((await read('c_import_card_undo')).length)throw new PortabilityError('coaster_import_card_undo',409);
-  const cards=await read('c_cards'), charges=await read('c_card_charges'), files=await read('c_statement_files'), events=await read('c_events');
+  const cards=await read('c_cards'), charges=await read('c_card_charges'), files=await read('c_statement_files'), plaidSources=await read('c_plaid_sources'), events=await read('c_events');
   await validateStatementArchive(read);
   for(const card of cards) check(/^\d{4}$/.test(card.last4),'card_last_four');
   const undone=await read('c_card_charge_undo_history');
   check(new Set([...charges,...undone].map(c=>c.id)).size===charges.length+undone.length,'card_charge');
   for(const charge of [...charges,...undone]) {
-    check(cards.some(c=>c.id===charge.card_id)&&files.some(f=>f.id===charge.file_id),'card_charge');
+    check(cards.some(c=>c.id===charge.card_id)&&[...files,...plaidSources].some(f=>f.id===charge.file_id),'card_charge');
     const item=items.find(i=>i.id===charge.item_id), claim=item&&claims.find(c=>c.id===item.claim_id);
     if(undone.some(c=>c.id===charge.id)) check(!item&&files.some(f=>f.id===charge.file_id&&f.undone_at),'card_charge');
     else if(item) check(claim&&item.card_charge_id===charge.id&&claim.employee_email===charge.employee_email&&item.amount_minor===charge.amount_minor
@@ -101,6 +102,7 @@ export async function validateCoasterArchive(read, manifest) {
   await validateProgramFeedArchive(read);
   await validatePayrollArchive(read);
   await validateBankArchive(read);
+  await validatePlaidArchive(read);
   return true;
 }
 

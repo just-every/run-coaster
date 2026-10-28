@@ -1,5 +1,5 @@
 import type { Bindings } from '../../auth.server';
-import { event } from '../events';
+import { event, ruleEvent } from '../events';
 import { all, authority, commit, type Sql } from '../session';
 import { requireThat, type Actor } from '../types';
 
@@ -30,6 +30,7 @@ async function check(env: Bindings, condition: Sql, message: string) {
 /** Safe for every current member using their own native session; never selects provider credentials. */
 export async function plaidCosts(env: Bindings, actor: Actor, at = new Date()) {
   native(actor);
+  await settlePlaidMonths(env,at);
   const month = monthAt(at), auth = authority(actor, ['employee', 'manager', 'finance', 'owner', 'auditor', 'admin', 'cardAdmin', 'bookkeeper']);
   // One statement observes authority, settings and the ledger in the same database snapshot.
   const result = await env.DB.prepare(`SELECT s.version,s.account_monthly_minor,s.monthly_cap_minor,
@@ -76,4 +77,23 @@ export async function reservePlaidMonth(env: Bindings, actor: Actor, connection:
   // Recheck before provider work as well as when the caller commits its sync result.
   await check(env, guard, 'The monthly Plaid cap pauses optional sync, or Plaid authority or configuration changed; reload');
   return { ...guard, after: guard };
+}
+
+/** Connected months accrue even without a sync. This clock-controlled scheduler never contacts Plaid. */
+export async function settlePlaidMonths(env: Bindings, at: Date) {
+  const month = monthAt(at), db = env.DB;
+  const settings = await db.prepare('SELECT version,account_monthly_minor FROM c_plaid_settings WHERE id=1').first<Settings>();
+  if (!settings) return;
+  const connections = (await db.prepare("SELECT id,accounts FROM c_plaid_connections WHERE status='connected' ORDER BY id").all<Connection>()).results;
+  for (const connection of connections) {
+    if (await db.prepare("SELECT 1 FROM c_plaid_costs WHERE month=? AND connection_id=? AND kind='settled'").bind(month,connection.id).first()) continue;
+    const accounts = JSON.parse(connection.accounts).length, cost = accounts * settings.account_monthly_minor;
+    requireThat(accounts > 0 && Number.isSafeInteger(cost), 'Reconnect Plaid to verify this account-month estimate',409);
+    const state: Sql = {sql:"EXISTS(SELECT 1 FROM c_plaid_connections WHERE id=? AND status='connected' AND accounts=?) AND EXISTS(SELECT 1 FROM c_plaid_settings WHERE id=1 AND version=?)",params:[connection.id,connection.accounts,settings.version]};
+    const missing: Sql = {sql:"NOT EXISTS(SELECT 1 FROM c_plaid_costs WHERE month=? AND connection_id=? AND kind='settled')",params:[month,connection.id]};
+    await commit(db,all(state,missing),[
+      db.prepare("INSERT INTO c_plaid_costs VALUES(?,?,'settled',?,?,?,?)").bind(month,connection.id,accounts,settings.account_monthly_minor,cost,at.toISOString()),
+      ruleEvent(db,'automation: Plaid account months','plaid-month-settled',{}, {connection:connection.id,month,accounts,accountMonthlyMinor:settings.account_monthly_minor,estimatedUsdMinor:cost,channel:'scheduled'}),
+    ]);
+  }
 }

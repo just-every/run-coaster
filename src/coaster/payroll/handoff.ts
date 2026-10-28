@@ -1,3 +1,4 @@
+import { requirePlaidBatchClear, plaidBatchClear } from '../plaid/holds';
 import type { Bindings } from '../../auth.server';
 import { batchNumber, loadBatch } from '../batches';
 import { all, authority, commit } from '../session';
@@ -38,7 +39,7 @@ export async function payrollReview(env: Bindings, actor: Actor, id: string) {
   return { handoff: publicHandoff(existing), lines: existing ? JSON.parse(existing.lines) : await payrollLines(env,batch), payrolls: actor.roles.owner && !actor.delegate && c && !existing ? (await upcoming(env,actor,c)).slice(0,1) : [] };
 }
 const batchState = (id: string, version: number) => ({ sql: "EXISTS(SELECT 1 FROM c_batches WHERE id=? AND version=? AND status='approved' AND released_at IS NOT NULL)", params: [id,version] });
-const sendable = (id: string, version: number) => { const state=batchState(id,version),held=batchNotHeld(id); return { sql: `${state.sql} AND ${held.sql}`, params: [...state.params,...held.params] }; };
+const sendable = (id: string, version: number) => { const state=batchState(id,version),held=all(batchNotHeld(id),plaidBatchClear(id)); return { sql: `${state.sql} AND ${held.sql}`, params: [...state.params,...held.params] }; };
 export async function sendPayroll(env: Bindings, actor: Actor, id: string, body: Data) {
   const auth = nativeOwner(actor), batch = await loadBatch(env.DB,id), c = await connection(env);
   requireThat(c, 'Connect Gusto first', 409);
@@ -46,6 +47,7 @@ export async function sendPayroll(env: Bindings, actor: Actor, id: string, body:
   requireThat(batch.status === 'approved' && batch.released_at && batch.version === body.version && batch.currency === 'USD', 'Review and release this USD batch before sending; reload', 409);
   requireThat(!await handoff(env,id), 'This batch already has a handoff; read back its original run instead of sending again',409);
   await requireBatchNotHeld(env.DB,id);
+  await requirePlaidBatchClear(env.DB,id);
   requireThat(!await env.DB.prepare('SELECT 1 FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id WHERE bc.batch_id=? AND c.employee_email=?').bind(id,actor.email).first(), 'Another owner must send a batch holding your own claim',403);
   const recent = { sql: 'EXISTS(SELECT 1 FROM oa_sessions WHERE id=? AND created_at>=unixepoch()*1000-600000)', params: [actor.session] };
   requireThat(await env.DB.prepare(`SELECT (${recent.sql}) AS ok`).bind(...recent.params).first<{ ok: number }>().then(r=>r?.ok), 'Sign in again before sending payroll; a sign-in from the last 10 minutes is required', 401);
@@ -68,7 +70,7 @@ export async function sendPayroll(env: Bindings, actor: Actor, id: string, body:
   ]);
   // Reservation is permanent before the only physical write. A lost acknowledgement is reconciled by GET, never retried.
   for (let offset=0;offset<expected.length;offset+=100)
-    await request(env,actor,c,`/v1/companies/${c.company_uuid}/payrolls/${next.payroll_uuid}`,'PUT',{employee_compensations:expected.slice(offset,offset+100)},all(recent,batchNotHeld(id)));
+    await request(env,actor,c,`/v1/companies/${c.company_uuid}/payrolls/${next.payroll_uuid}`,'PUT',{employee_compensations:expected.slice(offset,offset+100)},all(recent,batchNotHeld(id),plaidBatchClear(id)));
   await markSent(env,actor,c,(await handoff(env,id))!);
   return (await confirmPayroll(env,actor,id)).handoff;
 }
