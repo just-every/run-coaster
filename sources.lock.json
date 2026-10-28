@@ -1632,7 +1632,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "8abe3addff9c70aa7465b4f71dceb774cdd2fff4b1132692e5ab5a28b1661f65",
+      "sha256": "79588a2b0174e64d21b9ffb48a48159b4ac447256487c14a63f2a1f46134c585",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -4636,7 +4636,7 @@
       "executable": false
     },
     "tests/coaster-slack-answers.test.mjs": {
-      "sha256": "ba41b3b9781130398dde406567d5f46cf446720faa2e0886ad497693f5a73966",
+      "sha256": "d588f8ab9e490cd059eb9c94080f88b1210418b07000b91a2d7aa02a9df430c2",
       "executable": false
     },
     "tests/coaster-statements.test.mjs": {
@@ -6816,7 +6816,7 @@
       "executable": false
     },
     "tests/slack-archive.mjs": {
-      "sha256": "3daaab5f2ca744417ab3cd6e0a7bfb1f56848c2994e5b6845693517f6f058408",
+      "sha256": "58b8b6194a7d698740e94bb0879b88f2c7d72c3b05e21bb9a5218108efdc86a9",
       "executable": false
     },
     "tests/statement-archive.mjs": {

@@ -112,12 +112,18 @@ test('Erasure removes Slack identity and answers in the same native erasure and 
     const c=await pendingEmailQuestionClaim(h,t,'Departed employee client question');
     await h.post(`claims/${c.id}/comments`,{body:'Which client was this for?',asks:address('sam')},t.priya);
     const event=edge.reply(); assert.equal((await deliverSlack(h,edge,event)).status,200);
+    const beforeErasure=await h.get(`claims/${c.id}`,t.priya);
+    const ownAnswer=beforeErasure.comments.find(comment=>comment.author_email===address('sam')&&comment.parent_id);
+    await h.post(`comments/${ownAnswer.id}/edit`,{body:'Private corrected client answer'},t.sam);
     await h.post(`claims/${c.id}/decision`,{revision:c.revision,version:c.version,decision:'rejected',reason:'Cancelled trip',acknowledge:true},t.priya);
     await h.post('settings/members',{email:address('sam'),name:'sam',employee:true,active:false});
     await h.post('settings/members/erase',{email:address('sam')});
     for(const table of ['c_slack_links','c_slack_challenges','c_slack_threads']) assert.equal((await h.db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first()).n,0);
     const before=await snapshot(h); assert.equal((await deliverSlack(h,edge,event)).status,403);assert.deepEqual(await snapshot(h),before);
     const comments=(await h.db.prepare('SELECT * FROM c_comments').all()).results;assert.ok(!comments.some(c=>c.body==='Harbour Bank, the pitch team'));
+    const publicClaim=await h.get(`claims/${c.id}`,t.priya);
+    assert.ok(!JSON.stringify(publicClaim).includes('Harbour Bank, the pitch team'),'erasure removes answer text from public comments and numbered history, including earlier edits');
+    assert.ok(!JSON.stringify(publicClaim).includes('Private corrected client answer'));
     assert.ok((await h.db.prepare('SELECT * FROM c_slack_answers').all()).results.every(r=>r.comment_id===null),'only opaque replay identity survives erasure');
   } finally {await h.close();}
 });

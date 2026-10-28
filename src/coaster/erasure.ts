@@ -141,6 +141,9 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     ...matchRows.map(row => sql('INSERT INTO c_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND sequence=? AND match_data=?) THEN 1 ELSE 0 END',row.receipt_id,row.sequence,row.match_data)),
     ...discardReasons.map(row => sql('INSERT INTO c_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND sequence=? AND reason=?) THEN 1 ELSE 0 END', row.receipt_id, row.sequence, row.reason)),
     sql('INSERT INTO c_erasing(email) VALUES(?)', address), sql('INSERT INTO c_capture_erasing(email) VALUES(?)', address),
+    // Comment text is erasable even where the immutable history recorded an
+    // earlier wording. Keep the numbered action and references, not its text.
+    sql("UPDATE c_events SET detail=json_remove(detail,'$.body','$.previous') WHERE action IN ('comment-added','question-asked','question-answered','comment-edited') AND json_extract(detail,'$.comment') IN (SELECT id FROM c_comments WHERE author_email=?)", address),
     // Removed outright: their own comments (replies by others stay, as top-level comments), agent keys, delegations and reminders.
     sql('UPDATE c_comments SET parent_id=NULL WHERE parent_id IN (SELECT id FROM c_comments WHERE author_email=?)', address),
     sql('DELETE FROM c_comments WHERE author_email=?', address),

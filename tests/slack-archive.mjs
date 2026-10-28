@@ -45,6 +45,18 @@ try {
   pending=await h.post(`claims/${pending.id}/submit`,{version:pending.version},team.sam);
   assert.equal((await h.post(`claims/${pending.id}/comments`, { body: 'Which office?', asks: sam }, team.priya)).slack, 'sent');
   const pendingEvent = edge.reply();
+  const departedAddress=['synthetic-coaster-departed','harbourfinch.example'].join('@');
+  const departed=await h.person(departedAddress,{employee:true},['priya','harbourfinch.example'].join('@'));
+  await linkSlack(h,edge,departed,'USYNTHETIC2');
+  let departedClaim=await h.post('claims',{title:'Departed member client visit'},departed);
+  departedClaim=await h.post(`claims/${departedClaim.id}/items`,{version:departedClaim.version,kind:'receipt',date:'2026-05-23',merchant:'Former client visit',amount:'22.50',explanation:'Receipt unavailable',allocations:[{category:team.c.meals}]},departed);
+  departedClaim=await h.post(`claims/${departedClaim.id}/submit`,{version:departedClaim.version},departed);
+  await h.post(`claims/${departedClaim.id}/comments`,{body:'Which client was this for?',asks:departedAddress},team.priya);
+  const erasedAnswer='Erased member private answer';
+  assert.equal((await deliverSlack(h,edge,edge.reply({event:{user:'USYNTHETIC2',text:erasedAnswer}}))).status,200);
+  await h.post(`claims/${departedClaim.id}/decision`,{version:departedClaim.version,revision:departedClaim.revision,decision:'rejected',reason:'Cancelled visit',acknowledge:true},team.priya);
+  await h.post('settings/members',{email:departedAddress,name:'synthetic-coaster-departed',employee:true,active:false});
+  await h.post('settings/members/erase',{email:departedAddress});
   await h.post(['chat', 'slack', 'link', 'start'].join('/'), { user: edge.user, consent: true }, team.sam);
   for (const table of localTables) assert.ok((await h.db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first()).n > 0, 'the source contains live local execution state');
   const history = (await h.db.prepare('SELECT * FROM c_events ORDER BY seq').all()).results;
@@ -53,7 +65,8 @@ try {
   await assert.rejects(() => h.db.prepare('DELETE FROM c_events WHERE id=?').bind(history[0].id).run(), /permanent/);
   const comments = (await h.db.prepare('SELECT * FROM c_comments ORDER BY id').all()).results;
   const digests = (await h.db.prepare('SELECT * FROM c_slack_answers ORDER BY digest').all()).results;
-  assert.equal(digests.length, 1);
+  assert.equal(digests.length, 2);
+  assert.equal(digests.filter(row=>row.comment_id===null).length,1,'erasure retains only the departed reply’s opaque replay digest');
   await h.close(); h = undefined;
 
   await command(source, ['export', '--output', './exports/slack.rer']);
@@ -69,6 +82,7 @@ try {
   }
   for (const value of [edge.secret, edge.token, edge.team, edge.app, edge.user, ...sourceIds(incoming), ...sourceIds(pendingEvent)]) assert.ok(!encoded.includes(value), 'provider credentials and source identifiers stay out of the archive');
   assert.ok(!encoded.includes(JSON.stringify(incoming)), 'raw provider payload is absent');
+  assert.ok(!encoded.includes(erasedAnswer)&&!encoded.includes(departedAddress),'the next CLI archive contains neither the erased answer nor its copied history text');
   assert.ok(encoded.includes(answer.body), 'ordinary answer evidence remains portable');
 
   await command(destination, ['export', '--output', './exports/empty.rer']);
