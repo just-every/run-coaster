@@ -38,6 +38,17 @@ test('Personal email choices separate immediate events from one exact daily dige
     assert.deepEqual((await h.db.prepare('SELECT * FROM c_notification_deliveries ORDER BY id').all()).results,attempts.results);
     assert.equal((await h.get('settings/notifications',team.sam)).deliveries.length,2);
     assert.equal((await h.get('settings/notifications',team.alex)).deliveries.length,0,'personal delivery history is isolated');
+
+    await h.post('settings/notifications',preferences({quietFrom:9,quietUntil:0}),team.priya);
+    const midnight = await expense(h,team,'Digest waiting for midnight');
+    await tick(h,'2027-03-14T16:17:00Z');
+    await tick(h,'2027-03-15T06:17:00Z');
+    assert.equal(notifications(h).length,4,'09:00 through 23:00 remains quiet');
+    await tick(h,'2027-03-15T07:17:00Z');
+    assert.equal(notifications(h).length,5,'the deferred daily digest releases at personal midnight');
+    assert.ok(notifications(h).at(-1).text.includes(midnight.id));
+    await tick(h,'2027-03-15T08:17:00Z');
+    assert.equal(notifications(h).length,5,'the deferred digest keeps one identity across midnight');
   } finally { await h.close(); }
 });
 
@@ -73,6 +84,19 @@ test('Finance reminder steps release at personal 09:00 across daylight saving, s
     const reminders = (await h.db.prepare('SELECT * FROM c_reminders ORDER BY key,step').all()).results;
     assert.deepEqual([...new Set(reminders.map(r=>r.step))],[1,2,3],'finance steps are consumed once even when the task finishes during quiet hours');
     assert.equal((await h.db.prepare("SELECT COUNT(*) AS n FROM c_events WHERE action='reminder-sent'").first()).n,6);
+
+    await h.post('settings/business',{name:'Harbour and Finch Studio',currency:'AUD',timezone:'America/Los_Angeles',receiptThreshold:''});
+    await h.post('settings/reminders',{days:'1',quietFrom:20,quietUntil:8,serviceLevel:1,escalateAfter:1});
+    await h.post('settings/notifications',preferences({timezone:'Pacific/Auckland',quietFrom:0,quietUntil:0}),team.sam);
+    const overdue = await expense(h,team,'Business Friday escalation',false);
+    await tick(h,'2027-03-17T18:17:00Z');
+    const escalations = h.messages.filter(m=>m.subject.startsWith('Escalated:')).length;
+    await tick(h,'2027-03-19T18:17:00Z');
+    assert.ok(h.messages.filter(m=>m.subject.startsWith('Escalated:')).length > escalations,'business Friday escalation is due even when the owing person is already on Saturday');
+    assert.ok(h.messages.some(m=>m.subject.startsWith('Escalated:') && m.to.includes(address('priya')) && m.text.includes(overdue.id)));
+    const sent = h.messages.length;
+    await tick(h,'2027-03-19T18:17:00Z');
+    assert.equal(h.messages.length,sent,'replay cannot repeat the Friday escalation');
   } finally { await h.close(); }
 });
 
@@ -113,5 +137,17 @@ test('Preference and dispatch doors refuse other people, revoked roles, erased i
     assert.equal(notifications(h).length,count,'erasure cannot resurrect queued mail');
     for (const table of ['c_notification_preferences','c_notification_events','c_notification_deliveries']) assert.equal((await h.db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE recipient=?`).bind(address('sam')).first()).n,0);
     await h.get('settings/notifications',team.sam,401);
+
+    await h.post('settings/business',{name:'Harbour and Finch Studio',currency:'AUD',timezone:'America/Los_Angeles',receiptThreshold:''});
+    await h.post('settings/reminders',{days:'1',quietFrom:0,quietUntil:0,serviceLevel:3,escalateAfter:''});
+    assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_members WHERE email=?').bind(address('owner')).first()).n,0);
+    await h.post('settings/notifications',preferences({quietFrom:0,quietUntil:0}),h.owner);
+    const owned = await expense(h,{...team,sam:h.owner},'Native owner reminder',false);
+    await tick(h,'2027-03-16T17:17:00Z');
+    const ownerCount = notifications(h).length;
+    await tick(h,'2027-03-17T17:17:00Z');
+    assert.equal(notifications(h).length,ownerCount+2,'the native owner receives both reminders without a domain-member record');
+    assert.ok(notifications(h).slice(-2).every(m=>m.to.includes(address('owner')) && m.text.includes(owned.id)));
+    assert.equal((await h.get('settings/notifications',h.owner)).deliveries.length,2);
   } finally { await h.close(); }
 });

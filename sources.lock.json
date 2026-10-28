@@ -1776,7 +1776,7 @@
       "executable": false
     },
     "src/coaster/notifications/dispatch.ts": {
-      "sha256": "b762d396c0d69a524aaac61b3bddc523e98c79d33af803fa902ea1f698dc6883",
+      "sha256": "fb5821ca46798f634240949ba5f053f883191da7380cd85b03e24cc2f538ed36",
       "executable": false
     },
     "src/coaster/notifications/preferences.ts": {
@@ -2064,7 +2064,7 @@
       "executable": false
     },
     "src/coaster/reminders.ts": {
-      "sha256": "613b44d4cdf592a40b3f7b35862f70dede73259f984ca9159ae7fe84c6084162",
+      "sha256": "d45bd7f384bb3ad20c44ea2c74a5f70cd0008805543de9ef61948af6b2b4d1df",
       "executable": false
     },
     "src/coaster/report-schedules.ts": {
@@ -4592,7 +4592,7 @@
       "executable": false
     },
     "tests/coaster-notifications.test.mjs": {
-      "sha256": "f20da239a636e62bd210bc0b06ad3a29c8c9e3a0d3c5d7433becc821f54acde1",
+      "sha256": "ce5827f64b5b890ada6c577a4a74b96fb1de92076726a0aed24788ffd10e2d39",
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {

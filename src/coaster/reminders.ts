@@ -77,16 +77,17 @@ export async function runReminders(env: Bindings, at: Date) {
   const mail = operatorMail(env);
   for (const item of items) {
     const preference = await db.prepare('SELECT timezone FROM c_notification_preferences WHERE recipient=?').bind(item.person).first<{timezone:string}>();
-    if (!preference && !businessOpen) continue;
     const zone = preference?.timezone ?? settings.timezone, personalDay = localDate(at.toISOString(),zone);
-    if (!isBusinessDay(personalDay)) continue;
-    const record = seen.get(item.key)!, age = businessDaysBetween(item.postedOn ?? localDate(record.first_seen_at, zone), personalDay);
-    const due = settings.reminder_days.filter(d => d <= age).length;
-    // An overdue imported charge still owes every configured step, each with its own durable delivery identity.
-    if (item.postedOn) {
-      for (let step = (record.sent ?? 0) + 1; step <= due; step++) await remind(env, mail, item, age, step, record.sent ?? 0, at);
-    } else {
-      await remind(env, mail, item, age, due, record.sent ?? 0, at);
+    const record = seen.get(item.key)!;
+    if ((preference || businessOpen) && isBusinessDay(personalDay)) {
+      const age = businessDaysBetween(item.postedOn ?? localDate(record.first_seen_at, zone), personalDay);
+      const due = settings.reminder_days.filter(d => d <= age).length;
+      // An overdue imported charge still owes every configured step, each with its own durable delivery identity.
+      if (item.postedOn) {
+        for (let step = (record.sent ?? 0) + 1; step <= due; step++) await remind(env, mail, item, age, step, record.sent ?? 0, at);
+      } else {
+        await remind(env, mail, item, age, due, record.sent ?? 0, at);
+      }
     }
     if (businessOpen) {
       const businessAge = businessDaysBetween(item.postedOn ?? localDate(record.first_seen_at,settings.timezone),today);
