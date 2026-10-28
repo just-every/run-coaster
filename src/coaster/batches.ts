@@ -60,6 +60,7 @@ export async function createBatch(db: D1Database, actor: Actor, b: Data, prepare
     requireThat(claim.total_minor > 0, `${claimNumber(claim.number)} holds only company-card expenses; there is nothing to reimburse`, 409);
     claims.push(claim);
   }
+  requireThat(b.entityId===undefined||claims.every(c=>c.entity_id===b.entityId),'The selected claims belong to another legal entity',409);
   requireThat(new Set(claims.map(c => c.entity_id)).size === 1,'A batch belongs to one legal entity',409);
   requireThat(new Set(claims.map(c => c.currency)).size === 1, 'A batch reimburses in one currency');
   await requireNotHeld(db, claims.map(c => c.employee_email));

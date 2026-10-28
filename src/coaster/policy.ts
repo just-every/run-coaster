@@ -51,6 +51,7 @@ export function parseRule(r: Data, known: Category[]): Rule {
 
 /** Finance (or the owner) publishes the next version, in effect from today or a later day. */
 export async function publishPolicy(db: D1Database, actor: Actor, b: Data, known: Category[], timezone: string, entityId = 'primary') {
+  requireThat(b.entityId===undefined||b.entityId===entityId,'The policy belongs to another legal entity',409);
   needRow(actor, 'policy');
   const today = localDay(timezone), from = b.effectiveFrom ? isoDate(b.effectiveFrom, 'Effective from') : today;
   requireThat(from >= today, 'A new version takes effect today or on a later day');

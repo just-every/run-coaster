@@ -15,6 +15,8 @@ test('Native entities isolate receipt policy and routing, consolidate exact USD 
   assert.equal(submitted[1].revisions[0].snapshot.entity.id,ca.id);
   assert.equal(submitted[1].revisions[0].snapshot.workflow.version,f.workflow.version);
   assert.equal(submitted[1].revisions[0].snapshot.items[0].allocations[0].account_code,'CA-6300');
+  assert.deepEqual(submitted[1].events.find(e=>e.action==='expense-added').detail.currency,'CAD');
+  assert.deepEqual(submitted[1].events.find(e=>e.action==='expense-added').detail.entity,ca.id);
   assert.equal(report.totalMinor,17503);
   assert.deepEqual(report.lines.map(l=>[l.currency,l.nativeMinor,l.amountMinor,l.fx_rate,l.fx_date,l.fx_source]),[['USD',10001,10001,'1','2026-10-02','native currency'],['CAD',10002,7502,'0.75','2026-10-02','ECB reference rates']]);
   assert.equal(report.lines.some(l=>l.claim===f.draft.id),false);
@@ -63,5 +65,24 @@ test('Native entities isolate receipt policy and routing, consolidate exact USD 
   assert.deepEqual(await h.get(`claims/${blocked.id}`,t.sam),withdrawn);
   await h.post(`${settings}/${ca.id}/members`,{email:other,active:true});
   assert.ok((await h.get('state',t.alex)).entities.some(e=>e.id===ca.id));
+  const key=await h.post('agent-keys',{label:'synthetic-coaster-entity-key'},t.alex);
+  await h.post(['settings','members'].join('/'),{email:other,name:'Former entity member',employee:true,active:false});
+  await h.post(['settings','members','erase'].join('/'),{email:other});
+  assert.equal((await h.db.prepare('SELECT COUNT(*) n FROM c_entity_members WHERE email=?').bind(other).first()).n,0);
+  await h.get('state',t.alex,403);
+  const revoked=await h.send('/api/coaster/agent/claims',{title:'Refused erased member'},'',{authorization:'Bearer '+key.token});
+  assert.equal(revoked.status,401);
+  for(const batch of batches) {
+   const reviewed=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:batch.total_minor});
+   await h.paid(batch.id,reviewed.version,{reference:'synthetic-coaster-external-payment',paidOn:'2026-10-15'});
+  }
+  await h.post(['settings','retention'].join('/'),{years:1});
+  await (await h.mf.getWorker()).scheduled({scheduledTime:Date.now()+370*86400000,cron:'17 * * * *'});
+  const expiry=(await h.get('retention')).proposal;
+  assert.ok(expiry,'paid entity claims enter the existing retention proposal');
+  assert.deepEqual(await h.get(['spend','consolidated',report.id].join('/')),report,'a proposal removes no report');
+  await h.post(`retention/${expiry.id}/confirm`,{});
+  await h.get(['spend','consolidated',report.id].join('/'),h.owner,404);
+
  }finally{await h.close();}
 });

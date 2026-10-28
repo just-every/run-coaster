@@ -40,7 +40,7 @@ ALTER TABLE c_batches ADD COLUMN entity_id TEXT NOT NULL DEFAULT 'primary';
 CREATE INDEX c_claim_entity ON c_claims(entity_id);
 CREATE TABLE c_entity_reports(id TEXT PRIMARY KEY,created_by TEXT NOT NULL,created_at TEXT NOT NULL,snapshot TEXT NOT NULL CHECK(json_valid(snapshot)));
 CREATE TRIGGER c_entity_report_immutable_update BEFORE UPDATE ON c_entity_reports WHEN NOT EXISTS(SELECT 1 FROM c_erasing) BEGIN SELECT RAISE(ABORT,'Consolidated reports are immutable'); END;
-CREATE TRIGGER c_entity_report_immutable_delete BEFORE DELETE ON c_entity_reports BEGIN SELECT RAISE(ABORT,'Consolidated reports are immutable'); END;
+CREATE TRIGGER c_entity_report_immutable_delete BEFORE DELETE ON c_entity_reports WHEN NOT EXISTS(SELECT 1 FROM c_expiring x,json_each(OLD.snapshot,'$.lines') l WHERE x.target=json_extract(l.value,'$.claim')) BEGIN SELECT RAISE(ABORT,'Consolidated reports are immutable'); END;
 
 -- Existing populated tables cannot add a non-null foreign key with a default in SQLite.
 -- These guards enforce the same reference and keep financial attribution immutable.

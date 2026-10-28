@@ -52,6 +52,7 @@ export const claimState = (id: string, version: number, statuses: string[]): Sql
 
 async function editable(db:D1Database,actor: Actor, claim: Claim, b: Data) {
   requireThat(actor.kind === 'person', 'Agents prepare proposals; the employee edits the claim', 403);
+  requireThat(b.entityId===undefined||b.entityId===claim.entity_id,'This claim belongs to another legal entity',409);
   requireThat(claim.employee_email === actor.email, 'Only the employee who owns a claim can change it', 403);
   requireThat(['draft', 'returned'].includes(claim.status), 'This claim can no longer be changed', 409);
   requireThat(b.version === claim.version, 'This claim changed; reload before trying again', 409);

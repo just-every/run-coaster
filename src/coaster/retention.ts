@@ -109,6 +109,7 @@ export async function confirmExpiry(db: D1Database, actor: Actor, id: string) {
     const targets = unit.batch ? [...ids, unit.batch] : ids, inClaims = 'IN (SELECT value FROM json_each(?))';
     writes.push(
       ...targets.map(t => db.prepare('INSERT INTO c_expiring(target) VALUES(?)').bind(t)),
+      db.prepare("DELETE FROM c_entity_reports WHERE EXISTS(SELECT 1 FROM json_each(snapshot,'$.lines') l JOIN json_each(?) chosen ON chosen.value=json_extract(l.value,'$.claim'))").bind(list),
       ...await Promise.all(keys.map(async k => db.prepare('INSERT INTO c_expired_keys(key_sha256,claim_number,expired_at) VALUES(?,?,?) ON CONFLICT DO NOTHING').bind(await sha256Hex(k.key), k.number, at))),
       // A cash advance keeps what its removed claim drew down (CLAIM-004).
       db.prepare(`UPDATE c_advances SET kept_applied_minor=(SELECT CASE WHEN c.status='reimbursed' THEN MIN(c_advances.amount_minor-c_advances.returned_minor,c.total_minor) ELSE 0 END FROM c_claims c WHERE c.id=c_advances.claim_id) WHERE claim_id ${inClaims}`).bind(list),
