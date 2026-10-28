@@ -11,7 +11,7 @@ export type Plan = {version:number; stages:Reviewer[][]; matched:string[]};
 export async function workflowPlan(db:D1Database,employee:string,total:number,items:Data[],exceptions:Data[],request=false,entityId='primary') {
  const workflow=await currentWorkflow(db,entityId);
  if(!workflow?.rules.length) return null;
- const configured=await configuredChain(db,employee);
+ const configured=await configuredChain(db,employee,entityId);
  const member=await db.prepare('SELECT m.approver_email,m.department_id,(SELECT a.approver_email FROM c_members a WHERE a.email=m.approver_email AND a.active=1) AS managers_manager,(SELECT d.head_email FROM c_departments d WHERE d.id=m.department_id AND d.active=1) AS department_head FROM c_members m WHERE m.email=? AND m.active=1').bind(employee).first<{approver_email:string;department_id:string|null;managers_manager:string|null;department_head:string|null}>();
  const stages:Reviewer[][]=configured.chain?configured.chain.steps.map(s=>[{kind:'named',email:s.email}]):[[{kind:'manager'}]];
  const matched:string[]=[];

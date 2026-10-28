@@ -83,7 +83,7 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   requireThat(claim.employee_email !== actor.email && claim.employee_email !== actor.delegate?.email, 'Nobody approves their own claim', 403);
   requireThat(claim.status === 'returned' && claim.revision === 0, 'The employee has already resubmitted these expenses; decide them as a claim', 409);
   requireThat(b.version === claim.version, 'The claim changed since you opened it; reload and try again', 409);
-  const checked = await checkedCoding(db, await claimItems(db, claim.id)), items = checked.items, business = await requireBusiness(db);
+  const checked = await checkedCoding(db, await claimItems(db, claim.id),claim.entity_id), items = checked.items, business = await entityBusiness(db,claim.entity_id);
   const cardGuards = await noCardDuplicates(db, claim.employee_email, items);
   const active = await policyConfiguration(db, business, await categories(db,claim.entity_id));
   const missing = missingFields(items, active.categories);
@@ -99,7 +99,7 @@ export async function releaseHold(db: D1Database, actor: Actor, id: string, b: D
   const reason = override ?? optionalText(b.reason, 'Reason', 1000);
   const evidenced=await evidencedPolicyReview(db,items,exceptions,active,claim.employee_email,claim.currency);
   const snapshot = { receiptSignals: await receiptSignals(db, claim.id, bucket), policyReview: evidenced.review, policyVersion: active.version, title: claim.title, approver: claim.approver_email, onBehalfOf, currency: claim.currency, total_minor: total, exceptions, released: { by, reason }, items: items.map(({ receipt_sha256, receipt_name, receipt_media, receipt_size, ...item }) => ({ ...item, receipt: item.receipt_id ? { id: item.receipt_id, name: receipt_name, sha256: receipt_sha256, size: receipt_size, media_type: receipt_media } : null })) };
-  await commit(db, all(authority(actor, 'manager'), checked.guard, evidenced.guard, ...cardGuards, policyStill(active.version, business.timezone,claim.entity_id), claimState(claim.id, claim.version, ['returned'])), [
+  await commit(db, all(entityMember(claim.entity_id,actor.email),authority(actor, 'manager'), checked.guard, evidenced.guard, ...cardGuards, policyStill(active.version, business.timezone,claim.entity_id), claimState(claim.id, claim.version, ['returned'])), [
     db.prepare('INSERT INTO c_revisions(claim_id,revision,submitted_by,submitted_at,total_minor,snapshot) VALUES(?,1,?,?,?,?)').bind(claim.id, original.submitted_by, at, total, JSON.stringify(snapshot)),
     db.prepare("INSERT INTO c_decisions(id,claim_id,revision,decision,reason,actor_email,at,exceptions,on_behalf_of) VALUES(?,?,1,'approved',?,?,?,?,?)").bind(uid(), claim.id, reason, by, at, JSON.stringify(exceptions), onBehalfOf),
     db.prepare("UPDATE c_claims SET status='approved',revision=1,total_minor=?,version=version+1,updated_at=? WHERE id=?").bind(total, at, claim.id),

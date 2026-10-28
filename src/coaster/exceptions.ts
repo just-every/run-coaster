@@ -84,7 +84,7 @@ export async function findExceptions(db: D1Database, claim: { id: string; employ
   // Owner-controlled rules belong to the same effective version as finance's rules.
   for (const e of found) if (['missing-receipt', 'over-limit', 'over-per-person', 'needs-pre-approval'].includes(e.code)) e.policy = active.version;
   // A budget whose policy rule is on marks the expense that would take it past its amount (REPORT-004).
-  found.push(...await overBudget(db, claim, items));
+  if(!business.entity_id||business.entity_id==='primary')found.push(...await overBudget(db, claim, items));
   if (active.version) found.push(...await evaluateRules(db, { version: active.version, rules: active.rules }, claim, items, business, known));
   return found;
 }

@@ -1,3 +1,4 @@
+import { requireEntityMember } from '../entities';
 import { receiptTransfer, chargeEvidenceForReceipt } from '../coding/automatic/transfer';
 import { all, authority, commit } from '../session';
 import { claimState, claimTotal, loadClaim, claimItems } from '../claims';
@@ -13,7 +14,7 @@ export const attachedSql = `SELECT i.id AS itemId,c.id AS claimId,c.version,c.st
 
 export async function changeAttachment(db: D1Database, actor: Actor, id: string, b: Data, detach: boolean) {
   const { sequence, at } = await terminal(db, actor, id, b, ['expectedSequence','claimId','itemId','version']);
-  const claim = await loadClaim(db, b.claimId);
+  const claim = await loadClaim(db, b.claimId),membership=await requireEntityMember(db,claim.entity_id,actor.email);
   requireThat(claim.employee_email === actor.email, 'Claim not found', 404);
   requireThat(['draft','returned'].includes(claim.status) && b.version === claim.version, 'Reload an editable draft or returned claim', 409);
   requireThat(typeof b.itemId === 'string', 'Choose an expense');
@@ -45,6 +46,6 @@ export async function changeAttachment(db: D1Database, actor: Actor, id: string,
   statements.push(...coding.writes);
   const association = detach ? {sql:`EXISTS(SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND i.claim_id=? AND a.capture_receipt_id=?)`,params:[item.id,claim.id,id]}
     : {sql:`EXISTS(SELECT 1 FROM c_items WHERE id=? AND claim_id=? AND kind='receipt' AND receipt_id IS NULL) AND NOT EXISTS(${attachedSql})`,params:[item.id,claim.id,id]};
-  await commit(db,all(authority(actor,'employee'),openOriginal(actor,id,sequence,at),...evidence.guards,...coding.guards,claimState(claim.id,claim.version,['draft','returned']),association),statements);
+  await commit(db,all(authority(actor,'employee'),membership,openOriginal(actor,id,sequence,at),...evidence.guards,...coding.guards,claimState(claim.id,claim.version,['draft','returned']),association),statements);
   return {receipt:(await listInbox(db,actor)).receipts.find(r=>r.id===id),claim:await loadClaim(db,claim.id)};
 }

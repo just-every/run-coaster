@@ -1416,7 +1416,7 @@
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
-      "sha256": "7a5a5f7ae8e2894212d8a823cb2e7e150c4294a68d36bbec84470a811e598b9c",
+      "sha256": "01c702c1dd180aa60e6bdd8e78ba2e5f1a4bc78b4ed30ac8e8c0c689462eeaca",
       "executable": false
     },
     "src/coaster/approval-envelopes.ts": {
@@ -1528,7 +1528,7 @@
       "executable": false
     },
     "src/coaster/claims.ts": {
-      "sha256": "61a135c1a6018870f5affea74c4de94714deba10fae71a674e9eccec03cbc7a5",
+      "sha256": "6666324e1a84ac8ecb8740784dd3ab33fd12edae0c75c4890c5f69c2468b6c87",
       "executable": false
     },
     "src/coaster/coding/automatic/engine.ts": {
@@ -1644,7 +1644,7 @@
       "executable": false
     },
     "src/coaster/exceptions.ts": {
-      "sha256": "2c8755ccf22b701676f9ce8e8a494ca9d8f317fe48b1e251ff1442abfa894d08",
+      "sha256": "32d9ad0d0006b22dd08290d423f2f4862389bc822c568ed4114dcf5ff2457d3d",
       "executable": false
     },
     "src/coaster/expense-approvals.ts": {
@@ -1700,7 +1700,7 @@
       "executable": false
     },
     "src/coaster/holds.ts": {
-      "sha256": "564b0ee97637b86a91864a71b89bff0fc37ba7cb803d26d16c54478e31203db9",
+      "sha256": "e63a32b7e0baeec166b39cfafd0070afe38c85fcf9a4ee4881cfacff8aa1a760",
       "executable": false
     },
     "src/coaster/hourly.ts": {
@@ -1948,7 +1948,7 @@
       "executable": false
     },
     "src/coaster/receipts/attachments.ts": {
-      "sha256": "d69aa2bd8311ac505b9713f83bce2eb25bbde531bdfe54288a44c33a8c56caf0",
+      "sha256": "9e80abeb6d48422fffdcd5684f4eb73317dd8bdc33c1ff49761f364a1c8dbf39",
       "executable": false
     },
     "src/coaster/receipts/card-matching.ts": {
@@ -2124,7 +2124,7 @@
       "executable": false
     },
     "src/coaster/workflow-routing.ts": {
-      "sha256": "6be95fa37efadc328d66b8455d60e214c0c59b115cbe18a80e5d7aec6dfee2eb",
+      "sha256": "e6e7e2c0e1f431c14f62a804ac08b71c19160fd2ec88dad0f03aac6d0b191414",
       "executable": false
     },
     "src/coaster/xlsx.ts": {

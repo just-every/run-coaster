@@ -50,11 +50,12 @@ export function visible(actor: Actor, claim: Claim) {
 /** SQL conditions binding a write to the exact claim state it was decided on. */
 export const claimState = (id: string, version: number, statuses: string[]): Sql => ({ sql: `EXISTS(SELECT 1 FROM c_claims WHERE id=? AND version=? AND status IN (${statuses.map(() => '?').join(',')}))`, params: [id, version, ...statuses] });
 
-function editable(actor: Actor, claim: Claim, b: Data) {
+async function editable(db:D1Database,actor: Actor, claim: Claim, b: Data) {
   requireThat(actor.kind === 'person', 'Agents prepare proposals; the employee edits the claim', 403);
   requireThat(claim.employee_email === actor.email, 'Only the employee who owns a claim can change it', 403);
   requireThat(['draft', 'returned'].includes(claim.status), 'This claim can no longer be changed', 409);
   requireThat(b.version === claim.version, 'This claim changed; reload before trying again', 409);
+  return requireEntityMember(db,claim.entity_id,actor.email);
 }
 /** Recount a claim's reimbursable total from its expenses (company-card expenses are not reimbursed) and move its version on. */
 export const claimTotal = (db: D1Database, id: string) => db.prepare(`UPDATE c_claims SET total_minor=(SELECT ${REIMBURSABLE_SUM} FROM c_items WHERE claim_id=?),version=version+1,updated_at=? WHERE id=?`).bind(id, now(), id);
@@ -83,9 +84,9 @@ export async function createClaim(db: D1Database, actor: Actor, b: Data) {
 
 export async function renameClaim(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
-  editable(actor, claim, b);
+  const membership=await editable(db,actor, claim, b);
   const title = text(b.title, 'Claim title', 200);
-  await commit(db, all(authority(actor, 'employee'), claimState(id, claim.version, ['draft', 'returned'])), [db.prepare('UPDATE c_claims SET title=?,version=version+1,updated_at=? WHERE id=?').bind(title, now(), id), event(db, actor, 'claim-renamed', { claim: id }, { title })]);
+  await commit(db, all(authority(actor, 'employee'),membership, claimState(id, claim.version, ['draft', 'returned'])), [db.prepare('UPDATE c_claims SET title=?,version=version+1,updated_at=? WHERE id=?').bind(title, now(), id), event(db, actor, 'claim-renamed', { claim: id }, { title })]);
   return loadClaim(db, id);
 }
 
@@ -101,8 +102,8 @@ async function ownReceipt(db: D1Database, claim: Claim, receiptId: unknown, item
 /** Add or replace one expense. A replaced item's receipt stays on the claim and in earlier revisions. */
 export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
-  editable(actor, claim, b);
-  const business = await entityBusiness(db,claim.entity_id), membership=await requireEntityMember(db,claim.entity_id,actor.email), receiptId = await ownReceipt(db, claim, b.receipt, b.item);
+  const membership=await editable(db,actor, claim, b);
+  const business = await entityBusiness(db,claim.entity_id), receiptId = await ownReceipt(db, claim, b.receipt, b.item);
   const proposedId=typeof b.item==='string'&&b.item?b.item:uid();
   requireThat(claim.entity_id==='primary'||(b.kind==='receipt'&&!b.request&&!b.allowance&&!Object.keys(b.coding??{}).length),'This entity currently supports manual receipt expenses with its native chart',409);
   const automatic=claim.entity_id==='primary'&&b.kind==='receipt'?await prepareItemInput(db,claim.employee_email,claim.id,proposedId,b):null;
@@ -148,12 +149,12 @@ export async function saveItem(db: D1Database, actor: Actor, id: string, b: Data
 
 export async function removeItem(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
-  editable(actor, claim, b);
+  const membership=await editable(db,actor, claim, b);
   const existing = await db.prepare('SELECT id,merchant,amount_minor,card_charge_id FROM c_items WHERE id=? AND claim_id=?').bind(b.item, claim.id).first<{ id: string; merchant: string; amount_minor: number; card_charge_id: string | null }>();
   requireThat(existing, 'Expense not found on this claim', 404);
   requireThat(!existing.card_charge_id, 'A company-card expense comes from its statement and cannot be removed; undo the statement import instead', 409);
   requireThat(!await db.prepare('SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE i.id=? AND a.capture_receipt_id IS NOT NULL').bind(existing.id).first(), 'Detach the inbox receipt before removing this expense', 409);
-  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), [db.prepare("DELETE FROM c_auto_coding_contexts WHERE target_kind='item' AND target_id=?").bind(existing.id),db.prepare('DELETE FROM c_items WHERE id=?').bind(existing.id), claimTotal(db, claim.id), event(db, actor, 'expense-removed', { claim: claim.id }, { item: existing.id, merchant: existing.merchant, amountMinor: existing.amount_minor })]);
+  await commit(db, all(authority(actor, 'employee'),membership, claimState(claim.id, claim.version, ['draft', 'returned'])), [db.prepare("DELETE FROM c_auto_coding_contexts WHERE target_kind='item' AND target_id=?").bind(existing.id),db.prepare('DELETE FROM c_items WHERE id=?').bind(existing.id), claimTotal(db, claim.id), event(db, actor, 'expense-removed', { claim: claim.id }, { item: existing.id, merchant: existing.merchant, amountMinor: existing.amount_minor })]);
   return loadClaim(db, id);
 }
 
@@ -175,7 +176,7 @@ export function receiptBytes(b: Data) {
 
 export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b: Data) {
   const claim = await loadClaim(db, id);
-  editable(actor, claim, b);
+  const membership=await editable(db,actor, claim, b);
   const { bytes, media, name } = receiptBytes(b), receiptId = uid(), sha = await sha256Hex(bytes);
   const source = b.source === 'camera' ? 'camera' : 'upload';
   const statements = [db.prepare('INSERT INTO c_receipts(id,claim_id,owner_email,name,media_type,size,sha256,bytes,source,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(receiptId, claim.id, claim.employee_email, name, media, bytes.length, sha, bytes, source, actor.delegate?.email ?? actor.email, now())];
@@ -186,7 +187,7 @@ export async function uploadReceipt(db: D1Database, actor: Actor, id: string, b:
     statements.push(db.prepare('UPDATE c_items SET receipt_id=? WHERE id=?').bind(receiptId, b.item));
   }
   statements.push(claimTotal(db, claim.id), event(db, actor, 'receipt-added', { claim: claim.id }, { receipt: receiptId, name, sha256: sha, size: bytes.length, item: b.item ?? null, source }));
-  await commit(db, all(authority(actor, 'employee'), claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
+  await commit(db, all(authority(actor, 'employee'),membership, claimState(claim.id, claim.version, ['draft', 'returned'])), statements);
   return { claim: await loadClaim(db, id), receipt: receiptId };
 }
 
@@ -205,8 +206,8 @@ export async function claimItems(db: D1Database, claimId: string): Promise<Claim
  * once when the owner's approval rule covers every expense (APPROVE-004). */
 export async function submitClaim(db: D1Database, actor: Actor, id: string, b: Data, bucket?: R2Bucket) {
   const claim = await loadClaim(db, id);
-  editable(actor, claim, b);
-  return submission(db, claim, actor.delegate?.email ?? actor.email, authority(actor, 'employee'), (action, detail) => event(db, actor, action, { claim: claim.id }, detail), optionalText(b.note, 'Note', 1000), bucket);
+  const membership=await editable(db,actor, claim, b);
+  return submission(db, claim, actor.delegate?.email ?? actor.email, all(authority(actor, 'employee'),membership), (action, detail) => event(db, actor, action, { claim: claim.id }, detail), optionalText(b.note, 'Note', 1000), bucket);
 }
 
 /** The hourly run submits a stipend's claim in the employee's name, recorded under the schedule's name (CLAIM-009). */
@@ -223,7 +224,7 @@ async function submission(db: D1Database, claim: Claim, by: string, auth: Sql, h
   const items = coding.items;
   requireThat(items.length > 0, 'Add at least one expense before submitting');
   const cardGuards = await noCardDuplicates(db, claim.employee_email, items);
-  const configured = await configuredChain(db, claim.employee_email);
+  const configured = await configuredChain(db, claim.employee_email,claim.entity_id);
   const member = await db.prepare('SELECT approver_email FROM c_members WHERE email=? AND active=1').bind(claim.employee_email).first<{ approver_email: string | null }>();
   const first = configured.chain?.steps[0].email ?? member?.approver_email;
   requireThat(member && first && first !== claim.employee_email, 'Ask the owner to set your approving manager before submitting', 409);

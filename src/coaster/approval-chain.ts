@@ -8,7 +8,8 @@ type ChainConfiguration = { id: string; employee_id: string; steps: string; revi
 
 /** The exact configured chain and active identities are fenced at submission.
  * Imported people remain unable to participate until the owner activates them. */
-export async function configuredChain(db: D1Database, employee: string) {
+export async function configuredChain(db: D1Database, employee: string, entityId='primary') {
+  if(entityId!=='primary')return {chain:null,guards:[{sql:'1',params:[]}] as Sql[]};
   const configured = await db.prepare('SELECT c.* FROM c_import_chains c JOIN c_members m ON m.member_id=c.employee_id WHERE m.email=?').bind(employee).first<ChainConfiguration>();
   if (!configured) return { chain: null, guards: [{ sql: 'NOT EXISTS(SELECT 1 FROM c_import_chains c JOIN c_members m ON m.member_id=c.employee_id WHERE m.email=?)', params: [employee] }] as Sql[] };
   const ids: unknown = JSON.parse(configured.steps);
