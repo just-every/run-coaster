@@ -84,11 +84,14 @@ async function roundTrip(stage) {
     assert.deepEqual(rows(restored), rows(exported), 'every portable row survives the real CLI export → import → export unchanged');
     assert.deepEqual(numbered(tableRows(restored, 'c_events')), history, 'exact history sequence, provenance and details survive restore');
     assert.deepEqual(tableRows(restored, 'c_payroll_handoffs'), [handoff], `${stage} financial evidence survives without provider authority`);
-    await Promise.all([
-      copyFile(archive, join(evidence, `payroll-${stage}.rer`)),
-      copyFile(join(destination, 'exports/restored-payroll.rer'), join(evidence, `payroll-${stage}-restored.rer`)),
-    ]);
-    h=await harness({existingDatabase:true,persistencePath:join(destination,'.wrangler/state/v3'),databaseId:'local-foundation-only',plaidEdge:r=>plaid.fetch(r)});
+    h = await harness({persistencePath:join(destination,'.wrangler/state/v3'),databaseId:'local-foundation-only',existingDatabase:true,gustoEdge:request=>edge.fetch(request),plaidEdge:request=>plaid.fetch(request)});
+    const beforeExecution=await h.db.prepare('SELECT * FROM c_payroll_handoffs').first();
+    const calls=h.outbound.length;
+    await h.post(path,{version:batch.version,payroll:edge.payrollId,consent:true},h.owner,409);
+    await h.post(path+'/confirm',{},h.owner,409);
+    assert.equal(h.outbound.length,calls,'restored evidence cannot contact the provider without a newly authorized connection');
+    assert.deepEqual(await h.db.prepare('SELECT * FROM c_payroll_handoffs').first(),beforeExecution,'refused restored HTTP execution preserves the exact financial evidence');
+    assert.equal((await h.get(['payroll','gusto'].join('/'))).connection,null);
     assert.deepEqual((await h.get(['plaid','connections'].join('/'))).connections,[]);
     assert.equal((await h.get(['plaid','settings'].join('/'))).configured,false);
     const requests=plaid.calls.length;
@@ -96,6 +99,11 @@ async function roundTrip(stage) {
     await h.post(['plaid','connections',linked.id,'disconnect'].join('/'),{},h.owner,404);
     assert.equal(plaid.calls.length,requests,'restored financial evidence permits no Plaid execution');
     assert.deepEqual(tableRows(restored,'c_plaid_costs'),plaidCosts);
+    await h.close();h=undefined;
+    await Promise.all([
+      copyFile(archive, join(evidence, `payroll-${stage}.rer`)),
+      copyFile(join(destination, 'exports/restored-payroll.rer'), join(evidence, `payroll-${stage}-restored.rer`)),
+    ]);
     console.log(`Payroll ${stage} and Plaid real CLI archive round trip passed with inert restored authority`);
   } finally {
     await h?.close();
