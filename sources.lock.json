@@ -355,16 +355,16 @@
       "sha256": "2090f9635070bc6456f2599a7487713ed0f44efde992f3398c7dbdcbe854959a",
       "executable": false
     },
-    "docs/claims.md": {
-      "sha256": "bb4e2db5f38afe88980607e2b398ad75d1f2eb8f34cdfa4e6b001c1282a56d7d",
-      "executable": false
-    },
     "docs/CLAIMS.md": {
-      "sha256": "bb4e2db5f38afe88980607e2b398ad75d1f2eb8f34cdfa4e6b001c1282a56d7d",
+      "sha256": "4237f74da8bbe6dca35a3dc7d0b09417eb221fdfa15a1b72d3bdddd33b467f10",
       "executable": false
     },
     "docs/deploy.md": {
       "sha256": "f5bc8a69b57355c88f3b51b8db231640c8dbde491f86c6b65c896ca1a663f596",
+      "executable": false
+    },
+    "docs/expense-claims.md": {
+      "sha256": "b11475b4d3d6a441ede59c40e91b196b16a4307fb1339433979c4381dadeb309",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -392,7 +392,7 @@
       "executable": false
     },
     "docs/site.json": {
-      "sha256": "7420de88279b404a4703265c8ff39cad2882f43ed128003a07b59820051a6e00",
+      "sha256": "8294dfb47914047b6d355c158efb53e1e70e1ba865a845f15c5d880a00186a94",
       "executable": false
     },
     "edition.json": {
@@ -6744,7 +6744,7 @@
       "executable": false
     },
     "tests/hris-archive.mjs": {
-      "sha256": "ebc4aaf437624d7b91b1e4cdcdea560fd982fcab0269c885bfca44802fcdc840",
+      "sha256": "567d74ca20630de5723b642e3655215de805ec4cf65c6e49f80aae20b7f8887c",
       "executable": false
     },
     "tests/hris-kit.mjs": {
