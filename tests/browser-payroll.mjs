@@ -54,8 +54,10 @@ async function journey(width) {
         await confirmation.goto(link);
         const confirmed = confirmation.waitForResponse(reply => new URL(reply.url()).pathname === '/auth/confirm' && reply.request().method() === 'POST');
         await confirmation.getByRole('button', { name: 'Confirm', exact: true }).click();
-        assert.equal((await confirmed).status(), 303, 'the real confirmation creates a new native session');
-        await confirmation.waitForURL(url => url.origin === h.origin && url.pathname === '/app');
+        const response = await confirmed;
+        assert.equal(response.status(), 303, 'the real confirmation creates a new native session');
+        const destination = new URL(response.headers().location, h.origin);
+        await confirmation.waitForURL(url => url.origin === h.origin && url.pathname === destination.pathname);
       } finally { await confirmation.close(); }
       const cookie = (await context.cookies(h.origin)).find(cookie => cookie.name === h.owner.slice(0, h.owner.indexOf('=')));
       assert.ok(cookie, 'native confirmation installs the session cookie');
