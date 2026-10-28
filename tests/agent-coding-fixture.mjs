@@ -12,6 +12,9 @@ export async function codingCorpus(h) {
   // Import first: a late rule and subsequent human history must change persisted coding.
   for (let at = 0; at < fixture.cases.length; at += 40) await t.statement(fixture.cases.slice(at, at + 40));
   const ids = [...new Set((await h.get('statements', t.finance)).charges.map(c => c.claim_id))];
+  const first = await h.get(`claims/${ids[0]}`, t.sam), item = first.items[0];
+  const original = await t.upload(fixture.cases.find(row => item.card_transaction_key.endsWith('id:' + row.id)));
+  await h.post(`receipt-inbox/${original.receipt.id}/attach`, { expectedSequence: original.receipt.lifecycleSequence ?? 0, claimId: first.claim.id, itemId: item.id, version: first.claim.version }, t.sam);
   const before = new Map();
   for (const id of ids) { const detail = await h.get(`claims/${id}`, t.sam); before.set(id, detail); }
   const claims = {};

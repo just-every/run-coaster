@@ -21,6 +21,7 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'workflow-review-reassigned': `Moved ${d.role} review from ${names[d.from] ?? d.from} to ${names[d.to] ?? d.to} by ${who} · ${d.reason}`,
     'claim-reassigned': `Moved from ${names[d.from] ?? d.from} to ${names[d.to] ?? d.to} by ${who}${d.reason ? ` · ${d.reason}` : ''}`,
     'claim-batched': d.claim && d.batch ? `${d.claim} added to ${d.batch} by ${who}` : `Added to a reimbursement batch by ${who}`, 'claim-unbatched': `Taken out of a draft batch by ${who}${d.unapproved ? ' when it was unapproved' : ''}`,
+    'agent-coding-applied': `${who} confirmed reviewed coding for ${plural(d.changes?.length ?? 0, 'expense')}`,
     'proposal-accepted': `Prepared by ${d.agent} and accepted by ${who}`,
     'batch-created': `Batch created by ${who}${d.preparedBy ? ` from ${d.preparedBy}’s proposal` : ''} · ${plural(d.claims, 'claim')} · ${money(d.totalMinor ?? 0)}`,
     'batch-approved': `Reviewed and approved by ${who} · ${money(d.totalMinor ?? 0)}`, 'batch-exported': `${d.file === 'accounting' ? 'Accounting' : 'Reimbursement'} file downloaded by ${who} · ${d.rows} rows`,

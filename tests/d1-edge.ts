@@ -36,6 +36,8 @@ export function databaseAtEdge(env: any): D1Database {
         const statements = prepared.map(item => ({ sql: queries.get(item) ?? '' }));
         if (statements.some(item => /INSERT INTO c_(?:program_feeds|gusto_connection)\b/.test(item.sql)))
           await env.DB_GATE.fetch('https://d1-edge.test/before-provider-connection', { method: 'POST', body: JSON.stringify({ statements }) });
+        if (statements.some(item => item.sql.startsWith("UPDATE c_proposals SET status='accepted'")) && statements.some(item => item.sql.startsWith('UPDATE c_items SET coding=')))
+          await env.DB_GATE.fetch('https://d1-edge.test/before-agent-coding', { method: 'POST', body: JSON.stringify({ statements }) });
         return target.batch(prepared);
       };
       const value = Reflect.get(target, key, target);

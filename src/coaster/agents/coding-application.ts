@@ -46,7 +46,7 @@ export async function expenseCodingPlan(db: D1Database, claim: Claim, items: Dat
     entries.push({ item: item.id, merchant: item.merchant, contextVersion: context?.version ?? 0, humanFields: human, changes, disputed, advice: proposalView(advice), next: checked?.items[0] ?? candidate, target });
   }
   const review = { sourceClaim: claim.id, sourceVersion: claim.version, entries: entries.map(({ next, target, ...entry }) => entry) };
-  return { entries, guards: [...distinct(guards), contextsState(entries)], review, fingerprint: await sha256Hex(JSON.stringify(review)) };
+  return { entries, stableGuards: distinct(guards), guards: [...distinct(guards), contextsState(entries)], review, fingerprint: await sha256Hex(JSON.stringify(review)) };
 }
 
 /** Explicit confirmation in the employee's own session; the proposal itself never authorizes a write. */
@@ -80,7 +80,7 @@ export async function applyExpenseCoding(db: D1Database, actor: Actor, p: Data, 
   writes.push(db.prepare('UPDATE c_claims SET version=version+1,updated_at=? WHERE id=?').bind(at, claim.id),
     db.prepare("UPDATE c_proposals SET status='accepted',decided_by=?,decided_at=?,result_id=? WHERE id=?").bind(actor.email, at, claim.id, p.id),
     event(db, actor, 'agent-coding-applied', { claim: claim.id }, { proposal: p.id, agent: p.agent_label, fingerprint: plan.fingerprint, changes: changed.map(e => ({ item: e.item, changes: e.changes, evidence: e.advice.evidence })), confirmation: 'native-employee' }));
-  const stable = all(authority(actor, 'employee'), ...distinct(plan.entries.map(e => ({ sql: 'EXISTS(SELECT 1 FROM c_auto_coding_epoch WHERE id=1 AND version=?) AND EXISTS(SELECT 1 FROM c_coding_version WHERE id=1 AND version=?)', params: [e.advice.contextVersion, e.advice.catalogVersion] }))), ...distinct(plan.guards.filter(g => !g.sql.includes('json_each(?) e LEFT JOIN c_auto_coding_contexts'))));
+  const stable = all(authority(actor, 'employee'), ...plan.stableGuards);
   const claimGuard = (version: number): Sql => all(claimState(claim.id, version, ['draft']), { sql: 'EXISTS(SELECT 1 FROM c_claims WHERE id=? AND employee_email=? AND revision=0)', params: [claim.id, actor.email] });
   const condition = all(stable, claimGuard(claim.version), ...plan.guards, { sql: "EXISTS(SELECT 1 FROM c_proposals WHERE id=? AND for_email=? AND status='proposed' AND payload=?)", params: [p.id, actor.email, JSON.stringify(p.payload)] });
   condition.after = all(stable, claimGuard(claim.version + 1), contextsState(plan.entries, true), { sql: "EXISTS(SELECT 1 FROM c_proposals WHERE id=? AND status='accepted' AND decided_by=? AND result_id=?)", params: [p.id, actor.email, claim.id] });

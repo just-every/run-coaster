@@ -5,7 +5,6 @@ import { requireBusiness } from '../settings';
 import { categories } from '../items';
 import { findExceptions } from '../exceptions';
 import { flatten, itemFields } from '../coding/automatic/model';
-import { proposeCoding, proposalView } from '../coding/automatic/engine';
 import { targetSuggestions } from '../coding/automatic/storage';
 import { expenseCodingPlan } from './coding-application';
 import { isoDate, now, requireThat, text, uid, type Actor, type Data } from '../types';
@@ -111,7 +110,7 @@ export async function prepareExpense(db: D1Database, actor: Actor, id: string) {
     const proposed = plan.entries.find(entry => entry.item === item.id)!.advice;
     const current = flatten(itemFields(item));
     const disputed = suggestions.some(s => s.status === 'override') && Object.entries(flatten(proposed.fields)).some(([field,value]) => current[field] !== value);
-    checklist.push({ label: `${item.merchant}: ${disputed ? 'coding disputed — stop and resolve' : 'review coding and receipt before submission'}`, citation: `/app#/claims/${id}`, item: item.id, coding: item.allocations, proposedCoding: { ...proposalView(proposed), categoryName: known.find(c => c.id === proposed.fields.category)?.name }, suggestions, receipt: item.receipt_id ? { id: item.receipt_id, sha256: item.receipt_sha256 } : null, issues: exceptions.filter(e => e.item === item.id).map(e => e.message), disputed });
+    checklist.push({ label: `${item.merchant}: ${disputed ? 'coding disputed — stop and resolve' : 'review coding and receipt before submission'}`, citation: `/app#/claims/${id}`, item: item.id, coding: item.allocations, proposedCoding: { ...proposed, categoryName: known.find(c => c.id === proposed.fields.category)?.name }, suggestions, receipt: item.receipt_id ? { id: item.receipt_id, sha256: item.receipt_sha256 } : null, issues: exceptions.filter(e => e.item === item.id).map(e => e.message), disputed });
   }
   requireThat(items.length > 0, 'Add an expense before preparing its close plan');
   return save(db, actor, 'claim', { preparation: 'expense', currency: settings.currency, title: claim.title, sourceClaim: id, sourceVersion: claim.version, codingApplication: claim.status === 'draft' && claim.revision === 0 ? { review: plan.review, fingerprint: plan.fingerprint } : null, checklist, items: [], stopped: checklist.some(i => i.disputed), note: 'Review this plan, correct issues and submit through the normal claim screen. No coding or receipt is changed automatically.' }, all(authority(actor,'employee'), ...guards));

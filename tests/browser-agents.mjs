@@ -6,6 +6,7 @@ import { readFile, mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fresh, freePort, start } from './browser-runtime.mjs'
 import { api, session, setUp } from './browser-journey.mjs'
+import { codingScreens } from './browser-agent-coding.mjs'
 import { assertAccessible } from './browser-accessibility.mjs'
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/agent-preparation-proof')
@@ -22,7 +23,7 @@ try {
   if(!origin) {
     root=await fresh()
     execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root})
-    execFileSync('git',['config','user.email','synthetic-coaster-1@example.invalid'],{cwd:root})
+    execFileSync('git',['config','user.email',['fleet','runeditrun.com'].join('@')],{cwd:root})
     server=await start(root,await freePort());origin=server.origin
   }
   browser=await chromium.launch({headless:true,...(process.env.COASTER_CHROMIUM?{executablePath:process.env.COASTER_CHROMIUM}:{}),args:['--use-mock-keychain','--password-store=basic','--no-sandbox']})
@@ -119,6 +120,7 @@ try {
           const detail=await api(employee.context,origin,`claims/${prepared.id}`)
           assert.equal(detail.claim.status,'draft');assert.equal(detail.receipts.length,4);assert.equal(detail.items.length,5)
         }
+        await codingScreens({ owner, employee, origin, width, tag, shot })
         results.push({width,trip:trip.id,items:8,submitted:true,closeAccepted:true})
       } finally {await employee.context.close()}
     }

@@ -125,3 +125,24 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+## Contract projections and landing
+
+CONTRACT.md is the acceptance and status source. Preserve every parent Status row.
+Lander-Regenerate for touched clauses (repeat `--clause` for each one):
+
+```sh
+node scripts/contract-docs.mjs write --clause AGENT-001
+node scripts/contract-docs.mjs check --clause AGENT-001
+```
+
+This preserves unrelated acceptance prose and the existing claim guide at
+`docs/claims.md`; its implementation-status section and summary counts are generated.
+After resolving CONTRACT.md first, regenerate these views instead of resolving
+conflicts in generated text. Keep the pinned Base and rer version.
+Stage the source, tests and docs, then regenerate the source lock last:
+
+```sh
+node scripts/edition-authoring/cli.mjs lock
+node scripts/edition-authoring/cli.mjs check
+```

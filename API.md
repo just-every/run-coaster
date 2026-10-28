@@ -581,3 +581,22 @@ Card evidence uses posting age for these steps; the independent unsubmitted-clai
 task continues to use discovery age. Each task records its own once-only history.
 Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).
+
+## Employee-confirmed coding
+
+An expense review prepared through `POST /api/coaster/preparations/expenses/:id`
+keeps review-only acceptance through `POST /api/coaster/proposals/:id/accept`.
+For a never-submitted draft, `payload.codingApplication` also gives a fingerprint
+and the exact category and dimension changes, with their current and proposed
+labels, protected human fields and coding evidence.
+
+The same employee can explicitly confirm those changes through
+`POST /api/coaster/proposals/:id/apply-coding` with
+`{"confirm":true,"fingerprint":"<the reviewed fingerprint>"}`. The handler
+rechecks current native-session authority, the claim, per-expense coding context,
+rules and catalog inside both transaction guards. It refuses changed, disputed,
+foreign, delegated, agent-key, submitted, returned and repeated applications
+without writes. Human choices and category splits remain protected. Receipt
+originals, source charge facts, amounts and reimbursement identity stay intact.
+Confirmation records numbered agent-attributed history; it does not submit,
+approve, chase, release payment or post to a ledger.
