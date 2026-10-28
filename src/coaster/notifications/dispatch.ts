@@ -13,15 +13,16 @@ export const isQuiet = (hour: number, from: number, until: number) => from === u
 
 /** Re-resolve current membership and claim authority. A queued link never grants access to a private draft. */
 async function authorized(db: D1Database, row: Data, tasks: Set<string>) {
-  const member = await db.prepare(`SELECT m.* FROM c_members m JOIN oa_operators o ON lower(o.email)=m.email AND o.status='active' WHERE m.email=? AND m.active=1`).bind(row.recipient).first<Data>();
-  if (!member) return false;
+  const member = await db.prepare(`SELECT m.*,o.role AS operator_role FROM oa_operators o LEFT JOIN c_members m ON m.email=lower(o.email) AND m.active=1 WHERE lower(o.email)=? AND o.status='active'`).bind(row.recipient).first<Data>();
+  if (!member || (member.operator_role !== 'owner' && !member.email)) return false;
+  const roles = rolesFrom(member,member.operator_role === 'owner');
   const claim = await db.prepare('SELECT * FROM c_claims WHERE id=?').bind(row.claim_id).first<Data>();
   if (!claim) return false;
-  if (row.kind === 'reminder') return tasks.has(`${row.task_key}\n${row.recipient}`) && canSee({ kind: 'person', email: row.recipient, name: member.name, roles: rolesFrom(member,false) },await loadClaim(db,row.claim_id));
+  if (row.kind === 'reminder') return tasks.has(`${row.task_key}\n${row.recipient}`) && canSee({ kind: 'person', email: row.recipient, name: member.name, roles },await loadClaim(db,row.claim_id));
   if (row.kind === 'decision' || row.kind === 'return') return claim.employee_email === row.recipient && claim.status !== 'draft';
   if (claim.status !== 'submitted' || claim.revision !== row.revision || claim.employee_email === row.recipient) return false;
   const workflow = await db.prepare("SELECT role FROM c_workflow_tasks WHERE kind='claim' AND record_id=? AND revision=? AND email=? AND status='waiting'").bind(claim.id,claim.revision,row.recipient).first<{role:string}>();
-  return workflow ? member[`is_${workflow.role}`] === 1 : claim.approver_email === row.recipient && member.is_manager === 1;
+  return workflow ? roles.owner || member[`is_${workflow.role}`] === 1 : claim.approver_email === row.recipient && roles.manager;
 }
 
 /** Reserve a message before crossing the mail edge. Unknown or failed attempts are retained, never automatically replayed. */
@@ -43,12 +44,18 @@ export async function deliverNotifications(env: Bindings, at: Date, immediateOnl
     const hour = hourIn(at,row.timezone), day = localDate(at.toISOString(),row.timezone);
     if (isQuiet(hour,row.quiet_from,row.quiet_until)) continue;
     if (row.kind === 'reminder' && !isBusinessDay(day)) continue;
+    let digestDay = day;
     if (row.mode === 'digest') {
-      if (immediateOnly || hour < 9) continue;
+      if (immediateOnly) continue;
+      if (hour < 9) {
+        // A 09:00 digest whose quiet period ends next morning retains the preceding day's identity and cutoff.
+        if (!isQuiet(9,row.quiet_from,row.quiet_until) || row.quiet_until >= 9) continue;
+        digestDay = new Date(Date.parse(`${day}T00:00:00Z`) - 86_400_000).toISOString().slice(0,10);
+      }
       const createdDay = localDate(row.created_at,row.timezone);
-      if (createdDay > day || (createdDay === day && row.kind !== 'reminder' && hourIn(new Date(row.created_at),row.timezone) >= 9)) continue;
+      if (createdDay > digestDay || (createdDay === digestDay && row.kind !== 'reminder' && hourIn(new Date(row.created_at),row.timezone) >= 9)) continue;
     }
-    const bucket = row.mode === 'digest' ? `digest:${day}` : `immediate:${row.id}`;
+    const bucket = row.mode === 'digest' ? `digest:${digestDay}` : `immediate:${row.id}`;
     const key = `${row.recipient}\n${bucket}`;
     groups.set(key,[...(groups.get(key) ?? []),row]);
   }

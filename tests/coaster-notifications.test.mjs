@@ -39,6 +39,28 @@ test('Personal email choices separate immediate events from one exact daily dige
     assert.equal((await h.get('settings/notifications',team.sam)).deliveries.length,2);
     assert.equal((await h.get('settings/notifications',team.alex)).deliveries.length,0,'personal delivery history is isolated');
   } finally { await h.close(); }
+
+  const overnight = await harness({ clock });
+  try {
+    const team = await agency(overnight);
+    await overnight.post('settings/notifications',preferences({timezone:'UTC',quietFrom:9,quietUntil:0}),team.priya);
+    const claim = await expense(overnight,team,'Digest deferred past midnight');
+    await tick(overnight,'2027-03-12T08:17:00Z');
+    await tick(overnight,'2027-03-12T09:17:00Z');
+    await tick(overnight,'2027-03-12T23:17:00Z');
+    assert.equal(notifications(overnight).length,0,'the due digest waits through quiet hours');
+    await tick(overnight,'2027-03-13T00:17:00Z');
+    const digest = notifications(overnight);
+    assert.equal(digest.length,1,'the previous day digest releases when quiet hours end at midnight');
+    assert.deepEqual([...digest[0].text.matchAll(/claims\/(.*)/g)].map(m=>m[1]),[claim.id]);
+    const attempts = (await overnight.get('settings/notifications',team.priya)).deliveries;
+    assert.equal(attempts[0].eventCount,1);
+    assert.equal(attempts[0].status,'accepted');
+    await tick(overnight,'2027-03-13T00:17:00Z');
+    await tick(overnight,'2027-03-13T08:17:00Z');
+    assert.equal(notifications(overnight).length,1,'replay and later awake hours do not duplicate the deferred digest');
+    assert.deepEqual((await overnight.get('settings/notifications',team.priya)).deliveries,attempts);
+  } finally { await overnight.close(); }
 });
 
 test('Finance reminder steps release at personal 09:00 across daylight saving, stop on completion, and preserve escalation cadence', async () => {
@@ -74,6 +96,28 @@ test('Finance reminder steps release at personal 09:00 across daylight saving, s
     assert.deepEqual([...new Set(reminders.map(r=>r.step))],[1,2,3],'finance steps are consumed once even when the task finishes during quiet hours');
     assert.equal((await h.db.prepare("SELECT COUNT(*) AS n FROM c_events WHERE action='reminder-sent'").first()).n,6);
   } finally { await h.close(); }
+
+  const weekend = await harness({ clock: Date.parse('2027-03-09T17:17:00Z') });
+  try {
+    const team = await agency(weekend);
+    await weekend.post('settings/business',{name:'Harbour and Finch Studio',currency:'AUD',timezone:'America/Los_Angeles',receiptThreshold:''});
+    await weekend.post('settings/reminders',{days:'1',quietFrom:20,quietUntil:8,serviceLevel:3,escalateAfter:2});
+    await weekend.post('settings/notifications',preferences({timezone:'Pacific/Auckland',quietFrom:0,quietUntil:0}),team.sam);
+    let claim = await weekend.post('claims',{title:'Unsubmitted cross-zone workshop'},team.sam);
+    claim = await weekend.post(`claims/${claim.id}/items`,{version:claim.version,kind:'receipt',date:'2027-03-09',merchant:'Workshop supplies',amount:'10.00',explanation:'Original receipt lost',allocations:[{category:team.c.office}]},team.sam);
+    await tick(weekend,'2027-03-09T17:17:00Z');
+    await tick(weekend,'2027-03-12T20:17:00Z');
+    const escalations = weekend.messages.filter(m=>m.subject.startsWith('Escalated:'));
+    assert.equal(notifications(weekend).length,0,'personal Saturday still suppresses personal reminders');
+    assert.equal(escalations.length,2,'Los Angeles Friday escalates both exhausted tasks despite the owing person’s Saturday');
+    assert.ok(escalations.every(m=>m.to.length===1 && m.to[0]===address('priya') && m.text.includes(claim.id)));
+    const history = (await weekend.db.prepare('SELECT * FROM c_escalations ORDER BY key').all()).results;
+    assert.equal(history.length,2);
+    assert.ok(history.every(row=>row.level===1 && row.sent_at==='2027-03-12T20:17:00.000Z'));
+    await tick(weekend,'2027-03-12T20:17:00Z');
+    assert.equal(weekend.messages.filter(m=>m.subject.startsWith('Escalated:')).length,2);
+    assert.deepEqual((await weekend.db.prepare('SELECT * FROM c_escalations ORDER BY key').all()).results,history);
+  } finally { await weekend.close(); }
 });
 
 test('Preference and dispatch doors refuse other people, revoked roles, erased identities and retracted private work', async () => {
@@ -114,4 +158,25 @@ test('Preference and dispatch doors refuse other people, revoked roles, erased i
     for (const table of ['c_notification_preferences','c_notification_events','c_notification_deliveries']) assert.equal((await h.db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE recipient=?`).bind(address('sam')).first()).n,0);
     await h.get('settings/notifications',team.sam,401);
   } finally { await h.close(); }
+
+  const owner = await harness({ clock });
+  try {
+    const team = await agency(owner);
+    assert.equal((await owner.db.prepare('SELECT COUNT(*) AS n FROM c_members WHERE email=?').bind(address('owner')).first()).n,0);
+    await owner.post('settings/reminders',{days:'1',quietFrom:20,quietUntil:8,serviceLevel:3,escalateAfter:2});
+    await owner.post('settings/notifications',preferences({timezone:'UTC',quietFrom:0,quietUntil:0}));
+    let claim = await owner.post('claims',{title:'Owner workshop'});
+    claim = await owner.post(`claims/${claim.id}/items`,{version:claim.version,kind:'receipt',date:'2027-03-11',merchant:'Workshop supplies',amount:'10.00',explanation:'Original receipt lost',allocations:[{category:team.c.office}]});
+    await tick(owner,'2027-03-12T01:17:00Z');
+    await tick(owner,'2027-03-15T09:17:00Z');
+    const mail = notifications(owner);
+    assert.equal(mail.length,2,'the native owner receives personal receipt and submission reminders without a separate member row');
+    assert.ok(mail.every(m=>m.to.length===1 && m.to[0]===address('owner') && m.text.includes(claim.id)));
+    const deliveries = (await owner.get('settings/notifications')).deliveries;
+    assert.equal(deliveries.length,2);
+    assert.ok(deliveries.every(d=>d.status==='accepted' && d.eventCount===1));
+    await tick(owner,'2027-03-15T09:17:00Z');
+    assert.equal(notifications(owner).length,2);
+    assert.deepEqual((await owner.get('settings/notifications')).deliveries,deliveries);
+  } finally { await owner.close(); }
 });
