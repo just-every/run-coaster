@@ -39,7 +39,7 @@ try {
    const categorySection=page.locator('section').filter({has:page.getByRole('heading',{name:'Harbour Finch Canada · Expense categories',exact:true})});
    await expect(categorySection).toContainText('CA-6300');await shot('entity-chart',categorySection);
    const workflowSection=page.locator('section').filter({has:page.getByRole('heading',{name:'Approval workflows',exact:true})});
-   await expect(workflowSection.first()).toContainText('Canadian finance review');
+   await expect(workflowSection.first().getByLabel('Rule label',{exact:true})).toHaveValue('Canadian finance review');
    await shot('entity-routing',workflowSection.first());
    const policySection=page.locator('section').filter({has:page.getByRole('heading',{name:'Expense policy',exact:true})});
    await shot('entity-policy',policySection.first());
@@ -95,6 +95,13 @@ try {
    await result.getByText('Conversion evidence',{exact:true}).last().click();
    await expect(result).toContainText('0.75');await expect(result).toContainText('ECB reference rates');
    await shot('consolidated-report',result);
+   await page.goto(h.origin+'/app#/batches');
+   await expect(page.getByRole('region',{name:'Batch totals',exact:true})).toContainText('CAD 100.02');
+   await shot('entity-batches');
+   await page.goto(h.origin+`/app#/batches/${f.batches[1].id}`);
+   await expect(page.locator('.batch-detail')).toContainText('CAD 100.02');
+   await tooltipProof(page,page.getByRole('link',{name:'Back to batches',exact:true}));
+   await shot('entity-batch-detail');
    assert.deepEqual(errors,[]);assert.deepEqual(transport.unexpected,[]);
    console.log(`Native entity screens, receipts and approvals passed at ${width}px`);
   } finally {await context?.close();await h.close();}

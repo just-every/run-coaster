@@ -4456,7 +4456,7 @@
       "executable": false
     },
     "tests/browser-entities.mjs": {
-      "sha256": "21cc08aa7fda00930aa6062974691120842db25f21020bb98320482f88c939ac",
+      "sha256": "d37c8fcf47b0722c5f58a4a320a3ac01308e6b165616e225a772c2ac5b56c936",
       "executable": false
     },
     "tests/browser-journey.mjs": {
@@ -4576,7 +4576,7 @@
       "executable": false
     },
     "tests/coaster-entities.test.mjs": {
-      "sha256": "10e2295fefd1024f868f4685254525bf03ef9d4cfdc01a4596a659232fb1ef32",
+      "sha256": "a98d3b06ea9be1988f2f808b18dfb6624c699c708a231c343b361b0c5473d650",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
