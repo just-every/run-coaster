@@ -133,7 +133,7 @@ jobs:
       fail-fast: false
       matrix:
         # Keep every refusal value; the long fresh-clone journeys cannot be combined within 12 minutes.
-        group: ['journeys-0', 'journeys-1', 'capture-0', 'capture-1-email', 'capture-2', 'matching-0', 'matching-1', 'matching-2', 'cash-accessibility', 'policy-signals-scale', 'policy-review', 'payroll-corpus']
+        group: ['journeys-0', 'journeys-1', 'capture-0', 'capture-1-email', 'capture-2', 'matching-0', 'matching-1', 'matching-2', 'cash-accessibility', 'policy-signals-scale', 'policy-review', 'payroll-corpus', 'notifications']
         # These groups exhausted 15 minutes in push 40425248525. Only their job budgets rise.
         include:
           - group: journeys-0
