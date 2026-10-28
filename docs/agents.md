@@ -6,6 +6,10 @@ In **Settings**, under **Agent keys**, enter an **Agent name** such as "Receipt 
 
 A key acts only for you and only while you can sign in. It cannot submit, approve, batch, pay, change settings or read anyone else's claims.
 
+Coaster does not yet expose these jobs through MCP or accept a signed company
+agent policy. Use the personal-key routes below for the supported preparation
+work; native sign-in is required to accept proposals and make financial decisions.
+
 ## What your agent can do
 
 Your agent sends the key as `Authorization: Bearer` to these routes on your Coaster's address:
