@@ -81,15 +81,15 @@ export async function reservePlaidMonth(env: Bindings, actor: Actor, connection:
 
 /** Connected months accrue even without a sync. This clock-controlled scheduler never contacts Plaid. */
 export async function settlePlaidMonths(env: Bindings, at: Date) {
-  const month = monthAt(at), db = env.DB;
+  const month = monthAt(at), accountingAt = at.toISOString(), db = env.DB;
   const settings = await db.prepare('SELECT version,account_monthly_minor FROM c_plaid_settings WHERE id=1').first<Settings>();
   if (!settings) return;
-  const connections = (await db.prepare("SELECT id,accounts FROM c_plaid_connections WHERE status='connected' ORDER BY id").all<Connection>()).results;
+  const connections = (await db.prepare("SELECT id,accounts FROM c_plaid_connections WHERE status='connected' AND connected_at<=? ORDER BY id").bind(accountingAt).all<Connection>()).results;
   for (const connection of connections) {
     if (await db.prepare("SELECT 1 FROM c_plaid_costs WHERE month=? AND connection_id=? AND kind='settled'").bind(month,connection.id).first()) continue;
     const accounts = JSON.parse(connection.accounts).length, cost = accounts * settings.account_monthly_minor;
     requireThat(accounts > 0 && Number.isSafeInteger(cost), 'Reconnect Plaid to verify this account-month estimate',409);
-    const state: Sql = {sql:"EXISTS(SELECT 1 FROM c_plaid_connections WHERE id=? AND status='connected' AND accounts=?) AND EXISTS(SELECT 1 FROM c_plaid_settings WHERE id=1 AND version=?)",params:[connection.id,connection.accounts,settings.version]};
+    const state: Sql = {sql:"EXISTS(SELECT 1 FROM c_plaid_connections WHERE id=? AND status='connected' AND accounts=? AND connected_at<=?) AND EXISTS(SELECT 1 FROM c_plaid_settings WHERE id=1 AND version=?)",params:[connection.id,connection.accounts,accountingAt,settings.version]};
     const missing: Sql = {sql:"NOT EXISTS(SELECT 1 FROM c_plaid_costs WHERE month=? AND connection_id=? AND kind='settled')",params:[month,connection.id]};
     await commit(db,all(state,missing),[
       db.prepare("INSERT INTO c_plaid_costs VALUES(?,?,'settled',?,?,?,?)").bind(month,connection.id,accounts,settings.account_monthly_minor,cost,at.toISOString()),
