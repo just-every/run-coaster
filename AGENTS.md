@@ -125,3 +125,23 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+## Lander-Regenerate
+
+After updating only the touched clause's implementation Status row in
+`CONTRACT.md`, regenerate its journey and implementation-status help with:
+
+```sh
+node scripts/contract-docs.mjs write ADMIN-004
+node scripts/contract-docs.mjs check ADMIN-004
+```
+
+Replace `ADMIN-004` with the touched clause IDs, separated by spaces. Use the
+same IDs for write and check. The command reads each selected clause's original
+Acceptance evidence and Status evidence/gap, checks cited local evidence paths,
+and updates only its `ACCEPTANCE.md` journey and the marked implementation-status
+section in `docs/CLAIMS.md`. Existing summary counts in `CONTRACT.md` and
+`ACCEPTANCE.md` are recalculated from the full Status table; all untouched clause
+evidence and the existing user help stay intact. Check fails when generated
+content is stale or a cited local evidence path is missing. It runs no Base
+refresh, dependency installation or application tests.

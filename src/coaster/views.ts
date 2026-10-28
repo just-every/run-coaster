@@ -103,7 +103,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const linked = [...new Set(items.map(i => i.request_id).filter(Boolean))];
   const requests = await Promise.all(linked.map(async id => ({ ...(await loadRequest(db, id)), claim_minor: items.filter(i => i.request_id === id).reduce((n, i) => n + i.amount_minor, 0) })));
   return {
-    claim, entity: {...settings,categories:known,policyFields:'rules' in configured?configured.rules.filter(r=>r.kind==='required-field').map(r=>({category:r.category,field:r.field})):[]}, requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
+    claim, entity: {...settings,categories:known},policyFields:'rules' in configured?configured.rules.filter(r=>r.kind==='required-field').map(r=>({category:r.category,field:r.field})):[], requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
     events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
   };

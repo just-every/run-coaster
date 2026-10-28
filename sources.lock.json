@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "f9c69411cd4f9a5177e5449e3a6c52ca117cae5e142847171c29b27e950f9dfd",
+      "sha256": "072b3668454a31e3eab77834349b91dd06a116df8197e3d41e2bc280fdeea15b",
       "executable": false
     },
     ".gitignore": {
@@ -304,7 +304,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "71ba6d85626b3e041e1a7284a46bd873f79ca625a7a7d4ba193252fd378475f9",
+      "sha256": "91122fe9c9e1018e2ea796a6d41b179ac4253eafead05bd924374e1be7d2f8cc",
       "executable": false
     },
     "API.md": {
@@ -2108,7 +2108,7 @@
       "executable": false
     },
     "src/coaster/views.ts": {
-      "sha256": "514db1cf5cf77f3d90d90c04ded7540fb3984707f527f236b1c2a273925b68bb",
+      "sha256": "96cded0aabbffb42884d560bf532a23952e85f76744fc09a460aed09a1fd2555",
       "executable": false
     },
     "src/coaster/workflow-configuration.ts": {
