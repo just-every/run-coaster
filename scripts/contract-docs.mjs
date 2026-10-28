@@ -2,7 +2,10 @@
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { clauseIdSource, parseContract } from '../src/base/seed-contract.mjs';
 
+const validId = new RegExp(`^(?:${clauseIdSource})$`);
+const statusRow = new RegExp('^\\| `(?:' + clauseIdSource + ')` \\|');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const paths = ['CONTRACT.md', 'ACCEPTANCE.md', 'docs/claims.md'];
 const begin = '<!-- contract-docs:implementation-status:start -->';
@@ -15,7 +18,7 @@ function registry(contract) {
   if (start < 0) throw new Error('CONTRACT.md has no clause Status table.');
   const rows = new Map();
   for (const line of contract.slice(start).split('\n')) {
-    if (!/^\| `[A-Z]+-\d+` \|/.test(line)) continue;
+    if (!statusRow.test(line)) continue;
     const cells = line.split(/(?<!\\)\|/).slice(1, -1).map(cell => cell.trim());
     if (cells.length !== 6) throw new Error(`Expected six Status cells: ${line}`);
     const [quoted, title, kind, status, evidence, gap] = cells, id = quoted.slice(1, -1);
@@ -33,7 +36,7 @@ function clauseBlock(document, id) {
   const match = pattern.exec(document);
   if (!match) throw new Error(`Missing clause paragraph: ${id}`);
   const start = match.index, rest = document.slice(start + match[0].length);
-  const next = /\n(?:- \*\*[A-Z]+-\d+ — |#{1,6} )/.exec(rest);
+  const next = new RegExp('\\n(?:- \\*\\*(?:' + clauseIdSource + ') — |#{1,6} )').exec(rest);
   const boundary = next ? start + match[0].length + next.index : document.length;
   const content = document.slice(start, boundary).trimEnd();
   return { start, end: start + content.length, content };
@@ -100,7 +103,7 @@ function implementationSection(help, selected) {
 async function main() {
   const [mode, ...arguments_] = process.argv.slice(2);
   const ids = [...new Set(arguments_.flatMap(value => value.split(',')))];
-  if (!['write', 'check'].includes(mode) || !ids.length || ids.some(id => !/^[A-Z]+-\d+$/.test(id))) {
+  if (!['write', 'check'].includes(mode) || !ids.length || ids.some(id => !validId.test(id))) {
     throw new Error('Usage: node scripts/contract-docs.mjs <write|check> CLAUSE-ID [CLAUSE-ID ...]');
   }
   const original = await Promise.all(paths.map(read));
@@ -114,6 +117,7 @@ async function main() {
     nextAcceptance = nextAcceptance.slice(0, block.start) + generated.paragraph + nextAcceptance.slice(block.end);
   }
   const next = [summaries(contract, [...rows.values()]), summaries(nextAcceptance, [...rows.values()]), implementationSection(help, selected)];
+  parseContract(next[0]);
   const changed = paths.filter((_, index) => next[index] !== original[index]);
   if (mode === 'check' && changed.length) throw new Error(`Generated documentation is stale: ${changed.join(', ')}. Run write with the same clause IDs.`);
   if (mode === 'write') for (let index = 0; index < paths.length; index++) if (next[index] !== original[index]) await writeFile(resolve(root, paths[index]), next[index]);
