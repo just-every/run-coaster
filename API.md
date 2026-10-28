@@ -581,3 +581,45 @@ Card evidence uses posting age for these steps; the independent unsubmitted-clai
 task continues to use discovery age. Each task records its own once-only history.
 Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).
+
+
+## Reviewed Gusto HRIS roster
+
+The native HRIS connection is separate from the owner-only payroll connection.
+An owner, admin or finance member may connect and disconnect in their own native
+session through the ADMIN-001 connection row. A live Full delegate may review
+the connected roster but cannot supply personal consent or custody. Applying a
+roster change currently requires the person's own People authority: owner or
+admin. Finance operation of an owner-approved mapping and scoped delegated
+execution remain unimplemented requirements. Finance connection rights alone
+confer no People writes. Other roles
+are refused before provider traffic. Every provider request rechecks current
+authority; every sync brackets its complete native transaction with authority
+and exact roster guards.
+
+- `GET /api/coaster/hris/gusto` returns connection metadata, never the token.
+- `POST /api/coaster/hris/gusto/connect` accepts `company`, private `token` and
+  explicit `consent: true`, verifies the Demo company, and seals the token.
+- `GET /api/coaster/hris/gusto/preview` reads all bounded employee pages and
+  returns a fingerprint covering the provider roster, native people and mappings.
+- `POST /api/coaster/hris/gusto/sync` requires that fingerprint, `employee`,
+  explicitly confirmed native `email`, `consent: true`, and an optional
+  `successor`. It applies one reviewed employee. A manager must first be mapped
+  to a native active approver. New hires receive only employee access; existing
+  roles are preserved. Termination hands over open work before deactivation.
+  Changes to the owner or current operator, remapping an existing identity,
+  stale reviews, inactive-person reactivation and manager cycles are refused.
+- `POST /api/coaster/hris/gusto/disconnect` requires explicit `consent: true`
+  and the connected `company` UUID, then deletes local connection custody
+  and mappings, retaining native people and numbered history. It reports no
+  remote account deletion.
+
+The adapter only sends company and employee GET requests to Gusto Demo. It
+sends no native claim, receipt, member address or financial content and makes no
+payroll or issuing request. Restores carry native people and history, excluding
+both the sealed token and provider identity mappings; provider execution needs
+a fresh explicit connection. Member erasure removes its mapping and personal
+names and addresses from the retained HRIS history. This fixture-backed slice
+is PARTIAL: held-key hire and manager and termination proof, issued-card freeze,
+department and location defaults, automatic synchronization and other named HRIS
+providers remain outstanding in ADMIN-002.

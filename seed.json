@@ -196,6 +196,18 @@
         "No Coaster member email, claim, receipt, expense, bank number or card number is sent. Only provider account identifiers, type and last four are retained; no returned names or balances. Execution custody is excluded from archives."
       ],
       "adapters": []
+    },
+    {
+      "id": "gusto-hris-sandbox",
+      "required": false,
+      "requiredWhen": "An owner, admin or finance person explicitly connects a Gusto Demo company and reviews roster changes in their native session",
+      "why": "ADMIN-002 optional read-only HRIS transport; native changes require a separately confirmed identity and exact review. No issuing or payroll authority.",
+      "data": [
+        "The company UUID and installation-sealed bearer token authorize company metadata and paginated employee GET requests to https://api.gusto-demo.com",
+        "No native member address, claim, receipt, payment or card data is sent; no provider write, redirect or automatic retry occurs",
+        "Employee identifiers, names, manager references and explicit employment status are projected for review. Connection credentials and mappings are excluded from archives; numbered native before and after history remains."
+      ],
+      "adapters": []
     }
   ],
   "env": [],

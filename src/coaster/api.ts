@@ -1,3 +1,4 @@
+import { hrisStatus, connectHris, disconnectHris, previewHris, syncHris } from './hris/gusto';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
@@ -373,3 +374,9 @@ api.get('/api/coaster/plaid/connections', as(async(a,c)=>plaidConnections(runtim
 api.post('/api/coaster/plaid/link', as(async(a,c)=>createPlaidLink(runtimeBindings(c.env),a,await body(c))));
 api.post('/api/coaster/plaid/exchange', as(async(a,c)=>exchangePlaidLink(runtimeBindings(c.env),a,await body(c))));
 api.post('/api/coaster/plaid/connections/:id/disconnect', as(async(a,c)=>disconnectPlaid(runtimeBindings(c.env),a,param(c,'id'))));
+
+api.get('/api/coaster/hris/gusto', as(async(a,c)=>hrisStatus(runtimeBindings(c.env),a)));
+api.post('/api/coaster/hris/gusto/connect', as(async(a,c)=>connectHris(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/hris/gusto/disconnect', as(async(a,c)=>disconnectHris(runtimeBindings(c.env),a,await body(c))));
+api.get('/api/coaster/hris/gusto/preview', as(async(a,c)=>previewHris(runtimeBindings(c.env),a)));
+api.post('/api/coaster/hris/gusto/sync', as(async(a,c)=>syncHris(runtimeBindings(c.env),a,await body(c))));
