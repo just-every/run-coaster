@@ -1,3 +1,4 @@
+import { requirePlaidClear, requirePlaidBatchClear, plaidBatchClear } from './plaid/holds';
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { finalApproval } from './approval-chain';
 import { event, ruleEvent } from './events';
@@ -24,6 +25,7 @@ const batchState = (id: string, version: number, status: string): Sql => ({ sql:
 /** Keys every expense of these claims reimburses under; refuses any key already taken. */
 async function reimbursementKeys(db: D1Database, claims: Claim[]) {
   const keys: { key: string; claim: Claim; item: string }[] = [];
+  for (const claim of claims) await requirePlaidClear(db,claim.id);
   for (const claim of claims) for (const item of await claimItems(db, claim.id)) {
     // The company paid a card expense: it never reimburses, so it has no reimbursement key (FEED-004).
     if (isCardExpense(item)) continue;
@@ -174,9 +176,10 @@ export async function releaseBatch(db: D1Database, actor: Actor, id: string, b: 
   const threshold = (await business(db))?.dual_release_over_minor ?? null, dual = threshold !== null && batch.total_minor > threshold;
   requireThat(!dual || batch.first_released_by !== actor.email, 'A second, different person must release this batch', 409);
   await requireBatchNotHeld(db, id);
+  await requirePlaidBatchClear(db,id);
   const first = dual && !batch.first_released_by, at = now(), signedInAt = new Date(signedIn.created_at).toISOString();
   const grant: Sql = actor.roles.owner ? authority(actor, 'owner') : { sql: `(${authority(actor, 'finance').sql}) AND EXISTS(SELECT 1 FROM c_members WHERE email=? AND active=1 AND is_finance=1 AND may_release=1)`, params: [...authority(actor, 'finance').params, actor.email] };
-  await commit(db, all({ sql: `(${grant.sql}) AND (${recent.sql})`, params: [...grant.params, ...recent.params] }, batchState(id, batch.version, 'approved'), batchNotHeld(id)), [
+  await commit(db, all({ sql: `(${grant.sql}) AND (${recent.sql})`, params: [...grant.params, ...recent.params] }, batchState(id, batch.version, 'approved'), batchNotHeld(id), plaidBatchClear(id)), [
     first
       ? db.prepare('UPDATE c_batches SET first_released_by=?,first_released_at=?,version=version+1 WHERE id=?').bind(actor.email, at, id)
       : db.prepare('UPDATE c_batches SET released_by=?,released_at=?,version=version+1 WHERE id=?').bind(actor.email, at, id),
@@ -194,8 +197,9 @@ export async function markReimbursed(db: D1Database, actor: Actor, id: string, b
   requireThat(batch.released_at, 'Release the batch before recording its payment', 409);
   requireThat(!await db.prepare('SELECT 1 FROM c_payroll_handoffs WHERE batch_id=?').bind(id).first(), 'Read the provider payroll confirmation for this batch; manual payment cannot override a handoff', 409);
   await requireBatchNotHeld(db, id);
+  await requirePlaidBatchClear(db,id);
   const reference = text(b.reference, 'Payment reference', 200), paidOn = isoDate(b.paidOn, 'Paid on'), at = now();
-  await commit(db, all(authority(actor, 'finance'), batchState(id, batch.version, 'approved'), batchNotHeld(id)), [
+  await commit(db, all(authority(actor, 'finance'), batchState(id, batch.version, 'approved'), batchNotHeld(id), plaidBatchClear(id)), [
     db.prepare("UPDATE c_batches SET status='reimbursed',paid_reference=?,paid_on=?,paid_by=?,version=version+1 WHERE id=?").bind(reference, paidOn, actor.email, id),
     db.prepare("UPDATE c_claims SET status='reimbursed',version=version+1,updated_at=? WHERE batch_id=? AND status='batched'").bind(at, id),
     event(db, actor, 'batch-reimbursed', { batch: id }, { reference, paidOn, note: optionalText(b.note, 'Note', 500) }),

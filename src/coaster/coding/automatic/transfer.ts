@@ -30,7 +30,7 @@ async function savedReading(db:D1Database,receipt:Data,id:string) {
 /** A populated import default is logically empty only while its exact native provenance remains unchanged. */
 async function importerPlaceholder(db:D1Database,item:Data,context:Data|null) {
   if(!context||context.humanFields.includes('category')||item.allocations.length!==1||!item.card_charge_id)return false;
-  const allocation=item.allocations[0],charge=await db.prepare('SELECT ch.category_id,ch.amount_minor,f.mapping FROM c_card_charges ch JOIN c_statement_files f ON f.id=ch.file_id WHERE ch.id=? AND ch.item_id=? AND f.undone_at IS NULL').bind(item.card_charge_id,item.id).first<Data>();
+  const allocation=item.allocations[0],charge=await db.prepare('SELECT ch.category_id,ch.amount_minor,f.mapping FROM c_card_charges ch JOIN c_card_sources f ON f.id=ch.file_id WHERE ch.id=? AND ch.item_id=? AND f.undone_at IS NULL').bind(item.card_charge_id,item.id).first<Data>();
   if(!charge||charge.category_id!==allocation.category_id||charge.amount_minor!==item.amount_minor||allocation.amount_minor!==item.amount_minor||allocation.cost_centre!==(JSON.parse(charge.mapping).coding?.costCentre??''))return false;
   return !(await targetSuggestions(db,'item',item.id)).some(s=>s.evidence.some((e:Evidence)=>e.field==='category'));
 }

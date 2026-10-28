@@ -1,3 +1,5 @@
+import { assignPlaidAccount, plaidTransactions } from './plaid/accounts';
+import { syncPlaid } from './plaid/sync';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
@@ -372,4 +374,7 @@ api.post('/api/coaster/plaid/settings', as(async(a,c)=>savePlaidSettings(runtime
 api.get('/api/coaster/plaid/connections', as(async(a,c)=>plaidConnections(runtimeBindings(c.env),a)));
 api.post('/api/coaster/plaid/link', as(async(a,c)=>createPlaidLink(runtimeBindings(c.env),a,await body(c))));
 api.post('/api/coaster/plaid/exchange', as(async(a,c)=>exchangePlaidLink(runtimeBindings(c.env),a,await body(c))));
+api.post('/api/coaster/plaid/connections/:id/assign', as(async(a,c)=>assignPlaidAccount(runtimeBindings(c.env),a,param(c,'id'),await body(c))));
+api.get('/api/coaster/plaid/connections/:id/transactions', as(async(a,c)=>plaidTransactions(runtimeBindings(c.env),a,param(c,'id'))));
+api.post('/api/coaster/plaid/connections/:id/sync', as(async(a,c)=>syncPlaid(runtimeBindings(c.env),a,param(c,'id'))));
 api.post('/api/coaster/plaid/connections/:id/disconnect', as(async(a,c)=>disconnectPlaid(runtimeBindings(c.env),a,param(c,'id'))));

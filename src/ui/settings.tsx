@@ -22,6 +22,7 @@ import { CodingSettings, CategoryAccountField } from './coding';
 import { QuickBooks } from './quickbooks';
 import { PayrollSettings } from './payroll';
 import { BankPeople, BankProviders, MyBank } from './bank';
+import { PlaidFeeds } from './plaid';
 import { AutomaticCoding } from './automatic-coding';
 import { ProgramFeed } from './program-feed';
 import { ReceiptReadingSettings } from './receipt-reading';
@@ -86,6 +87,7 @@ export function Settings({ state, reload }: ViewProps) {
     {b && roles.employee && !state.actor.delegate && <MyBank name={state.actor.name} />}
     {b && (owner || roles.finance) && !state.actor.delegate && <BankPeople />}
     {b && owner && !state.actor.delegate && <BankProviders />}
+    {b && !state.actor.delegate && (admin || roles.finance || roles.employee) && <PlaidFeeds state={state} />}
     {b && owner && !state.actor.delegate && <PayrollSettings members={state.members} />}
     {b && !state.actor.delegate && (admin || roles.finance) && <ProgramFeed state={state} />}
     {b && owner && !state.actor.delegate && <ProviderCosts />}

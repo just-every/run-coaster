@@ -4,10 +4,11 @@ import { all, authority, commit, need, sha256Hex, type Sql } from '../session';
 import { needRow, rowAuthority } from '../permissions';
 import { event } from '../events';
 import { amount, Fault, now, requireThat, text, uid, type Actor, type Data } from '../types';
+import { plaidCosts } from './metering';
 import { plaidJson, type Credentials } from './network';
 
 type Settings = { version: number; credentials_sealed: string; account_monthly_minor: number; monthly_cap_minor: number | null };
-type Connection = { status: string; id: string; scope: string; personal_email: string | null; item_id: string; credentials_sealed: string; accounts: string; connected_by: string; connected_at: string };
+export type Connection = { status: string; id: string; scope: string; personal_email: string | null; item_id: string; credentials_sealed: string; accounts: string; connected_by: string; connected_at: string };
 const settings = (env: Bindings) => env.DB.prepare('SELECT * FROM c_plaid_settings WHERE id=1').first<Settings>();
 const month = () => now().slice(0, 7);
 const costTotal = "SELECT COALESCE(SUM(c.usd_minor),0) FROM c_plaid_costs c WHERE c.month=? AND (c.kind='settled' OR NOT EXISTS(SELECT 1 FROM c_plaid_costs s WHERE s.month=c.month AND s.connection_id=c.connection_id AND s.kind='settled'))";
@@ -20,7 +21,7 @@ async function recent(env: Bindings, actor: Actor): Promise<Sql> {
   requireThat(await env.DB.prepare(`SELECT (${condition.sql}) AS ok`).bind(...condition.params).first<{ok:number}>().then(r=>r?.ok), 'Sign in again before connecting Plaid; a sign-in from the last 10 minutes is required', 401);
   return condition;
 }
-async function permission(env: Bindings, actor: Actor, scope: string) {
+export async function plaidPermission(env: Bindings, actor: Actor, scope: string) {
   requireThat(scope === 'company' || scope === 'personal', 'Choose company or personal');
   native(actor, scope === 'company');
   if (scope === 'company') { needRow(actor, 'connections'); return all(rowAuthority(actor, 'connections'), await recent(env, actor)); }
@@ -30,7 +31,7 @@ const settingsState = (s: Settings): Sql => ({ sql: 'EXISTS(SELECT 1 FROM c_plai
 async function check(env: Bindings, condition: Sql) {
   requireThat(await env.DB.prepare(`SELECT (${condition.sql}) AS ok`).bind(...condition.params).first<{ ok: number }>().then(r => r?.ok), 'Plaid authority or configuration changed; reload', 409);
 }
-async function open(env: Bindings, label: string, encrypted: string) {
+export async function openPlaid(env: Bindings, label: string, encrypted: string) {
   try { return JSON.parse(await unseal(env.SESSION_SECRET, label, encrypted)) as Credentials; }
   catch { throw new Fault(409, 'Plaid credentials cannot be opened in this installation; reconnect explicitly'); }
 }
@@ -53,13 +54,13 @@ export async function savePlaidSettings(env: Bindings, actor: Actor, body: Data)
   return plaidSettings(env, actor);
 }
 export async function createPlaidLink(env: Bindings, actor: Actor, body: Data) {
-  const scope = body.scope, auth = await permission(env, actor, scope), s = await settings(env);
+  const scope = body.scope, auth = await plaidPermission(env, actor, scope), s = await settings(env);
   requireThat(s, 'The owner must configure Plaid sandbox credentials and USD costs first', 409);
   requireThat(body.consent === true, 'Explicitly authorize sharing this connection with Plaid sandbox');
   requireThat(s.monthly_cap_minor === null || (await usage(env)) + s.account_monthly_minor <= s.monthly_cap_minor, 'The owner monthly Plaid cap pauses new connections; manual claims remain available', 409);
   const id = uid();
   await check(env, all(auth, settingsState(s)));
-  const credentials = await open(env, 'plaid-settings', s.credentials_sealed);
+  const credentials = await openPlaid(env, 'plaid-settings', s.credentials_sealed);
   const result = await plaidJson(credentials, '/link/token/create', { user: { client_user_id: id }, client_name: 'Coaster', products: ['transactions'], country_codes: ['US'], language: 'en', account_filters: { credit: { account_subtypes: ['credit card'] }, ...(scope === 'company' ? { depository: { account_subtypes: ['checking', 'savings'] } } : {}) } });
   const expiration = Date.parse(result.expiration);
   requireThat(typeof result.link_token === 'string' && Number.isFinite(expiration) && expiration > Date.now(), 'Plaid returned an invalid Link token', 502);
@@ -67,7 +68,7 @@ export async function createPlaidLink(env: Bindings, actor: Actor, body: Data) {
     env.DB.prepare('INSERT INTO c_plaid_links(id,member_email,session_id,scope,settings_version,expires_at,delegate_grant) VALUES(?,?,?,?,?,?,?)').bind(id, actor.email, actor.session!, scope, s.version, expiration, actor.delegate?.grant ?? null),
     event(env.DB, actor, 'plaid-link-started', {}, { link: id, scope, environment: 'sandbox', consent: true, channel: 'app' }),
   ]);
-  return { id, linkToken: result.link_token, expiration: result.expiration, environment: 'sandbox', accountMonthlyMinor: s.account_monthly_minor, notice: 'No transaction sync or expense creation is enabled in this foundation.' };
+  return { id, linkToken: result.link_token, expiration: result.expiration, environment: 'sandbox', accountMonthlyMinor: s.account_monthly_minor, notice: 'Assign verified accounts before syncing. Only posted purchases create expenses; pending transactions never attach receipts.' };
 }
 export async function exchangePlaidLink(env: Bindings, actor: Actor, body: Data) {
   native(actor, true);
@@ -75,14 +76,14 @@ export async function exchangePlaidLink(env: Bindings, actor: Actor, body: Data)
   requireThat(s, 'Configure Plaid sandbox first', 409);
   const flow = await env.DB.prepare('SELECT * FROM c_plaid_links WHERE id=?').bind(id).first<Data>();
   requireThat(flow && flow.member_email === actor.email && flow.session_id === actor.session && flow.delegate_grant === (actor.delegate?.grant ?? null), 'This Link request belongs to another native session', 403);
-  const auth = await permission(env, actor, flow.scope), token = text(body.publicToken, 'Plaid public token', 1000);
+  const auth = await plaidPermission(env, actor, flow.scope), token = text(body.publicToken, 'Plaid public token', 1000);
   requireThat(body.consent === true, 'Explicitly confirm the accounts returned by Plaid Link');
   const state: Sql = { sql: 'EXISTS(SELECT 1 FROM c_plaid_links WHERE id=? AND reserved_at IS NULL AND expires_at>? AND settings_version=?)', params: [id, Date.now(), s.version] };
   const reserve = { sql: 'NOT EXISTS(SELECT 1 FROM c_plaid_links WHERE public_token_hash=?)', params: [await sha256Hex(token)] };
   const connection = uid(), at = now(), currentMonth = month();
   const initialBudget: Sql = { sql: `? IS NULL OR (${costTotal})+?<=?`, params: [s.monthly_cap_minor,currentMonth,s.account_monthly_minor,s.monthly_cap_minor] };
   const before = all(auth, settingsState(s), state, reserve, initialBudget);
-  const credentials = await open(env, 'plaid-settings', s.credentials_sealed);
+  const credentials = await openPlaid(env, 'plaid-settings', s.credentials_sealed);
   // Consuming the request before exchange forbids concurrent replay and automatic retries after uncertainty.
   await commit(env.DB, before, [env.DB.prepare('UPDATE c_plaid_links SET reserved_at=?,public_token_hash=? WHERE id=?').bind(now(), await sha256Hex(token), id), env.DB.prepare("INSERT INTO c_plaid_costs VALUES(?,?,'reserved',1,?,?,?)").bind(currentMonth,connection,s.account_monthly_minor,s.account_monthly_minor,at), event(env.DB, actor, 'plaid-exchange-reserved', {}, { link: id, connection, scope: flow.scope, channel: 'app' })]);
   const response = await plaidJson(credentials, '/item/public_token/exchange', { public_token: token });
@@ -115,16 +116,17 @@ export async function exchangePlaidLink(env: Bindings, actor: Actor, body: Data)
 export async function plaidConnections(env: Bindings, actor: Actor) {
   native(actor, true);
   const rows = (await env.DB.prepare('SELECT id,scope,personal_email,status,accounts,connected_at FROM c_plaid_connections ORDER BY connected_at,id').all<Connection>()).results;
-  return { environment: 'sandbox', connections: rows.filter(c => c.scope === 'personal' ? !actor.delegate && c.personal_email === actor.email : actor.roles.owner || actor.roles.admin || actor.roles.finance).map(c => ({ id: c.id, scope: c.scope, status: c.status, accounts: JSON.parse(c.accounts), connectedAt: c.connected_at })), transactionSync: false };
+  const assignments = (await env.DB.prepare('SELECT connection_id,account_id AS account,employee_email AS employee,category_id AS category FROM c_plaid_assignments').all<Data>()).results;
+  return { costs: await plaidCosts(env,actor), environment: 'sandbox', connections: rows.filter(c => c.scope === 'personal' ? !actor.delegate && c.personal_email === actor.email : actor.roles.owner || actor.roles.admin || actor.roles.finance).map(c => ({ id: c.id, scope: c.scope, status: c.status, accounts: JSON.parse(c.accounts), connectedAt: c.connected_at, assignments: assignments.filter(a=>a.connection_id===c.id).map(({connection_id,...a})=>a) })), transactionSync: true };
 }
 export async function disconnectPlaid(env: Bindings, actor: Actor, id: string) {
   native(actor, true);
   const c = await env.DB.prepare('SELECT * FROM c_plaid_connections WHERE id=?').bind(id).first<Connection>();
   requireThat(c, 'Plaid connection not found', 404);
   requireThat(c.scope !== 'personal' || c.personal_email === actor.email, 'Only the personal card owner disconnects it', 403);
-  const auth = await permission(env, actor, c.scope), state: Sql = { sql: 'EXISTS(SELECT 1 FROM c_plaid_connections WHERE id=? AND credentials_sealed=?)', params: [id, c.credentials_sealed] };
+  const auth = await plaidPermission(env, actor, c.scope), state: Sql = { sql: 'EXISTS(SELECT 1 FROM c_plaid_connections WHERE id=? AND credentials_sealed=?)', params: [id, c.credentials_sealed] };
   await check(env, all(auth, state));
-  await plaidJson(await open(env, 'plaid:' + id, c.credentials_sealed), '/item/remove');
+  await plaidJson(await openPlaid(env, 'plaid:' + id, c.credentials_sealed), '/item/remove');
   await commit(env.DB, all(auth, state), [env.DB.prepare('DELETE FROM c_plaid_connections WHERE id=?').bind(id), event(env.DB, actor, 'plaid-disconnected', {}, { connection: id, scope: c.scope, providerRemovalConfirmed: true, channel: 'app' })]);
   return { disconnected: true };
 }

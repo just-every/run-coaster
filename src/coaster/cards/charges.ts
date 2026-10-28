@@ -63,7 +63,7 @@ export async function chargeStatements(db: D1Database, actor: Actor | { system: 
   const fields=automatic.values;
   if(fields.category)item.allocations[0].category_id=fields.category;
   item.coding=fields.dimensions??{};item.project=fields.project??'';item.customer=fields.customer??'';item.description=fields.memo??item.description;
-  return { charge: chargeId, guard:automatic.guard, statements: [
+  return { charge: chargeId, item: itemId, guard:automatic.guard, statements: [
     db.prepare('INSERT INTO c_card_charges(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(chargeId, c.file, h.cardId, h.employee, `card:${issuer.toLowerCase()}|${r.last4}:${r.key}`, r.postedOn, r.transactionOn, item.merchant, r.memo, r.amountMinor, r.currency, r.originalMinor, r.originalCurrency, itemId, c.category.id, c.at, c.claim),
     ...insertItem(db, c.claim, itemId, c.position, item, null),...automatic.writes,
     ...('system' in actor ? [ruleEvent(db, actor.system, 'program-feed-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, feed: c.feed, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false, channel: 'feed' })] : [event(db, actor, 'import-card-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false })]),
