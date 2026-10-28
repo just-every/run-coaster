@@ -332,7 +332,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "de4109ef11b3edb7fe2982456233f12e316cc26d0706471badd67c06d08eed5d",
+      "sha256": "70dfdba369791e24b160bbad9aa86bd907369e8e99162d2de979cf3f35b54303",
       "executable": false
     },
     "DESKTOP.md": {
@@ -6796,7 +6796,7 @@
       "executable": false
     },
     "wrangler.jsonc": {
-      "sha256": "ff74eff84b9b0c3f0e61be3c4a801cd278203b3e11b0e1ec5313d016c50b6eb6",
+      "sha256": "6cb6acdf245d1a816b54b39f44f63218371f363f6fdb32eaf4e715c775ac8553",
       "executable": false
     }
   }

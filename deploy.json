@@ -33,10 +33,6 @@
       "environment": "MAIL_API_KEY"
     },
     {
-      "binding": "MAIL_FROM",
-      "environment": "MAIL_FROM"
-    },
-    {
       "binding": "INSTALLATION_KEY",
       "environment": "INSTALLATION_KEY"
     },
