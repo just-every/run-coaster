@@ -125,3 +125,20 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+## Lander-Regenerate
+
+After changing a clause's Status row in CONTRACT.md, regenerate only that
+clause's views, then check them:
+
+```sh
+node src/base/contract-docs.mjs write CAPTURE-006
+node src/base/contract-docs.mjs check CAPTURE-006
+```
+
+Substitute the touched clause ID (or space-separated IDs). Status rows are the
+source for summary counts, evidence and gaps; the clause's existing Acceptance
+evidence supplies its unchanged acceptance text. The generator updates the
+CONTRACT summary, that clause's ACCEPTANCE.md bullet, and its marked generated
+implementation section in docs/CLAIMS.md. It preserves unrelated narrative.
+Review the diff before landing. The check command refuses drift without writing.

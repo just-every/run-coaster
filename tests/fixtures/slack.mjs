@@ -5,12 +5,12 @@ import { createHmac } from 'node:crypto';
 export function slackFixture() {
   const edge={token:'synthetic-coaster-1',secret:'synthetic-coaster-2',team:'TSYNTHETIC1',app:'ASYNTHETIC1',user:'USYNTHETIC1',messages:[],inactive:new Set(),calls:[]};
   edge.fetch=async request=>{
-    const method=new URL(request.url).pathname.split('/').at(-1), body=await request.json();
+    const method=new URL(request.url).pathname.split('/').at(-1), body=Object.fromEntries(new URLSearchParams(await request.text()));
     edge.calls.push({method,body});
     assert.equal(request.headers.get('authorization'),'Bearer '+edge.token);
     if(method==='auth.test') return Response.json({ok:true,team_id:edge.team,team:'Synthetic Coaster workspace',bot_id:'BSYNTHETIC1'});
     if(method==='bots.info') return Response.json({ok:true,bot:{app_id:edge.app}});
-    if(method==='users.info') return Response.json({ok:true,user:{id:body.user,team_id:edge.team,deleted:edge.inactive.has(body.user),is_bot:false}});
+    if(method==='users.info') { await edge.beforeMember?.(); return Response.json({ok:true,user:{id:body.user,team_id:edge.team,deleted:edge.inactive.has(body.user),is_bot:false}}); }
     if(method==='conversations.open') return Response.json({ok:true,channel:{id:'D'+body.users}});
     if(method==='chat.postMessage') {
       const sent={...body,ts:`1800000000.${String(edge.messages.length+1).padStart(6,'0')}`}; edge.messages.push(sent);

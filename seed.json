@@ -79,6 +79,19 @@
   ],
   "externals": [
     {
+      "id": "slack-questions",
+      "required": false,
+      "requiredWhen": "An owner, admin or finance member explicitly connects Slack and each person confirms their own Slack link",
+      "why": "Send named questions on pending claims privately to linked people and receive signed replies only in the original question thread",
+      "data": [
+        "Installation-sealed bot credential and app signing secret; workspace, app, Slack user and private thread identifiers stay installation-local",
+        "One-time account-link code, claim number and title, named question text and native claim link are sent to the linked person's Slack direct message",
+        "Authenticated reply text becomes an ordinary erasable native comment; only an opaque source digest is retained, never the raw Slack payload",
+        "No receipt intake, automatic reading, submission, approval or payment authority"
+      ],
+      "adapters": []
+    },
+    {
       "id": "cloudflare",
       "required": true,
       "why": "Worker hosting, D1 business records and R2 receipt originals in the owner\u2019s Cloudflare account",

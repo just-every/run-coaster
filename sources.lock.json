@@ -304,7 +304,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "71ba6d85626b3e041e1a7284a46bd873f79ca625a7a7d4ba193252fd378475f9",
+      "sha256": "6dfd5e0bf39129dae865a931c478e72b8f82d8c8884433ec7070a813220538a0",
       "executable": false
     },
     "API.md": {
@@ -1232,11 +1232,15 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "85d5e02c8d72324b0371e90210313c6fd535c4bc74cad5127a26f5a839370e9a",
+      "sha256": "080376ccf0d5a47637d43a64d1fe44b23115a1cf3f41e59e092e1067ad02828e",
       "executable": false
     },
     "src/auth.server.ts": {
       "sha256": "94001da0dc26b58d4ac352b9998451fc5b65985dab130925fe85a53b6261f238",
+      "executable": false
+    },
+    "src/base/contract-docs.mjs": {
+      "sha256": "fe60304d295e932398f19effd427e824e1040a597bd890db47ea3b24bd7b568b",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -1528,7 +1532,7 @@
       "executable": false
     },
     "src/coaster/chat/slack-transport.ts": {
-      "sha256": "ad251662b5fe3e11031ec4235676ddba872080425be602610bcb3786d2f68c35",
+      "sha256": "1d3594b59a4ef7cff44e1c027c3126a8f3c650f3bd482fbf0df9a0dd3d4ad5a0",
       "executable": false
     },
     "src/coaster/claim-pdf.ts": {
@@ -4484,7 +4488,7 @@
       "executable": false
     },
     "tests/browser-slack-answers.mjs": {
-      "sha256": "58c18885321d4e8ae9d35381bb57146c2405d5f4a77b901a7115bb630df8e609",
+      "sha256": "20cb301a0502bed0e1bec9f5fd958cf0d65805b9f76b654d8b3f6c7582c69a3e",
       "executable": false
     },
     "tests/browser-statements.mjs": {
@@ -4632,7 +4636,7 @@
       "executable": false
     },
     "tests/coaster-slack-answers.test.mjs": {
-      "sha256": "958579340e390e1a279949c09b86a5404b8b4a02c35c2057f36bfb3845309a96",
+      "sha256": "de5e2bf8e3ddfbf6f7aa5f278eb32fb7f07abc1d34779c340b8f922c773e90f8",
       "executable": false
     },
     "tests/coaster-statements.test.mjs": {
@@ -6704,7 +6708,7 @@
       "executable": false
     },
     "tests/fixtures/slack.mjs": {
-      "sha256": "ed3c2273f902aaa7c46cd8536648392346a7cc7699702cf37d4aab27f3e56e7e",
+      "sha256": "c14d4e61fea203fa8ef175ea35fe91f431b556ba4e0720221a328229c40644e8",
       "executable": false
     },
     "tests/fixtures/statements/bank.ofx": {

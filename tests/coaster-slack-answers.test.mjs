@@ -56,6 +56,13 @@ test('Slack named-person answers close the ordinary question once without changi
     await linkSlack(h,edge,t.sam);
     // Unlinking deletes old delivery authority; re-link does not revive an old thread.
     await refuse(edge.reply());
+    await h.post(`claims/${claim.id}/comments`,{body:'Which client was this for?',item,asks:address('sam')},t.priya);
+    const beforeRace=await h.get(`claims/${claim.id}`,t.priya);
+    edge.beforeMember=async()=>{edge.beforeMember=undefined;await h.post('chat/slack/unlink',{},t.sam);};
+    assert.equal((await deliverSlack(h,edge)).status,409,'revocation after sender lookup is fenced by the atomic answer commit');
+    assert.deepEqual((await h.get(`claims/${claim.id}`,t.priya)).comments,beforeRace.comments);
+    assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_slack_answers').first()).n,0);
+    await linkSlack(h,edge,t.sam);
     const next=await h.post(`claims/${claim.id}/comments`,{body:'Which client was this for?',item,asks:address('sam')},t.priya);
     await h.post('settings/members',{email:address('sam'),name:'sam',employee:true,active:false,approver:address('priya')});
     await refuse(edge.reply());

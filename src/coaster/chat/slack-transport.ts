@@ -11,7 +11,8 @@ export const credentials = async (env: Bindings, c: Connection): Promise<{token:
 
 /** Fixed provider endpoint, bounded calls, no redirect or provider-body errors. */
 export async function slack(token: string, method: string, body: Data = {}): Promise<Data> {
-  const response = await fetch('https://slack.com/api/' + method, { method:'POST', redirect:'manual', signal:AbortSignal.timeout(10_000), headers:{authorization:'Bearer ' + token,'content-type':'application/json; charset=utf-8'}, body:JSON.stringify(body) });
+  const form=new URLSearchParams(Object.entries(body).map(([key,value])=>[key,String(value)]));
+  const response = await fetch('https://slack.com/api/' + method, { method:'POST', redirect:'manual', signal:AbortSignal.timeout(10_000), headers:{authorization:'Bearer ' + token,'content-type':'application/x-www-form-urlencoded'}, body:form.toString() });
   requireThat(response.ok, 'Slack could not complete this request', 502);
   const data = await response.json() as Data;
   requireThat(data.ok === true, 'Slack refused this request; check app access and scopes', 502);

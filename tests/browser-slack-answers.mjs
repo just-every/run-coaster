@@ -57,7 +57,7 @@ try {
       await page.goto(h.origin + '/app#/settings');
       const slack = page.getByRole('region', { name: 'Slack questions and replies', exact: true });
       await expect(slack.getByText('No Slack workspace connected.', { exact: true })).toBeVisible();
-      await tooltipProof(page, page.locator('.account-menu summary'));
+      for (const control of await page.locator('[data-tooltip]:visible').all()) await tooltipProof(page, control);
       await capture('slack-connection-consent', slack);
       await slack.getByLabel('Slack bot token', { exact: true }).fill(edge.token);
       await slack.getByLabel('Slack signing secret', { exact: true }).fill(edge.secret);
