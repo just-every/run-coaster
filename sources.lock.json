@@ -4568,7 +4568,7 @@
       "executable": false
     },
     "tests/coaster-payroll.test.mjs": {
-      "sha256": "d0b59cb4f76347027e359aed1b73c17de3eb30566a359ff828880a4f6c1df7dd",
+      "sha256": "767286657ca876dd18160a63651d5d197fc246244abcafb637634a3ddfa788a0",
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
@@ -6724,7 +6724,7 @@
       "executable": false
     },
     "tests/payroll-archive.mjs": {
-      "sha256": "4ea2c53a38eeed54294418a704de988a3f5551d6ca7c732341ded84d080a475b",
+      "sha256": "a625b296ed9cedbccece0f0b1b5d84205f4a740b2001c81b3e62fb87a46e4cda",
       "executable": false
     },
     "tests/payroll-browser-runtime.mjs": {

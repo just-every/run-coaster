@@ -1,8 +1,87 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {harness} from './harness.mjs';
 import {gustoFixture} from './fixtures/payroll.mjs';
 import {connectFixture,payrollBatch} from './payroll-kit.mjs';
+
+test('Payroll retention keeps unpaid and held handoffs, expires the confirmed batch only with owner consent, and never reimburses it again',async()=>{
+  const clock=Date.parse('2031-06-02T09:17:00Z'),edge=gustoFixture(),h=await harness({clock,gustoEdge:r=>edge.fetch(r)});
+  try {
+    const t=await payrollBatch(h);
+    await connectFixture(h,edge,t.memberEmail);
+    const batch=await h.post(`batches/${t.batch.id}/release`,{version:t.batch.version});
+    const root=`batches/${batch.id}/payroll`;
+    await h.post(root,{version:batch.version,payroll:edge.payrollId,consent:true});
+    await h.post('settings/retention',{years:1});
+    const worker=await h.mf.getWorker();
+    const tick=at=>worker.scheduled({scheduledTime:Date.parse(at),cron:'17 * * * *'});
+    const retained=async expected=>{
+      assert.deepEqual((await h.get(root)).handoff,expected,'retention preserves the exact public handoff evidence');
+      assert.equal((await h.get(`batches/${batch.id}`)).batch.status,expected.status==='confirmed'?'reimbursed':'approved');
+      for(const id of t.claims)assert.equal((await h.get(`claims/${id}`,t.employee)).claim.status,expected.status==='confirmed'?'reimbursed':'batched');
+    };
+    const pending=(await h.get(root)).handoff;
+    await tick('2036-06-02T09:17:00Z');
+    assert.equal((await h.get('retention')).proposal,null,'an unpaid payroll handoff never becomes eligible merely through age');
+    await retained(pending);
+    edge.payroll={...edge.payroll,processed:true,processing_request:{status:'submit_success'}};
+    assert.equal((await h.post(root+'/confirm',{})).confirmed,true);
+    const confirmed=(await h.get(root)).handoff;
+    const claims=await Promise.all(t.claims.map(id=>h.get(`claims/${id}`,t.employee)));
+    const keys=(await h.db.prepare('SELECT key FROM c_reimbursement_keys WHERE claim_id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(t.claims)).all()).results;
+    assert.ok(keys.length>0);
+    await tick('2032-06-01T09:17:00Z');
+    assert.equal((await h.get('retention')).proposal,null,'confirmed payroll remains inside the retention period');
+    await retained(confirmed);
+    const held=(await h.post('legal-holds',{scope:'person',member:t.memberEmail,reason:'Payroll review'})).holds.find(hold=>!hold.released_at);
+    await tick('2032-06-02T09:17:00Z');
+    assert.equal((await h.get('retention')).proposal,null,'a legal hold prevents the whole paid batch from being proposed');
+    await retained(confirmed);
+    await h.post(`legal-holds/${held.id}/release`,{});
+    await tick('2032-06-02T10:17:00Z');
+    const proposal=(await h.get('retention')).proposal;
+    assert.deepEqual(proposal.claims.map(unit=>[unit.batch,unit.claims.map(claim=>claim.id)]),[[batch.id,t.claims]]);
+    await tick('2032-06-02T11:17:00Z');
+    assert.equal((await h.get('retention')).proposal.id,proposal.id,'replayed ticks retain one waiting proposal');
+    await retained(confirmed);
+    const late=(await h.post('legal-holds',{scope:'period',from:'2026-04-10',to:'2026-04-10',reason:'Late payroll review'})).holds.find(hold=>!hold.released_at);
+    const skipped=await h.post(`retention/${proposal.id}/confirm`,{});
+    assert.deepEqual(skipped.expired,[]);
+    assert.deepEqual(skipped.skipped,claims.map(({claim})=>({claim:`CL-${String(claim.number).padStart(4,'0')}`,reason:'legal hold: Late payroll review'})));
+    await retained(confirmed);
+    await h.post(`legal-holds/${late.id}/release`,{});
+    await tick('2032-06-02T12:17:00Z');
+    const final=(await h.get('retention')).proposal;
+    await h.post(`retention/${final.id}/confirm`,{},t.finance,403);
+    await retained(confirmed);
+    const receipt=await h.post(`retention/${final.id}/confirm`,{});
+    assert.deepEqual(receipt.expired,claims.map(({claim,items})=>({claim:`CL-${String(claim.number).padStart(4,'0')}`,status:'reimbursed',totalMinor:claim.total_minor,expenseDates:{from:items.map(i=>i.spent_on).sort()[0],to:items.map(i=>i.spent_on).sort().at(-1)},receiptSha256:[]})));
+    assert.deepEqual([receipt.retentionYears,receipt.skipped],[1,[]]);
+    for(const id of t.claims)await h.get(`claims/${id}`,h.owner,404);
+    await h.get(`batches/${batch.id}`,h.owner,404);
+    await h.get(root,h.owner,404);
+    assert.equal(await h.db.prepare('SELECT * FROM c_payroll_handoffs WHERE batch_id=?').bind(batch.id).first(),null,'expiry deletes the actual handoff row with its batch');
+    assert.deepEqual((await h.db.prepare('SELECT key_sha256 FROM c_expired_keys ORDER BY key_sha256').all()).results.map(row=>row.key_sha256),keys.map(row=>createHash('sha256').update(row.key).digest('hex')).sort());
+    const history=(await h.get('history')).lines,receipts=(await h.get('retention')).receipts;
+    assert.deepEqual(history.filter(line=>line.action==='claim-expired').map(line=>line.detail.claim).sort(),receipt.expired.map(line=>line.claim).sort());
+    assert.deepEqual(receipts,[receipt,skipped]);
+    await h.post(`retention/${final.id}/confirm`,{},h.owner,404);
+    await tick('2032-06-02T13:17:00Z');
+    assert.equal((await h.get('retention')).proposal,null);
+    assert.deepEqual((await h.get('retention')).receipts,receipts,'reconfirmation cannot replace or duplicate expiry receipts');
+    assert.deepEqual((await h.get('history')).lines,history,'reconfirmation and replay cannot delete or record expiry twice');
+    const category=(await h.get('state')).categories.find(c=>c.name==='Office').id;
+    let replay=await h.post('claims',{title:'Repeated expired payroll purchase'},t.employee);
+    replay=await h.post(`claims/${replay.id}/items`,{version:replay.version,kind:'receipt',date:'2026-04-10',merchant:'Office stationery',amount:'10.00',allocations:[{category}],explanation:'Synthetic acceptance expense'},t.employee);
+    replay=await h.post(`claims/${replay.id}/submit`,{version:replay.version},t.employee);
+    replay=await h.post(`claims/${replay.id}/decision`,{version:replay.version,revision:replay.revision,decision:'approved',acknowledge:true},t.manager);
+    const batches=(await h.db.prepare('SELECT * FROM c_batches').all()).results;
+    assert.match((await h.post('batches',{claims:[replay.id]},t.finance,409)).error,/since removed under the retention policy/);
+    assert.deepEqual((await h.db.prepare('SELECT * FROM c_batches').all()).results,batches,'expired reimbursement protection refuses a new payable batch');
+    assert.equal(edge.writes.length,1,'retention never resends payroll');
+  } finally {await h.close();}
+});
 
 test('Payroll preserves the reviewed split, waits for exact provider confirmation, and retains immutable numbered history',async()=>{
   const edge=gustoFixture(),h=await harness({gustoEdge:r=>edge.fetch(r)});

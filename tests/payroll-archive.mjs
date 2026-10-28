@@ -25,7 +25,8 @@ async function roundTrip(stage) {
     const edge = gustoFixture(), plaid = plaidFixture();
     // portability-worker.mjs uses getPlatformProxy with this versioned directory;
     // wrangler.jsonc declares the same local D1 identifier. Dispose before CLI access.
-    h = await harness({ persistencePath: join(source, '.wrangler/state/v3'), databaseId: 'local-foundation-only', gustoEdge: request => edge.fetch(request), plaidEdge: request => plaid.fetch(request) });
+    const clock=Date.parse('2031-06-02T09:17:00Z');
+    h = await harness({ clock, persistencePath: join(source, '.wrangler/state/v3'), databaseId: 'local-foundation-only', gustoEdge: request => edge.fetch(request), plaidEdge: request => plaid.fetch(request) });
     await h.post(['plaid','settings'].join('/'),plaidConfig);
     const link=await h.post(['plaid','link'].join('/'),{scope:'company',consent:true});
     const linked=await h.post(['plaid','exchange'].join('/'),{link:link.id,publicToken:'synthetic-coaster-240',consent:true});
@@ -88,7 +89,7 @@ async function roundTrip(stage) {
       copyFile(archive, join(evidence, `payroll-${stage}.rer`)),
       copyFile(join(destination, 'exports/restored-payroll.rer'), join(evidence, `payroll-${stage}-restored.rer`)),
     ]);
-    h=await harness({existingDatabase:true,persistencePath:join(destination,'.wrangler/state/v3'),databaseId:'local-foundation-only',plaidEdge:r=>plaid.fetch(r)});
+    h=await harness({clock,existingDatabase:true,persistencePath:join(destination,'.wrangler/state/v3'),databaseId:'local-foundation-only',plaidEdge:r=>plaid.fetch(r)});
     assert.deepEqual((await h.get(['plaid','connections'].join('/'))).connections,[]);
     assert.equal((await h.get(['plaid','settings'].join('/'))).configured,false);
     const requests=plaid.calls.length;
@@ -96,6 +97,43 @@ async function roundTrip(stage) {
     await h.post(['plaid','connections',linked.id,'disconnect'].join('/'),{},h.owner,404);
     assert.equal(plaid.calls.length,requests,'restored financial evidence permits no Plaid execution');
     assert.deepEqual(tableRows(restored,'c_plaid_costs'),plaidCosts);
+    if(stage==='confirmed'){
+      assert.deepEqual(await h.db.prepare('SELECT * FROM c_payroll_handoffs WHERE batch_id=?').bind(batch.id).first(),handoff,'restored handoff remains exact before expiry');
+      await h.post('settings/retention',{years:1});
+      await (await h.mf.getWorker()).scheduled({scheduledTime:Date.parse('2032-06-02T09:17:00Z'),cron:'17 * * * *'});
+      const proposal=(await h.get('retention')).proposal;
+      assert.deepEqual(proposal.claims.map(unit=>[unit.batch,unit.claims.map(claim=>claim.id)]),[[batch.id,t.claims]]);
+      const receipt=await h.post(`retention/${proposal.id}/confirm`,{});
+      assert.equal(receipt.expired.length,t.claims.length);
+      assert.deepEqual(receipt.skipped,[]);
+      const expiredKeys=(await h.db.prepare('SELECT * FROM c_expired_keys ORDER BY key_sha256').all()).results;
+      assert.ok(expiredKeys.length>0,'expired payroll keeps once-only reimbursement protection');
+      await h.close();h=undefined;
+      await command(destination,['export','--output','exports/expired-payroll.rer']);
+      const expiredArchive=join(destination,'exports/expired-payroll.rer'),expired=await records(expiredArchive);
+      const absent=archive=>{
+        assert.deepEqual(tableRows(archive,'c_payroll_handoffs'),[],'expired handoff cannot travel or resurrect');
+        assert.deepEqual(tableRows(archive,'c_batches').filter(row=>row.id===batch.id),[],'expired batch cannot travel or resurrect');
+        assert.deepEqual(tableRows(archive,'c_claims').filter(row=>t.claims.includes(row.id)),[],'every expired batch claim is absent');
+        assert.deepEqual(JSON.parse(tableRows(archive,'c_expiry_proposals').find(row=>row.id===proposal.id).receipt),receipt,'exact expiry receipt survives');
+        assert.deepEqual(tableRows(archive,'c_expired_keys').sort((a,b)=>a.key_sha256.localeCompare(b.key_sha256)),expiredKeys,'once-only protection survives');
+      };
+      absent(expired);
+      const after=await fresh();roots.push(after);
+      await command(after,['install']);
+      await mkdir(join(after,'exports'),{recursive:true});
+      await copyFile(expiredArchive,join(after,'exports/expired-payroll.rer'));
+      await command(after,['import','--input','exports/expired-payroll.rer','--yes']);
+      await command(after,['export','--output','exports/restored-expired-payroll.rer']);
+      const expiredRestored=await records(join(after,'exports/restored-expired-payroll.rer'));
+      assert.deepEqual(rows(expiredRestored),rows(expired),'post-expiry CLI restore preserves every remaining portable row exactly');
+      absent(expiredRestored);
+      await Promise.all([
+        copyFile(expiredArchive,join(evidence,'payroll-expired.rer')),
+        copyFile(join(after,'exports/restored-expired-payroll.rer'),join(evidence,'payroll-expired-restored.rer')),
+      ]);
+      console.log('Payroll expired batch, claims and handoff stay absent through real CLI restore; receipts and reimbursement protection remain exact');
+    }
     console.log(`Payroll ${stage} and Plaid real CLI archive round trip passed with inert restored authority`);
   } finally {
     await h?.close();
