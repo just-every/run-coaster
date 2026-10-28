@@ -4436,7 +4436,7 @@
       "executable": false
     },
     "tests/browser-payroll.mjs": {
-      "sha256": "4cf9f5a45ddfa60670d707bd57b7545813908e832a8d8453b9a26383506996cf",
+      "sha256": "45df238ae795f7313317713a238ae9ac8494bcd1b21ffcad733987d6169b3c28",
       "executable": false
     },
     "tests/browser-per-diem.mjs": {
