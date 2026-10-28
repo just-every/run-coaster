@@ -2,7 +2,7 @@ import type { Bindings } from '../../auth.server';
 import { all, commit, type Sql } from '../session';
 import { event } from '../events';
 import { runCardMatching } from '../receipts/card-matching';
-import { now, requireThat, uid, type Actor, type Data } from '../types';
+import { Fault, now, requireThat, uid, type Actor, type Data } from '../types';
 import { openPlaid } from './connections';
 import { plaidAccess } from './accounts';
 import { reservePlaidMonth } from './metering';
@@ -73,7 +73,8 @@ export async function syncPlaid(env: Bindings, actor: Actor, id: string) {
     // Retain the financial hold and old cursor. Only a complete explicit replay clears them.
     // An authority change can prevent release; the bounded lease then expires naturally.
     try { await commit(db, all(paid, owner), [db.prepare('UPDATE c_plaid_sync_state SET attempt_id=NULL,lease_until=NULL WHERE connection_id=?').bind(id)]); } catch { /* Ownership or authority has changed. */ }
-    throw error;
+    if(error instanceof Fault)throw error;
+    throw new Fault(503,'Plaid sync was not confirmed. Inspect retained transactions and any incomplete-sync hold, then sync again explicitly.');
   }
   await runCardMatching(db, new Date());
   return { added: plan.added, modified: plan.modified, removed: plan.removed, expenses, cursor };

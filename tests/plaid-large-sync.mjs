@@ -58,7 +58,7 @@ export async function largePlaidJourney() {
     await h.db.prepare(`CREATE TRIGGER synthetic_coaster_interrupt BEFORE INSERT ON c_plaid_sources
       WHEN NEW.transaction_id='synthetic-coaster-80025' BEGIN SELECT RAISE(ABORT,'Synthetic Coaster interrupted financial batch'); END`).run();
     edge.pages.splice(0, edge.pages.length, ...pages());
-    await h.post(base + '/sync', {}, h.owner, 500);
+    await h.post(base + '/sync', {}, h.owner, 503);
     const interrupted = await h.db.prepare('SELECT * FROM c_plaid_sync_state WHERE connection_id=?').bind(connection.id).first();
     assert.equal(interrupted.cursor, ''); assert.equal(interrupted.in_progress, 1);
     assert.equal(interrupted.attempt_id, null);

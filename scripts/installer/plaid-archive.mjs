@@ -126,4 +126,5 @@ export async function validatePlaidArchive(read) {
     if (row.charge_id) check(charge && charge.item_id === row.item_id && charge.employee_email === ownerFor(row), 'charge');
     if (original && row.scope === 'company') check(charge && charge.file_id === original.id, 'charge');
   }
+  return corrections;
 }

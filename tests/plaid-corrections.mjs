@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { plaidSetup, page, uploadWaiting } from './plaid-sync.mjs';
 import { plaidTransaction } from './fixtures/plaid.mjs';
 
-/** Public native correction door: immutable evidence, exact authority and never-submitted eligibility. */
+/** Public native correction door: immutable evidence, exact authority and editable-state eligibility. */
 export async function plaidCorrectionsJourney() {
   const t = await plaidSetup(), { h, edge } = t;
   try {
@@ -49,11 +49,11 @@ export async function plaidCorrectionsJourney() {
     await h.post(base+'/reconcile',{transaction:attached.transaction_id,changeSeq:(await latest(attached.transaction_id)).seq,version:attachedClaim.version,consent:true},h.owner,409);
     await closedCorrectionRefused(t,connection,base);
   } finally { await h.close(); }
-  await submittedCorrectionRefused();
+  await returnedCorrectionJourney();
   await personalCorrection();
 }
 
-async function submittedCorrectionRefused() {
+async function returnedCorrectionJourney() {
   const t=await plaidSetup(), {h,edge}=t;
   try {
     await h.post('settings/business',{name:'Harbour Studio',currency:'USD',timezone:'UTC',receiptThreshold:'100.00'});
@@ -63,11 +63,19 @@ async function submittedCorrectionRefused() {
     edge.pages.push(page([original])); await h.post(base+'/sync',{});
     const claim=(await h.get('state',t.employee)).claims[0], detail=await h.get(`claims/${claim.id}`,t.employee);
     const submitted=await h.post(`claims/${claim.id}/submit`,{version:detail.claim.version},t.employee);
-    await h.post(`claims/${claim.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'returned',reason:'Synthetic return',acknowledge:true},t.manager);
+    const frozen=(await h.db.prepare('SELECT * FROM c_revisions WHERE claim_id=?').bind(claim.id).all()).results;
     edge.pages.push(page([],[{...original,amount:43}],[],'synthetic-coaster-cursor-704')); await h.post(base+'/sync',{});
-    const returned=await h.get(`claims/${claim.id}`,t.employee), change=await h.db.prepare('SELECT MAX(seq) AS seq FROM c_plaid_changes WHERE connection_id=? AND transaction_id=?').bind(connection.id,original.transaction_id).first();
-    await h.post(base+'/reconcile',{transaction:original.transaction_id,changeSeq:change.seq,version:returned.claim.version,consent:true},h.owner,409);
+    const change=await h.db.prepare('SELECT MAX(seq) AS seq FROM c_plaid_changes WHERE connection_id=? AND transaction_id=?').bind(connection.id,original.transaction_id).first();
+    await h.post(base+'/reconcile',{transaction:original.transaction_id,changeSeq:change.seq,version:submitted.version,consent:true},h.owner,409);
     assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_corrections').first()).n,0);
+    await h.post(`claims/${claim.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'returned',reason:'Synthetic return',acknowledge:true},t.manager);
+    const returned=await h.get(`claims/${claim.id}`,t.employee);
+    const corrected=await h.post(base+'/reconcile',{transaction:original.transaction_id,changeSeq:change.seq,version:returned.claim.version,consent:true});
+    assert.notEqual(corrected.item,detail.items[0].id);
+    assert.deepEqual((await h.db.prepare('SELECT * FROM c_revisions WHERE claim_id=?').bind(claim.id).all()).results,frozen,'a returned correction leaves every submitted revision byte for byte unchanged');
+    const revised=await h.get(`claims/${claim.id}`,t.employee);assert.equal(revised.items[0].amount_minor,4300);
+    const resubmitted=await h.post(`claims/${claim.id}/submit`,{version:revised.claim.version},t.employee);assert.equal(resubmitted.revision,submitted.revision+1);
+    const snapshots=(await h.db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? ORDER BY revision').bind(claim.id).all()).results.map(row=>JSON.parse(row.snapshot));assert.deepEqual(snapshots.map(snapshot=>snapshot.items[0].amount_minor),[4250,4300]);
   } finally { await h.close(); }
 }
 

@@ -11,9 +11,9 @@ import type { Transaction } from './transactions';
 const factsFields = ['transaction_id','account_id','pending_transaction_id','spent_on','posted_on','merchant','amount_minor','provider_amount','currency'];
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const rows = async (db: D1Database, sql: string, ...params: unknown[]) => (await db.prepare(sql).bind(...params).all<Data>()).results;
-const neverSubmitted = (item: string, charge: string | null): Sql => ({
+const correctionState = (item: string, charge: string | null, claim: string, version: number): Sql => ({
   sql: `NOT EXISTS(SELECT 1 FROM c_revisions r,json_each(r.snapshot,'$.items') i
-    WHERE json_extract(i.value,'$.id')=? OR (? IS NOT NULL AND json_extract(i.value,'$.card_charge_id')=?))`, params: [item, charge, charge],
+    WHERE json_extract(i.value,'$.id')=? OR (? IS NOT NULL AND json_extract(i.value,'$.card_charge_id')=?)) OR EXISTS(SELECT 1 FROM c_claims WHERE id=? AND version=? AND status='returned')`, params: [item, charge, charge, claim, version],
 });
 const unchanged = (table: string, row: Data): Sql => ({
   sql: `EXISTS(SELECT 1 FROM ${table}, (SELECT json(?) AS expected) WHERE ${Object.keys(row).map(k => `${k} IS json_extract(expected,'$.${k}')`).join(' AND ')})`, params: [JSON.stringify(row)],
@@ -87,8 +87,8 @@ export async function reconcilePlaid(env: Bindings, actor: Actor, id: string, bo
   const source=originals[0], oldFacts=JSON.parse(new TextDecoder().decode(new Uint8Array(source.bytes))), mapping=JSON.parse(source.mapping);
   requireThat(oldFacts.transaction_id===transaction&&oldFacts.account_id===tx.account_id && (!personalCharge || personalCharge.transaction_id === transaction && personalCharge.connection_id === source.connection_id && personalCharge.posted_on === oldFacts.posted_on && personalCharge.file_id === source.id),'The original source differs; reconcile separately',409);
   const prior=await priorExpense(db,item); pristine(prior,oldFacts,mapping,charge,personalCharge);
-  const history=neverSubmitted(item.id,charge?.id??null);
-  requireThat(await db.prepare(`SELECT 1 WHERE ${history.sql}`).bind(...history.params).first(),'An expense appearing in any submitted revision needs separate reconciliation',409);
+  const history=correctionState(item.id,charge?.id??null,claim.id,claim.version);
+  requireThat(await db.prepare(`SELECT 1 WHERE ${history.sql}`).bind(...history.params).first(),'A submitted expense must first be returned by its native approver',409);
   const removed=change.kind==='removed', current=JSON.parse(change.facts) as Transaction;
   requireThat(removed || change.kind==='modified'&&current.pending===false&&current.amount_minor>0&&factsFields.every(k=>equal(tx[k],(current as unknown as Data)[k])),
     'Only a posted positive purchase replacement or provider removal can be reconciled here',409);
@@ -128,8 +128,9 @@ export async function reconcilePlaid(env: Bindings, actor: Actor, id: string, bo
   }
   const sourceExpression=replacement?.charge?'(SELECT file_id FROM c_card_charges WHERE id=?)':replacement?'(SELECT file_id FROM c_receipt_card_charges WHERE item_id=?)':'NULL';
   const sourceParams=replacement?.charge?[replacement.charge]:replacement?[replacement.item]:[];
-  writes.push(db.prepare(`INSERT INTO c_plaid_corrections(connection_id,transaction_id,change_seq,scope,employee_email,claim_id,claim_version,old_source_id,old_item_id,old_charge_id,new_source_id,new_item_id,new_charge_id,reason,consent,prior_snapshot,actor_email,at)
-    VALUES(?,?,?,?,?,?,?,?,?,?,${sourceExpression},?,?,?,?,?,?,?)`).bind(id,transaction,change.seq,c.scope,tx.employee_email,claim.id,claim.version,source.id,item.id,charge?.id??null,...sourceParams,replacement?.item??null,replacement?.charge??null,removed?'provider-removal':'provider-replacement',1,JSON.stringify(prior),actor.email,at),
+  writes.push(db.prepare(`INSERT INTO c_plaid_corrections(connection_id,transaction_id,change_seq,scope,employee_email,claim_id,claim_version,claim_state,old_source_id,old_item_id,old_charge_id,new_source_id,new_item_id,new_charge_id,reason,consent,prior_snapshot,actor_email,at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,${sourceExpression},?,?,?,?,?,?,?)`).bind(id,transaction,change.seq,c.scope,tx.employee_email,claim.id,claim.version,claim.status,source.id,item.id,charge?.id??null,...sourceParams,replacement?.item??null,replacement?.charge??null,removed?'provider-removal':'provider-replacement',1,JSON.stringify(prior),actor.email,at),
+    db.prepare("DELETE FROM c_auto_coding_contexts WHERE target_kind='item' AND target_id=?").bind(item.id),
     db.prepare('DELETE FROM c_allocations WHERE item_id=?').bind(item.id),db.prepare('DELETE FROM c_items WHERE id=?').bind(item.id),
     db.prepare('UPDATE c_plaid_transactions SET item_id=?,charge_id=?,updated_at=? WHERE item_id=? AND connection_id=? AND transaction_id=? AND scope=?').bind(replacement?.item??null,replacement?.charge??null,at,item.id,id,transaction,c.scope),
     claimTotal(db,claim.id),event(db,actor,'plaid-source-corrected',{claim:claim.id},{connection:id,transaction,changeSeq:change.seq,oldSource:source.id,oldItem:item.id,oldCharge:charge?.id??null,newItem:replacement?.item??null,newCharge:replacement?.charge??null,reason:removed?'provider-removal':'provider-replacement',consent:true,scope:c.scope,channel:'app'}));

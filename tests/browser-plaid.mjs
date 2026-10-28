@@ -101,7 +101,7 @@ export async function plaidBrowserJourney({ widths = [1440, 390], evidence = pro
         edge.pages.push({ added: [pending, posted, removed, secondPosted], modified: [], removed: [], next_cursor: 'synthetic-coaster-334', has_more: false });
         await h.db.exec("CREATE TRIGGER synthetic_plaid_interrupt BEFORE INSERT ON c_items BEGIN SELECT RAISE(ABORT,'Synthetic source interruption'); END;");
         const interrupted=page.waitForResponse(reply=>reply.url()===h.origin+'/api/coaster/'+path+'/sync'&&reply.request().method()==='POST');
-        await section.getByRole('button',{name:'Sync feed transactions',exact:true}).click();assert.equal((await interrupted).status(),500);
+        await section.getByRole('button',{name:'Sync feed transactions',exact:true}).click();assert.equal((await interrupted).status(),503);
         await expect(section).toContainText('This sync is incomplete.');await capture('incomplete');
         await h.db.exec('DROP TRIGGER synthetic_plaid_interrupt');
         edge.pages.push({ added: [pending, posted, removed, secondPosted], modified: [], removed: [], next_cursor: 'synthetic-coaster-334', has_more: false });
@@ -132,7 +132,7 @@ export async function plaidBrowserJourney({ widths = [1440, 390], evidence = pro
         assert.equal(retained.amount_minor, Math.round(posted.amount * 100), 'provider correction retains the financial expense for review');
         await capture('removed-reconciled');
         const correction=transactions.getByRole('listitem').filter({hasText:posted.merchant_name});
-        await correction.getByText('Reconcile draft source change',{exact:true}).click();
+        await correction.getByText('Reconcile source change',{exact:true}).click();
         await correction.getByRole('checkbox',{name:'I consent to applying this exact provider change to the untouched draft expense',exact:true}).check();
         await capture('correction-consent');
         await submit('Apply provider correction',path+'/reconcile',correction);

@@ -21,7 +21,7 @@ export async function validatePlaidCorrections(read) {
     const change = byChange.get(row.change_seq), old = bySource.get(row.old_source_id), replacement = bySource.get(row.new_source_id);
     const snapshot = parse(row.prior_snapshot), item = snapshot?.item, chain = previous.get(key(row));
     check(Number.isSafeInteger(row.seq) && row.seq > 0 && change && change.connection_id === row.connection_id && change.transaction_id === row.transaction_id && old);
-    check(['company','personal'].includes(row.scope) && row.consent === 1 && nonempty(row.actor_email) && nonempty(row.employee_email) && nonempty(row.at) && Number.isSafeInteger(row.claim_version) && row.claim_version > 0);
+    check(['draft','returned'].includes(row.claim_state) && ['company','personal'].includes(row.scope) && row.consent === 1 && nonempty(row.actor_email) && nonempty(row.employee_email) && nonempty(row.at) && Number.isSafeInteger(row.claim_version) && row.claim_version > 0);
     const lineage = expected.get(row.old_source_id);
     check(!lineage || lineage.item === row.old_item_id && lineage.charge === row.old_charge_id);
     check(old.transaction_id === row.transaction_id && (!chain || chain.new_source_id === row.old_source_id && chain.new_item_id === row.old_item_id && chain.new_charge_id === row.old_charge_id && chain.change_seq < row.change_seq));
@@ -30,7 +30,8 @@ export async function validatePlaidCorrections(read) {
     check(item.receipt_id === null && item.card_charge_id === row.old_charge_id && (claims.some(claim => claim.id === row.claim_id && claim.employee_email === row.employee_email) || events.some(event => event.action === 'claim-expired' && event.claim_id === row.claim_id)));
     const originalFacts = facts(old);
     check(item.merchant === originalFacts.merchant && item.amount_minor === originalFacts.amount_minor && item.spent_on === originalFacts.spent_on);
-    check(!revisions.some(revision => (parse(revision.snapshot).items ?? []).some(entry => entry.id === item.id || row.old_charge_id && entry.card_charge_id === row.old_charge_id)));
+    const submitted=revisions.flatMap(revision => (parse(revision.snapshot).items ?? []).filter(entry=>entry.id===item.id||row.old_charge_id&&entry.card_charge_id===row.old_charge_id));
+    check(!submitted.length || row.claim_state==='returned' && submitted.every(entry=>entry.amount_minor===originalFacts.amount_minor&&entry.merchant===originalFacts.merchant&&entry.spent_on===originalFacts.spent_on&&entry.card_charge_id===item.card_charge_id));
     let oldPersonal = null;
     if (row.scope === 'company') {
       const charge = byCharge.get(row.old_charge_id);

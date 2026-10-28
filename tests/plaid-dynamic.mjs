@@ -34,10 +34,23 @@ export async function dynamicPlaidLifecycle({h,connection,employee,email,categor
   assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_items WHERE id=?').bind(posted.item_id).first()).n,1);
   const item=await h.db.prepare('SELECT * FROM c_items WHERE id=?').bind(posted.item_id).first();assert.equal(item.amount_minor,Math.round(observed.get(posted.transaction_id).amount*100));assert.ok(item.receipt_id);
   assert.equal((await h.get('receipt-inbox',employee)).receipts.find(row=>row.id===receipt).attachment.itemId,item.id);
-  const modified=updated.filter(row=>before.has(row.transaction_id)&&row.status==='review'&&row.amount_minor!==before.get(row.transaction_id).amount_minor);
-  assert.ok(modified.length,'The actual dynamic refresh changes a previously posted source amount');
-  for(const changed of modified){const old=before.get(changed.transaction_id),expense=await h.db.prepare('SELECT amount_minor FROM c_items WHERE id=?').bind(old.item_id).first();assert.equal(expense.amount_minor,old.amount_minor);}
   assert.equal((await h.post(path+'/sync',{},cookie)).expenses,0);
   assert.equal((await h.db.prepare("SELECT COUNT(*) AS n FROM c_capture_lifecycle WHERE receipt_id=? AND kind='attached'").bind(receipt).first()).n,1);
-  return {pendingToPosted:true,removedPending:true,modifiedPosted:modified.length,pendingReceiptAttachedOnce:true,replay:true};
+  return {proof:{pendingToPosted:true,removedPending:true,pendingReceiptAttachedOnce:true,replay:true},before,updated,syncUntil};
+}
+
+/** Separate qualification: this must fail when the provider fixture supplies no posted correction. */
+export async function dynamicPostedCorrections({h,access,sandbox,observed,before,updated,syncUntil}) {
+  const changedPosted=rows=>rows.filter(row=>before.has(row.transaction_id)&&row.status==='review'&&['amount_minor','merchant','spent_on','posted_on','provider_amount'].some(field=>row[field]!==before.get(row.transaction_id)[field]));
+  for(let generation=0;generation<2&&!changedPosted(updated).length;generation++){
+    await delay(31_000); // The provider permits two item refreshes per minute.
+    for(const row of updated.filter(row=>row.status==='posted'&&!before.has(row.transaction_id)))before.set(row.transaction_id,{...row});
+    const pending=new Set(updated.filter(row=>row.status==='pending').map(row=>row.transaction_id));
+    await sandbox('/transactions/refresh',{access_token:access});
+    updated=await syncUntil(rows=>rows.some(row=>pending.has(observed.get(row.transaction_id)?.pending_transaction_id)&&row.status==='posted'));
+  }
+  const modified=changedPosted(updated);
+  assert.ok(modified.length,'The actual dynamic refresh changes previously posted source facts');
+  for(const changed of modified){const old=before.get(changed.transaction_id),expense=await h.db.prepare('SELECT amount_minor,merchant,spent_on FROM c_items WHERE id=?').bind(old.item_id).first();assert.deepEqual(expense,{amount_minor:old.amount_minor,merchant:old.merchant,spent_on:old.spent_on});}
+  return {modifiedPosted:modified.length};
 }

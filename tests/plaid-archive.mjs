@@ -57,6 +57,11 @@ try {
     assert.equal((await h.post(path + '/sync', {}, cookie)).expenses, 0);
   }
   assert.deepEqual((await h.db.prepare('SELECT * FROM c_items ORDER BY id').all()).results, beforeReplay, 'replayed provider pages create no second financial expense');
+  await h.post('settings/business',{name:'Harbour Studio',currency:'USD',timezone:'UTC',receiptThreshold:'100.00'});
+  const companyClaim=await h.db.prepare('SELECT c.* FROM c_items i JOIN c_claims c ON c.id=i.claim_id WHERE i.id=?').bind(companyItem).first();
+  const submitted=await h.post(`claims/${companyClaim.id}/submit`,{version:companyClaim.version},t.employee);
+  await h.post(`claims/${companyClaim.id}/decision`,{version:submitted.version,revision:submitted.revision,decision:'returned',reason:'Synthetic source reconciliation',acknowledge:true},t.manager);
+  const frozen=(await h.db.prepare('SELECT * FROM c_revisions ORDER BY claim_id,revision').all()).results;
   edge.pages.push(page([], [{ ...posted, amount: posted.amount + 1 }], [], 'synthetic-coaster-cursor-4'));
   await h.post(companyPath + '/sync', {});
   transactions = (await h.get(companyPath + '/transactions')).transactions;
@@ -68,6 +73,8 @@ try {
   edge.pages.push(page([],[],[posting.transaction_id],'synthetic-coaster-cursor-5'));await h.post(companyPath+'/sync',{});
   assert.equal((await reconcile(posting.transaction_id)).item,null);
   assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM c_plaid_corrections').first()).n,2);
+  assert.deepEqual((await h.db.prepare('SELECT * FROM c_revisions ORDER BY claim_id,revision').all()).results,frozen,'returned source correction retains every submitted revision');
+  assert.ok((await h.db.prepare('SELECT claim_state FROM c_plaid_corrections').all()).results.every(row=>row.claim_state==='returned'));
 
   const snapshot = new Map(await Promise.all(financialTables.map(async table => {
     const result = (await h.db.prepare(`SELECT * FROM ${table}`).all()).results;
