@@ -72,7 +72,7 @@ export function Settings({ state, reload }: ViewProps) {
       </Form></div>
     </Section>}
     </div>
-    {admin && b && !state.actor.delegate && <EntitySettings state={state} reload={reload} onNotice={setNotice} />}
+    {admin && b && <EntitySettings state={state} reload={reload} onNotice={setNotice} />}
     {!auditorOnly && !state.actor.delegate && <Delegates state={state} reload={reload} onNotice={setNotice} />}
     {b && (roles.employee || roles.finance || owner) && <Allowances state={state} reload={reload} onNotice={setNotice} />}
     {(owner || roles.finance) && b && <CaptureWindow />}

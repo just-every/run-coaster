@@ -38,7 +38,7 @@ export async function entities(db:D1Database,actor:Actor) {
  })));
 }
 export async function saveEntity(db:D1Database,actor:Actor,b:Data) {
- needRow(actor,'settings'); requireThat(actor.kind==='person'&&!actor.delegate,'Configure entities in your own native session',403);
+ needRow(actor,'settings'); requireThat(actor.kind==='person','A native person session is required',403);
  const id=b.id?text(b.id,'Entity',64):uid();
  requireThat(id!==PRIMARY_ENTITY,'Use business settings to change the primary entity',409);
  const previous=b.id?await entity(db,id):null;
@@ -54,14 +54,16 @@ export async function saveEntity(db:D1Database,actor:Actor,b:Data) {
  const guard:Sql=previous?{sql:'EXISTS(SELECT 1 FROM c_entities WHERE id=? AND version=?)',params:[id,previous.version]}:{sql:'NOT EXISTS(SELECT 1 FROM c_entities WHERE id=?)',params:[id]};
  await commit(db,all(rowAuthority(actor,'settings'),guard),[
   db.prepare('INSERT INTO c_entities(id,name,currency,timezone,receipt_threshold_minor,preapproval_threshold_minor,sales_tax_account,sales_tax_code,fx_enabled,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,currency=excluded.currency,timezone=excluded.timezone,receipt_threshold_minor=excluded.receipt_threshold_minor,preapproval_threshold_minor=excluded.preapproval_threshold_minor,sales_tax_account=excluded.sales_tax_account,sales_tax_code=excluded.sales_tax_code,fx_enabled=excluded.fx_enabled,version=c_entities.version+1,updated_at=excluded.updated_at').bind(id,name,currency,timezone,threshold,preapproval,salesAccount,salesCode,b.fxEnabled===undefined?previous?.fx_enabled??0:b.fxEnabled?1:0,at,at),
-  ...ownerPolicyVersion(db,actor.email,timezone,at,id),
+  ...ownerPolicyVersion(db,actor.delegate?.email??actor.email,timezone,at,id),
   event(db,actor,'entity-saved',{}, {entity:id,name,currency,timezone}),
  ]);
  return entity(db,id);
 }
 export async function saveEntityMember(db:D1Database,actor:Actor,id:string,b:Data) {
- needRow(actor,'people');requireThat(!actor.delegate,'Change entity membership in your own session',403);
+ needRow(actor,'people');
  await entity(db,id);const address=email(b.email),active=b.active===false?0:1;
+ const ownerAccount=await db.prepare("SELECT 1 FROM oa_operators WHERE lower(email)=? AND role='owner'").bind(address).first();
+ requireThat(actor.roles.owner||!ownerAccount,'Only the owner changes the owner’s membership',403);
  requireThat(await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1').bind(address).first(),'Choose an active member');
  await commit(db,rowAuthority(actor,'people'),[
   db.prepare('INSERT INTO c_entity_members(entity_id,email,active) VALUES(?,?,?) ON CONFLICT(entity_id,email) DO UPDATE SET active=excluded.active').bind(id,address,active),

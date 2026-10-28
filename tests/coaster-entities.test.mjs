@@ -77,6 +77,18 @@ test('Native entities isolate receipt policy and routing, consolidate exact USD 
   assert.deepEqual(await h.get(`claims/${blocked.id}`,t.sam),withdrawn);
   await h.post(`${settings}/${ca.id}/members`,{email:other,active:true});
   assert.ok((await h.get('state',t.alex)).entities.some(e=>e.id===ca.id));
+  const ownerEmail=(await h.get('state')).actor.email;
+  await h.post(['settings','members'].join('/'),{email:ownerEmail,name:'Owner',employee:true,manager:true,finance:true});
+  const grant=await h.post('delegates',{delegate:other,level:'full'});
+  const currentEntity=(await h.get(settings)).find(e=>e.id===ca.id);
+  const delegated=await h.send('/api/coaster/'+settings,{id:ca.id,version:currentEntity.version,name:currentEntity.name,currency:'CAD',timezone:'America/Toronto',receiptThreshold:'20.00'},t.alex,{'x-coaster-acting-for':ownerEmail});
+  assert.equal(delegated.status,200,'the existing Full-owner delegate row includes entity settings');
+  assert.ok((await h.get('state')).delegates.some(g=>g.id===grant.id),'the native Full delegate grant is visible before revocation');
+  await h.post(`delegates/${grant.id}/revoke`,{});
+  const afterRevocation=await h.get(settings);
+  const refusedDelegate=await h.send('/api/coaster/'+settings,{id:ca.id,version:delegated.value.version,name:'Refused delegation',currency:'CAD',timezone:'America/Toronto'},t.alex,{'x-coaster-acting-for':ownerEmail});
+  assert.equal(refusedDelegate.status,403);
+  assert.deepEqual(await h.get(settings),afterRevocation,'revoked delegated configuration writes nothing');
   const key=await h.post('agent-keys',{label:'synthetic-coaster-entity-key'},t.alex);
   await h.post(['settings','members'].join('/'),{email:other,name:'Former entity member',employee:true,active:false});
   await h.post(['settings','members','erase'].join('/'),{email:other});

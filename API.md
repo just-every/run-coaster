@@ -52,6 +52,25 @@ with `actingFor`.
 | `GET audit-pack?from=&to=` | owner, finance, auditor | A ZIP for the period: `manifest.json` (every claim submitted in it with revisions, exceptions, explanations, decisions and payment references), `history.csv` and each receipt's exact bytes under its SHA-256. |
 | `GET import`; `POST import/preview\|commit\|status\|resume\|undo` | owner | The Expensify move-in kit (IMPORTING.md). |
 
+## Native legal entities (ADMIN-004, partial)
+
+`POST /api/coaster/claims` also accepts `entityId`, defaulting to `primary` for existing callers. The employee must be an active member of that entity. Claims retain immutable `entity_id` and `currency`; every new submitted revision freezes its entity, effective policy, workflow and native chart evidence. Current role, delegate and private-draft permissions still apply.
+
+`GET /api/coaster/settings/entities` and `state.entities` expose the entities available to the current person. Owner and admin configure entities with `POST /api/coaster/settings/entities` using `{id?, version?, name, currency, timezone, receiptThreshold?, preapprovalThreshold?, salesTaxAccount?, salesTaxCode?, fxEnabled?}`. Omit `id` to create; edits require the returned `version`. Primary settings remain on the existing business door. Currency cannot change after any claim exists.
+
+For one entity, use these native routes:
+
+- `POST /api/coaster/settings/entities/:id/members` with `{email, active}` assigns overlapping membership under the existing people permission. Only the owner changes the owner's membership.
+- `POST /api/coaster/settings/entities/:id/categories` accepts the existing category fields and binds the category to this entity; native account codes are independent, and a category from another entity is refused.
+- `POST /api/coaster/settings/entities/:id/policy` accepts the existing effective-dated policy rules under the policy permission.
+- `POST /api/coaster/settings/entities/:id/workflow` accepts the existing versioned workflow rules under the settings permission.
+
+Full delegates retain their grantor's existing matrix permissions; revocation fences the next write. Additional entities currently support manually filed receipt expenses. Mileage, per diem, automatic coding, feeds, imported configurations, cards and provider handoffs retain their separate multi-entity obligations.
+
+`POST /api/coaster/spend/consolidated` accepts `{from, to, currency}` from a person with current installation-wide reporting permission. It saves only submitted financial lines and posted card statement facts, excluding private drafts. The primary business must explicitly enable ECB conversion when currencies differ. Each accounting line rounds half up once using exact reference ratios and retains its native currency and amount, converted minor units, `fx_rate`, `fx_date` and `fx_source`. `GET /api/coaster/spend/consolidated/:id` reads the immutable saved result under the same current reporting permission. Confirmed source-record expiry retires the corresponding saved report.
+
+Existing operational reports, period exports and spend analytics remain scoped to the primary entity. Single-entity batches keep their own currency; mixed-entity batches are refused even when both entities use USD. Existing provider connections and IIF execution belong to the primary entity. Separate QuickBooks company consent, posting and sync are unproved; this native foundation does not complete ADMIN-004.
+
 ## Agents (agent key)
 
 An agent sends `Authorization: Bearer cst_…` and reaches only these routes. It
