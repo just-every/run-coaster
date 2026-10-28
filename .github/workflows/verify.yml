@@ -89,6 +89,8 @@ jobs:
         # Edition-owned seeds must commit both edition.json and sources.lock.json.
         if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
         run: node scripts/edition-authoring/cli.mjs check
+      - name: Check generated contract views
+        run: node scripts/contract-docs.mjs check ADMIN-004
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - name: Install Chromium
