@@ -4444,7 +4444,7 @@
       "executable": false
     },
     "tests/browser-policy-review.mjs": {
-      "sha256": "620ea20ae84bbac91aacf047ca9e7ed22cf95096b989310b08fcf28b96813a09",
+      "sha256": "0ea4d4377fb360ae7779ec1476a30fc67384740a993ba7479a0e63730adffd4c",
       "executable": false
     },
     "tests/browser-program-feed.mjs": {
