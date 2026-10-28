@@ -4608,7 +4608,7 @@
       "executable": false
     },
     "tests/coaster-statements.test.mjs": {
-      "sha256": "e02590cfc0fab998beff2731883921e79b6b27240ddeb91bcf726863c36e1b37",
+      "sha256": "5aa84722981b163c08f48966b0c627a14da09f0803b14ad90aaa19edb6417ef7",
       "executable": false
     },
     "tests/coaster-suite.mjs": {
