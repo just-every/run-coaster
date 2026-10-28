@@ -59,6 +59,9 @@ try {
       await expect(slack.getByText('No Slack workspace connected.', { exact: true })).toBeVisible();
       for (const control of await page.locator('[data-tooltip]:visible').all()) await tooltipProof(page, control);
       await capture('slack-connection-consent', slack);
+      await slack.getByText('Slack app setup',{exact:true}).click();
+      await capture('slack-app-setup',slack);
+      await slack.getByText('Slack app setup',{exact:true}).click();
       await slack.getByLabel('Slack bot token', { exact: true }).fill(edge.token);
       await slack.getByLabel('Slack signing secret', { exact: true }).fill(edge.secret);
       await slack.getByLabel('I authorize this workspace and app to send claim questions to linked employees and receive their signed thread replies', { exact: true }).check();

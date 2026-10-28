@@ -4488,7 +4488,7 @@
       "executable": false
     },
     "tests/browser-slack-answers.mjs": {
-      "sha256": "18909de173f936e6a8c042e7a5db6e8d9332de5c7b99815282d5ca536bcc3e95",
+      "sha256": "8cdcdf2a288426f4dbf8d5fef49c07d2487ab3e6d3f6e27fe5da15aa350cfb6c",
       "executable": false
     },
     "tests/browser-statements.mjs": {
@@ -4636,7 +4636,7 @@
       "executable": false
     },
     "tests/coaster-slack-answers.test.mjs": {
-      "sha256": "d588f8ab9e490cd059eb9c94080f88b1210418b07000b91a2d7aa02a9df430c2",
+      "sha256": "3b60d0fb82dbddc0bbcb8ce294b2c216fa56bbe79cf8f0358af62ca3684b2658",
       "executable": false
     },
     "tests/coaster-statements.test.mjs": {

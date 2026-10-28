@@ -27,6 +27,8 @@ test('Slack named-person answers close the ordinary question once without changi
       await h.post('chat/slack/disconnect',{consent:true},cookie);
     }
     await connectSlack(h,edge,people.admin);
+    const handshake=await deliverSlack(h,edge,{type:'url_verification',challenge:'synthetic-coaster-challenge'});
+    assert.deepEqual(handshake,{status:200,value:{challenge:'synthetic-coaster-challenge'}},'The configured public door completes Slack’s authenticated endpoint verification');
     await h.post('chat/slack/link/start',{user:edge.user},t.sam,400);
     await h.post('chat/slack/link/confirm',{code:'synthetic-coaster-wrong'},t.sam,403);
     await h.post('chat/slack/link/start',{user:edge.user,consent:true},t.sam);
