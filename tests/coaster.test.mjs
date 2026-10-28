@@ -718,10 +718,10 @@ test('Migration previews exact source bytes, preserves read-only history, flags 
     {source:'certify',file:'certify-expenses.csv',receipts:['CE-501.png:officeworks','CE-502.png:hotel']},
     {source:'chromeriver',date:'MM/DD/YYYY',file:'chromeriver-expenses.csv',receipts:['LI-9001.png:bistro']},
     {source:'ramp',file:'ramp-transactions.csv',receipts:['RT-1001.png:uber','RT-1002.png:bistro']},
-    {source:'brex',csv:'Transaction ID,Posted Date,Card Member Email,Merchant,Amount,Currency,Memo,Category,GL Account,Receipt File\nBX-1,2026-04-10,sam@harbourfinch.example,Delta,320.00,USD,Flight,Airfare,6200,\n'},
+    {source:'brex',csv:'Transaction ID,Posted Date,Card Member Email,Merchant,Amount,Currency,Memo,Category,GL Account,Receipt File\nBX-1,2026-04-10,sam@harbourfinch.example,Delta,320.00,EUR,Flight,Airfare,6200,\nBX-CREDIT,2026-04-10,sam@harbourfinch.example,Delta refund,-0.05,EUR,Refund,Airfare,6200,\n'},
     {source:'navan',date:'MM/DD/YYYY',csv:'Transaction ID,Transaction Date,Employee Email,Merchant,Amount,Currency,Description,Expense Type,GL Code,Receipt File\nNV-1,04/12/2026,alex@harbourfinch.example,Hilton,412.00,USD,Offsite,Lodging,6250,\n'},
   ]
-  await h.post('settings/business',{name:'Harbour & Finch US',timezone:'America/Chicago',currency:'USD',receiptThreshold:'75.00'})
+  await h.post('settings/business',{name:'Harbour & Finch US',timezone:'America/Chicago',currency:'USD',receiptThreshold:'75.00',fxEnabled:true})
   for(const source of sources){
     const input={source:source.source,filename:source.file??source.source+'.csv',csv:source.csv??await readFile('tests/fixtures/'+source.file,'utf8'),mapping:{date:source.date??'YYYY-MM-DD'},receipts:await Promise.all((source.receipts??[]).map(async entry=>{const[name,fixture]=entry.split(':');return{name,base64:(await readFile('tests/fixtures/receipts/'+fixture+'.png')).toString('base64')}}))}
     const before=await h.get('import')
@@ -733,6 +733,12 @@ test('Migration previews exact source bytes, preserves read-only history, flags 
     assert.equal(committed.job.state,'completed')
     const history=(await h.get('import')).history.filter(r=>r.source===source.source)
     assert.ok(history.length>0)
+    if(source.source==='brex'){
+      const purchase=history.find(row=>row.transactionId==='BX-1'),credit=history.find(row=>row.transactionId==='BX-CREDIT')
+      assert.deepEqual([purchase.original_minor,purchase.original_currency,purchase.amountMinor,purchase.currency],[32000,'EUR',35200,'USD'])
+      assert.deepEqual([credit.original_minor,credit.amountMinor],[-5,-6],'foreign-currency refunds round once to the base cent')
+      assert.equal(preview.summary.totalMinor,35194)
+    }
     const status=await h.post('import/status',{source:source.source,id:committed.job.id,mappingVersion:committed.mappingVersion})
     assert.ok(status.originals.some(r=>r.sha256===sha(Buffer.from(input.csv))))
     const sample=history.find(r=>r.amountMinor>0)
@@ -742,7 +748,7 @@ test('Migration previews exact source bytes, preserves read-only history, flags 
     const again=await h.post('import/preview',input)
     assert.equal((await h.post('import/commit',{...input,fingerprint:again.fingerprint})).job.state,'completed')
   }
-}))
+}, {fxRates:'<Cube><Cube time="2026-04-10"><Cube currency="USD" rate="1.1"/></Cube></Cube>'}))
 
 test('A US business pre-approves an itemized client trip, prices dated mileage and published per diem, then reimburses its exact tax and split lines',async()=>{
   const h=await harness()

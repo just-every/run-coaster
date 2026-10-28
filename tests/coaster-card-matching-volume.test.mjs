@@ -68,6 +68,17 @@ test('FEED-004 twenty posted USD charges and opted-in originals yield eighteen a
     assert.equal(preview.importable,20);assert.deepEqual(preview.errors,[])
     const job=await h.post('statements/commit',{...statement,fingerprint:preview.fingerprint},t.morgan)
     await tick(h)
+    const postedMinor=cases.reduce((sum,row)=>sum+Math.round(Number(row.amount)*100),0)
+    const range='from=2026-10-01&to=2026-10-31'
+    const spend=await h.get('spend?by=card&'+range,t.morgan)
+    assert.equal(spend.totalMinor,postedMinor,'posted company spend counts before an employee submits')
+    const drill=await h.get('spend?by=card&'+range+'&key='+encodeURIComponent(spend.groups[0].key),t.morgan)
+    assert.equal(drill.lines.length,cases.length)
+    assert.ok(drill.lines.every(line=>line.receipt===null&&line.receiptLink===null),'draft originals stay private in financial reporting')
+    await h.post('budgets',{name:'Company card office spend',scope:'category',scopeKey:t.c.office,period:'monthly',amount:'1000.00',owner:'priya@harbourfinch.example',thresholds:'100',policyRule:true},t.morgan)
+    const budget=async()=>(await h.get('budgets?day=2026-10-31',t.morgan)).find(b=>b.name==='Company card office spend')
+    assert.equal((await budget()).actualMinor,postedMinor)
+    assert.equal((await h.get('reports/unsubmitted?'+range,t.morgan)).totals.amountMinor,postedMinor)
     const inbox=async()=> (await h.get('receipt-inbox',t.sam)).receipts
     let current=await inbox()
     assert.equal(current.filter(r=>r.attachment).length,18)
@@ -103,6 +114,9 @@ test('FEED-004 twenty posted USD charges and opted-in originals yield eighteen a
     }
     await h.post(`claims/${detail.claim.id}/submit`,{version:detail.claim.version},t.sam)
     const submitted=await h.get(`claims/${detail.claim.id}`,t.morgan)
+    assert.equal((await h.get('spend?by=card&'+range,t.morgan)).totalMinor,postedMinor,'submission never double-counts card spend')
+    assert.equal((await budget()).actualMinor,postedMinor)
+    assert.equal((await h.get('reports/unsubmitted?'+range,t.morgan)).totals.amountMinor,0)
     assert.deepEqual(JSON.parse(submitted.items.find(i=>i.id===fxItem.id).card_match_basis),fxBasis)
     const response=await h.mf.dispatchFetch(h.origin+'/api/coaster/audit-pack?from=2026-01-01&to=2026-12-31',{headers:{cookie:t.morgan}})
     assert.equal(response.status,200)
