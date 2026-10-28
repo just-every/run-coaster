@@ -90,7 +90,7 @@ jobs:
         if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
         run: node scripts/edition-authoring/cli.mjs check
       - name: Check scoped contract documents
-        run: node scripts/contract-docs.mjs check FOLLOWUP-003 ADMIN-002
+        run: node scripts/contract-docs.mjs check FOLLOWUP-003 ADMIN-002 FEED-006
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - name: Install Chromium

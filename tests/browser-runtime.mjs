@@ -9,7 +9,28 @@ import {tmpdir} from 'node:os'
 import {createServer} from 'node:net'
 const source=resolve(new URL('..',import.meta.url).pathname)
 const excluded=new Set(['.git','node_modules','.wrangler','.rer','.seed','.cache','.tanstack','dist','.output','exports','test-results'])
-export async function fresh({sourceCopy=false}={}){const root=await mkdtemp(join(tmpdir(),'coaster-installation-'));let committed=false;try{await promisify(execFile)('git',['rev-parse','--verify','HEAD'],{cwd:source});committed=true}catch{}if(committed&&!sourceCopy){await promisify(execFile)('git',['clone','--no-hardlinks','--quiet',source,root]);return root;}for(const name of await readdir(source)){if(excluded.has(name)||name.startsWith('.dev.vars')||name.startsWith('.env')||name.endsWith('.tsbuildinfo'))continue;await cp(join(source,name),join(root,name),{recursive:true})}return root}
+export async function fresh({sourceCopy=false}={}) {
+  const root=await mkdtemp(join(tmpdir(),'coaster-installation-'));
+  const git=(args,cwd)=>promisify(execFile)('git',args,{cwd});
+  let committed=false;
+  try {await git(['rev-parse','--verify','HEAD'],source);committed=true;} catch {}
+  if(committed&&!sourceCopy) {
+    await git(['clone','--no-hardlinks','--quiet',source,root]);
+    for(const [field,format] of [['user.name','%an'],['user.email','%ae']]) {
+      let value='';
+      try {value=(await git(['config',field],source)).stdout.trim();} catch {}
+      if(!value)value=(await git(['log','-1','--format='+format],source)).stdout.trim();
+      if(!value)throw Error('Installation clone needs a configured or committed Git identity');
+      await git(['config',field,value],root);
+    }
+    return root;
+  }
+  for(const name of await readdir(source)) {
+    if(excluded.has(name)||name.startsWith('.dev.vars')||name.startsWith('.env')||name.endsWith('.tsbuildinfo'))continue;
+    await cp(join(source,name),join(root,name),{recursive:true});
+  }
+  return root;
+}
 export async function freePort(){const s=createServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p}
 const clean=s=>s.replace(/^RER_OPEN .*$/gm,'RER_OPEN [private sign-in URL omitted]').replace(/([?&]token=)[^\s&]+/g,'$1[redacted]')
 export async function command(root,args,{expected=0,env={}}={}){const child=spawn(process.execPath,__rerTestEntryArgs([__rerTestEntry,...args]),{cwd:root,env:{...process.env,...env,WRANGLER_SEND_METRICS:'false',RER_SERVER_JOURNEY:'1'},stdio:['ignore','pipe','pipe']});let log='';for(const stream of [child.stdout,child.stderr])stream.on('data',c=>{log+=c});const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('close',resolve)});if(code!==expected)throw new Error(`rer ${args[0]} exited ${code}:\n${clean(log).slice(-6000)}`);console.log(`rer ${args.join(' ')}: exit ${code}`);return clean(log)}
