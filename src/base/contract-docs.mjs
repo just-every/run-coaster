@@ -30,10 +30,10 @@ function normalizeSummary(source) {
 
 function scopedClaims(source, id, body) {
   const start = `<!-- contract-docs:${id}:start -->`, end = `<!-- contract-docs:${id}:end -->`
-  const block = `${start}\n## Implementation status — ${id}\n\n${body}\n${end}`
+  const block = `${start}\n<!--\nImplementation status — ${id}\n\n${body}\n-->\n${end}`
   const starts = source.split(start).length - 1, ends = source.split(end).length - 1
   if (!starts && !ends) return source + (source.endsWith('\n\n') ? '' : source.endsWith('\n') ? '\n' : '\n\n') + block + '\n'
-  if (starts !== 1 || ends !== 1 || source.indexOf(end) < source.indexOf(start)) throw new Error(`docs/CLAIMS.md has invalid generated markers for ${id}.`)
+  if (starts !== 1 || ends !== 1 || source.indexOf(end) < source.indexOf(start)) throw new Error(`docs/claims.md has invalid generated markers for ${id}.`)
   return source.slice(0, source.indexOf(start)) + block + source.slice(source.indexOf(end) + end.length)
 }
 
@@ -43,7 +43,9 @@ export function generateContractDocs(files, ids) {
   const contract = normalizeSummary(files['CONTRACT.md'])
   const parsed = parseContract(contract)
   const lines = contract.split('\n')
-  let acceptance = files['ACCEPTANCE.md'], claims = files['docs/CLAIMS.md']
+  let acceptance = files['ACCEPTANCE.md'], claims = files['docs/claims.md']
+  const all=parsed.counts ?? Object.fromEntries(['done','partial','missing','total'].map(key=>[key,key==='total'?parsed.clauses.length:parsed.clauses.filter(clause=>clause.status===key).length]))
+  acceptance=acceptance.replace(/\*\*\d+ clauses: \d+ done, \d+ partial, \d+ missing\.\*\*/,`**${all.total} clauses: ${all.done} done, ${all.partial} partial, ${all.missing} missing.**`)
   for (const id of ids) {
     const clause = parsed.clauses.find(value => value.id === id)
     if (!clause) throw new Error(`Unknown clause: ${id}`)
@@ -62,14 +64,14 @@ export function generateContractDocs(files, ids) {
     acceptance = acceptance.replace(pattern, () => body)
     claims = scopedClaims(claims, id, body)
   }
-  return { 'CONTRACT.md': contract, 'ACCEPTANCE.md': acceptance, 'docs/CLAIMS.md': claims }
+  return { 'CONTRACT.md': contract, 'ACCEPTANCE.md': acceptance, 'docs/claims.md': claims }
 }
 
 async function main() {
   const [command, ...ids] = process.argv.slice(2)
   if (!['write', 'check'].includes(command) || !ids.length) throw new Error('Usage: node src/base/contract-docs.mjs <write|check> CLAUSE-ID [...]')
   const root = fileURLToPath(new URL('../../', import.meta.url))
-  const paths = ['CONTRACT.md', 'ACCEPTANCE.md', 'docs/CLAIMS.md']
+  const paths = ['CONTRACT.md', 'ACCEPTANCE.md', 'docs/claims.md']
   const files = Object.fromEntries(await Promise.all(paths.map(async path => [path, await readFile(resolve(root, path), 'utf8')])))
   const expected = generateContractDocs(files, ids)
   const changed = paths.filter(path => files[path] !== expected[path])

@@ -21,7 +21,7 @@ a floor that no later change may weaken:
 - access is scoped by employee, approver and finance role in every handler (COA-008);
 - export and restore recover receipt bytes and decision history (COA-012).
 
-**103 clauses: 60 done, 22 partial, 21 missing.** Statuses describe the implementation tree carrying this file, including unlanded candidate work, and match CONTRACT.md's Status table; new target clauses are build
+**103 clauses: 60 done, 23 partial, 20 missing.** Statuses describe the implementation tree carrying this file, including unlanded candidate work, and match CONTRACT.md's Status table; new target clauses are build
 requirements, not current interface or homepage promises.
 
 ## How it is proven

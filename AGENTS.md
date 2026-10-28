@@ -140,5 +140,5 @@ Substitute the touched clause ID (or space-separated IDs). Status rows are the
 source for summary counts, evidence and gaps; the clause's existing Acceptance
 evidence supplies its unchanged acceptance text. The generator updates the
 CONTRACT summary, that clause's ACCEPTANCE.md bullet, and its marked generated
-implementation section in docs/CLAIMS.md. It preserves unrelated narrative.
+implementation section in docs/claims.md. It preserves unrelated narrative.
 Review the diff before landing. The check command refuses drift without writing.
