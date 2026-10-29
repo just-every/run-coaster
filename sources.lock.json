@@ -6580,7 +6580,7 @@
       "executable": false
     },
     "tests/journeys/browser-desktop-connection.mjs": {
-      "sha256": "75a5f77346a9e2d1fc43d69aec575111c2477c9ca12b06beadc624c4c134bda3",
+      "sha256": "3044f823d65baee07abf56a6c2707e4ab03bc8b3650ce74fa417d46c300ce2c8",
       "executable": false
     },
     "tests/journeys/browser-matching.mjs": {

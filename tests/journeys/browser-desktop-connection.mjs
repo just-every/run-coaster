@@ -26,14 +26,14 @@ export async function runDesktopConnectionJourney() {
     const tag=crypto.randomUUID()
     for(const width of process.env.COASTER_DESKTOP_ARCHIVE_ONLY ? [] : [1440,390]) {
       const owner=await session(browser,root,origin,'owner',width)
-      if(!configured){if(!(await api(owner.context,origin,'state')).business)await setUp(owner,origin);configured=true}
+      if(!configured){if(!external || !(await api(owner.context,origin,'state')).business)await setUp(owner,origin);configured=true}
       const employee=await session(browser,root,origin,'employee',width),manager=await session(browser,root,origin,'manager',width),finance=await session(browser,root,origin,'finance',width)
       try {
         const {page}=owner,base=['accounting','desktop'].join('/'),edge=await desktopEdge({origin,mf:{dispatchFetch:fetch}})
         if((await api(owner.context,origin,base)).connected)await api(owner.context,origin,base+'/disconnect',{})
         await page.goto(origin+'/app#/settings');await page.reload()
         const section=page.getByRole('region',{name:'QuickBooks Desktop',exact:true})
-        await section.getByLabel('QuickBooks company file path',{exact:true}).fill('C:\\synthetic-coaster-1.QBW')
+        await section.getByLabel('QuickBooks company file path',{exact:true}).fill('synthetic-coaster-1.QBW')
         await section.getByLabel('I authorize hourly accounting reads and posting to this company',{exact:true}).check()
         await section.getByRole('button',{name:'Create Desktop connector',exact:true}).click()
         const password=await section.getByLabel('Connector password',{exact:true}).inputValue()
