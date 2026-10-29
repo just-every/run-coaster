@@ -121,6 +121,7 @@ test('Close preparation and acceptance fence concurrent source changes at both g
     await h.post(['settings','members'].join('/'),{email:owner,name:'Native owner',employee:true})
     await h.post('delegates',{delegate:employee,level:'full'})
     const key=await h.post('agent-keys',{label:'synthetic-coaster-827'},t.sam)
+    p=await prepareClose(h)
     const snapshot=[await proposalRows(h),await history(h),await financial(h)]
     for(const [path,body] of [[['preparations','close'].join('/'),closePeriod],[`proposals/${p.id}/accept`,{}]]) {
       assert.equal((await h.send('/api/coaster/'+path,body,t.sam,{'x-coaster-acting-for':owner})).status,403)

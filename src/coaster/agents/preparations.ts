@@ -25,7 +25,7 @@ const stampGuard = (stamp: string): Sql => ({ sql: `(${stampSql})=?`, params: [s
 async function save(db: D1Database, actor: Actor, kind: string, payload: Data, guard: Sql) {
   const id = uid(), label = `${payload.preparation === 'close' ? 'Month-end' : payload.preparation === 'trip' ? 'Trip' : 'Expense'} preparation agent`;
   const condition = all(authority(actor, payload.preparation === 'close' ? 'owner' : 'employee'), guard);
-  if (payload.preparation === 'close') condition.after = condition;
+  if (payload.preparation === 'close') condition.after = all(authority(actor, 'owner'), guard);
   await commit(db, condition, [
     db.prepare("INSERT INTO c_proposals(id,kind,agent_label,for_email,payload,status,created_at) VALUES(?,?,?,?,?,'proposed',?)").bind(id, kind, label, actor.email, JSON.stringify(payload), now()),
     event(db, actor, 'native-work-proposed', {}, { proposal: id, agent: label, preparation: payload.preparation }),
@@ -57,6 +57,7 @@ export async function prepareClose(db: D1Database, actor: Actor, b: Data) {
     { label: `${ownInbox!.n} unattached originals in your private inbox; other employees’ private originals are not inspected`, citation: '/app#/claims' },
     ...departments.map(d => ({ label: `${d.department}: ${d.claims} pending claims, ${d.expenses} expenses; ${d.missingEvidence} missing receipts on visible claims`, amountMinor: d.amountMinor, citation: `/api/coaster/reports/unsubmitted?from=${from}&to=${to}`, detail: d })),
     ...pending.map(c => ({ label: `CL-${String(c.number).padStart(4, '0')}: awaiting approval`, citation: `/app#/claims/${c.id}` })),
+    { label: 'Recorded statement evidence only; complete provider-feed coverage is unverified', citation: '/app#/settings' },
     ...cardEvidence.statements.map(s => ({ label: `${s.card.issuer} ····${s.card.last4} · ${s.period.start ?? 'unknown start'} to ${s.period.end ?? 'unknown end'}: ${s.verified ? 'native reconciliation verified' : 'reconciliation unverified'}; ${s.status}; ${s.unresolved} unresolved differences${s.periodKnown ? '' : '; period boundaries unverified'}`, citation: `/api/coaster/statements/reconciliations/${s.id}`, statement: s })),
     ...cardEvidence.missing.map(s => ({ label: `${s.issuer} ····${s.last4} · ${s.periodStart ?? 'unknown start'} to ${s.periodEnd ?? 'unknown end'}: reconciliation unverified; ${s.charges} imported charges without a reconciliation`, citation: '/app#/settings', missingReconciliation: s })),
     ...payments.map(p => ({ label: `RB-${String(p.number).padStart(4, '0')}: payment recorded ${p.paid_on}; ledger clearance unverified`, citation: `/app#/batches/${p.id}` })),
