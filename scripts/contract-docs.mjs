@@ -23,8 +23,14 @@ for (const id of ids) {
   if(!evidence) throw Error(`${id} names no acceptance evidence`);
   const line=`- **${id} — ${clause.title}. Status: ${clause.status}.** ${evidence} Native slice evidence: ${row[4]}${row[4].endsWith('.')?'':'.'}${clause.gap ? ` Open scope: ${clause.gap}` : ''}`;
   const match=new RegExp(`^- \\*\\*${id} — .*?$`,'m');
-  if(!match.test(acceptance)) throw Error(`Legacy acceptance entry missing for ${id}`);
-  acceptance=acceptance.replace(match,()=>line);
+  if(match.test(acceptance)) acceptance=acceptance.replace(match,()=>line);
+  else {
+    const previous=contract.clauses.slice(0,contract.clauses.indexOf(clause)).reverse()
+      .find(c=>new RegExp(`^- \\*\\*${c.id} — .*?$`,'m').test(acceptance));
+    if(!previous) throw Error(`No preceding acceptance entry for new clause ${id}`);
+    const anchor=new RegExp(`^- \\*\\*${previous.id} — .*?$`,'m');
+    acceptance=acceptance.replace(anchor,existing=>`${existing}\n\n${line}`);
+  }
 }
 const table = ['| Clause | Title | Kind | Status |','| --- | --- | --- | --- |',...contract.clauses.map(c=>`| ${c.id} | ${c.title} | ${c.kind} | ${c.status} |`)].join('\n');
 const guide = readFileSync('docs/claims.md','utf8').split('\n## Implementation status\n')[0].trimEnd();

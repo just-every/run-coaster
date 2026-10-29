@@ -65,7 +65,7 @@ The owner can review optional AI costs in Settings before enabling receipt readi
 
 Generated from the Status table in [CONTRACT.md](https://github.com/just-every/run-coaster/blob/main/CONTRACT.md). That source retains the acceptance requirements, current evidence and remaining work for each clause.
 
-**103 clauses: 60 done, 23 partial, 20 missing.**
+**104 clauses: 60 done, 23 partial, 21 missing.**
 
 | Clause | Title | Kind | Status |
 | --- | --- | --- | --- |
@@ -136,6 +136,7 @@ Generated from the Status table in [CONTRACT.md](https://github.com/just-every/r
 | ACCT-005 | Exports alongside live sync | target | done |
 | ACCT-006 | Posting integrity and close | target | missing |
 | ACCT-007 | QuickBooks Desktop connection | target | done |
+| ACCT-008 | A coding correction is refused only for the expense's own closed posting | target | missing |
 | REPORT-001 | Spend analytics | target | done |
 | REPORT-002 | Operational and compliance reports | target | done |
 | REPORT-003 | Searchable audit history and auditor access | target | done |
