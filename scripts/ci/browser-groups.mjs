@@ -21,14 +21,22 @@ export const groups = {
   'capture-2': [
     {"evidence": "capture", "commands": [["tests/capture.mjs"]], "env": {"CAPTURE_REFUSALS": "2/3"}},
   ],
+  // Split the former 0/3 refusal slice into 0/9, 3/9 and 6/9 for CLI headroom.
+  // Only 0/9 owns the part-0 reading, feed and automatic-coding journeys.
   'matching-0': [
-    {"evidence": "card-matching", "commands": [["tests/card-matching.mjs"]], "env": {"MATCH_REFUSALS": "0/3"}},
+    {"evidence": "card-matching", "commands": [["tests/card-matching.mjs"]], "env": {"MATCH_REFUSALS": "0/9"}},
   ],
   'matching-1': [
     {"evidence": "card-matching", "commands": [["tests/card-matching.mjs"]], "env": {"MATCH_REFUSALS": "1/3"}},
   ],
   'matching-2': [
     {"evidence": "card-matching", "commands": [["tests/card-matching.mjs"]], "env": {"MATCH_REFUSALS": "2/3"}},
+  ],
+  'matching-3': [
+    {"evidence": "card-matching", "commands": [["tests/card-matching.mjs"]], "env": {"MATCH_REFUSALS": "3/9"}},
+  ],
+  'matching-4': [
+    {"evidence": "card-matching", "commands": [["tests/card-matching.mjs"]], "env": {"MATCH_REFUSALS": "6/9"}},
   ],
   'cash-accessibility': [
     { evidence: 'account-corrections', commands: [['tests/browser-accounting-corrections.mjs'], ['tests/accounting-corrections-archive.mjs']] },
