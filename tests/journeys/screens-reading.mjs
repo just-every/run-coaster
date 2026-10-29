@@ -10,11 +10,15 @@ export async function readingEdge() {
   const label = JSON.parse(await readFile('tests/fixtures/receipts/reader/synthetic-coaster-1001.json', 'utf8'))
   const edge = { fail: false, omitTip: false }
   const server = createServer(async (request, response) => {
-    for await (const _ of request) { /* consume the real model request without recording originals or credentials */ }
+    const chunks=[]
+    for await (const chunk of request)chunks.push(chunk)
+    const input=JSON.parse(Buffer.concat(chunks).toString())
+    assert.equal(input.store,false)
+    assert.equal(typeof input.model,'string')
     if (edge.fail) { response.writeHead(503, { 'content-type': 'application/json' }); response.end(JSON.stringify({ error: { code: 'synthetic-coaster-6001' } })); return }
     const fields = Object.fromEntries(Object.entries(label.values).map(([name, value]) => [name, { value: name === 'lineItems' ? value.map(item => ({ ...item, confidence: .99, regions: label.regions.lineItems })) : value, confidence: .99, regions: label.regions[name] }]))
     if(edge.omitTip){fields.total.value=(Number(label.values.total)-Number(label.values.tip)).toFixed(2);fields.total.confidence=.6;}
-    response.writeHead(200, { 'content-type': 'application/json' }); response.end(JSON.stringify({ status: 'completed', model: 'gpt-4.1-2025-04-14', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(fields) }] }], usage: { input_tokens: 100, output_tokens: 100, total_tokens: 200 } }))
+    response.writeHead(200, { 'content-type': 'application/json' }); response.end(JSON.stringify({ status: 'completed', model: input.model, output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(fields) }] }], usage: { input_tokens: 100, output_tokens: 100, total_tokens: 200 } }))
   })
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
   return { ...edge, get omitTip(){return edge.omitTip},set omitTip(value){edge.omitTip=value}, get fail() { return edge.fail }, set fail(value) { edge.fail = value }, url: `http://127.0.0.1:${server.address().port}/v1`, label, async close() { await new Promise(resolve => server.close(resolve)) } }

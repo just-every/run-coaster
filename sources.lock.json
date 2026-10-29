@@ -6712,7 +6712,7 @@
       "executable": false
     },
     "tests/journeys/screens-reading.mjs": {
-      "sha256": "e0725bbb5a603f23152d2be3f5df2bd1c4beaf11fe5ba62b02bf3151f9db863f",
+      "sha256": "ccedceeec6d96274c280c26e67e77eebf10cffdacf5479f89fd5cdc5d20817d0",
       "executable": false
     },
     "tests/journeys/screens-receipt-custody.mjs": {
