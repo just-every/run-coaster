@@ -26,7 +26,7 @@ const [part, of] = archiveSlice.split('/').map(Number)
 assert.ok(Number.isSafeInteger(part) && Number.isSafeInteger(of) && part < of, 'archive refusal slice is in range')
 let root, second, server, browser
 const shots = [], journeys = []
-const launch = () => chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+const launch = () => chromium.launch({ headless: true, ...(process.env.COASTER_CHROMIUM ? { executablePath: process.env.COASTER_CHROMIUM } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] })
 /** Everything the owner can see, with each claim's full history, for before/after restore comparison. */
 async function everything(context, origin) {
   const state = await api(context, origin, 'state')
@@ -75,12 +75,13 @@ try {
   assert.equal((await fetch(server.origin + '/health')).status, 200)
   assert.equal((await fetch(server.origin + '/api/coaster/state')).status, 401)
   await server.close(); server = undefined
-  // Deploy refuses an installation whose owner cannot sign in; this owner supplies the Resend sender input. The dry
-  // run builds and checks everything local, then, with no Cloudflare credentials, refuses rather than claim it read the
-  // target's secrets (rer 0.2.58): what it still needs is only those credentials, never the owner's sign-in mail.
-  const dry = await command(root, ['deploy', '--dry-run'], { expected: 3, env: { MAIL_API_KEY: 'synthetic-test-mail-api-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.com>' } })
+  // The released CLI completes a local-only dry run without Cloudflare credentials.
+  // It must build and describe the plan while explicitly refusing any claim of remote readiness.
+  const dry = await command(root, ['deploy', '--dry-run'], { env: { MAIL_API_KEY: 'synthetic-test-mail-api-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.com>' } })
   assert.match(dry, /Your application is built/)
-  assert.match(dry, /cannot read the target secret bindings without Cloudflare credentials/)
+  assert.match(dry, /no Cloudflare requests were made and nothing was changed remotely/)
+  assert.match(dry, /Target secrets and remote readiness were not checked/)
+  assert.match(dry, /Needed for a real deploy/)
   assert.doesNotMatch(dry.slice(dry.indexOf('Needed for a real deploy')), /sign-in mail|MAIL_API_KEY/)
   const archive = join(evidence, 'installation.rer')
   await rm(archive, { force: true })
