@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "518129f5b34017d6faff0f41beb0c82b9664e08593a44b4d87eb65f5e3ebfb6b",
+      "sha256": "b70cc17e3d10aea4965d98990eb350fbf7a054adb1b8e06702c2e82b3c2d353b",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "eff101ead1c6659b561f6dad9016be01e1fe11034ae565af6d463f41c330938e",
+      "sha256": "d5b068f89e571402749d6a9d3e77aeabbc278badbaa164e9ebe03bafe3e0fd10",
       "executable": false
     },
     "base-copies.json": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "784aecf96d14a99bb3d092b2a8f83173f47ed9d20b3bfd31c7f4a148f6182ae9",
+      "sha256": "a5e83879f0b00faff20e62f6be4d2c3985890431c094b4c2ae5c267a9872eb0d",
       "executable": false
     },
     "DEMO.md": {
@@ -1420,7 +1420,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "dd09e77112cd7a62d45b54b3f3663a0fa73428a0b515a61f5933a3dad44e0028",
+      "sha256": "1abca20501b5e4948f5091475380371bb6e72a19bc67860b7006526e1405c03e",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1468,7 +1468,7 @@
       "executable": false
     },
     "src/coaster/batches.ts": {
-      "sha256": "17ef246d1d876c618d2fa193a9eae29daffb29988591032e27dfeb451fb2f1ac",
+      "sha256": "3a37ad9b431e86a283e6390a8d81501ec2e08e2b3cd8e73e683400e3f8c53a5d",
       "executable": false
     },
     "src/coaster/budgets.ts": {
@@ -4380,7 +4380,7 @@
       "executable": false
     },
     "tests/accounting-corrections.mjs": {
-      "sha256": "4321954a4225511da19e986e689add37e34d84b1d70be7c48d720afe19be43f8",
+      "sha256": "d48a81626125281c478de80507c731c2f0f85569e9acad5fcc002ee780e3d727",
       "executable": false
     },
     "tests/automatic-coding-quality.mjs": {
