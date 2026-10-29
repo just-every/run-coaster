@@ -37,7 +37,9 @@ signed Business settings, never an email match. The current email must still
 match, and inactive operators and excluded Coaster members are refused. Business
 owner maps to owner, Business team admin to editor and member to no policy role;
 a native promotion grants no Business edit role. Business team binding links
-existing accounts only and creates no Coaster role or shadow account. Each tool
+existing accounts only and creates no Coaster role or shadow account. The setup
+manifest advertises this binding and the Business display name used by the agent
+workspace and MCP server identity; Coaster's finance business settings remain native. Each tool
 re-reads the active Coaster member and transactionally fences native roles, the
 door policy snapshot, sponsor and agent. Personal keys remain narrow when used
 at MCP, and revoking a key removes its scopes immediately.

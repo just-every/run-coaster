@@ -12,9 +12,10 @@ function trust(env: Bindings): Trust | null {
   if (!issuer || !installationId || !keys) throw new Error('Incomplete owner-claim trust');
   return { issuer, installationId, appOrigin: env.AUTH_ORIGIN, publicKeys: JSON.parse(keys) };
 }
-export function coasterAgentDoor(original: Bindings) {
+export async function coasterAgentDoor(original: Bindings) {
   const env = runtimeBindings(original);
-  return createAgentDoor({ seed: 'coaster', name: 'Coaster', specialist: 'Expense controller', db: env.DB, origin: env.AUTH_ORIGIN, trust: trust(env), capabilities,
+  const name = String(await coasterBusiness(env).resolve('display_name', 'Coaster'));
+  return createAgentDoor({ seed: 'coaster', name, specialist: 'Expense controller', db: env.DB, origin: env.AUTH_ORIGIN, trust: trust(env), capabilities,
     people: coasterPeople(env), tools: coasterTools(), resources: [],
     notTools: [ { clauses: ['COA-010'], reason: 'screen' }, { clauses: ['COA-011'], reason: 'import-door' }, { clauses: ['COA-012', 'COA-013'], reason: 'installation' }, { clauses: ['CAPTURE-002', 'API-001'], reason: 'connector' }, { clauses: ['CAPTURE-001'], reason: 'device' } ],
     async localCredentials(request) {
@@ -32,8 +33,11 @@ export function coasterAgentDoor(original: Bindings) {
   });
 }
 export async function agentDoorResponse(request: Request, original: Bindings) {
+  const path = new URL(request.url).pathname;
+  const businessPath = ['/api/rer/business-settings', '/rer-business-logo', '/rer-business.css'].includes(path);
+  const doorPath = ['/mcp', '/api/rer/agent-policy', '/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp', '/agents'].includes(path) || path.startsWith('/agents/');
+  if (!businessPath && !doorPath) return null;
   const env = runtimeBindings(original);
-  const settings = await coasterBusiness(env).handle(request);
-  if (settings) return settings;
-  return coasterAgentDoor(env).handle(request);
+  if (!env.AUTH_ORIGIN) return Response.json({ code: 'door_unavailable' }, { status: 503, headers: { 'cache-control': 'no-store' } });
+  return businessPath ? coasterBusiness(env).handle(request) : (await coasterAgentDoor(env)).handle(request);
 }

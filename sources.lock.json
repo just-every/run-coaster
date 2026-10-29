@@ -296,11 +296,11 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ed1270057c71dfefa3435b7d5c586c2cbf2f5fa9f55e36a0236d4b29bb2fcdc4",
+      "sha256": "115e7fe6c50742dc977426addd7624689cfd9ee0770b83529a109e4d7563af02",
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "745b39693040102e5f16378c51380b06b75ec075e1d654abb73dd60e3e803383",
+      "sha256": "afa19376b551269975adf2ddf0ca14c8f41ef9862cc762c789cf42407d444348",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9173a8edf9e405b91f3e23de8de14d1f8a8641bde85cb8f972a30cb19c6ead42",
+      "sha256": "2ef1ad8250412a7b17121cd38fffb46223ae5ee6802d49daf47c1051c48c9532",
       "executable": false
     },
     "DEMO.md": {
@@ -344,7 +344,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "130e92f8a9008e034dbdfaee77338c51442d20738e0fe012d6fe4498e94810ae",
+      "sha256": "6746669bfadc20ef57bad220876a242c885881ed6c2f6824aaab65f77fe732ec",
       "executable": false
     },
     "docs/approvals.md": {
@@ -948,11 +948,11 @@
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "0543a419e3803b9c19d885063994ad344cd38007f036e3d2710cc632e882f39c",
+      "sha256": "8e8b0419f5b58d027c63f3e96fb67e73a17edca20b39d6be8db03d49d5660c53",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "e4951a9877a04be51ac5766e35125f8b07e918bc8bd17987f56e2893e67d7c76",
+      "sha256": "3d8848a0fde2c46d52dd6fe13c993e68574ba64fa2aa27ce44125ae781dec442",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -1408,7 +1408,7 @@
       "executable": false
     },
     "src/coaster/agent-door/index.ts": {
-      "sha256": "a732b08bea7be9ae4a3b5c359d0dc5351b9b6068f03d6850a47bb5c543236b8e",
+      "sha256": "fafed11cc2cc33f06226c61535344da95c11d3e908bee3078c40cab09c9c8c94",
       "executable": false
     },
     "src/coaster/agent-door/people.ts": {
@@ -1416,7 +1416,7 @@
       "executable": false
     },
     "src/coaster/agent-door/tools.ts": {
-      "sha256": "df60a2c592fcf1936b2cce57c330f5ab9dcaccd7bf3276d3fd474bfee8a324e6",
+      "sha256": "31035e67aed56135bbe56e01f3e67eb2d60cc76b3122b59beb6dbab30c559402",
       "executable": false
     },
     "src/coaster/agents.ts": {
