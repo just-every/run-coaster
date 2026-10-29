@@ -25,7 +25,7 @@ export const commandAdapter = createCommandAdapter(lifecycle, {
  setup: { manifestFile: 'rer-setup.json' }, browserModule: 'scripts/installer/ui/seed.mjs',
  // Local dev identity: the local-only Worker entry, the build output rer build
  // scans for the dev layer, and the kept end-to-end email-link test.
- devIdentity: { entry: 'src/server.dev.ts', output: ['dist'], emailLinkTest: 'tests/email-link.mjs' },
+ devIdentity: { entry: 'src/server.dev.ts', output: ['dist'], emailLinkTest: 'tests/browser.mjs' },
  localOnlyKeys: ['RER_DEV_ORIGIN', 'RER_DEV_IDENTITY'],
  // The run site (run-coaster.com): rer build --site renders the homepage, /run and the docs into dist/site.
  site: { entry: 'src/site/pages.tsx', output: 'dist/site', declaration: 'deploy-site.json', config: 'vite.site.config.ts' },

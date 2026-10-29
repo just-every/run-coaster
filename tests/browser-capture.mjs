@@ -1,233 +1,45 @@
-// CAPTURE-001: public receipt intake at desktop and phone widths.
+// The one phone smoke: take a receipt through intake, private provenance and
+// reasoned discard. Bulk formats, matching and custody run in the HTTP journey.
 import assert from 'node:assert/strict'
+import { assertAccessible } from './browser-accessibility.mjs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { readFile } from 'node:fs/promises'
-import { api, session, PEOPLE } from './browser-journey.mjs'
+import { api, session } from './browser-journey.mjs'
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex')
 
-const hash = bytes => createHash('sha256').update(bytes).digest('hex')
-
-export async function captureJourney(browser, root, origin, width, evidence, shots, files) {
-  const employee = await session(browser, root, origin, 'employee', width)
-  const { page, context } = employee
-  try {
-    await page.goto(origin + '/app#/claims')
-    const inbox = page.getByRole('region', { name: 'Receipt inbox', exact: true })
-    await inbox.getByLabel('Upload receipts', { exact: true }).waitFor()
-    await inbox.scrollIntoViewIfNeeded()
-    const photograph = async state => {
-      const path = join(evidence, `capture-${state}-${width}.png`)
-      await page.screenshot({ path, fullPage: false }); shots.push({ screen: `CAPTURE-001 ${state}`, viewport: width, path })
-    }
-    await photograph('intake')
-    const before = (await api(context, origin, 'receipt-inbox')).receipts
-    if (width === 1440) {
-      // A refused file in the middle of one drop must not lose either neighbor.
-      const payload = files.map(file => ({ name: file.name, type: file.mediaType, data: file.bytes.toString('base64') }))
-      payload.splice(10, 0, { name: 'too-large.pdf', type: 'application/pdf', data: Buffer.alloc(12_000_000).toString('base64') })
-      const transfer = await page.evaluateHandle(values => {
-        const data = new DataTransfer()
-        for (const value of values) {
-          const binary = atob(value.data), bytes = Uint8Array.from(binary, char => char.charCodeAt(0))
-          data.items.add(new File([bytes], value.name, { type: value.type }))
-        }
-        return data
-      }, payload)
-      await inbox.getByRole('group', { name: 'Drop receipt files' }).dispatchEvent('drop', { dataTransfer: transfer })
-      await transfer.dispose()
-      await inbox.getByRole('status').filter({ hasText: `${files.length} of ${files.length + 1} receipts saved; 1 refused` }).waitFor({ timeout: 120000 })
-      await inbox.getByRole('alert').filter({ hasText: /too-large.pdf:.*at most 10 MB/ }).waitFor()
-      assert.equal(await inbox.getByRole('link', { name: 'too-large.pdf', exact: true }).count(), 0)
-    } else {
-      const camera = inbox.getByLabel('Photograph a receipt', { exact: true })
-      assert.equal(await camera.getAttribute('capture'), 'environment')
-      // File selection proves the phone upload door, not operation of a physical phone camera.
-      const bytes = await readFile('tests/fixtures/receipts/bistro.png')
-      await camera.setInputFiles({ name: 'phone-bistro.png', mimeType: 'image/png', buffer: bytes })
-      files = [{ name: 'phone-bistro.png', mediaType: 'image/png', bytes }]
-      await inbox.getByRole('status').filter({ hasText: '1 of 1 receipts saved' }).waitFor()
-    }
-    const saved = (await api(context, origin, 'receipt-inbox')).receipts.filter(receipt => !before.some(old => old.id === receipt.id))
-    assert.equal(saved.length, files.length)
-    for (const file of files) {
-      const receipt = saved.find(row => row.name === file.name)
-      assert.ok(receipt, file.name)
-      assert.equal(receipt.state, 'needs-attention')
-      assert.equal(receipt.size, file.bytes.length)
-      assert.equal(receipt.sha256, hash(file.bytes))
-      const response = await context.request.get(origin + receipt.downloadUrl)
-      assert.equal(response.status(), 200)
-      assert.deepEqual(await response.body(), file.bytes)
-      await inbox.getByRole('link', { name: file.name, exact: true }).waitFor()
-      if (width === 1440) {
-        const row = inbox.locator('.receipt-inbox-list > li').filter({ has: page.getByRole('link', { name: file.name, exact: true }) })
-        await row.getByText('Needs attention', { exact: true }).waitFor()
-        await row.getByText('File provenance', { exact: true }).click()
-        assert.equal(await row.locator('dd').nth(0).innerText(), `${file.bytes.length.toLocaleString()} bytes · ${file.mediaType}`)
-        assert.equal(await row.locator('.receipt-fingerprint').innerText(), hash(file.bytes))
-        await row.getByText('File provenance', { exact: true }).click()
-      }
-    }
-    await inbox.scrollIntoViewIfNeeded()
-    await photograph('saved')
-    // A refusal leaves all successful uploads intact and shows what the employee can do next.
-    await inbox.getByLabel('Upload receipts', { exact: true }).setInputFiles({ name: 'too-large.png', mimeType: 'image/png', buffer: Buffer.alloc(12_000_000) })
-    await inbox.getByRole('alert').filter({ hasText: /too-large.png/ }).waitFor({ timeout: 30000 })
-    assert.equal((await api(context, origin, 'receipt-inbox')).receipts.length, before.length + saved.length)
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
-    await inbox.scrollIntoViewIfNeeded()
-    await photograph('refused')
-    await inbox.locator('summary').first().click()
-    await inbox.locator('summary').first().scrollIntoViewIfNeeded()
-    await photograph('provenance')
-    await inbox.locator('.receipt-fingerprint').first().scrollIntoViewIfNeeded()
-    await photograph('history')
-    const path = join(evidence, `capture-inbox-${width}.png`)
-    await page.screenshot({ path, fullPage: true }); shots.push({ screen: 'CAPTURE-001 inbox with successful bulk and refused file', viewport: width, path })
-    // CAPTURE-004: a reasoned discard moves the original to private history.
-    const target = saved[0], reason = 'Sam Taylor (EMPLOYEE@DEV.LOCALHOST) kept this duplicate for the records.'
-    const active = inbox.getByRole('region', { name: 'Active receipts', exact: true })
-    const row = active.locator('.receipt-inbox-list > li').filter({ has: page.getByRole('link', { name: target.name, exact: true }) })
-    await row.locator('summary').filter({ hasText: `Discard ${target.name}` }).click()
-    await row.getByLabel('Reason', { exact: true }).fill(reason)
-    await row.getByRole('button', { name: 'Discard receipt', exact: true }).click()
-    const discarded = inbox.getByRole('region', { name: 'Discarded receipts', exact: true })
-    await discarded.getByRole('link', { name: target.name, exact: true }).waitFor()
-    assert.equal(await active.getByRole('link', { name: target.name, exact: true }).count(), 0)
-    await discarded.getByRole('region', { name: `Disposition of ${target.name}`, exact: true }).getByText(reason, { exact: true }).waitFor()
-    const kept = (await api(context, origin, 'receipt-inbox')).receipts.find(receipt => receipt.id === target.id)
-    assert.deepEqual([kept.disposition, kept.lifecycleSequence, kept.lifecycle[0].reason], ['discarded', 1, reason])
-    assert.deepEqual(kept.history, target.history)
-    assert.equal(hash(await (await context.request.get(origin + kept.downloadUrl)).body()), target.sha256)
-    await discarded.scrollIntoViewIfNeeded()
-    await photograph('discarded')
-    // CAPTURE-004: merging a duplicate retires it into another original, which is left exactly as it was.
-    const listing = (await api(context, origin, 'receipt-inbox')).receipts
-    const open = listing.filter(receipt => receipt.disposition === 'active' && receipt.id !== saved[1]?.id)
-    const [duplicate, keeper] = open, mergeReason = 'Sam Taylor (EMPLOYEE@DEV.LOCALHOST) merged this scan; kept this duplicate for the records.'
-    assert.notEqual(duplicate.sha256, keeper.sha256, 'a merge of different files states its reason')
-    const duplicateRow = active.locator('.receipt-inbox-list > li').filter({ has: page.getByRole('link', { name: duplicate.name, exact: true }) })
-    await duplicateRow.locator('summary').filter({ hasText: `Merge ${duplicate.name} into another receipt` }).click()
-    await duplicateRow.getByLabel('Receipt to keep', { exact: true }).selectOption(keeper.id)
-    await duplicateRow.getByRole('button', { name: 'Merge receipt', exact: true }).click()
-    await duplicateRow.getByRole('alert').getByText(/Reason is required unless both receipts are identical/).waitFor()
-    await duplicateRow.getByLabel('Reason for merging', { exact: true }).fill(mergeReason)
-    await duplicateRow.getByRole('button', { name: 'Merge receipt', exact: true }).click()
-    const mergedRegion = inbox.getByRole('region', { name: 'Merged receipts', exact: true })
-    await mergedRegion.getByRole('link', { name: duplicate.name, exact: true }).waitFor()
-    assert.equal(await active.getByRole('link', { name: duplicate.name, exact: true }).count(), 0)
-    await mergedRegion.getByRole('region', { name: `Disposition of ${duplicate.name}`, exact: true }).getByText(mergeReason, { exact: true }).waitFor()
-    const after = (await api(context, origin, 'receipt-inbox')).receipts
-    const gone = after.find(receipt => receipt.id === duplicate.id)
-    assert.deepEqual([gone.disposition, gone.lifecycleSequence, gone.lifecycle[0].kind, gone.lifecycle[0].survivorId, gone.lifecycle[0].reason], ['merged', 1, 'merged', keeper.id, mergeReason])
-    assert.deepEqual(after.find(receipt => receipt.id === keeper.id), keeper, 'the surviving original is untouched')
-    assert.equal(hash(await (await context.request.get(origin + gone.downloadUrl)).body()), duplicate.sha256)
-    await mergedRegion.scrollIntoViewIfNeeded()
-    await photograph('merged')
-    if (width === 1440) {
-      // Retain a real delegated disposition in the CLI restore fixture too.
-      const grant = await api(context, origin, 'delegates', { delegate: PEOPLE.manager, level: 'full' })
-      const delegate = await session(browser, root, origin, 'manager', width)
-      try {
-        const response = await delegate.context.request.post(`${origin}/api/coaster/receipt-inbox/${saved[1].id}/discard`, {
-          headers: { origin, 'x-coaster-acting-for': PEOPLE.employee }, data: { expectedSequence: 0, reason },
-        })
-        assert.equal(response.status(), 200)
-        const delegated = (await response.json()).receipt
-        assert.deepEqual([delegated.lifecycle[0].actorEmail, delegated.lifecycle[0].onBehalfOf], [PEOPLE.manager, PEOPLE.employee])
-      } finally { await delegate.context.close() }
-      await api(context, origin, `delegates/${grant.id}/revoke`, {})
-    }
-    return { width, receipts: saved }
-  } finally { await context.close() }
+export async function captureJourney(browser,root,origin,width,evidence,shots){
+  const employee=await session(browser,root,origin,'employee',width),{page,context}=employee
+  try{
+    await page.goto(origin+'/app#/claims')
+    const inbox=page.getByRole('region',{name:'Receipt inbox',exact:true}),bytes=await readFile('tests/fixtures/receipts/bistro.png'),name='phone-bistro-smoke.png'
+    await inbox.getByLabel('Photograph a receipt',{exact:true}).setInputFiles({name,mimeType:'image/png',buffer:bytes})
+    const link=inbox.getByRole('link',{name,exact:true});await link.waitFor()
+    const original=(await api(context,origin,'receipt-inbox')).receipts.find(r=>r.name===name)
+    assert.equal(original.source,'camera');assert.equal(original.sha256,hash(bytes))
+    assert.deepEqual(await (await context.request.get(origin+original.downloadUrl)).body(),bytes)
+    const active=inbox.getByRole('region',{name:'Active receipts',exact:true}),row=active.locator('.receipt-inbox-list > li').filter({has:page.getByRole('link',{name,exact:true})})
+    await row.getByText('File provenance',{exact:true}).click()
+    await row.scrollIntoViewIfNeeded()
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'the receipt inbox fits the phone')
+    await assertAccessible(page,'phone receipt');
+    let path=join(evidence,'capture-provenance-390.png');await page.screenshot({path,fullPage:true});shots.push({screen:'phone receipt provenance',viewport:width,path})
+    const reason='Sam Taylor (EMPLOYEE@DEV.LOCALHOST) kept this duplicate for the records.'
+    await row.locator('summary').filter({hasText:`Discard ${name}`}).click()
+    await row.getByLabel('Reason',{exact:true}).fill(reason)
+    await row.getByRole('button',{name:'Discard receipt',exact:true}).click()
+    const discarded=inbox.getByRole('region',{name:'Discarded receipts',exact:true})
+    await discarded.getByRole('link',{name,exact:true}).waitFor()
+    assert.equal(await active.getByRole('link',{name,exact:true}).count(),0)
+    const kept=(await api(context,origin,'receipt-inbox')).receipts.find(r=>r.id===original.id)
+    assert.equal(kept.disposition,'discarded');assert.equal(kept.lifecycle[0].reason,reason)
+    assert.deepEqual(await (await context.request.get(origin+kept.downloadUrl)).body(),bytes)
+    await discarded.scrollIntoViewIfNeeded();path=join(evidence,'capture-discarded-390.png');await page.screenshot({path,fullPage:true});shots.push({screen:'phone private history',viewport:width,path})
+  }finally{await context.close()}
 }
 
-/** CAPTURE-001 / COA-012: same employee sees the complete inbox after restore. */
-export async function assertRestoredInbox(context, origin, before) {
-  const after = (await api(context, origin, 'receipt-inbox')).receipts
-  const ordered = rows => [...rows].sort((a, b) => a.id.localeCompare(b.id))
-  assert.deepEqual(ordered(after), ordered(before))
-  for (const receipt of after) {
-    const response = await context.request.get(origin + receipt.downloadUrl)
-    assert.equal(response.status(), 200)
-    const body = await response.body()
-    assert.equal(body.length, receipt.size)
-    assert.equal(hash(body), receipt.sha256)
-  }
-}
-
-/** ERASURE-001 / CAPTURE-004: full expanded reasons are in the actual CLI archive. */
-export async function expandedReasonJourney(browser, root, origin, owner) {
-  const employee = await session(browser, root, origin, 'employee', 390)
-  const delegate = await session(browser, root, origin, 'finance', 390)
-  try {
-    await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Z', employee: true, finance: true })
-    await api(employee.context, origin, 'delegates', { delegate: PEOPLE.finance, level: 'submit' })
-    const png = await readFile('tests/fixtures/receipts/bistro.png'), ids = []
-    for (const acting of [false, true]) {
-      const uploaded = await employee.context.request.post(`${origin}/api/coaster/receipt-inbox`, { headers: { origin }, multipart: { source: 'upload', file: { name: `expanded-${acting}.png`, mimeType: 'image/png', buffer: png } } })
-      assert.equal(uploaded.status(), 200)
-      const original = (await uploaded.json()).receipt; ids.push(original.id)
-      const response = await (acting ? delegate.context : employee.context).request.post(`${origin}/api/coaster/receipt-inbox/${original.id}/discard`, { headers: { origin, ...(acting ? { 'x-coaster-acting-for': PEOPLE.employee } : {}) }, data: { expectedSequence: 0, reason: 'Z'.repeat(1000) } })
-      assert.equal(response.status(), 200)
-    }
-    await delegate.context.close()
-    await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Z', employee: true, finance: true, active: false })
-    const erased = await api(owner.context, origin, 'settings/members/erase', { email: PEOPLE.finance })
-    assert.equal(erased.removed.discardReasons, 2)
-    for (const receipt of (await api(employee.context, origin, 'receipt-inbox')).receipts.filter(r => ids.includes(r.id))) {
-      assert.equal(receipt.lifecycle[0].reason, erased.label.repeat(1000))
-      assert.equal(Buffer.byteLength(receipt.lifecycle[0].reason), 22000)
-    }
-    await api(owner.context, origin, 'settings/members', { email: 'form@harbourfinch.example', name: 'Form', employee: true, active: false })
-    const later = await api(owner.context, origin, 'settings/members/erase', { email: 'form@harbourfinch.example' })
-    assert.equal(later.removed.discardReasons, 0)
-    for (const receipt of (await api(employee.context, origin, 'receipt-inbox')).receipts.filter(r => ids.includes(r.id)))
-      assert.equal(receipt.lifecycle[0].reason, erased.label.repeat(1000), 'later erasure protects earlier real tokens')
-  } finally { await employee.context.close(); await delegate.context.close() }
-}
-
-/** CAPTURE-004: the real Settings confirmation and inbox draft display at both widths.
- * The caller restored an aged upload through the ordinary archive door before invoking the local Cron door. */
-export async function cashWindowJourney(browser, root, origin, evidence, shots, schedule) {
-  for (const width of [1440,390]) {
-    const owner=await session(browser,root,origin,'owner',width)
-    try {
-      await owner.page.goto(origin+'/app#/settings')
-      const section=owner.page.getByRole('region',{name:'Cash receipt draft window',exact:true})
-      await section.getByLabel('Cash draft window (days)',{exact:true}).fill('1')
-      await section.getByRole('button',{name:'Review cash draft window',exact:true}).click()
-      await section.getByText('1 existing older unattached receipts will become eligible. Receipts are checked again before each draft opens.',{exact:true}).waitFor()
-      await section.scrollIntoViewIfNeeded()
-      assert.equal(await owner.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
-      let path=join(evidence,`cash-window-confirm-${width}.png`)
-      await owner.page.screenshot({path});shots.push({screen:'CAPTURE-004 finance confirms older-original count',viewport:width,path})
-      const saved=owner.page.waitForResponse(response=>new URL(response.url()).pathname==='/api/coaster/settings/cash-draft-window'&&response.request().method()==='POST')
-      await section.getByRole('button',{name:'Confirm cash draft window',exact:true}).click()
-      assert.equal((await saved).status(),200,'the setting is committed before the scheduled delivery')
-      await section.getByText('Current window: 1 days',{exact:true}).waitFor()
-    } finally {await owner.context.close()}
-  }
-  // Vite's documented local scheduled-handler door calls the unchanged production hourly handler.
-  assert.equal((await fetch(origin+'/cdn-cgi/handler/scheduled')).status,404,'the app listener keeps runtime triggers private')
-  const scheduled=await schedule()
-  assert.equal(scheduled.status,200,await scheduled.text())
-  for(const width of [1440,390]) {
-    const employee=await session(browser,root,origin,'employee',width)
-    try {
-      const originals=(await api(employee.context,origin,'receipt-inbox')).receipts
-      const drafts=originals.filter(r=>r.cashDraft)
-      assert.equal(drafts.length,1)
-      const detail=await api(employee.context,origin,`claims/${drafts[0].cashDraft.claim_id}`)
-      assert.equal(detail.claim.status,'draft');assert.deepEqual(detail.items,[])
-      await employee.page.goto(origin+'/app#/claims')
-      const pending=employee.page.getByText(/Cash draft · needs details · expense date/)
-      await pending.waitFor();await pending.scrollIntoViewIfNeeded()
-      assert.equal(await employee.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
-      const path=join(evidence,`cash-draft-inbox-${width}.png`)
-      await employee.page.screenshot({path});shots.push({screen:'CAPTURE-004 private needs-details draft',viewport:width,path})
-      await pending.getByRole('link',{name:'Open draft claim'}).click()
-      await employee.page.getByRole('button',{name:'Add expense',exact:true}).waitFor()
-    } finally {await employee.context.close()}
-  }
+export async function assertRestoredInbox(context,origin,before){
+  const after=(await api(context,origin,'receipt-inbox')).receipts,ordered=rows=>[...rows].sort((a,b)=>a.id.localeCompare(b.id))
+  assert.deepEqual(ordered(after),ordered(before))
+  for(const receipt of after){const response=await context.request.get(origin+receipt.downloadUrl);assert.equal(response.status(),200);assert.equal(hash(await response.body()),receipt.sha256)}
 }
