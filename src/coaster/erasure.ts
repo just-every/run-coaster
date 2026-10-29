@@ -14,6 +14,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
+  ['c_account_corrections', ['actor_email', 'acting_for']],
   ['c_plaid_settings', ['set_by']], ['c_plaid_connections', ['connected_by']],
   ['c_receipt_mail_messages',['sender','owner_email']], ['c_receipt_mail_settings',['set_by']],
   ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']], ['c_bank_providers', ['connected_by']], ['c_bank_settings', ['set_by']],
@@ -181,6 +182,10 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
       AND NOT EXISTS(SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE a.capture_receipt_id=r.id)
       AND (SELECT kind FROM c_capture_lifecycle WHERE receipt_id=r.id AND kind IN ('match-details','match-withdrawn') ORDER BY sequence DESC LIMIT 1)='match-details'`,at,actor.email,address),
     ...rewrittenMatches.map(row=>sql('UPDATE c_capture_lifecycle SET match_data=? WHERE receipt_id=? AND sequence=? AND match_data=?',row.replaced,row.receipt_id,row.sequence,row.match_data)),
+    ...(await db.prepare('SELECT id,reason FROM c_account_corrections').all<{id:string;reason:string}>()).results.flatMap(row => {
+      const reason = replaceDiscardIdentity(row.reason, members, address, member.name, subject, label);
+      return reason === row.reason ? [] : [sql('UPDATE c_account_corrections SET reason=? WHERE id=?', reason, row.id), sql("UPDATE c_events SET detail=json_set(detail,'$.reason',?) WHERE action='account-code-corrected' AND json_extract(detail,'$.correction')=?",reason,row.id)];
+    }),
     ...rewrittenReasons.map(row => sql('UPDATE c_capture_lifecycle SET reason=? WHERE receipt_id=? AND sequence=? AND reason=?', row.replaced, row.receipt_id, row.sequence, row.reason)),
     ...ADDRESS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=? WHERE ${c}=?`, subject, address))),
     ...JSON_COLUMNS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=replace(${c},?,?) WHERE instr(${c},?)>0`, quoted, quotedLabel, quoted))),

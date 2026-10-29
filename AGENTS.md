@@ -125,3 +125,15 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+
+## Lander-Regenerate
+
+`CONTRACT.md` supplies clause text and status. After changing ACCT-006, run
+`node scripts/contract-docs.mjs write ACCT-006` and
+`node scripts/contract-docs.mjs check ACCT-006`. The scoped generator preserves
+unrelated legacy acceptance guidance and refreshes the summary and
+`docs/CLAIMS.md`. On integration, resolve `CONTRACT.md` first and regenerate.
+Stage new files, regenerate the source lock last with
+`node scripts/edition-authoring/cli.mjs lock`, then run
+`node scripts/edition-authoring/cli.mjs check` before committing.

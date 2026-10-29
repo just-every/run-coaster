@@ -581,3 +581,20 @@ Card evidence uses posting age for these steps; the independent unsubmitted-clai
 task continues to use discovery age. Each task records its own once-only history.
 Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).
+
+## Native account-code corrections
+
+`POST /api/coaster/claims/:id/account-corrections` accepts `version`, `revision`,
+`sequence` (the current `accountCoding.sequence` from claim readback), `item`,
+`allocation` (the submitted allocation's position), `accountCode` and a required
+`reason`. An owner, finance member or bookkeeper may correct an unbatched
+submitted or approved manual purchase; its currently routed approver may do so
+before deciding. Full delegation keeps the granting person's row and records
+who acted. Agent keys have no correction authority.
+
+The response carries the next claim version. Read the claim's `accountCoding`
+for its ordered before and after evidence. The submitted snapshot stays exact;
+only the native export account code changes. A later batch freezes its selected
+correction sequence. Stale requests, an existing batch or any existing ledger
+posting are refused without a correction or history write. Closed-period and
+already-posted correction workflows are not supplied by this native door.
