@@ -16,7 +16,7 @@ function worksheet(bytes) {
   return [...sheet.matchAll(/<row[^>]*>(.*?)<\/row>/g)].map(row=>[...row[1].matchAll(/<c\b[^>]*>(.*?)<\/c>/g)].map(cell=>cell[1].match(/<t\b[^>]*>(.*?)<\/t>/)?.[1]??cell[1].match(/<v>(.*?)<\/v>/)?.[1]??''));
 }
 const rows = async (h, table) => (await h.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results;
-const state = async h => Object.fromEntries(await Promise.all(['c_account_corrections','c_batch_coding','c_claims','c_revisions','c_decisions','c_items','c_allocations','c_events','c_batches','c_reimbursement_keys'].map(async table => [table, await rows(h,table)])));
+const state = async h => Object.fromEntries(await Promise.all(['c_account_corrections','c_batch_coding','c_claims','c_revisions','c_decisions','c_items','c_allocations','c_events','c_batches','c_batch_claims','c_qbd_requests','c_reimbursement_keys'].map(async table => [table, await rows(h,table)])));
 const evidence = async (h,c) => (await h.get(`claims/${c.id}`));
 const preserved = d => ({ revisions: d.revisions, decisions: d.decisions, items: d.items, receipts: d.receipts, exceptions: d.exceptions, total: d.claim.total_minor, approver: d.claim.approver_email });
 
@@ -25,7 +25,10 @@ test('Native account corrections preserve submitted facts, enforce role and revi
   const h = await harness();
   try {
     const { t, create, approve } = await correctionClaims(h);
-    let c = await create(), d = await evidence(h,c), original = preserved(d);
+    const cap = (await h.post('allowances', { name: 'synthetic-coaster-1', type: 'cap', period: 'yearly', amount: '500.00', startsOn: '2026-01-01' }, t.morgan)).all[0];
+    let c = await create('Client materials', t.sam, { allowance: cap.id }), d = await evidence(h,c), original = preserved(d);
+    assert.equal(d.items[0].allowance_id, cap.id);
+    assert.equal(d.items[0].claimed_minor, null, 'the manual receipt is fully within its allowance cap');
     const originalBytes = await rows(h,'c_revisions');
     for (const extra of [{ reason: '' }, { sequence: -1 }, { allocation: 3 }, { accountCode: '6500' }, { revision: c.revision - 1 }, { version: c.version - 1 }]) {
       const before = await state(h), r = await h.send('/api/coaster/' + correctionPath(c), correctionBody(d,extra), h.owner);
@@ -111,6 +114,30 @@ test('Native account corrections preserve submitted facts, enforce role and revi
     assert.equal(history.length,6); assert.deepEqual(history.map(l=>l.detail.sequence),[1,2,3,4,5,6]);
     assert.ok(history.every((l,i)=>l.seq>0&&(!i||l.seq>history[i-1].seq)));
     assert.equal(corrections.length,6);
+    // A removed purchase is not part of a later posting of its former batch.
+    let removed = await approve(await create('Removed purchase', t.sam, { fixture: 'hotel' }));
+    let peer = await h.post('claims', { title: 'Retained purchase' }, t.sam);
+    peer = await h.post(`claims/${peer.id}/items`, { version: peer.version, kind: 'receipt', date: '2026-03-11', merchant: 'synthetic-coaster-2', amount: '20.00', category: t.c.office, explanation: 'Retained purchase' }, t.sam);
+    peer = await approve(await h.post(`claims/${peer.id}/submit`, { version: peer.version }, t.sam));
+    let former = await h.post('batches', { claims: [removed.id, peer.id] }, t.morgan);
+    const selection = await rows(h,'c_batch_coding');
+    former = await h.post(`batches/${former.id}/remove`, { version: former.version, claim: removed.id }, t.morgan);
+    former = await h.post(`batches/${former.id}/approve`, { version: former.version, expectedTotal: 2000 }, t.morgan);
+    await h.post(['accounting','desktop','connect'].join('/'), { consent: true, company: 'synthetic-coaster-1.QBW' });
+    await h.post(['accounting','desktop','sync'].join('/'), {}, t.morgan);
+    assert.ok((await rows(h,'c_qbd_requests')).some(r => JSON.parse(r.payload).batch === former.id), 'the former batch has a real queued ledger posting');
+    const removedBefore = await evidence(h,removed), postedBefore = await state(h);
+    assert.equal(removedBefore.accountCoding.mayCorrect,true);
+    removed = await h.post(correctionPath(removed), correctionBody(removedBefore), h.owner);
+    const removedAfter = await evidence(h,removed);
+    assert.equal(removedAfter.accountCoding.corrections.at(-1).after_account,'6750');
+    assert.deepEqual(preserved(removedAfter),preserved(removedBefore));
+    assert.deepEqual(await rows(h,'c_batch_coding'),selection,'the former batch keeps its immutable coding selection');
+    const refusedBefore = await state(h);
+    await h.post(correctionPath(peer),correctionBody(await evidence(h,peer)),h.owner,409);
+    assert.deepEqual(await state(h),refusedBefore,'a purchase still in the posted batch remains refused');
+    assert.deepEqual((await state(h)).c_reimbursement_keys,postedBefore.c_reimbursement_keys,'the correction changes no reimbursement identity');
+
     // Erasure removes a former actor's identity from overlay reasons and numbered evidence.
     const erasedEmail=address('synthetic-coaster-finance');
     await h.post(['settings','members'].join('/'),{email:erasedEmail,name:'synthetic-coaster-finance',finance:true,active:false});
