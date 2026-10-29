@@ -8,7 +8,7 @@ export type Feed = { liability: 'company' | 'individual'; id: string; issuer: st
 export const feed = (db: D1Database, id: string) => db.prepare('SELECT * FROM c_program_feeds WHERE id=?').bind(id).first<Feed>();
 export const feedState = (id: string, version: number): Sql => ({ sql: 'EXISTS(SELECT 1 FROM c_program_feeds WHERE id=? AND version=? AND enabled=1)', params: [id, version] });
 export function connectionAuthority(actor: Actor) {
-  requireThat(actor.kind === 'person' && (!actor.delegate || actor.delegate.level === 'full') && !actor.publicCredential, 'Use your own native sign-in to connect a program feed', 403);
+  requireThat(actor.kind === 'person' && !actor.delegate && !actor.publicCredential, 'Use your own native sign-in to connect a program feed', 403);
   needRow(actor, 'connections'); return rowAuthority(actor, 'connections');
 }
 export const publicFeed = (f: Feed) => ({ id: f.id, issuer: f.issuer, kind: 'sftp-pull-csv', liability: f.liability, enabled: !!f.enabled, version: f.version, intervalMinutes: f.interval_minutes, nextRunAt: f.next_run_at, lastSuccessAt: f.last_success_at, error: f.last_error, connectedAt: f.connected_at, disconnectedAt: f.disconnected_at, mapping: JSON.parse(f.mapping) as Data, category: f.category_id, costCentre: f.cost_centre });
