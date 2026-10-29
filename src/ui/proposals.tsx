@@ -34,6 +34,12 @@ export function AgentStrip({ proposals, reload, claims = [], idle, currency = 'U
             <ul>{(p.payload.checklist ?? p.payload.items).map((item: D, i: number) => <li key={i}>
               <a href={item.citation}>{item.label ?? `${item.date} · ${item.merchant} · ${money(item.amountMinor, p.payload.currency ?? currency)}`}</a>
               {typeof item.amountMinor === 'number' && preparation === 'close' && <> · {money(item.amountMinor, p.payload.currency)}</>}
+              {item.statement && <>
+                <p>Native balance: {money(item.statement.coasterMinor, p.payload.currency)} · Statement balance: {money(item.statement.statementMinor, p.payload.currency)} · Balance difference: {money(item.statement.differenceMinor, p.payload.currency)}</p>
+                {item.statement.differences.length > 0 && <ul>{item.statement.differences.map((d: D) => <li key={d.line}>{d.descriptor} · {money(d.amountMinor, p.payload.currency)} · {d.resolution ? 'Resolved' : 'Unresolved'}</li>)}</ul>}
+                <p>{item.statement.ledger ? `Native card ledger ${item.statement.ledger.matches ? 'matches' : 'does not match'} the statement.` : 'Native card ledger not closed.'} External ledger clearance unverified.</p>
+              </>}
+              {item.missingReconciliation && <p>Imported spend: {money(item.missingReconciliation.amountMinor, p.payload.currency)}. Balance difference unknown; external ledger clearance unverified.</p>}
               {item.receipt && <> · Receipt {item.receipt.id} · SHA-256 {item.receipt.sha256}</>}
               {item.allocations && <span> · {item.allocations.map((a: D) => a.category_name).join(', ')}</span>}
               {item.coding && <span> · Coding: {item.coding.map((a: D) => a.category_name).join(', ')}</span>}

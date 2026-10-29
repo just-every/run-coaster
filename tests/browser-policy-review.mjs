@@ -53,7 +53,8 @@ export async function policyAgentScreens(browser,root,server,evidence){
    }
    async function statement(name,rows){
     const issuer=`${name} ${width} ${run}`;await api(owner.context,origin,'statements/cards',{issuer,last4:'1111',employee:PEOPLE.employee});
-    const body={format:'csv',name:`${name}-${width}.csv`,issuer,category,content:'Date,Merchant,Amount,Id\n'+rows.map(([merchant,amount,date],i)=>`${width===390?date.replace('-10-','-09-'):date},${merchant},${amount},synthetic-coaster-${width}-${name}-${run}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}};
+    // The fresh installation needs only scenario/width/row identity. A timestamp plus row index can look like a valid card number during restore.
+    const body={format:'csv',name:`${name}-${width}.csv`,issuer,category,content:'Date,Merchant,Amount,Id\n'+rows.map(([merchant,amount,date],i)=>`${width===390?date.replace('-10-','-09-'):date},${merchant},${amount},synthetic-coaster-${width}-${name}-${i}`).join('\n'),mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'1111'}};
     const preview=await api(owner.context,origin,'statements/preview',body);return api(owner.context,origin,'statements/commit',{...body,fingerprint:preview.fingerprint});
    }
    async function submitMixed(job,flagged){

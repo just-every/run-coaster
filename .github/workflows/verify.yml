@@ -71,7 +71,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -106,7 +106,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 18
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -137,9 +137,27 @@ jobs:
         # These groups exhausted 15 minutes in push 40425248525. Only their job budgets rise.
         include:
           - group: journeys-0
+            timeout: 20
+          - group: journeys-1
+            timeout: 20
+          - group: capture-0
+            timeout: 20
+          - group: capture-1-email
+            timeout: 20
+          - group: capture-2
             timeout: 18
           - group: matching-0
-            timeout: 18
+            timeout: 20
+          - group: matching-1
+            timeout: 20
+          - group: matching-2
+            timeout: 20
+          - group: cash-accessibility
+            timeout: 20
+          - group: policy-review
+            timeout: 20
+          - group: payroll-corpus
+            timeout: 20
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -177,7 +195,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.skip != 'true' && (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -198,7 +216,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'

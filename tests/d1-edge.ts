@@ -7,7 +7,9 @@ const gates = [
 /** Pass-through D1 network-edge barrier; results still come from real SQLite. */
 export function databaseAtEdge(env: any): D1Database {
   if (!env.DB_GATE) return env.DB;
-  const statement = (prepared: any, sql: string): any => new Proxy(prepared, {
+  const queries = new WeakMap<object, string>();
+  const statement = (prepared: any, sql: string): any => {
+    const proxy = new Proxy(prepared, {
     get(target, key) {
       if (key === 'bind') return (...args: any[]) => statement(target.bind(...args), sql);
       if (key === 'first' && sql.includes('c_bank_accounts WHERE id=? AND member_email=?')) return async (...args: any[]) => {
@@ -23,10 +25,21 @@ export function databaseAtEdge(env: any): D1Database {
       const value = Reflect.get(target, key, target);
       return typeof value === 'function' ? value.bind(target) : value;
     },
-  });
+    });
+    queries.set(proxy, sql);
+    return proxy;
+  };
   return new Proxy(env.DB, {
     get(target, key) {
       if (key === 'prepare') return (sql: string) => statement(target.prepare(sql), sql);
+      if (key === 'batch') return async (prepared: D1PreparedStatement[]) => {
+        const statements = prepared.map(item => ({ sql: queries.get(item) ?? '' }));
+        if (statements.some(item => /INSERT INTO c_(?:program_feeds|gusto_connection)\b/.test(item.sql)))
+          await env.DB_GATE.fetch('https://d1-edge.test/before-provider-connection', { method: 'POST', body: JSON.stringify({ statements }) });
+        if (statements.some(item => /INSERT INTO c_proposals|UPDATE c_proposals SET status='accepted'/.test(item.sql)))
+          await env.DB_GATE.fetch('https://d1-edge.test/before-close-review');
+        return target.batch(prepared);
+      };
       const value = Reflect.get(target, key, target);
       return typeof value === 'function' ? value.bind(target) : value;
     },

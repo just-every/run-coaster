@@ -2,6 +2,7 @@ import type { Bindings } from '../../auth.server';
 import { seal } from '../public-api/crypto';
 import { all, commit } from '../session';
 import { event } from '../events';
+import { recentProviderSignIn } from '../provider-step-up';
 import { now, requireThat, text, type Actor, type Data } from '../types';
 import { connection, connectionState, nativeOwner, providerId } from './model';
 import { employees, gustoJson } from './network';
@@ -14,7 +15,7 @@ export async function payrollConnection(env: Bindings, actor: Actor) {
     mappings: (await env.DB.prepare('SELECT email,employee_uuid FROM c_gusto_employees').all()).results };
 }
 export async function connectPayroll(env: Bindings, actor: Actor, body: Data) {
-  const auth = nativeOwner(actor);
+  const auth = all(nativeOwner(actor), await recentProviderSignIn(env, actor, 'connecting Gusto'));
   requireThat(body.consent === true, 'Explicit consent to connect this Gusto sandbox company is required');
   requireThat(!await connection(env), 'Disconnect the current company before replacing it', 409);
   const company = providerId(body.company), token = text(body.token, 'Gusto sandbox token', 4000);

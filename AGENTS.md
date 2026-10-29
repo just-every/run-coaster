@@ -125,3 +125,15 @@ is the full wall and belongs to CI or a remote run.
 
 Pinned reference: https://github.com/runeditrun/base/blob/79f61faef682f9d6cdb64e843cfbd3cf02887982/TANSTACK-START-MIGRATION.md
 Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61faef682f9d6cdb64e843cfbd3cf02887982/default-seed
+
+## Contract views
+
+CONTRACT.md is the source for acceptance requirements and Status rows. Preserve
+unrelated legacy acceptance prose when changing a scoped row.
+
+Lander-Regenerate: `node scripts/contract-docs.mjs write --clause AGENT-008`
+(repeat `--clause ID` for each touched clause). Then run the same command with
+`check` instead of `write`. It regenerates the selected acceptance notes,
+`docs/claims.md` and summary counts without changing acceptance requirements.
+Stage new source files, run `node scripts/edition-authoring/cli.mjs lock` last,
+then `node scripts/edition-authoring/cli.mjs check` before committing.

@@ -7,6 +7,7 @@ import { findExceptions } from '../exceptions';
 import { flatten, itemFields } from '../coding/automatic/model';
 import { proposeCoding, proposalView } from '../coding/automatic/engine';
 import { targetSuggestions } from '../coding/automatic/storage';
+import { closeStatements, closeStatementStamp } from './close-statements';
 import { isoDate, now, requireThat, text, uid, type Actor, type Data } from '../types';
 
 function native(actor: Actor) {
@@ -17,13 +18,15 @@ const stampSql = `SELECT json_array(
  (SELECT COUNT(*) FROM c_capture_receipts),(SELECT COALESCE(MAX(rowid),0) FROM c_capture_lifecycle),
  (SELECT group_concat(s) FROM (SELECT id||':'||version||':'||status AS s FROM c_claims ORDER BY id)),
  (SELECT group_concat(s) FROM (SELECT id||':'||version||':'||status AS s FROM c_batches ORDER BY id)),
- (SELECT group_concat(s) FROM (SELECT id||':'||COALESCE(closed_at,'open') AS s FROM c_card_statements ORDER BY id)),
+ ${closeStatementStamp},
  (SELECT group_concat(s) FROM (SELECT email||':'||COALESCE(department_id,'') AS s FROM c_members ORDER BY email)),
  (SELECT group_concat(s) FROM (SELECT id||':'||name AS s FROM c_departments ORDER BY id))) AS stamp`;
 const stampGuard = (stamp: string): Sql => ({ sql: `(${stampSql})=?`, params: [stamp] });
 async function save(db: D1Database, actor: Actor, kind: string, payload: Data, guard: Sql) {
   const id = uid(), label = `${payload.preparation === 'close' ? 'Month-end' : payload.preparation === 'trip' ? 'Trip' : 'Expense'} preparation agent`;
-  await commit(db, all(authority(actor, payload.preparation === 'close' ? 'owner' : 'employee'), guard), [
+  const condition = all(authority(actor, payload.preparation === 'close' ? 'owner' : 'employee'), guard);
+  if (payload.preparation === 'close') condition.after = all(authority(actor, 'owner'), guard);
+  await commit(db, condition, [
     db.prepare("INSERT INTO c_proposals(id,kind,agent_label,for_email,payload,status,created_at) VALUES(?,?,?,?,?,'proposed',?)").bind(id, kind, label, actor.email, JSON.stringify(payload), now()),
     event(db, actor, 'native-work-proposed', {}, { proposal: id, agent: label, preparation: payload.preparation }),
   ]);
@@ -35,7 +38,7 @@ export async function prepareClose(db: D1Database, actor: Actor, b: Data) {
   native(actor); need(actor, 'owner');
   const from = isoDate(b.from, 'Period start'), to = isoDate(b.to, 'Period end');
   requireThat(from <= to && from.slice(0, 7) === to.slice(0, 7), 'Choose a period within one month');
-  const settings = await requireBusiness(db), before = (await db.prepare(stampSql).first<{ stamp: string }>())!.stamp;
+  const before = (await db.prepare(stampSql).first<{ stamp: string }>())!.stamp, settings = await requireBusiness(db);
   const departments = (await db.prepare(`SELECT COALESCE(d.name,'Unassigned') AS department,
     COUNT(DISTINCT c.id) AS claims,COUNT(*) AS expenses,SUM(i.amount_minor) AS amountMinor,
     SUM(CASE WHEN i.kind='receipt' AND i.receipt_id IS NULL AND (c.status<>'draft' OR c.employee_email=?) THEN 1 ELSE 0 END) AS missingEvidence,
@@ -46,7 +49,7 @@ export async function prepareClose(db: D1Database, actor: Actor, b: Data) {
     GROUP BY COALESCE(d.name,'Unassigned') ORDER BY department`).bind(actor.email, from, to).all<Data>()).results;
   const pending = (await db.prepare(`SELECT DISTINCT c.id,c.number,c.status FROM c_claims c JOIN c_items i ON i.claim_id=c.id
     WHERE c.status='submitted' AND i.spent_on>=? AND i.spent_on<=? ORDER BY c.number`).bind(from, to).all<Data>()).results;
-  const statements = (await db.prepare('SELECT id,period_start,period_end,closed_at FROM c_card_statements WHERE period_end>=? AND period_end<=? ORDER BY id').bind(from, to).all<Data>()).results;
+  const cardEvidence = await closeStatements(db, actor, from, to);
   const payments = (await db.prepare("SELECT id,number,paid_on,paid_reference FROM c_batches WHERE status='reimbursed' AND paid_on>=? AND paid_on<=? ORDER BY number").bind(from, to).all<Data>()).results;
   const cutoff = await db.prepare(`SELECT COUNT(*) AS outsidePeriod FROM c_items i JOIN c_claims c ON c.id=i.claim_id WHERE c.status IN ('draft','returned','submitted') AND (i.spent_on<? OR i.spent_on>?)`).bind(from, to).first<Data>();
   const ownInbox = await db.prepare(`SELECT COUNT(*) AS n FROM c_capture_receipts r WHERE r.owner_email=? AND NOT EXISTS(SELECT 1 FROM c_capture_lifecycle l WHERE l.receipt_id=r.id AND l.kind IN ('discarded','merged')) AND NOT EXISTS(SELECT 1 FROM c_items i JOIN c_receipts a ON a.id=i.receipt_id WHERE a.capture_receipt_id=r.id)`).bind(actor.email).first<{n:number}>();
@@ -54,13 +57,15 @@ export async function prepareClose(db: D1Database, actor: Actor, b: Data) {
     { label: `${ownInbox!.n} unattached originals in your private inbox; other employees’ private originals are not inspected`, citation: '/app#/claims' },
     ...departments.map(d => ({ label: `${d.department}: ${d.claims} pending claims, ${d.expenses} expenses; ${d.missingEvidence} missing receipts on visible claims`, amountMinor: d.amountMinor, citation: `/api/coaster/reports/unsubmitted?from=${from}&to=${to}`, detail: d })),
     ...pending.map(c => ({ label: `CL-${String(c.number).padStart(4, '0')}: awaiting approval`, citation: `/app#/claims/${c.id}` })),
-    ...statements.map(s => ({ label: `Statement ending ${s.period_end}: ${s.closed_at ? 'reconciled' : 'reconciliation open'}`, citation: `/api/coaster/statements/reconciliations/${s.id}` })),
+    { label: 'Recorded statement evidence only; complete provider-feed coverage is unverified', citation: '/app#/settings' },
+    ...cardEvidence.statements.map(s => ({ label: `${s.card.issuer} ····${s.card.last4} · ${s.period.start ?? 'unknown start'} to ${s.period.end ?? 'unknown end'}: ${s.verified ? 'native reconciliation verified' : 'reconciliation unverified'}; ${s.status}; ${s.unresolved} unresolved differences${s.periodKnown ? '' : '; period boundaries unverified'}`, citation: `/api/coaster/statements/reconciliations/${s.id}`, statement: s })),
+    ...cardEvidence.missing.map(s => ({ label: `${s.issuer} ····${s.last4} · ${s.periodStart ?? 'unknown start'} to ${s.periodEnd ?? 'unknown end'}: reconciliation unverified; ${s.charges} imported charges without a reconciliation`, citation: '/app#/settings', missingReconciliation: s })),
     ...payments.map(p => ({ label: `RB-${String(p.number).padStart(4, '0')}: payment recorded ${p.paid_on}; ledger clearance unverified`, citation: `/app#/batches/${p.id}` })),
     { label: `Cutoff ${to} in ${settings.timezone}; ${cutoff!.outsidePeriod} pending expenses outside this period excluded`, citation: '/api/coaster/reports/unsubmitted' },
     { label: 'Review missing evidence and chase owners through the existing follow-up workflow; no chase sent by this proposal', citation: '/app#/settings' },
     { label: 'Accrual proposal only. Ledger clearance and QuickBooks posting require a connected ledger.', citation: '/app#/batches' },
   ];
-  return save(db, actor, 'batch', { preparation: 'close', title: `Close checklist ${from} to ${to}`, from, to, currency: settings.currency, departments, checklist, claims: [], sourceStamp: await sha256Hex(before), accrualMinor: departments.reduce((n, d) => n + d.amountMinor, 0), note: 'Owner review required; nothing posted or sent.' }, stampGuard(before));
+  return save(db, actor, 'batch', { preparation: 'close', title: `Close checklist ${from} to ${to}`, from, to, currency: settings.currency, departments, cardEvidence, checklist, claims: [], sourceStamp: await sha256Hex(before), accrualMinor: departments.reduce((n, d) => n + d.amountMinor, 0), note: 'Owner review required; nothing posted or sent.' }, stampGuard(before));
 }
 
 async function ownDraft(db: D1Database, actor: Actor, id: string) {
@@ -120,12 +125,12 @@ export async function prepareExpense(db: D1Database, actor: Actor, id: string) {
 export async function acceptPreparation(db: D1Database, actor: Actor, p: Data) {
   native(actor);
   const b = p.payload, guards: Sql[] = [{ sql: "EXISTS(SELECT 1 FROM c_proposals WHERE id=? AND status='proposed')", params: [p.id] }], writes: D1PreparedStatement[] = [];
-  let result: string | null = null;
+  let result: string | null = null, closeInputs: Sql | undefined;
   if (b.preparation === 'close') {
     need(actor, 'owner');
     const current = (await db.prepare(stampSql).first<{ stamp: string }>())!.stamp;
     requireThat(await sha256Hex(current) === b.sourceStamp, 'Close inputs changed; prepare a new checklist', 409);
-    guards.push(stampGuard(current));
+    closeInputs = stampGuard(current); guards.push(closeInputs);
   }
   else if (b.preparation === 'expense') {
     const claim = await ownDraft(db, actor, b.sourceClaim);
@@ -149,6 +154,8 @@ export async function acceptPreparation(db: D1Database, actor: Actor, p: Data) {
     writes.push(claimTotal(db, result));
   }
   writes.push(db.prepare("UPDATE c_proposals SET status='accepted',decided_by=?,decided_at=?,result_id=? WHERE id=?").bind(actor.email, now(), result, p.id), event(db, actor, 'proposal-accepted', result ? { claim: result } : {}, { proposal: p.id, agent: p.agent_label, preparation: b.preparation }));
-  await commit(db, all(authority(actor, b.preparation === 'close' ? 'owner' : 'employee'), ...guards), writes);
+  const condition = all(authority(actor, b.preparation === 'close' ? 'owner' : 'employee'), ...guards);
+  if (closeInputs) condition.after = all(authority(actor, 'owner'), closeInputs);
+  await commit(db, condition, writes);
   return { proposal: { ...p, status: 'accepted' }, ...(result ? { claim: await loadClaim(db, result) } : {}) };
 }
