@@ -581,3 +581,8 @@ Card evidence uses posting age for these steps; the independent unsubmitted-clai
 task continues to use discovery age. Each task records its own once-only history.
 Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).
+## Individual-liability program charges (FEED-006)
+
+`POST /api/coaster/feeds/program` accepts optional `liability: "company" | "individual"` (default `company`) under its existing explicit native connection consent. Each scheduled mapped-CSV charge freezes that program liability and source program ID. Existing manual statement imports remain company liability.
+
+`POST /api/coaster/claims/:id/items/classify` accepts `{version, item, personal: boolean}` from the original cardholder in their own native employee session, on a draft or returned claim. Other people, delegates, agents, stale versions and frozen claims are refused. Ordinary expense editing preserves classification and source money facts. Submission freezes liability and classification with each revision. Only individual business charges contribute to reimbursement totals, accounting lines and once-only source transaction keys; company charges and individual personal charges contribute zero. Individual charges cannot enter the company card ledger or transfer their liability to a successor. Numbered charge, classification and batch events and all financial evidence survive CLI export and restore; program execution credentials do not. These batches establish no provider settlement or QuickBooks bill. The conservative classification and liability default awaits ct ratification.
