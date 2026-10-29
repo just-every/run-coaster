@@ -13,6 +13,10 @@ import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } fro
 import { perDiemJourney } from './browser-per-diem.mjs'
 import { captureJourney, assertRestoredInbox } from './browser-capture.mjs'
 import { prepareArchiveData } from './archive-data.mjs'
+import { concurJourney, expensifyJourney } from './journeys/screens-installation-concur.mjs'
+import { cutoverJourney, cutoverCarryJourney } from './journeys/screens-installation-cutover.mjs'
+import { captureJourney as installationReceiptScreens, expandedReasonJourney } from './journeys/screens-installation-receipts.mjs'
+import { captureFiles } from './fixtures/capture-files.mjs'
 import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
 
 // Every phase remains reachable through this public browser test entry point.
@@ -76,14 +80,23 @@ try {
   await ownerScreens(owner, server.origin, 1440, evidence, shots, true)
   await ownerScreens(owner,server.origin,390,evidence,shots,false)
   for(const width of [1440,390])journeys.push(await perDiemJourney(browser,root,server.origin,owner,width,evidence,shots))
-  // The sole phone smoke photographs a receipt, reads its provenance and privately discards it.
+  for(const width of [1440,390])await concurJourney(owner,server.origin,width,evidence,shots)
+  for(const width of [1440,390])await expensifyJourney(owner,server.origin,width,evidence,shots)
+  for(const width of [1440,390]){
+    await cutoverJourney(owner,server.origin,width,evidence,shots)
+    await cutoverCarryJourney(browser,root,owner,server.origin,width,evidence,shots)
+  }
+  const installationReceipts=await captureFiles()
+  for(const width of [1440,390])await installationReceiptScreens(browser,root,server.origin,width,evidence,shots,installationReceipts.files)
+  await expandedReasonJourney(browser,root,server.origin,owner)
+  // The retained phone smoke also reads private provenance and discards its original.
   await captureJourney(browser, root, server.origin, 390, evidence, shots)
   const captureEmployee = await session(browser, root, server.origin, 'employee', 1440)
   await prepareArchiveData(owner,captureEmployee,server.origin,server.providers)
   const capturedInbox = (await api(captureEmployee.context, server.origin, 'receipt-inbox')).receipts
   await captureEmployee.context.close()
   const before = await everything(owner.context, server.origin)
-  assert.equal(before.batches.length, 4); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
+  assert.equal(before.batches.length, 6); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
   await owner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
 
   // Repeated setup, the actual build/preview verbs and the credential-free dry-run refusal.

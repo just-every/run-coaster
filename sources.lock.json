@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8e4c8221cc1161fef6ada58cb024fab554c6f1869662240e7fd409a4fc5a0106",
+      "sha256": "f73d3d498493336642d7239ac9acd7429a17c52c0feceedca5c5f497fae34420",
       "executable": false
     },
     "DEMO.md": {
@@ -4396,7 +4396,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "6cc0d1cf4ecb4b33fde0a0af115f83810f0d5411794b50df2a038b01011b621e",
+      "sha256": "4e22d56d0d0534527463d7aa2821bbbb8df7ad263bc042a00c885dd47460d748",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -6709,6 +6709,18 @@
     },
     "tests/journeys/screens-cash-attachment.mjs": {
       "sha256": "08cedf34b383a29e18ae6eaa588d274bbe6fcf5eb83fdf46e98ebd01ad342723",
+      "executable": false
+    },
+    "tests/journeys/screens-installation-concur.mjs": {
+      "sha256": "f65e9e3aab3cda8b0a10cef14b7636a4baee1ed4502ad2ff1efd80dc1815049a",
+      "executable": false
+    },
+    "tests/journeys/screens-installation-cutover.mjs": {
+      "sha256": "58f31cf5d710ede51109c764b8dc937ee445dc3b390637ee7e746b72a3cbaaed",
+      "executable": false
+    },
+    "tests/journeys/screens-installation-receipts.mjs": {
+      "sha256": "c435b1b2fcdb81351f1b4d47c04ea017149a3a089f6b3d01a71110494c41cfa6",
       "executable": false
     },
     "tests/journeys/screens-reading.mjs": {
