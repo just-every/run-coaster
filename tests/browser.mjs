@@ -18,7 +18,11 @@ import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows }
 // Every phase remains reachable through this public browser test entry point.
 const phases = {
   matching: async () => (await import('./journeys/browser-matching.mjs')).runMatchingJourney(),
-  capture: async () => (await import('./journeys/browser-receipt-custody.mjs')).runReceiptCustodyJourney({evidence:resolve(process.env.COASTER_EVIDENCE??'.cache/receipt-custody-proof')}),
+  capture: async () => {
+    const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/receipt-custody-proof')
+    await (await import('./journeys/browser-receipt-custody.mjs')).runReceiptCustodyJourney({evidence})
+    await (await import('./journeys/browser-cash-attachment.mjs')).runCashAttachmentJourney({evidence})
+  },
   'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),
   signals: async () => (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney(),
@@ -58,8 +62,11 @@ try {
   assert.equal((await fetch(server.origin+'/health')).status,200)
   await server.close(); server=undefined
   server = await start(root, port)
-  const health=await fetch(server.origin+'/health');assert.equal(health.status,200);assert.equal((await health.json()).status,'ok')
-  assert.equal((await fetch(server.origin)).status,200)
+  const health=await fetch(server.origin+'/health');assert.equal(health.status,200)
+  const healthy=await health.json();assert.equal(healthy.status,'ok');assert.equal(healthy.ok,true)
+  assert.deepEqual(Object.keys(healthy.deployment).sort(),['fingerprint','sourceSha','versionId'])
+  const home=await fetch(server.origin);assert.equal(home.status,200)
+  assert.ok((await home.text()).includes(JSON.parse(await readFile('src/branding.json','utf8')).name))
   assert.equal((await fetch(server.origin+'/api/coaster/state')).status,401)
   for(const path of ['/missing','/api/missing'])assert.equal((await fetch(server.origin+path)).status,404)
   browser = await launch()

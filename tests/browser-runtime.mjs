@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os'
 import { createServer } from 'node:net'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 import { productionPlan } from '@runeditrun/rer/internal/onboarding/production-options.mjs'
+import { sitePreview } from '@runeditrun/rer/internal/cli/site-preview.mjs'
 import { bankFixture } from './fixtures/bank.mjs'
 
 const source=resolve(new URL('..',import.meta.url).pathname)
@@ -38,7 +39,7 @@ export async function command(root,args,{expected=0,env={}}={}){
   console.log(`rer ${args[0]}: exit ${expected}`)
   return clean(result.stdout+result.stderr)
 }
-export async function start(root,port,{readingEdge}={}){
+export async function start(root,port,{readingEdge,site=false}={}){
   const origin=`http://127.0.0.1:${port}`,messages=[]
   const plan=await productionPlan(root,origin,port),bank=bankFixture(),label=JSON.parse(await readFile('tests/fixtures/receipts/reader/synthetic-coaster-1001.json','utf8'))
   plan.workers[0].bindings={...plan.workers[0].bindings,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-browser-mail',MAIL_FROM:'Coaster <coaster@harbourfinch.example>',AI_ENABLED:'true',AI_API_KEY:'synthetic-archive-reader'}
@@ -56,10 +57,13 @@ export async function start(root,port,{readingEdge}={}){
   }
   const runtime=new Miniflare({...convertV4MiniflareOptions(plan),resourcePersistencePath:join(root,'.wrangler/state/v3')})
   try{await runtime.ready}catch(error){await runtime.dispose();throw error}
-  const server={origin,messages,providers:{bank,label},async scheduled(time=Date.now()){
+  let runSite
+  try {if(site)runSite=await sitePreview(join(root,'dist/site'),{ports:[0]})}
+  catch(error){await runtime.dispose();throw error}
+  const server={origin,messages,siteOrigin:runSite?.url,providers:{bank,label},async scheduled(time=Date.now()){
     await (await runtime.getWorker()).scheduled({scheduledTime:time,cron:'17 * * * *'})
     return Response.json({ok:true})
-  },async close(){servers.delete(origin);await runtime.dispose()}}
+  },async close(){servers.delete(origin);await runSite?.close();await runtime.dispose()}}
   servers.set(origin,server)
   return server
 }

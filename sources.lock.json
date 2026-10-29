@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8fbeb51897d939f4426ad782e0b250dff90ccf2850311397e6432afbe0ebd5cc",
+      "sha256": "ff3024d5c7a8dc0976d4c2b5839fe31bd779c050b2eef0313ab0eec78bdeae28",
       "executable": false
     },
     "DEMO.md": {
@@ -4392,11 +4392,11 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "509e5dd88d2db3b145734f59d937bab242becf363fea95b063f839868c3af4bf",
+      "sha256": "419239cf4f5058bfd1c1846cca644b677271bf2fcf3de0271567eb5f246f0e60",
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "33fcaa727e153d88ca6bb75b08aa01ee5b37b05bf3629c259b6a791cb621c6a2",
+      "sha256": "de92d22f0a46bc2f1701925ffe8f701b7e7bfdf26e22de0c8081fbc4080da589",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -6575,6 +6575,10 @@
       "sha256": "627b9a2314656ace74d51b2cb13dbf7b06f2766ecce8b87eb57497cba46e83be",
       "executable": false
     },
+    "tests/journeys/browser-cash-attachment.mjs": {
+      "sha256": "1c21c209d3d7b7b7c442b333d515512ff885def838277180c0dea983b457f881",
+      "executable": false
+    },
     "tests/journeys/browser-desktop-connection.mjs": {
       "sha256": "75a5f77346a9e2d1fc43d69aec575111c2477c9ca12b06beadc624c4c134bda3",
       "executable": false
@@ -6703,6 +6707,10 @@
       "sha256": "e725d41ce118268c9292b5e691f0b842027eb41dcc0be1e6019dd9f8c0c78722",
       "executable": false
     },
+    "tests/journeys/screens-cash-attachment.mjs": {
+      "sha256": "08cedf34b383a29e18ae6eaa588d274bbe6fcf5eb83fdf46e98ebd01ad342723",
+      "executable": false
+    },
     "tests/journeys/screens-reading.mjs": {
       "sha256": "e0725bbb5a603f23152d2be3f5df2bd1c4beaf11fe5ba62b02bf3151f9db863f",
       "executable": false
@@ -6729,10 +6737,6 @@
     },
     "tests/journeys/specialized-handoff.mjs": {
       "sha256": "b78f091750d36d2a9789b9bb31252f1c1514ac115fa0c442d7403c75597419c8",
-      "executable": false
-    },
-    "tests/journeys/specialized-lifecycle.mjs": {
-      "sha256": "0291f379550f58e6652b7c42f6cd789e0be23d2acca9edafee98de4b3087a268",
       "executable": false
     },
     "tests/journeys/specialized-per-diem.mjs": {
