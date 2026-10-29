@@ -4376,7 +4376,7 @@
       "executable": false
     },
     "tests/browser-journey.mjs": {
-      "sha256": "fbf551a7e60736a893ab1e6cebd5f37150cf3092b52df88e5f163c29422ea339",
+      "sha256": "696184c692ae4e6052e2cf1694eb400027bafde86774660fcf37e6afbaae24f1",
       "executable": false
     },
     "tests/browser-per-diem.mjs": {
@@ -4392,11 +4392,11 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "54d92ed88741733917616b9a0da16706a3a3fba7bafe7ae354488a0b59cf8e11",
+      "sha256": "fd24e889dd95a400a110ec28b42637520ef9df33d2bcd4c5ecf50d6d13f953a8",
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "ffac918e752324afe1d09fb0cec63ecf9bc8606371622da382a08b5024bbc967",
+      "sha256": "8ffe5d296695ecbe366187fa701e6ae4683d53ccf2349ad7d550166ee8e3d3ff",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {

@@ -93,7 +93,7 @@ try {
   assert.equal((await fetch(server.origin+'/health')).status,200)
   assert.equal((await fetch(server.origin+'/api/coaster/state')).status,401)
   await server.close();server=undefined
-  const dry=await command(root,['deploy','--dry-run'],{expected:3,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <coaster@harbourfinch.example>'}})
+  const dry=await command(root,['deploy','--dry-run'],{expected:3,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <synthetic-coaster-1@coaster.local>'}})
   assert.match(dry,/Your application is built/)
   assert.match(dry,/cannot read the target secret bindings without Cloudflare credentials/)
   assert.doesNotMatch(dry.slice(dry.indexOf('Needed for a real deploy')),/sign-in mail|MAIL_API_KEY/)

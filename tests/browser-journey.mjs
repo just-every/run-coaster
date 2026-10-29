@@ -14,7 +14,7 @@ export const PEOPLE = { employee: 'employee@dev.localhost', manager: 'manager@de
 /** A signed-in browser context for a dev persona or the owner; the owner finishes first-run setup once. */
 export async function session(browser, root, origin, as, width) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, acceptDownloads: true })
-  await signIn(context, origin, as === 'owner' ? 'owner@harbourfinch.example' : PEOPLE[as])
+  await signIn(context, origin, as === 'owner' ? 'owner@harbourfinch.example' : PEOPLE[as], {invitation:as!=='owner'})
   const page = await context.newPage()
   await page.goto(origin + '/app')
   if (page.url().endsWith('/setup')) {

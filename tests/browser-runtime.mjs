@@ -88,7 +88,7 @@ export async function startCli(root,port,mode='dev'){
   }catch(error){await close();throw error}
 }
 function assertMail(request){if(request.url!=='https://api.resend.com/emails'||request.method!=='POST')throw new Error('Unexpected browser-journey egress')}
-export async function signIn(context,origin,email){
+export async function signIn(context,origin,email,{invitation=false}={}){
   const server=servers.get(origin),saved=server.sessions.get(email)
   if(saved){
     await context.addCookies(saved)
@@ -96,9 +96,13 @@ export async function signIn(context,origin,email){
     if(current.operator?.email!==email)throw new Error('The reused native session has the wrong identity')
     return
   }
-  const response=await context.request.post(origin+'/auth/magic-link',{headers:{origin},data:{email}})
-  if(response.status()!==202)throw new Error('Native email-link request refused')
-  const message=server.messages.findLast(m=>m.to.includes(email))
+  const before=server.messages.length
+  if(!invitation){
+    const response=await context.request.post(origin+'/auth/magic-link',{headers:{origin},data:{email}})
+    if(response.status()!==202)throw new Error('Native email-link request refused')
+  }
+  const messages=invitation?server.messages:server.messages.slice(before)
+  const message=messages.findLast(m=>m.to.includes(email)&&/\/auth\/confirm\?token=/.test(m.text))
   if(!message)throw new Error('Native sign-in mail missing for synthetic member')
   const link=message.text.match(/http:\/\/[^\s]+\/auth\/confirm\?token=[^\s]+/)[0]
   const confirmed=await context.request.post(origin+'/auth/confirm',{headers:{origin},data:{token:new URL(link).searchParams.get('token')},maxRedirects:0})
