@@ -1,3 +1,6 @@
+import { preserveWorkflow } from './journeys/specialized-workflow.mjs'
+import { preserveWorkflowLifecycle } from './journeys/specialized-workflow-lifecycle.mjs'
+import { preserveFinanceDelegation } from './journeys/specialized-finance-delegation.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { agency, harness, receipt } from './harness.mjs'
@@ -29,7 +32,11 @@ const approve = (h, c, cookie, extra = {}) => h.post(`claims/${c.id}/decision`, 
 const csvRows = text => text.trim().split('\r\n').map(row => row.split('\",\"').map(cell => cell.replace(/^\"|\"$/g, '')))
 const csvTotal = text => { const [header, ...rows] = csvRows(text); return Math.round(rows.reduce((total, row) => total + Number(row[header.indexOf('amount')]) * 100, 0)) }
 
-test('APPROVE-001 owner configures three conditional paths; frozen reviews finish once and reimburse exactly the approved total', () => withAgency(async (h, t) => {
+test('APPROVE-001 owner configures three conditional paths; frozen reviews finish once and reimburse exactly the approved total', async () => {
+  await preserveWorkflow()
+  await preserveWorkflowLifecycle()
+  await preserveFinanceDelegation()
+  await (() => withAgency(async (h, t) => {
   const department=await h.post('settings/departments',{name:'Sales',head:HEAD})
   await h.post('settings/members',{email:SAM,name:'sam',employee:true,approver:PRIYA,department:department.id})
   const rules = conditionalRules()
@@ -130,4 +137,5 @@ test('APPROVE-001 owner configures three conditional paths; frozen reviews finis
   assert.equal(reviewed.status,'approved')
   await h.post(`delegates/${grant.id}/revoke`,{},t.priya)
 
-}))
+}))()
+})

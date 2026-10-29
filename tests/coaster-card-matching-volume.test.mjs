@@ -1,3 +1,4 @@
+import { preserveCardReporting1 } from './journeys/card-reporting-1.mjs'
 // FEED-004 combined statement-to-receipt journey; only ECB is faked at the provider edge.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -38,7 +39,9 @@ function auditFiles(bytes) {
   return files
 }
 
-test('FEED-004 twenty posted USD charges and opted-in originals yield eighteen automatic matches, two questions, a human answer, permanent undo and exported EUR basis',async()=>{
+test('FEED-004 twenty posted USD charges and opted-in originals yield eighteen automatic matches, two questions, a human answer, permanent undo and exported EUR basis', async () => {
+  await preserveCardReporting1()
+  await (async()=>{
   const h=await harness({fxRates:'<Cube><Cube time="2026-10-02"><Cube currency="USD" rate="1.1"/></Cube></Cube>'})
   try {
     const t=await agency(h)
@@ -131,4 +134,5 @@ test('FEED-004 twenty posted USD charges and opted-in originals yield eighteen a
     for(const value of ['Matched receipt: EUR 80.00','Reference conversion: $88.00','Posted card amount: $90.00','Exchange rate: 1 EUR = 1.1 USD','Rate date: 2026-10-02','Source: ECB reference rates']) assert.ok(visible.includes(value),value)
 
   } finally {await h.close()}
+})()
 })

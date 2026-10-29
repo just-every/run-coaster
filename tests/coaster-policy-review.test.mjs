@@ -1,3 +1,4 @@
+import { preservePolicyAgent1 } from './journeys/policy-agent-1.mjs'
 // AGENT-005 advisory slice: real native sessions, Worker and D1 public doors.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -27,7 +28,9 @@ const lunchReading=(date='2026-10-02')=>{
  return Response.json({status:'completed',model:'synthetic-coaster-6101',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(fields)}]}],usage:{input_tokens:1,output_tokens:1,total_tokens:2}});
 };
 
-test('AGENT-005 a fully evidenced reimbursable lunch completes once on the owner behalf and its accounting line retains the agent and envelope version',async()=>{
+test('AGENT-005 a fully evidenced reimbursable lunch completes once on the owner behalf and its accounting line retains the agent and envelope version', async () => {
+  await preservePolicyAgent1()
+  await (async()=>{
  const h=await harness({bindings:{AI_ENABLED:'true',AI_API_KEY:'synthetic-coaster-6300'},aiEdge:async()=>lunchReading()});
  try{
  const t=await cardReviewSetup(h);
@@ -61,4 +64,5 @@ test('AGENT-005 a fully evidenced reimbursable lunch completes once on the owner
  const expense=await h.post(`claims/${next.id}/items`,{version:next.version,kind:'receipt',date:'2026-10-03',merchant:'Lunch',amount:'60.00',category:t.c.meals,explanation:'Manual review'},t.sam);
  assert.equal((await h.post(`claims/${expense.id}/submit`,{version:expense.version},t.sam)).status,'submitted');
  }finally{await h.close()}
+})()
 })

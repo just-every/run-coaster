@@ -1,3 +1,5 @@
+import { preserveReceiptSignals1 } from './journeys/receipt-signals-1.mjs'
+import { cleanSignalMeasurement } from './journeys/receipt-signal-population.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
@@ -12,7 +14,10 @@ const upload=async(h,who,claim,record,bytes=makeReceipt(record))=>{
  return h.post(`claims/${claim.id}/items`,{version:r.claim.version,kind:'receipt',date:record.date,merchant:record.merchant,amount:String(record.amount),receipt:r.receipt,allocations:[{category:record.category}]},who)
 }
 
-test('Finance investigates related split and edited receipts across employees without contacting them or changing payment, and records a human outcome',async()=>{
+test('Finance investigates related split and edited receipts across employees without contacting them or changing payment, and records a human outcome', async () => {
+  await preserveReceiptSignals1()
+  await cleanSignalMeasurement()
+  await (async()=>{
  const h=await harness();try{
   const t=await agency(h)
   await imageSignalCases(h,t)
@@ -51,4 +56,5 @@ test('Finance investigates related split and edited receipts across employees wi
   await h.paid(batch.id,batch.version,{reference:'synthetic-coaster-693',paidOn:'2026-06-20'},t.morgan)
   assert.equal((await h.get(`claims/${edited.id}`,t.morgan)).claim.status,'reimbursed')
  }finally{await h.close()}
+})()
 })

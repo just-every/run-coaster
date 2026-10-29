@@ -1,3 +1,5 @@
+import { preserveCardCustody1 } from './journeys/card-custody-1.mjs'
+import { preserveCardCustody2 } from './journeys/card-custody-2.mjs'
 // FEED-002 statement-file import and the FEED-004 card-expense gates, through the public HTTP API with real native
 // sessions, workerd and D1. Fixtures are synthetic; no outbound request is made.
 import { test } from 'node:test'
@@ -9,7 +11,10 @@ const SAM = 'sam@harbourfinch.example', ALEX = 'alex@harbourfinch.example', ISSU
 const fixture = name => readFile(`tests/fixtures/statements/${name}`, 'utf8')
 async function withAgency(run) { const h = await harness(); try { await run(h, await agency(h)) } finally { await h.close() } }
 
-test('FEED-005 a statement with one missing charge and one refund is reconciled line by line, closed into the card ledger at the statement balance, grouped into a statement report that submits on schedule', () => withAgency(async (h, t) => {
+test('FEED-005 a statement with one missing charge and one refund is reconciled line by line, closed into the card ledger at the statement balance, grouped into a statement report that submits on schedule', async () => {
+  await preserveCardCustody1()
+  await preserveCardCustody2()
+  await (() => withAgency(async (h, t) => {
   const CARD = '2222', audrey = await h.person('audrey@harbourfinch.example', { auditor: true }), sent = h.outbound.length
   await h.post('statements/cards', { issuer: ISSUER, last4: CARD, employee: SAM }, h.owner)
   const earlier = { format: 'qfx', name: 'early-september.qfx', issuer: ISSUER, category: t.c.office, content: await fixture('reconcile-earlier.qfx') }
@@ -78,4 +83,5 @@ test('FEED-005 a statement with one missing charge and one refund is reconciled 
   await (await h.mf.getWorker()).scheduled({ scheduledTime: new Date('2026-10-04T22:17:00Z'), cron: '17 * * * *' })
   const submitted = (await h.get('state', t.sam)).claims.filter(c => c.title.startsWith('Card statement'))
   assert.deepEqual(submitted.map(c => [c.title, c.status, c.total_minor]).sort(), [['Card statement · Synthetic Card ····2222 · 2026-09-09', 'submitted', 0], ['Card statement · Synthetic Card ····2222 · 2026-09-30', 'submitted', 0]])
-}))
+}))()
+})

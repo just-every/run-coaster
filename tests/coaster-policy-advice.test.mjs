@@ -1,3 +1,4 @@
+import { preservePolicyAdvice } from './journeys/specialized-policy-advice.mjs'
 // AGENT-003 through signed-in HTTP doors and the real policy/claim lifecycle.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -24,6 +25,8 @@ async function fixture(h, financeOnly=false) {
 }
 
 test('AGENT-003 finance replays approved recurring exceptions with affected claims and an explicit hours estimate; owner adoption changes today’s policy only', async () => {
+  await preservePolicyAdvice()
+  await (async () => {
   const h=await harness()
   try {
     const t=await fixture(h), request={minutesPerException:4}
@@ -64,4 +67,5 @@ test('AGENT-003 finance replays approved recurring exceptions with affected clai
     const audit=(await h.get('history')).lines.find(e=>e.action==='policy-advice-adopted')
     assert.ok(audit,'adoption is recorded in append-only history')
   } finally {await h.close()}
+})()
 })

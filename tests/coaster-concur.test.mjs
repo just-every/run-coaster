@@ -1,3 +1,4 @@
+import { preserveConcurCustody1 } from './journeys/concur-custody-1.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -16,7 +17,9 @@ async function historyInput(category,email='concur-employee@harbourfinch.example
  return {source:'concur',csv:(await fixture(layout==='sae-v4'?'sae-v4.txt':'accounting.csv')).toString(),filename:layout==='sae-v4'?'concur-accounting.txt':'concur-accounting.csv',mapping:{layout,employees:{'EMP-17':email},categories:{'Business Meals':category}},receipts:{archive:{name:'concur-receipts.zip',base64:(await fixture('receipts.zip')).toString('base64')}}}
 }
 
-test('MOVE-002 owner previews, maps and imports Concur configuration and allocated SAE history with indexed receipts; native policy and chain work and undo compensates without rewriting history',async()=>{
+test('MOVE-002 owner previews, maps and imports Concur configuration and allocated SAE history with indexed receipts; native policy and chain work and undo compensates without rewriting history', async () => {
+  await preserveConcurCustody1()
+  await (async()=>{
  const h=await harness();try{
  const team=await setup(h)
  await h.post('policy',{rules:[{kind:'blocked-merchant',merchant:'Personal vendor',hard:true}]})
@@ -62,4 +65,5 @@ test('MOVE-002 owner previews, maps and imports Concur configuration and allocat
  assert.ok((await h.get('state')).members.some(m=>m.member_id===person.member_id&&m.active===1))
  assert.ok((await h.get('state')).categories.some(c=>c.id===cat.id),'used native category survives undo')
  }finally{await h.close()}
+})()
 })

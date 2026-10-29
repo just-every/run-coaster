@@ -1,3 +1,5 @@
+import { preserveAdministration } from './journeys/specialized-admin.mjs'
+import { preserveSuccessorHandoff } from './journeys/specialized-handoff.mjs'
 // ADMIN-001 people, roles, departments and the permission matrix, through the public HTTP API with real native
 // sessions, workerd and D1. The matrix journey reads the role permission matrix out of CONTRACT.md itself.
 import { createHash, generateKeyPairSync } from 'node:crypto'
@@ -46,7 +48,10 @@ const statement = (n, category) => ({ format: 'ofx', name: `matrix-${n}.ofx`, is
   `<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260610<TRNAMT>-${(10 + n).toFixed(2)}<FITID>MATRIX-${n}<NAME>Matrix supplies ${n}</STMTTRN>`, '</BANKTRANLIST>',
   `<LEDGERBAL><BALAMT>-${(10 + n).toFixed(2)}<DTASOF>20260630</LEDGERBAL>`, '</CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>', ''].join('\n') })
 
-test('ADMIN-001 the permission matrix: each role as a single-role person succeeds at every permitted cell through its public route and is refused every other with 403 and no write', () => {
+test('ADMIN-001 the permission matrix: each role as a single-role person succeeds at every permitted cell through its public route and is refused every other with 403 and no write', async () => {
+  await preserveAdministration()
+  await preserveSuccessorHandoff()
+  await (() => {
  const qbo = qboFixture()
  return withAgency(async (h, t) => {
   const cookie = { Owner: h.owner }
@@ -188,4 +193,5 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
   assert.equal((await send('delegates', { grantor: 'owner@harbourfinch.example', delegate: ALEX, level: 'full' }, cookie.Admin)).status, 403)
   assert.equal((await send('settings/members', { email: MORGAN, name: 'morgan', employee: true, finance: true, release: true, approver: PRIYA }, cookie.Admin)).status, 403)
  }, { qboEdge: qbo.fetch, bindings: qbo.bindings })
+})()
 })

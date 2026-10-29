@@ -1,3 +1,4 @@
+import { preservePolicy } from './journeys/specialized-policy.mjs'
 // POLICY-001 public API journeys with native sessions and real D1/workerd.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -12,7 +13,9 @@ async function claim(h, cookie, title, items) {
 const submit = (h, cookie, d) => h.post(`claims/${d.claim.id}/submit`, { version: d.claim.version }, cookie)
 const approve = (h, cookie, c, extra = {}) => h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', ...extra }, cookie)
 
-test('POLICY-001 finance publishes versioned rules: a soft daily meal limit, a hard blocked merchant and a hard 90-day deadline fire naming their version, and a later version leaves older claims on theirs', () => withAgency(async (h, t) => {
+test('POLICY-001 finance publishes versioned rules: a soft daily meal limit, a hard blocked merchant and a hard 90-day deadline fire naming their version, and a later version leaves older claims on theirs', async () => {
+  await preservePolicy()
+  await (() => withAgency(async (h, t) => {
   await h.post('settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', perDiem: '75.00', receiptThreshold: '500.00' })
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   const ago = n => new Date(Date.parse(today + 'T00:00:00Z') - n * 86_400_000).toISOString().slice(0, 10)
@@ -46,4 +49,5 @@ test('POLICY-001 finance publishes versioned rules: a soft daily meal limit, a h
   assert.deepEqual([kept.exceptions.map(e => e.policy), kept.decisions.at(-1).exceptions.map(e => e.policy)], [[baseline + 1, baseline + 1], [baseline + 1, baseline + 1]], 'the approved claim keeps the version it was decided under')
   assert.deepEqual((await h.get('policy', t.morgan)).versions.filter(v => v.version > baseline).map(v => [v.version - baseline, v.rules.map(r => r.kind)]), [[3, ['blocked-merchant']], [2, ['daily-limit']], [1, ['daily-limit', 'blocked-merchant', 'deadline']]])
   await assert.rejects(h.db.prepare('UPDATE c_policies SET rules=? WHERE version=1').bind('[]').run(), /permanent/, 'published versions never change')
-}))
+}))()
+})

@@ -1,3 +1,5 @@
+import { preserveReceiptCustody1 } from './journeys/receipt-custody-1.mjs'
+import { preserveReceiptCustody2 } from './journeys/receipt-custody-2.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -29,7 +31,10 @@ async function download(h,cookie,id,status = 200,headers = {}) {
   return { bytes: Buffer.from(await response.arrayBuffer()),mediaType: response.headers.get('content-type') }
 }
 
-test('CAPTURE-001 thirty mixed uploads retain exact originals and provenance in a private inbox, including an 8 MB three-page PDF and HEIC; one refusal leaves valid files intact',async () => {
+test('CAPTURE-001 thirty mixed uploads retain exact originals and provenance in a private inbox, including an 8 MB three-page PDF and HEIC; one refusal leaves valid files intact', async () => {
+  await preserveReceiptCustody1()
+  await preserveReceiptCustody2()
+  await (async () => {
   const h = await harness()
   try {
     const team = await agency(h), before = Date.now()
@@ -143,4 +148,5 @@ test('CAPTURE-001 thirty mixed uploads retain exact originals and provenance in 
     await worker.scheduled({scheduledTime:future,cron:'17 * * * *'})
     assert.deepEqual((await h.get('receipt-inbox',team.sam)).receipts.filter(r=>r.cashDraft).map(r=>r.cashDraft.claim_id),draftIds)
   } finally { await h.close() }
+})()
 })

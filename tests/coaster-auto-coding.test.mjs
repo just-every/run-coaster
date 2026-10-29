@@ -1,3 +1,4 @@
+import { preserveAutomaticCoding1 } from './journeys/automatic-coding-1.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { harness } from './harness.mjs'
@@ -5,7 +6,9 @@ import { harness } from './harness.mjs'
 import { n, path, fixture, setup, manual, simplified } from './automatic-coding-quality.mjs'
 
 async function withSetup(run){const h=await harness();try{await run(h,await setup(h))}finally{await h.close()}}
-test('CODE-002 labeled 120-charge and 120-receipt corpus measures finance-rule exact coding and twelve-month repeat learning through native public doors',()=>withSetup(async(h,t)=>{
+test('CODE-002 labeled 120-charge and 120-receipt corpus measures finance-rule exact coding and twelve-month repeat learning through native public doors', async () => {
+  await preserveAutomaticCoding1()
+  await (()=>withSetup(async(h,t)=>{
   const claims={}
   for(const key of ['sam','alex','bea'])claims[key]=await h.post('claims',{title:n(7000+['sam','alex','bea'].indexOf(key))},t[key])
   for(const row of fixture.history)claims[row.employee]=await manual(h,t,row,claims[row.employee])
@@ -84,4 +87,5 @@ test('CODE-002 labeled 120-charge and 120-receipt corpus measures finance-rule e
   const other=await t.statement([{id:n(8205),merchant,amount:'3.03'}],'2222'),another=await h.get(`claims/${other.claims[0]}`,t.alex)
   assert.deepEqual(simplified(another.items.at(-1).codingSuggestions.at(-1).fields,t),{category:0,class:0,project:0})
   }
-}))
+}))()
+})

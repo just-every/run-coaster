@@ -1,3 +1,9 @@
+import { preserveClaimSpine } from './journeys/claim-spine.mjs'
+import { preserveOperationsLifecycle } from './journeys/operations-lifecycle.mjs'
+import { preserveOperationsFinance } from './journeys/operations-finance.mjs'
+import { preserveOperationsCustody } from './journeys/operations-custody.mjs'
+import { preservePerDiem } from './journeys/specialized-per-diem.mjs'
+import { preserveForeignImports } from './journeys/specialized-fx-imports.mjs'
 import { proveCardEvidenceReminders, proveCardEvidenceCompletion, proveCardEvidenceEscalations } from './card-chases.mjs';
 // Complete business journeys through the public HTTP API
 // with real native sessions, workerd and D1.
@@ -512,7 +518,10 @@ test('RETAIN-001 paid and rejected claims past the owner\'s retention are propos
 
 // A single expense lifecycle carries identity, custody, revisions, delegation,
 // policy, money and audit evidence all the way to the employee's paid claim.
-test('A proposed receipt becomes a corrected, reviewed and paid claim exactly once, with private drafts and immutable evidence', () => withAgency(async (h,t) => {
+test('A proposed receipt becomes a corrected, reviewed and paid claim exactly once, with private drafts and immutable evidence', async () => {
+  await preserveClaimSpine()
+  await preserveOperationsLifecycle()
+  await (() => withAgency(async (h,t) => {
   await h.post('settings/business',{name:'Taken over',timezone:'Australia/Sydney'},t.sam,403)
   const key=await h.post('agent-keys',{label:'Receipt preparation'},t.sam),bearer={authorization:`Bearer ${key.token}`}
   const proposal=await h.send('/api/coaster/agent/claims',{title:'Client workshop',items:[{kind:'receipt',date:'2026-06-10',merchant:'Workshop supplies',amount:'180.00',allocations:[{category:t.c.meals,amount:'100.00'},{category:t.c.travel,amount:'80.00'}],receipt:await receipt('bistro')}]},'',bearer)
@@ -604,9 +613,11 @@ test('A proposed receipt becomes a corrected, reviewed and paid claim exactly on
   const eligible=await claim(h,t.alex,'Compliant taxi',[{kind:'receipt',date:'2026-06-16',merchant:'Compliant taxi',amount:'12.00',receiptFixture:'uber',allocations:[{category:t.c.travel}]}])
   assert.equal((await submit(h,t.alex,eligible)).status,'approved','the owner rule completes a compliant expense without a human decision')
 
-}))
-
-test('Finance closes the books with reconciled exports, spend, budgets, reports and an independent audit', () => withAgency(async (h, t) => {
+}))()
+})
+test('Finance closes the books with reconciled exports, spend, budgets, reports and an independent audit', async () => {
+  await preserveOperationsFinance()
+  await (() => withAgency(async (h, t) => {
   const one = await claim(h, t.sam, 'Perth pitch', [{ kind: 'receipt', date: '2026-06-04', merchant: 'Qantas', amount: '412.00', allocations: [{ category: t.c.travel, amount: '400.00' }, { category: t.c.meals, amount: '12.00' }], receiptFixture: 'hotel' }])
   const two = await claim(h, t.alex, 'Studio paper', [{ kind: 'receipt', date: '2026-06-05', merchant: 'Officeworks', amount: '64.95', allocations: [{ category: t.c.office }], receiptFixture: 'officeworks' }])
   const a = await approve(h, t.priya, await submit(h, t.sam, one)), b = await approve(h, t.priya, await submit(h, t.alex, two))
@@ -709,9 +720,11 @@ test('Finance closes the books with reconciled exports, spend, budgets, reports 
   assert.equal(audit.status,200)
   assert.ok((await h.get('history',auditor)).lines.some(e=>e.action==='batch-reimbursed'))
   await h.post('claims',{title:'Auditors cannot write'},auditor,403)
-}))
-
-test('Migration previews exact source bytes, preserves read-only history, flags reclaims, undoes and reimports each incumbent', () => withAgency(async(h,t)=>{
+}))()
+})
+test('Migration previews exact source bytes, preserves read-only history, flags reclaims, undoes and reimports each incumbent', async () => {
+  await preserveOperationsCustody()
+  await (() => withAgency(async(h,t)=>{
   // Different column mappings exercise one migration behaviour in one installed business.
   // Imported history must never create payable claims.
   const sources=[
@@ -750,7 +763,10 @@ test('Migration previews exact source bytes, preserves read-only history, flags 
   }
 }, {fxRates:'<Cube><Cube time="2026-04-10"><Cube currency="USD" rate="1.1"/></Cube></Cube>'}))
 
-test('A US business pre-approves an itemized client trip, prices dated mileage and published per diem, then reimburses its exact tax and split lines',async()=>{
+test('A US business pre-approves an itemized client trip, prices dated mileage and published per diem, then reimburses its exact tax and split lines', async () => {
+  await preservePerDiem()
+  await preserveForeignImports()
+  await (async()=>{
   const h=await harness()
   try{
     await h.post('settings/business',{name:'Harbour & Finch US',timezone:'America/Chicago',salesTaxAccount:'2200',salesTaxCode:'TAX',preapprovalThreshold:'500.00'})
@@ -817,4 +833,6 @@ test('A US business pre-approves an itemized client trip, prices dated mileage a
     await h.paid(batch.id,batch.version,{reference:'CHICAGO-TRIP',paidOn:'2026-06-15'},t.morgan)
     assert.equal((await h.get(`claims/${c.id}`,t.sam)).claim.status,'reimbursed')
   }finally{await h.close()}
+})()
+})()
 })
