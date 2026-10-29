@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
+import { validateLiabilityArchive } from './liability-archive.mjs';
 import { validateCaptureArchive } from './capture-archive.mjs';
 import { validateAutomaticCodingArchive } from './automatic-coding-archive.mjs';
 import { validateProgramFeedArchive } from './program-feed-archive.mjs';
@@ -20,7 +21,7 @@ export async function validateCoasterArchive(read, manifest) {
   const claimIds = new Set(claims.map(c => c.id)), itemIds = new Set(items.map(i => i.id));
   for (const claim of claims) {
     const own = items.filter(i => i.claim_id === claim.id);
-    check(claim.total_minor === own.reduce((n, i) => n + (i.card_charge_id ? 0 : i.amount_minor), 0), 'claim_total');
+    check(claim.total_minor === own.reduce((n, i) => n + (!i.card_charge_id || i.card_liability==='individual'&&i.card_personal===0 ? i.amount_minor : 0), 0), 'claim_total');
     check(claim.revision === revisions.filter(r => r.claim_id === claim.id).length, 'claim_revisions');
   }
   for (const item of items) {
@@ -94,6 +95,7 @@ export async function validateCoasterArchive(read, manifest) {
       check(owed===st.statement_minor,'card_statement');
     }
   }
+  await validateLiabilityArchive(read);
   await validateCaptureArchive(read, manifest);
   await validateCodingArchive(read);
   await validateAutomaticCodingArchive(read);

@@ -39,6 +39,7 @@ function matchBasis(item: D) {
 }
 
 function merchantLine(item: D, currency: string) {
+  if (item.card_charge_id && item.card_liability === 'individual') return `${item.merchant} · individual liability ····${item.card_last4} · ${item.card_personal ? 'personal, excluded from reimbursement' : 'business, reimbursable to employee'}`;
   if (item.card_charge_id) return `${item.merchant} · company card ····${item.card_last4} · paid by the company, not reimbursed`;
   if (item.kind === 'mileage') return `${item.merchant} · ${item.distance_hundredths / 100} mi at ${rate(item.rate_thousandths, currency)}`;
   if (item.per_diem) return `${item.merchant} · ${plural(item.days, 'day')} · ${item.per_diem.method} allowance`;
@@ -124,7 +125,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
           {(flags.length > 0 || editable) && <span className="line-extra">
             {flags.map((f: D) => <Warning key={f.code}>{exceptionWords[f.code] ?? f.code}</Warning>)}
             {flags.length > 0 && item.explanation && <span className="explanation">Explanation: {item.explanation}</span>}
-            {editable && <span className="line-actions">{item.kind !== 'stipend' && <button className="button small" onClick={() => setEditing(item.id)} aria-label={`Change ${item.merchant}`}>Change</button>}{!item.card_charge_id && <button className="button small" aria-label={`Remove ${item.merchant}`} onClick={async () => { try { await call(`claims/${claim.id}/items/remove`, { version: claim.version, item: item.id }); await done(); } catch (e) { setError((e as Error).message); } }}>Remove</button>}</span>}
+            {editable && <span className="line-actions">{item.card_liability === 'individual' && !state.actor.delegate && <button className="button small" aria-label={`${item.card_personal ? 'Mark business' : 'Mark personal'} ${item.merchant}`} onClick={async () => { try { await call(`claims/${claim.id}/items/classify`, {version:claim.version,item:item.id,personal:!item.card_personal}); await done(); } catch (e) { setError((e as Error).message); } }}>{item.card_personal ? 'Mark business' : 'Mark personal'}</button>}{item.kind !== 'stipend' && <button className="button small" onClick={() => setEditing(item.id)} aria-label={`Change ${item.merchant}`}>Change</button>}{!item.card_charge_id && <button className="button small" aria-label={`Remove ${item.merchant}`} onClick={async () => { try { await call(`claims/${claim.id}/items/remove`, { version: claim.version, item: item.id }); await done(); } catch (e) { setError((e as Error).message); } }}>Remove</button>}</span>}
           </span>}
         </li>;
       })}</ul> : <Empty title="No expenses yet">{editable ? 'Add each expense with its receipt; mileage is priced at the rate for its date.' : null}</Empty>}
