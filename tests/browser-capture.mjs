@@ -12,7 +12,7 @@ export async function captureJourney(browser,root,origin,width,evidence,shots){
   const employee=await session(browser,root,origin,'employee',width),{page,context}=employee
   try{
     await page.goto(origin+'/app#/claims')
-    const inbox=page.getByRole('region',{name:'Receipt inbox',exact:true}),bytes=await readFile('tests/fixtures/receipts/bistro.png'),name='phone-bistro.png'
+    const inbox=page.getByRole('region',{name:'Receipt inbox',exact:true}),bytes=await readFile('tests/fixtures/receipts/bistro.png'),name='phone-bistro-smoke.png'
     await inbox.getByLabel('Photograph a receipt',{exact:true}).setInputFiles({name,mimeType:'image/png',buffer:bytes})
     const link=inbox.getByRole('link',{name,exact:true});await link.waitFor()
     const original=(await api(context,origin,'receipt-inbox')).receipts.find(r=>r.name===name)
