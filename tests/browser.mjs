@@ -1,5 +1,5 @@
-// Native sign-in, claim-to-payment and per diem at 1440, one phone receipt smoke,
-// then setup upgrade, erasure and the real CLI archive/restore/reset doors.
+// Native claim-to-payment and published per diem at both widths, followed by
+// immutable archive recovery and the folded receipt, card and provider journeys.
 // The emitted production Worker is built once by verify:app and shared by CI.
 import { queuedEntrypoint } from '@runeditrun/rer/queued-entry'
 const queued = await queuedEntrypoint(import.meta.url, 'test:coaster-browser'); if (queued !== null) process.exit(queued)
@@ -8,12 +8,25 @@ import assert from 'node:assert/strict'
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { execFileSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
-import { command, fresh, freePort, report, start } from './browser-runtime.mjs'
+import { command, fresh, freePort, report, start, startCli } from './browser-runtime.mjs'
 import { PEOPLE, api, eraseEmployee, journey, ownerScreens, session, setUp } from './browser-journey.mjs'
 import { perDiemJourney } from './browser-per-diem.mjs'
 import { captureJourney, assertRestoredInbox } from './browser-capture.mjs'
 import { prepareArchiveData } from './archive-data.mjs'
 import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows } from './browser-archive.mjs'
+
+// Every phase remains reachable through this public browser test entry point.
+const phases = {
+  matching: async () => (await import('./journeys/browser-matching.mjs')).runMatchingJourney(),
+  capture: async () => (await import('./journeys/browser-receipt-custody.mjs')).runReceiptCustodyJourney({evidence:resolve(process.env.COASTER_EVIDENCE??'.cache/receipt-custody-proof')}),
+  'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
+  'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),
+  signals: async () => (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney(),
+  desktop: async () => (await import('./journeys/browser-desktop-connection.mjs')).runDesktopConnectionJourney(),
+}
+const selected = process.env.COASTER_BROWSER_JOURNEY
+assert.ok(!selected || selected === 'core' || Object.hasOwn(phases,selected),'unknown browser journey')
+if(selected && selected !== 'core') { await phases[selected](); process.exit(0) }
 
 const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/coaster-browser-proof')
 await mkdir(evidence, { recursive: true })
@@ -35,12 +48,15 @@ async function everything(context, origin) {
   return { claims, batches, imported, cutover, members: state.members, categories: state.categories, business: state.business }
 }
 try {
-  root = await fresh()
-  // CI has installed the pinned dependencies and built this exact source once.
+  root = await fresh({clone:true})
+  await command(root, ['install'])
   const port = await freePort()
   await command(root, ['setup', '--owner-email', 'owner@harbourfinch.example', '--port', String(port)])
   await command(root, ['check'])
   await command(root, ['describe'])
+  server = await startCli(root, port)
+  assert.equal((await fetch(server.origin+'/health')).status,200)
+  await server.close(); server=undefined
   server = await start(root, port)
   const health=await fetch(server.origin+'/health');assert.equal(health.status,200);assert.equal((await health.json()).status,'ok')
   assert.equal((await fetch(server.origin)).status,200)
@@ -49,9 +65,10 @@ try {
   browser = await launch()
   const owner = await session(browser, root, server.origin, 'owner', 1440)
   await setUp(owner, server.origin)
-  journeys.push(await journey(browser, root, server.origin, 1440, evidence, shots))
+  for(const width of [1440,390])journeys.push(await journey(browser,root,server.origin,width,evidence,shots))
   await ownerScreens(owner, server.origin, 1440, evidence, shots, true)
-  journeys.push(await perDiemJourney(browser, root, server.origin, owner, 1440, evidence, shots))
+  await ownerScreens(owner,server.origin,390,evidence,shots,false)
+  for(const width of [1440,390])journeys.push(await perDiemJourney(browser,root,server.origin,owner,width,evidence,shots))
   // The sole phone smoke photographs a receipt, reads its provenance and privately discards it.
   await captureJourney(browser, root, server.origin, 390, evidence, shots)
   const captureEmployee = await session(browser, root, server.origin, 'employee', 1440)
@@ -59,9 +76,20 @@ try {
   const capturedInbox = (await api(captureEmployee.context, server.origin, 'receipt-inbox')).receipts
   await captureEmployee.context.close()
   const before = await everything(owner.context, server.origin)
-  assert.equal(before.batches.length, 2); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
+  assert.equal(before.batches.length, 4); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
   await owner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
 
+  // Repeated setup, the actual build/preview verbs and the credential-free dry-run refusal.
+  await command(root,['setup','--owner-email','owner@harbourfinch.example','--port',String(port)])
+  await command(root,['build'])
+  server=await startCli(root,port,'preview')
+  assert.equal((await fetch(server.origin+'/health')).status,200)
+  assert.equal((await fetch(server.origin+'/api/coaster/state')).status,401)
+  await server.close();server=undefined
+  const dry=await command(root,['deploy','--dry-run'],{expected:3,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <coaster@harbourfinch.example>'}})
+  assert.match(dry,/Your application is built/)
+  assert.match(dry,/cannot read the target secret bindings without Cloudflare credentials/)
+  assert.doesNotMatch(dry.slice(dry.indexOf('Needed for a real deploy')),/sign-in mail|MAIL_API_KEY/)
   const archive = join(evidence, 'installation.rer')
   await rm(archive, { force: true })
   await command(root, ['export', '--output', 'exports/installation.rer'])
@@ -131,3 +159,5 @@ try {
   if (second) await rm(second, { recursive: true, force: true })
   if (root) await rm(root, { recursive: true, force: true })
 }
+
+if(!selected)for(const run of Object.values(phases))await run()

@@ -135,6 +135,10 @@ jobs:
         run: pnpm run test:coaster
 
   browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        journey: [core, matching, capture, receipt-agents, policy-agent, signals, desktop]
     needs: [plan, app]
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
@@ -164,14 +168,15 @@ jobs:
         with:
           name: coaster-built-${{ github.sha }}
           path: dist
-      - name: Native sign-in, desktop lifecycle, one phone smoke and CLI recovery
+      - name: Native browser journey and CLI recovery
         env:
           COASTER_EVIDENCE: ${{ runner.temp }}/coaster-proof
+          COASTER_BROWSER_JOURNEY: ${{ matrix.journey }}
         run: pnpm run test:browser
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: coaster-browser-proof
+          name: coaster-browser-proof-${{ matrix.journey }}
           path: ${{ runner.temp }}/coaster-proof
 
   verify:

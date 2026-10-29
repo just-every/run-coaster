@@ -1,7 +1,7 @@
 // The browser runs the one emitted production Worker. Only external mail, bank
 // and AI transports are fixtures; sign-in uses ordinary invitations and email links.
 import { promisify } from 'node:util'
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { mkdtemp, cp, readFile, mkdir, readdir, symlink } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -13,8 +13,13 @@ import { bankFixture } from './fixtures/bank.mjs'
 const source=resolve(new URL('..',import.meta.url).pathname)
 const excluded=new Set(['.git','node_modules','.wrangler','.rer','.seed','.cache','.tanstack','exports','test-results'])
 const servers=new Map()
-export async function fresh(){
+export async function fresh({clone=false}={}){
   const root=await mkdtemp(join(tmpdir(),'coaster-installation-'))
+  if(clone){
+    await promisify(execFile)('git',['clone','--no-hardlinks','--quiet',source,root])
+    await cp(join(source,'dist'),join(root,'dist'),{recursive:true})
+    return root
+  }
   for(const name of await readdir(source)){
     if(excluded.has(name)||name.startsWith('.dev.vars')||name.startsWith('.env')||name.endsWith('.tsbuildinfo'))continue
     await cp(join(source,name),join(root,name),{recursive:true})
@@ -33,11 +38,12 @@ export async function command(root,args,{expected=0,env={}}={}){
   console.log(`rer ${args[0]}: exit ${expected}`)
   return clean(result.stdout+result.stderr)
 }
-export async function start(root,port){
+export async function start(root,port,{readingEdge}={}){
   const origin=`http://127.0.0.1:${port}`,messages=[]
   const plan=await productionPlan(root,origin,port),bank=bankFixture(),label=JSON.parse(await readFile('tests/fixtures/receipts/reader/synthetic-coaster-1001.json','utf8'))
   plan.workers[0].bindings={...plan.workers[0].bindings,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-browser-mail',MAIL_FROM:'Coaster <coaster@harbourfinch.example>',AI_ENABLED:'true',AI_API_KEY:'synthetic-archive-reader'}
   plan.workers[0].outboundService=async request=>{
+    if(readingEdge && request.url.startsWith(readingEdge.url + '/'))return fetch(request)
     if(new URL(request.url).hostname==='sandbox.plaid.com')return bank.fetch(request)
     if(new URL(request.url).hostname==='api.openai.com'){
       if(new URL(request.url).pathname!=='/v1/responses'||request.method!=='POST'||(await request.json()).store!==false)throw new Error('Receipt reading must use the declared no-store provider door')
@@ -50,9 +56,29 @@ export async function start(root,port){
   }
   const runtime=new Miniflare({...convertV4MiniflareOptions(plan),resourcePersistencePath:join(root,'.wrangler/state/v3')})
   try{await runtime.ready}catch(error){await runtime.dispose();throw error}
-  const server={origin,messages,providers:{bank,label},async close(){servers.delete(origin);await runtime.dispose()}}
+  const server={origin,messages,providers:{bank,label},async scheduled(time=Date.now()){
+    await (await runtime.getWorker()).scheduled({scheduledTime:time,cron:'17 * * * *'})
+    return Response.json({ok:true})
+  },async close(){servers.delete(origin);await runtime.dispose()}}
   servers.set(origin,server)
   return server
+}
+/** Exercise the installed CLI's own dev/preview readiness and shutdown doors. */
+export async function startCli(root,port,mode='dev'){
+  const entry=new URL(import.meta.resolve('@runeditrun/rer/internal/global/rer.mjs')).pathname
+  const child=spawn(process.execPath,[entry,mode,'--port',String(port),'--foreground'],{cwd:root,env:{...process.env,WRANGLER_SEND_METRICS:'false',RER_SERVER_JOURNEY:'1'},stdio:['ignore','pipe','pipe']})
+  let output=''
+  for(const stream of [child.stdout,child.stderr])stream.on('data',chunk=>{output+=chunk})
+  const close=async()=>{if(child.exitCode===null){const exited=new Promise(resolve=>child.once('exit',resolve));child.kill('SIGTERM');await exited}}
+  try{
+    const deadline=Date.now()+20*60*1000
+    while(!output.includes('RER_READY')&&Date.now()<deadline){
+      if(child.exitCode!==null)throw new Error(`${mode} exited: ${clean(output).slice(-4000)}`)
+      await new Promise(resolve=>setTimeout(resolve,250))
+    }
+    if(!output.includes('RER_READY'))throw new Error(`${mode} readiness timed out`)
+    return {origin:`http://127.0.0.1:${port}`,close}
+  }catch(error){await close();throw error}
 }
 function assertMail(request){if(request.url!=='https://api.resend.com/emails'||request.method!=='POST')throw new Error('Unexpected browser-journey egress')}
 export async function signIn(context,origin,email){

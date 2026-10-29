@@ -53,7 +53,7 @@ async function variant(name, tag, software) {
   await writeFile(path, Buffer.concat([software ? addTextMetadata(original, 'Software', software) : original, Buffer.from(`\n${tag}\n`)]))
   return path
 }
-const PLAN = { 1440: { bistro: '64.50', rockpool: '180.00', km: '142' } }
+const PLAN = { 1440: { bistro: '64.50', rockpool: '180.00', km: '142' }, 390: { bistro: '58.20', rockpool: '176.00', km: '96' } }
 const minor = text => Math.round(Number(text) * 100)
 
 const nav = (page, name) => page.getByRole('navigation', { name: 'Coaster' }).getByRole('link', { name, exact: true }).click()

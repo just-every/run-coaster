@@ -16,7 +16,9 @@ async function upload(h,cookie,name,bytes,{ source = 'upload', headers = {}, ext
   if (extra) for (const [key,value] of Object.entries(extra)) form.append(key,value)
   if (files) form.append('file',new Blob([bytes]),'another.png')
   const encoded = new Request(`${h.origin}/api/coaster/receipt-inbox`, { method: 'POST', headers: { origin: h.origin, cookie, ...headers }, body: form })
-  const response = await h.mf.dispatchFetch(encoded.url, { method: 'POST', headers: Object.fromEntries(encoded.headers), body: await encoded.arrayBuffer() })
+  // Submit the real multipart request to the Worker's HTTP door directly. A
+  // bounded refusal can cancel its body before the local TCP proxy finishes it.
+  const response = await (await h.mf.getWorker()).fetch(encoded)
   const value = await response.json()
   assert.equal(response.status,status,JSON.stringify(value))
   return value.receipt ?? value

@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "4af2b23b946ed78380ba5bee7b0df8015be2c2287205ad6a85d6a8d34b2024d7",
+      "sha256": "4da53e50967244760ed40b75190eebde87adedea9b9732ce6185900ec393bee6",
       "executable": false
     },
     ".gitignore": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6981ec745b021811c8dd7d6dea589c8e46328a8c14d681cb89584e0b4f6dc099",
+      "sha256": "8fbeb51897d939f4426ad782e0b250dff90ccf2850311397e6432afbe0ebd5cc",
       "executable": false
     },
     "DEMO.md": {
@@ -4368,7 +4368,7 @@
       "executable": false
     },
     "tests/browser-archive.mjs": {
-      "sha256": "6bd56c9648568eaf1e7f8f9c58c09d7aca982fa696d01ec7ac92ed68ead06c4f",
+      "sha256": "7fbc39e70debb0684cf392f3c51f2bfbafa69f21d39f121880e7b88725aafa16",
       "executable": false
     },
     "tests/browser-capture.mjs": {
@@ -4376,15 +4376,15 @@
       "executable": false
     },
     "tests/browser-journey.mjs": {
-      "sha256": "75e4703165126ed5d318ea913f5f63c137b14b82a5805ce340e1daf3e69f3f80",
+      "sha256": "451006b941b847672aa192f19e2b779093d70ea9098725aa69412585a572d612",
       "executable": false
     },
     "tests/browser-per-diem.mjs": {
-      "sha256": "e1e00c4a506969397edbd9b7e90d579e0e5d58ed8f8f23e011c51c3748e0f2c0",
+      "sha256": "5e1ece8b8018c6a445640b332fa5df0bb5618e5e0315ea15bdb0c3671444aae5",
       "executable": false
     },
     "tests/browser-policy-review.mjs": {
-      "sha256": "ca713cb8f0fdcda98552f911ed5e4ac64aa2e1f482802311ca88be18600a5cf4",
+      "sha256": "af905c6d0a3a7fd64c1f5cfbeb4ce9570076f52a9c13655a3390e0161c0a8c8f",
       "executable": false
     },
     "tests/browser-receipt-signals.mjs": {
@@ -4392,11 +4392,11 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "20d743aeff95d1d90d0399db65cb59bc2e8df2b7bce6e8225c6aa05294f2d9b2",
+      "sha256": "509e5dd88d2db3b145734f59d937bab242becf363fea95b063f839868c3af4bf",
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "d1aa377928453a50f5ad4a9b996354bdb3ffb74df6b6af8a6b8301a3c5e8088f",
+      "sha256": "33fcaa727e153d88ca6bb75b08aa01ee5b37b05bf3629c259b6a791cb621c6a2",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -4408,7 +4408,7 @@
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {
-      "sha256": "9797dbc10162fde694e4a2517d71f6412683aaf9d7ae3b4e7f411450b8d8ae04",
+      "sha256": "a6da5a77064fc0178174f247512a88cb1ecf72281bd8c74e798a6f6773b2bb4b",
       "executable": false
     },
     "tests/coaster-agents.test.mjs": {
@@ -4420,7 +4420,7 @@
       "executable": false
     },
     "tests/coaster-auto-coding.test.mjs": {
-      "sha256": "f482600a0d40158675553baa91ce06850ebe8496893608c1be1f5159974284f5",
+      "sha256": "08b0bc3e9649dcb26330ee403f3dbdcc148fa229c87ee44f20ef29a3eb70e767",
       "executable": false
     },
     "tests/coaster-bank.test.mjs": {
@@ -4428,15 +4428,15 @@
       "executable": false
     },
     "tests/coaster-capture.test.mjs": {
-      "sha256": "ef9b51fcc39d406f2cb26b94bf72bb76bd6e6b317095d91de78691802791a645",
+      "sha256": "364dd1a1256a7e12e47bc936276607cd2d32af79f35f2b2782a97d0067d7f5d9",
       "executable": false
     },
     "tests/coaster-card-matching-volume.test.mjs": {
-      "sha256": "5d07c20a22ea62f92266cfa1561260e8c53042eb3d695a51a95d30f3dbc1564b",
+      "sha256": "1ba7d81a2443128b8021c5a5562921dee6bc023df10caeed20548993d0468fd9",
       "executable": false
     },
     "tests/coaster-concur.test.mjs": {
-      "sha256": "1bed14066800760b4b89fa23d0465af4080c56bb6ca0ea0445de33b465ebdd55",
+      "sha256": "204c78716d504e766a7cef70471a32e3aa621c1fd04d76a8df379118332873d7",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
@@ -4460,15 +4460,15 @@
       "executable": false
     },
     "tests/coaster-policy-advice.test.mjs": {
-      "sha256": "77099380d5b9466b3e1155caa697bf05b3cab11541f248bcd844582d6f13f9aa",
+      "sha256": "432828a03a054f89b03b2092788898958030a24e2295cb38227507cd30946bf1",
       "executable": false
     },
     "tests/coaster-policy-review.test.mjs": {
-      "sha256": "391493b3c7ce60168a6e32ecb16dacfcd4bfbb5240f4151fcede16b8cdef3d34",
+      "sha256": "ea6637ed60ad0fda32e53b4df50f96d230a920d068e34326480ca28b5138c2e3",
       "executable": false
     },
     "tests/coaster-policy.test.mjs": {
-      "sha256": "20927dec464acd696490a52b9605d9f84211d99d554dfa6a9fee2eae0cc8e86a",
+      "sha256": "4bc1416860196a8c11de6883f567bbece997aac8842434caa38eaf09ac319bbc",
       "executable": false
     },
     "tests/coaster-qbo.test.mjs": {
@@ -4480,11 +4480,11 @@
       "executable": false
     },
     "tests/coaster-receipt-signals.test.mjs": {
-      "sha256": "8fb6a3b114ff142b3b9a1cf868c421164efc985184b34877c7e0b3bb86048d1c",
+      "sha256": "d0d680a74dea24a36129a4e529d0bd636588da6a6e4468367c7bc153d5f26542",
       "executable": false
     },
     "tests/coaster-statements.test.mjs": {
-      "sha256": "97cf87b8bf15ecdf74c0be62bf8195520645591093e823957112a8c73031b77a",
+      "sha256": "13353964f4527351fa44293319c8e9ec3bc75570243f1f95b6abafa8c8d7e298",
       "executable": false
     },
     "tests/coaster-suite.mjs": {
@@ -4496,11 +4496,11 @@
       "executable": false
     },
     "tests/coaster-workflow.test.mjs": {
-      "sha256": "4e4730945e662fbf932705c173d080c17091e0f78c77935afe29f9e1cf0b9ccf",
+      "sha256": "fe604ecaef47a51049aa077804860c5027b341a5ac3c0580810f50d972f0a82d",
       "executable": false
     },
     "tests/coaster.test.mjs": {
-      "sha256": "1bd198e2dca2e54ff7d74c22bd900a745f2629e0c48182ba93c0864792bd2245",
+      "sha256": "26380dae3f03a944ee5bf03fdbc4ff947ee6ecd6fca2e7dd1cc1ba4b1597887c",
       "executable": false
     },
     "tests/coding-attachment-quality.mjs": {
@@ -6571,6 +6571,190 @@
       "sha256": "b9aa49429b0759d8c365a9dc1f27e86ae1791a4d64b8255928db73721fec36cf",
       "executable": false
     },
+    "tests/journeys/automatic-coding-1.mjs": {
+      "sha256": "627b9a2314656ace74d51b2cb13dbf7b06f2766ecce8b87eb57497cba46e83be",
+      "executable": false
+    },
+    "tests/journeys/browser-desktop-connection.mjs": {
+      "sha256": "75a5f77346a9e2d1fc43d69aec575111c2477c9ca12b06beadc624c4c134bda3",
+      "executable": false
+    },
+    "tests/journeys/browser-matching.mjs": {
+      "sha256": "5e05a2aeb2d0dc77053b1708f0f27f3d088226127ab7cc2d8ba81f08412cf4b2",
+      "executable": false
+    },
+    "tests/journeys/browser-policy-agent.mjs": {
+      "sha256": "d84732cc4f86bd86e631b275c5d4c85aa69955395c2576755f0d540288986400",
+      "executable": false
+    },
+    "tests/journeys/browser-receipt-agents.mjs": {
+      "sha256": "aeef112082309cc4ff407a03feab841f242e8dc369b8d5cde4be59b93ae5b4b5",
+      "executable": false
+    },
+    "tests/journeys/browser-receipt-custody.mjs": {
+      "sha256": "ce8c0f32c8e4a1ba45d4a091032aa06052f0a7c9a0632e22963285c7141515b3",
+      "executable": false
+    },
+    "tests/journeys/browser-signal-investigation.mjs": {
+      "sha256": "f309e6f5e57f9f43ee6aaf80541fed291c4dfd44162cde56e4b8cdac95d3b2b4",
+      "executable": false
+    },
+    "tests/journeys/card-custody-1.mjs": {
+      "sha256": "b5cc5e041b11fdf3b243b31daffb28980505a24de4e303fa5c908bfefea26aa9",
+      "executable": false
+    },
+    "tests/journeys/card-custody-2.mjs": {
+      "sha256": "fc99f3e713a11b9463656a291c81a2938092236e899f83ed9fe8f9adb83e80ed",
+      "executable": false
+    },
+    "tests/journeys/card-reporting-1.mjs": {
+      "sha256": "29661ac9d66b3cfb3906bf250e2fe0eebd9527a84c7232d56ad8a05b342c18f5",
+      "executable": false
+    },
+    "tests/journeys/claim-spine.mjs": {
+      "sha256": "f3f68ee9fd636ede70fe0587276f27db54d68406e0b20204ba34c1a223cce70b",
+      "executable": false
+    },
+    "tests/journeys/concur-custody-1.mjs": {
+      "sha256": "4d7ab679ce15f2c2d5560ded2b00b354b10734d5e1ae5554bd6363a44919c5ca",
+      "executable": false
+    },
+    "tests/journeys/operations-approvals.mjs": {
+      "sha256": "922bcd6d4dece4d928c7b7474116ce73b90ade47ebbc3e922be0012a1aee32a9",
+      "executable": false
+    },
+    "tests/journeys/operations-audit.mjs": {
+      "sha256": "147c41da0f689d37706d021c5ec03595e5aa30ee28b5a1050c753b094046ba02",
+      "executable": false
+    },
+    "tests/journeys/operations-claims.mjs": {
+      "sha256": "442114f09f58257c6059143b1698ddfdf69336bfffc336da17391571a1ba9f25",
+      "executable": false
+    },
+    "tests/journeys/operations-custody.mjs": {
+      "sha256": "c7d7fc4e88e20a22318218dd04fddd976fb3b54ef16ff12adb61b39db8d68aac",
+      "executable": false
+    },
+    "tests/journeys/operations-delegates.mjs": {
+      "sha256": "cd243e117682176c4e52f836b06840f527faaa87f71a1bfe06d5c15ca325bb14",
+      "executable": false
+    },
+    "tests/journeys/operations-erasure.mjs": {
+      "sha256": "89ff1be54bb506b9d4940ed54140d27ae4a19be2b8c8cd37f3cd6bc6d66b1e9f",
+      "executable": false
+    },
+    "tests/journeys/operations-finance-analysis.mjs": {
+      "sha256": "2d53d4485258934814960d107232f78c0848ed3baef3d7cc90a15cbd4b0e2312",
+      "executable": false
+    },
+    "tests/journeys/operations-finance.mjs": {
+      "sha256": "43ab8543a4bd4c39d4cef94eef11412ff1ab39992a614cc34d4abe139ba01112",
+      "executable": false
+    },
+    "tests/journeys/operations-import-chains.mjs": {
+      "sha256": "b6d8b6ce21a5fa433bea5a09f85a610dab7987bfb84983d5cbd720db7b34b876",
+      "executable": false
+    },
+    "tests/journeys/operations-import-configuration.mjs": {
+      "sha256": "98816342f66fb3c438a4e9fe25add07086a923288c4a2c796c945227c1f5d5cd",
+      "executable": false
+    },
+    "tests/journeys/operations-lifecycle.mjs": {
+      "sha256": "8faa127ac5413209a1bc31ab11e6bfd32b035d8a3f161779159d83afb1da3481",
+      "executable": false
+    },
+    "tests/journeys/operations-migration-history.mjs": {
+      "sha256": "c7e7d77ad370436ed2089c195166e6037e704cc504258b91cffbc1bc4239f2be",
+      "executable": false
+    },
+    "tests/journeys/operations-questions.mjs": {
+      "sha256": "ce3d70888f86e3c1eec92f785eafcc4ffefb5e55a1dd61a5e9d8c090c6f6fda7",
+      "executable": false
+    },
+    "tests/journeys/operations-reporting.mjs": {
+      "sha256": "f515464bf607fbb2060b98dbaafff7304a08fcbc02b1b0a6540ea2bed1f8ec92",
+      "executable": false
+    },
+    "tests/journeys/operations-support.mjs": {
+      "sha256": "4bb2d91d1532e6565b6b36b68403dc8452af1842281964ebc966350fea639d92",
+      "executable": false
+    },
+    "tests/journeys/policy-agent-1.mjs": {
+      "sha256": "5e1bd7f0adadb1189d42a65bbb35f8ccf854fcf33088d9de099addf4f4d00993",
+      "executable": false
+    },
+    "tests/journeys/receipt-custody-1.mjs": {
+      "sha256": "3821b021fb4a38ce71587ca5aea19b205e79d1987cd5eca799dfab60b370f608",
+      "executable": false
+    },
+    "tests/journeys/receipt-custody-2.mjs": {
+      "sha256": "8be58c5ceeb95dd6e22f130059c4c57bdd8dcb7ae0684654b412418b562f64f5",
+      "executable": false
+    },
+    "tests/journeys/receipt-signal-population.mjs": {
+      "sha256": "7ef32dc3226d714a1465f93d43ecbc18b93dbde0d7307857113d89ab2fe6cd42",
+      "executable": false
+    },
+    "tests/journeys/receipt-signals-1.mjs": {
+      "sha256": "43fe6802c245aedf9338eb91f7c79b3365a752daf311d6da67f19d543be83182",
+      "executable": false
+    },
+    "tests/journeys/screens-automatic-coding.mjs": {
+      "sha256": "e725d41ce118268c9292b5e691f0b842027eb41dcc0be1e6019dd9f8c0c78722",
+      "executable": false
+    },
+    "tests/journeys/screens-reading.mjs": {
+      "sha256": "e0725bbb5a603f23152d2be3f5df2bd1c4beaf11fe5ba62b02bf3151f9db863f",
+      "executable": false
+    },
+    "tests/journeys/screens-receipt-custody.mjs": {
+      "sha256": "7750698b37a51d9bfd4de9b9c8d895ddb00ae0af7769556a94bb8ba58d11cc7d",
+      "executable": false
+    },
+    "tests/journeys/screens-statements.mjs": {
+      "sha256": "627ecddaa6e6b9f1be2c8af67bb6027fe3db6db2aeae909009e7d973f7fc01d0",
+      "executable": false
+    },
+    "tests/journeys/specialized-admin.mjs": {
+      "sha256": "cdd1df85b484625e35469b53754358d1c1ca5a45d5c82e3cd1bae0d6da67cfc3",
+      "executable": false
+    },
+    "tests/journeys/specialized-finance-delegation.mjs": {
+      "sha256": "87fe8e8ce302e8707394e28968fdc30585a4465c0a5baa170726ba8eed0f77ac",
+      "executable": false
+    },
+    "tests/journeys/specialized-fx-imports.mjs": {
+      "sha256": "50b9f6fdd9637951fd98d1d004538ff4bcc9432bb4407fd8302044a5f1362fe4",
+      "executable": false
+    },
+    "tests/journeys/specialized-handoff.mjs": {
+      "sha256": "b78f091750d36d2a9789b9bb31252f1c1514ac115fa0c442d7403c75597419c8",
+      "executable": false
+    },
+    "tests/journeys/specialized-lifecycle.mjs": {
+      "sha256": "0291f379550f58e6652b7c42f6cd789e0be23d2acca9edafee98de4b3087a268",
+      "executable": false
+    },
+    "tests/journeys/specialized-per-diem.mjs": {
+      "sha256": "1bb8899e75486361b9038945f38e276e2c67a89e584a25812e07a1879144d880",
+      "executable": false
+    },
+    "tests/journeys/specialized-policy-advice.mjs": {
+      "sha256": "3e5ade62b93a72b88962427644417bc84fdeeffcaf9162f97e1eba0cb04cc9a3",
+      "executable": false
+    },
+    "tests/journeys/specialized-policy.mjs": {
+      "sha256": "6ab1078f19bfc3599e673da119eea2443ddda18c435f9a15f789ff72bef3c2b4",
+      "executable": false
+    },
+    "tests/journeys/specialized-workflow-lifecycle.mjs": {
+      "sha256": "5d5114f16718c83bd424a71582fe07c2f87d85817fb2804ba91485d82c805195",
+      "executable": false
+    },
+    "tests/journeys/specialized-workflow.mjs": {
+      "sha256": "1467102a98027e389fa64f18cfe1081779bec09de342180c486fe1aa89dd9b7f",
+      "executable": false
+    },
     "tests/payroll-kit.mjs": {
       "sha256": "7e641fd641bc989c3ccf5dfa920890548105d1d0fcddd82c774a204a721f35ce",
       "executable": false
@@ -6588,7 +6772,7 @@
       "executable": false
     },
     "tests/receipt-signal-scenarios.mjs": {
-      "sha256": "e44d5f0ce4232e6a500537b96346b29404ef97ec310289bfc38fa46ae41bfc49",
+      "sha256": "3b965eb53bc8245ccc57814fd21b1bd59b639b0ac54e40dde15018b0b27b6362",
       "executable": false
     },
     "tests/semantic-coding-quality.mjs": {
