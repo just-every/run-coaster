@@ -96,7 +96,10 @@ try {
   for(const width of [1440,390]){
     const context=await browser.newContext({viewport:{width,height:1000}}),page=await context.newPage()
     await page.goto(server.siteOrigin+'/contract')
-    await page.screenshot({path:join(evidence,`contract-${width}.png`),fullPage:true})
+    await page.screenshot({path:join(evidence,`contract-summary-${width}.png`)})
+    const citation=page.locator('tr[data-id="CAPTURE-004"]')
+    await citation.scrollIntoViewIfNeeded()
+    await citation.screenshot({path:join(evidence,`contract-evidence-${width}.png`)})
     await context.close()
   }
   await browser.close();browser=undefined
