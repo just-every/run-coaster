@@ -160,6 +160,7 @@ jobs:
           - journey: policy-agent
           - journey: signals
           - journey: desktop
+          - journey: preparations
     needs: [plan, app]
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04

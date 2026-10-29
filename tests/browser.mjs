@@ -27,6 +27,7 @@ const phases = {
     await (await import('./journeys/browser-receipt-custody.mjs')).runReceiptCustodyJourney({evidence})
   },
   cash: async () => (await import('./journeys/browser-cash-attachment.mjs')).runCashAttachmentJourney({evidence:resolve(process.env.COASTER_EVIDENCE??'.cache/cash-attachment-proof')}),
+  preparations: async () => (await import('./journeys/browser-preparations.mjs')).runPreparationJourney(),
   'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),
   signals: async () => (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney(),
