@@ -31,6 +31,7 @@ export const groups = {
     {"evidence": "card-matching", "commands": [["tests/card-matching.mjs"]], "env": {"MATCH_REFUSALS": "2/3"}},
   ],
   'cash-accessibility': [
+    { evidence: 'account-corrections', commands: [['tests/browser-accounting-corrections.mjs'], ['tests/accounting-corrections-archive.mjs']] },
     {"evidence": "cash", "commands": [["tests/capture-cash.mjs"]]},
     {"evidence": "accessibility", "commands": [["tests/accessibility.mjs"]]},
   ],

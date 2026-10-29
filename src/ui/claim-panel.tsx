@@ -1,3 +1,4 @@
+import { AccountingCorrections } from './accounting-corrections';
 import { PerDiemBreakdown } from './per-diem';
 import { useCallback, useEffect, useState } from 'react';
 import { amount, apiHref, call, claimNumber, day, exceptionWords, money, moment, plural, rate, type D } from './api';
@@ -139,6 +140,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
             </Form>
           </div>)}
     </section>
+    <AccountingCorrections detail={detail} done={done} />
     {mine && claim.status === 'submitted' && <section className="panel-block" aria-label="Retract">
       <h3>Retract</h3>
       <p className="muted">Take the claim back before anyone decides it, for example to add a forgotten receipt. Submitting again makes the next revision.</p>

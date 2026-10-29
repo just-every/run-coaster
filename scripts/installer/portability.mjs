@@ -1,3 +1,4 @@
+import { validateAccountCorrectionsArchive } from './account-corrections-archive.mjs';
 import { createHash } from 'node:crypto';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 import { validateCaptureArchive } from './capture-archive.mjs';
@@ -101,6 +102,7 @@ export async function validateCoasterArchive(read, manifest) {
   await validateProgramFeedArchive(read);
   await validatePayrollArchive(read);
   await validateBankArchive(read);
+  await validateAccountCorrectionsArchive(read);
   return true;
 }
 
