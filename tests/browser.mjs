@@ -64,6 +64,17 @@ try {
   await command(root, ['describe'])
   server = await startCli(root, port)
   assert.equal((await fetch(server.origin+'/health')).status,200)
+  browser=await launch()
+  for(const width of [1440,390]){
+    const context=await browser.newContext({viewport:{width,height:1000}}),page=await context.newPage()
+    await page.goto(server.siteOrigin+'/contract')
+    await page.screenshot({path:join(evidence,`contract-summary-${width}.png`)})
+    const citation=page.locator('tr[data-id="CAPTURE-004"]')
+    await citation.scrollIntoViewIfNeeded()
+    await citation.screenshot({path:join(evidence,`contract-evidence-${width}.png`)})
+    await context.close()
+  }
+  await browser.close();browser=undefined
   await server.close(); server=undefined
   server = await start(root, port)
   const health=await fetch(server.origin+'/health');assert.equal(health.status,200)
@@ -105,17 +116,6 @@ try {
   server=await startCli(root,port,'preview')
   assert.equal((await fetch(server.origin+'/health')).status,200)
   assert.equal((await fetch(server.origin+'/api/coaster/state')).status,401)
-  browser=await launch()
-  for(const width of [1440,390]){
-    const context=await browser.newContext({viewport:{width,height:1000}}),page=await context.newPage()
-    await page.goto(server.siteOrigin+'/contract')
-    await page.screenshot({path:join(evidence,`contract-summary-${width}.png`)})
-    const citation=page.locator('tr[data-id="CAPTURE-004"]')
-    await citation.scrollIntoViewIfNeeded()
-    await citation.screenshot({path:join(evidence,`contract-evidence-${width}.png`)})
-    await context.close()
-  }
-  await browser.close();browser=undefined
   await server.close();server=undefined
   const dry=await command(root,['deploy','--dry-run'],{expected:3,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <synthetic-coaster-1@coaster.local>'}})
   assert.match(dry,/Your application is built/)

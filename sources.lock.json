@@ -4396,7 +4396,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "4e22d56d0d0534527463d7aa2821bbbb8df7ad263bc042a00c885dd47460d748",
+      "sha256": "7b981a20289ef54ae5a62e562381fbdb5de84a9c15160f652aa7d91b6f770c3e",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
