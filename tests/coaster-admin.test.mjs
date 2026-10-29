@@ -22,7 +22,7 @@ async function submitted(h, cookie, title, amount, category, extra) {
   return h.post(`claims/${c.id}/submit`, { version: c.version }, cookie)
 }
 const decide = (h, cookie, c, extra = {}, status = 200) => h.post(`claims/${c.id}/decision`, { revision: c.revision, version: c.version, decision: 'approved', acknowledge: true, ...extra }, cookie, status)
-const tables = ['c_events', 'c_members', 'c_categories', 'c_policies', 'c_budgets', 'c_cards', 'c_claims', 'c_items', 'c_batches', 'c_approval_workflows', 'c_approval_rules', 'c_approval_envelopes', 'c_departments', 'c_mileage_rates', 'c_allowances',
+const tables = ['c_accounting_corrections', 'c_batch_coding', 'c_events', 'c_members', 'c_categories', 'c_policies', 'c_budgets', 'c_cards', 'c_claims', 'c_items', 'c_batches', 'c_approval_workflows', 'c_approval_rules', 'c_approval_envelopes', 'c_departments', 'c_mileage_rates', 'c_allowances',
   'c_escalation_chains', 'c_card_match_rules', 'c_statement_files', 'c_card_charges', 'c_delegates', 'c_requests', 'c_advances', 'c_agent_keys', 'c_proposals', 'c_coding_dimensions', 'c_coding_values', 'c_category_dimensions', 'c_coding_refreshes', 'c_qbo_oauth_states', 'c_qbo_connections',
   'c_bank_accounts', 'c_bank_settings', 'c_bank_providers',
   'c_receipt_reading_settings', 'c_receipt_readings', 'c_receipt_reading_match_defaults', 'c_program_feeds', 'c_program_deliveries',
@@ -120,6 +120,10 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
     { row: 'Approve, hold', prepare: request, call: (who, r) => send(`requests/${r.id}/decision`, { version: r.version, decision: 'approved' }, who) },
     { row: 'Approve, hold', prepare: () => h.post('advances', { purpose: `Trip ${++n}`, amount: '50.00' }, team), call: (who, a) => send(`advances/${a.id}/decision`, { version: a.version, decision: 'approved' }, who) },
     { row: 'Unapprove', prepare: async () => decide(h, cookie.Approver, await owned('To unapprove')), call: (who, c) => send(`claims/${c.id}/unapprove`, { version: c.version, to: 'employee', reason: 'Matrix check' }, who) },
+    { row: 'Edit coding on submitted or approved expenses', prepare: () => owned('Coding correction'), call: async (who,c) => {
+      const view = await h.get(`claims/${c.id}`)
+      return send(`claims/${c.id}/accounting-coding`, { version:c.version,revision:c.revision,item:view.items[0].id,sequence:0,accounts:['synthetic-coaster-6501'],reason:'Correct native account' },who)
+    } },
     // Reads. A limited cell is driven inside its limit (scoped) or, where the door lies outside it, refused (outside).
     { row: 'Read all claims', prepare: async () => ({ routed: await owned('Routed to the approver'), mine: await submitted(h, cookie.Employee, 'My own', '10.00', t.c.office) }), call: (who, c) => send(`claims/${c.routed.id}`, undefined, who),
       scoped: { Employee: (who, c) => send(`claims/${c.mine.id}`, undefined, who) }, outside: ['Card admin'] },
@@ -142,7 +146,7 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
     { row: 'See employees\' bank details', call: who => send(['bank', 'people'].join('/'), undefined, who), scoped: { Employee: who => send('bank', undefined, who) } },
   ]
   // Rows whose action has no door in Coaster yet: the clause that adds the door asserts it in its own text and acceptance.
-  const noDoor = { 'Connect payment funding account': 'PAY-001', 'Edit coding on submitted or approved expenses': 'ACCT-006' }
+  const noDoor = { 'Connect payment funding account': 'PAY-001' }
   const rows = await matrix()
   for (const row of rows) assert.ok(row.label in noDoor || doors.some(d => row.label.startsWith(d.row)), `matrix row "${row.label}" has a door in this journey or is named as having none`)
   for (const label of Object.keys(noDoor)) assert.ok(rows.some(r => r.label === label))

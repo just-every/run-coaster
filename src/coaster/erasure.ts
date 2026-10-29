@@ -30,6 +30,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_decisions', ['actor_email', 'on_behalf_of']],
   ['c_batches', ['created_by', 'prepared_by', 'reviewed_by', 'first_released_by', 'released_by', 'paid_by']],
   ['c_events', ['actor_email']],
+  ['c_accounting_corrections', ['actor_email', 'on_behalf_of']],
   ['c_proposals', ['for_email', 'decided_by']],
   ['c_requests', ['employee_email', 'approver_email', 'on_behalf_of', 'submitted_by', 'decided_by', 'decided_on_behalf_of']],
   ['c_comments', ['on_behalf_of', 'asks_email']],
@@ -58,6 +59,7 @@ const ADDRESS: [string, string[]][] = [
 /** JSON columns that may name a member's address as a string value. */
 const JSON_COLUMNS: [string, string[]][] = [
   ['c_payroll_handoffs', ['lines']],
+  ['c_batch_coding', ['selections']],
   ['c_qbd_requests', ['payload']],
   ['c_receipt_readings', ['fields_json']],
   ['c_auto_coding_rules',['fields']], ['c_auto_coding_contexts',['values_json']], ['c_auto_coding_suggestions',['fields','evidence']], ['c_auto_coding_feedback',['values_json']], ['c_auto_coding_observations',['fields']],
@@ -172,6 +174,9 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql("UPDATE c_reimbursement_keys SET key='expense:'||?||substr(key,length(?)+9) WHERE substr(key,1,length(?)+9)='expense:'||?||'|'", subject, address, address, address),
     sql("UPDATE c_receipts SET uploaded_by=substr(uploaded_by,1,length(uploaded_by)-length(?))||? WHERE source='agent' AND substr(uploaded_by,-(length(?)+5))=' for '||?", address, subject, address, address),
     sql("UPDATE c_qbd_requests SET source=replace(source,?,?) WHERE instr(source,?)>0",address,subject,address),
+    sql("UPDATE c_accounting_corrections SET reason=replace(reason,?,?) WHERE instr(reason,?)>0",address,subject,address),
+    sql("UPDATE c_batch_coding SET selections=replace(selections,?,?) WHERE instr(selections,?)>0",address,subject,address),
+    sql("UPDATE c_events SET detail=replace(detail,?,?) WHERE action='accounting-coding-corrected' AND instr(detail,?)>0",address,subject,address),
     sql("UPDATE c_qbd_mappings SET name='vendor:'||? WHERE name='vendor:'||?",subject,address),
     // Kept, under the label: every column holding their address, and their address inside JSON.
     sql(`INSERT INTO c_capture_lifecycle(receipt_id,sequence,kind,reason,at,actor_email,on_behalf_of,channel)

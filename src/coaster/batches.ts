@@ -1,3 +1,4 @@
+import { correctedItems, freezeBatchCoding } from './accounting/coding-corrections';
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { finalApproval } from './approval-chain';
 import { event, ruleEvent } from './events';
@@ -77,6 +78,7 @@ async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awai
   const next = await db.prepare('SELECT COALESCE(MAX(number),0)+1 AS n FROM c_batches').first<{ n: number }>(), number = next?.n ?? 1;
   return [
     db.prepare("INSERT INTO c_batches(id,number,status,currency,total_minor,created_by,created_at,prepared_by) VALUES(?,?,'draft',?,?,?,?,?)").bind(id, number, claims[0].currency, total, by, at, detail.preparedBy ?? null),
+    ...await Promise.all(claims.map(c => freezeBatchCoding(db, id, c))),
     ...claims.flatMap(c => [
       db.prepare('INSERT INTO c_batch_claims(batch_id,claim_id,revision,amount_minor) VALUES(?,?,?,?)').bind(id, c.id, c.revision, pays(c)),
       db.prepare("UPDATE c_claims SET status='batched',batch_id=?,version=version+1,updated_at=? WHERE id=?").bind(id, at, c.id),
@@ -118,17 +120,20 @@ export async function runPaySchedule(db: D1Database, at: Date) {
 export async function removeFromBatch(db: D1Database, actor: Actor, id: string, b: Data) {
   need(actor, 'finance');
   const batch = await loadBatch(db, id);
-  requireThat(batch.status === 'draft' && b.version === batch.version, 'Only an unreviewed draft batch can change; reload', 409);
+  requireThat(['draft','approved'].includes(batch.status) && !batch.first_released_at && !batch.released_at && b.version === batch.version, 'Only an unpaid batch without release authorization can change; reload', 409);
+  const notPosted: Sql = { sql: `NOT EXISTS(SELECT 1 FROM c_qbd_requests WHERE json_extract(payload,'$.batch')=? AND status IN('sent','uncertain','succeeded')) AND NOT EXISTS(SELECT 1 FROM c_payroll_handoffs WHERE batch_id=?)`, params: [id,id] };
+  requireThat(await db.prepare('SELECT ' + notPosted.sql + ' AS ok').bind(...notPosted.params).first<{ok:number}>().then(r=>r?.ok), 'Reconcile this batch ledger posting or payroll handoff before removing a claim',409);
   requireThat(typeof b.claim === 'string' && b.claim, 'Choose the claim to take out of the batch');
   const row = await db.prepare('SELECT claim_id,amount_minor FROM c_batch_claims WHERE batch_id=? AND claim_id=?').bind(id, b.claim).first<{ claim_id: string; amount_minor: number }>();
   requireThat(row, 'That claim is not in this batch', 404);
   const at = now();
-  await commit(db, all(authority(actor, 'finance'), batchState(id, batch.version, 'draft')), [
+  await commit(db, all(authority(actor, 'finance'), batchState(id, batch.version, batch.status), notPosted), [
+    db.prepare("DELETE FROM c_qbd_requests WHERE json_extract(payload,'$.batch')=? AND status IN('pending','failed')").bind(id),
     db.prepare('DELETE FROM c_reimbursement_keys WHERE batch_id=? AND claim_id=?').bind(id, row.claim_id),
     db.prepare('DELETE FROM c_batch_claims WHERE batch_id=? AND claim_id=?').bind(id, row.claim_id),
     db.prepare("UPDATE c_claims SET status='approved',batch_id=NULL,version=version+1,updated_at=? WHERE id=?").bind(at, row.claim_id),
-    db.prepare('UPDATE c_batches SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_batch_claims WHERE batch_id=?),version=version+1 WHERE id=?').bind(id, id),
-    event(db, actor, 'claim-unbatched', { claim: row.claim_id, batch: id }, {}),
+    db.prepare("UPDATE c_batches SET status='draft',reviewed_by=NULL,reviewed_at=NULL,total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_batch_claims WHERE batch_id=?),version=version+1 WHERE id=?").bind(id, id),
+    event(db, actor, 'claim-unbatched', { claim: row.claim_id, batch: id }, { previousStatus: batch.status, previousReviewer: batch.reviewed_by, previousReviewedAt: batch.reviewed_at, requiresReview: true }),
   ]);
   return loadBatch(db, id);
 }
@@ -221,6 +226,8 @@ export async function batchLines(db: D1Database, id: string) {
   ]).then(r => r.map(x => new Set((x.results as { id: string }[]).map(y => y.id))));
   for (const row of results) {
     const snapshot = JSON.parse(row.snapshot);
+    const frozen = await db.prepare('SELECT selections FROM c_batch_coding WHERE batch_id=? AND claim_id=? AND revision=? ORDER BY generation DESC LIMIT 1').bind(id,row.claim_id,row.revision).first<{selections:string}>();
+    snapshot.items = correctedItems(snapshot.items, frozen ? JSON.parse(frozen.selections) : []);
     // The ledger memo names anyone who acted for someone else: a delegate who submitted, or approved on an approver's behalf.
     const memo = [row.submitted_by !== row.employee_email && `submitted by ${row.submitted_by} on behalf of ${row.employee_email}`, row.on_behalf_of && `approved by ${row.approver} on behalf of ${row.on_behalf_of}`,
       snapshot.exceptions.some((e: Data) => e.code === 'needs-pre-approval') && `approved without a spend request: ${row.approval_reason}`].filter(Boolean).join('; ');

@@ -1,3 +1,4 @@
+import { proveAccountingCorrections } from './accounting-corrections.mjs';
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { agency, harness } from './harness.mjs'
@@ -28,6 +29,7 @@ const submit = (h,c,cookie,status=200) => h.post(`claims/${c.id}/submit`,{ versi
 const approve = (h,c,cookie) => h.post(`claims/${c.id}/decision`,{ version:c.version,revision:c.revision,decision:'approved',acknowledge:true },cookie)
 
 test('CODE-001 native hierarchy import, category requirements and every submission retain real coding and reject invalid parents atomically', () => team(async(h,t) => {
+  await proveAccountingCorrections();
   const admin = await h.person('synthetic-coaster-9@example.test',{ admin:true },MANAGER)
   for(const who of [t.sam,t.morgan,t.priya]) await h.post('coding/dimensions',{ version:0,name:name(10),kind:'tag' },who,403)
   let configured = await h.post('coding/dimensions',{ version:0,name:name(10),kind:'cost-centre',required:false },admin)
