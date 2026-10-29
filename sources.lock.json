@@ -4500,7 +4500,7 @@
       "executable": false
     },
     "tests/coaster.test.mjs": {
-      "sha256": "26380dae3f03a944ee5bf03fdbc4ff947ee6ecd6fca2e7dd1cc1ba4b1597887c",
+      "sha256": "c94390f44a7280653fff963ec1855a055dad339f225c14ea1b1fb3e88c0395f9",
       "executable": false
     },
     "tests/coding-attachment-quality.mjs": {

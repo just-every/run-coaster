@@ -761,7 +761,8 @@ test('Migration previews exact source bytes, preserves read-only history, flags 
     const again=await h.post('import/preview',input)
     assert.equal((await h.post('import/commit',{...input,fingerprint:again.fingerprint})).job.state,'completed')
   }
-}, {fxRates:'<Cube><Cube time="2026-04-10"><Cube currency="USD" rate="1.1"/></Cube></Cube>'}))
+}, {fxRates:'<Cube><Cube time="2026-04-10"><Cube currency="USD" rate="1.1"/></Cube></Cube>'})))()
+})
 
 test('A US business pre-approves an itemized client trip, prices dated mileage and published per diem, then reimburses its exact tax and split lines', async () => {
   await preservePerDiem()
@@ -833,6 +834,5 @@ test('A US business pre-approves an itemized client trip, prices dated mileage a
     await h.paid(batch.id,batch.version,{reference:'CHICAGO-TRIP',paidOn:'2026-06-15'},t.morgan)
     assert.equal((await h.get(`claims/${c.id}`,t.sam)).claim.status,'reimbursed')
   }finally{await h.close()}
-})()
 })()
 })
