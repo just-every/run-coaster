@@ -18,7 +18,7 @@ events and subscriptions are undeclared and return typed refusals.
 | --- | --- | --- | --- |
 | `coaster.workspace.get` | `proposals:read` | standard | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
 | `coaster.proposals.get` | `proposals:read` | standard, sensitive | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
-| `coaster.claims.propose` | `proposals:write` | standard, sensitive | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
+| `coaster.claims.propose` | `proposals:write` | standard, sensitive; external for automatic FX | COA-010, CLAIM-003, BASE-AGENT-002, BASE-AGENT-006 |
 | `coaster.batches.propose` | `proposals:write` | standard | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
 
 These tools call the same native preparation services as the existing personal
@@ -48,8 +48,10 @@ runs `agent-surface.json` against the production Worker and all real migrations.
 Its initializer drives the declared setup-token `/auth/bootstrap`, ordinary
 native invitations, claim submission and a different person's approval. The
 negative fixtures suspend a real operator and remove a bound member's native
-admission. Only the built-in mail network edge is simulated; declared tools call
-no external provider. Spend is `none`; no provider cost is registered. There is
+admission. Native initialization uses the built-in mail network edge. Automatic foreign-currency
+receipt proposals fetch the public ECB history URL without expense or person data;
+that path is classified external from native currency facts and uses the declared
+`tests/agent-door/network.mjs` edge. Explicit manual rates use no provider. Spend is `none`; no provider cost is registered. There is
 no queued continuation in these preparation tools and no native Undo for a
 retained proposal. Reviews never erase proposal history.
 
