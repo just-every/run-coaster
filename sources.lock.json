@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "8ae1d72fdbb35504dd13cbc81b91a65310220cdf35b549e3d9cfa0c758b566ab",
+      "sha256": "6e88beb55e98fe4d6a21eb7e59961209c18e3860d523876bc171a78fea7e1c7f",
       "executable": false
     },
     ".gitignore": {
@@ -6596,7 +6596,7 @@
       "executable": false
     },
     "tests/journeys/browser-receipt-custody.mjs": {
-      "sha256": "4d73ffe9827888ed1e48f8bf88bbf2682a3a98a60ab5f97802581f4017bcabb7",
+      "sha256": "89c53d4a72d43f9c5199f5ded4f09a0ff0b15e056d98c114eae65f2ffe7a29fc",
       "executable": false
     },
     "tests/journeys/browser-signal-investigation.mjs": {

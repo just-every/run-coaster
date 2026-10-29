@@ -150,6 +150,11 @@ jobs:
             name: matching-2
             matching: 2/3
           - journey: capture
+            name: capture-0
+            capture: 0/2
+          - journey: capture
+            name: capture-1
+            capture: 1/2
           - journey: cash
           - journey: receipt-agents
           - journey: policy-agent
@@ -189,6 +194,7 @@ jobs:
           COASTER_EVIDENCE: ${{ runner.temp }}/coaster-proof
           COASTER_BROWSER_JOURNEY: ${{ matrix.journey }}
           MATCH_REFUSALS: ${{ matrix.matching || '0/1' }}
+          CAPTURE_REFUSALS: ${{ matrix.capture || '0/1' }}
         run: pnpm run test:browser
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

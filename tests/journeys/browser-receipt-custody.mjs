@@ -12,6 +12,8 @@ const launch = () => chromium.launch({ headless: true, ...(process.env.CHROMIUM_
 
 /** Run inside the surviving receipt journey; this module registers no tests. */
 export async function runReceiptCustodyJourney({ evidence = resolve('.cache/coaster-browser-proof/receipt-custody') } = {}) {
+  const [part,of]=(process.env.CAPTURE_REFUSALS??'0/1').split('/').map(Number)
+  assert.ok(Number.isInteger(part)&&Number.isInteger(of)&&part>=0&&of>0&&part<of,'CAPTURE_REFUSALS is part/of')
   await mkdir(evidence, { recursive: true })
   const shots = []
   let root, second, server, browser
@@ -51,7 +53,7 @@ export async function runReceiptCustodyJourney({ evidence = resolve('.cache/coas
     assert.match(await command(second, ['import', '--input', 'exports/inconsistent.rer', '--yes'], { expected: 4 }), /coaster_capture_bytes/)
     await command(second, ['export', '--output', 'exports/after-refusal.rer'])
     assert.deepEqual(rows(await records(join(second, 'exports/after-refusal.rer'))), empty, 'inconsistent R2/D1 receipt archive writes nothing')
-    await rejectCaptureLifecycleArchives(second, archive)
+    await rejectCaptureLifecycleArchives(second, archive, {part,of})
     await copyFile(archive, join(second, 'exports/capture.rer'))
     await command(second, ['import', '--input', 'exports/capture.rer', '--yes'])
     await command(second, ['export', '--output', 'exports/restored.rer'])
