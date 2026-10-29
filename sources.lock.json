@@ -6724,7 +6724,7 @@
       "executable": false
     },
     "tests/payroll-archive.mjs": {
-      "sha256": "a9e3aeb9195af917e4c4eb35028e30f1f0fda29a7a1598bfd3dba87d3127e5d3",
+      "sha256": "1f40277842a4b0e7669445aa0cdfb0b7d819b64d2e77dcbedb403b305d4239c0",
       "executable": false
     },
     "tests/payroll-browser-runtime.mjs": {
