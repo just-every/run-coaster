@@ -2,9 +2,11 @@
 import assert from 'node:assert/strict'
 import { chromium } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
-import { readFile, mkdir, rm, writeFile } from 'node:fs/promises'
+import { copyFile, readFile, mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { fresh, freePort, start } from './browser-runtime.mjs'
+import { command, fresh, freePort, start } from './browser-runtime.mjs'
+import { records, rows } from './browser-archive.mjs'
+import { importCloseStatement } from './close-statement-kit.mjs'
 import { api, session, setUp } from './browser-journey.mjs'
 import { assertAccessible } from './browser-accessibility.mjs'
 
@@ -22,7 +24,7 @@ try {
   if(!origin) {
     root=await fresh()
     execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:root})
-    execFileSync('git',['config','user.email','synthetic-coaster-1@example.invalid'],{cwd:root})
+    execFileSync('git',['config','user.email',['fleet','runeditrun.com'].join('@')],{cwd:root})
     server=await start(root,await freePort());origin=server.origin
   }
   browser=await chromium.launch({headless:true,...(process.env.COASTER_CHROMIUM?{executablePath:process.env.COASTER_CHROMIUM}:{}),args:['--use-mock-keychain','--password-store=basic','--no-sandbox']})
@@ -79,6 +81,13 @@ try {
         await page.getByRole('button',{name:'Submit for approval',exact:true}).click()
         await page.locator('.detail .badge',{hasText:'Submitted'}).waitFor()
         await shot(page,'trip-submitted',width)
+        const ownerDoor=(path,body)=>api(owner.context,origin,path,body)
+        const holder=(await api(employee.context,origin,'state')).actor.email
+        const statement=await importCloseStatement(ownerDoor,cats['Office supplies'],holder,{last4:width===1440?'8831':'8832',key:`synthetic-coaster-${width}-831`})
+        let rec=await statement.open()
+        const unknown=await importCloseStatement(ownerDoor,cats['Office supplies'],holder,{last4:width===1440?'8833':'8834',start:null,credit:false,key:`synthetic-coaster-${width}-833`})
+        await unknown.open()
+        await importCloseStatement(ownerDoor,cats['Office supplies'],holder,{last4:width===1440?'8835':'8836',start:null,end:null,credit:false,key:`synthetic-coaster-${width}-835`})
         await owner.page.setViewportSize({width,height:1000});await owner.page.goto(origin+'/app#/batches');await owner.page.reload()
         const close=owner.page.locator('details').filter({has:owner.page.getByText('Prepare month-end checklist',{exact:true})})
         await close.locator('summary').click()
@@ -87,6 +96,37 @@ try {
         const closeStrip=owner.page.getByRole('region',{name:'Prepared for you'})
         await closeStrip.getByRole('button',{name:'Accept checklist',exact:true}).waitFor();await closeStrip.locator('summary').click()
         await shot(owner.page,'month-end-checklist',width)
+        if(width===1440) {
+          const displayed=await closeStrip.innerText()
+          assert.match(displayed,/2026-04-20 to 2026-06-05/)
+          assert.match(displayed,/1 unresolved differences/)
+          assert.match(displayed,/Balance difference:.*2\.01/)
+          assert.match(displayed,/period boundaries unverified/)
+          assert.match(displayed,/imported charges without a reconciliation/)
+          assert.match(displayed,/External ledger clearance unverified/)
+        }
+        rec=await ownerDoor(`statements/reconciliations/${rec.id}/resolve`,{line:2,resolution:'credit',note:'Synthetic refund reviewed'})
+        await closeStrip.getByRole('button',{name:'Accept checklist',exact:true}).click()
+        await closeStrip.getByRole('alert').filter({hasText:'Close inputs changed'}).waitFor()
+        await shot(owner.page,'month-end-stale-review',width)
+        const current=(await api(owner.context,origin,'state')).proposals.find(p=>p.payload.preparation==='close')
+        await ownerDoor(`proposals/${current.id}/decline`,{})
+        await ownerDoor(`statements/reconciliations/${rec.id}/close`,{})
+        await owner.page.reload()
+        const refreshed=owner.page.locator('details').filter({has:owner.page.getByText('Prepare month-end checklist',{exact:true})})
+        await refreshed.locator('summary').click()
+        await refreshed.getByLabel('Close period start',{exact:true}).fill(month+'-01');await refreshed.getByLabel('Close period end',{exact:true}).fill(month+'-28')
+        await refreshed.getByRole('button',{name:'Prepare checklist',exact:true}).click()
+        await closeStrip.getByRole('button',{name:'Accept checklist',exact:true}).waitFor();await closeStrip.locator('summary').click()
+        await shot(owner.page,'month-end-native-reconciled',width)
+        if(width===1440) {
+          const displayed=await closeStrip.innerText()
+          assert.match(displayed,/native reconciliation verified/)
+          assert.match(displayed,/Native card ledger matches the statement/)
+          assert.match(displayed,/Balance difference:.*0\.00/)
+          assert.match(displayed,/Resolved/)
+          assert.match(displayed,/External ledger clearance unverified/)
+        }
         const batchesBefore=(await api(owner.context,origin,'state')).batches.length
         await closeStrip.getByRole('button',{name:'Accept checklist',exact:true}).click()
         await closeStrip.waitFor({state:'detached'})
@@ -123,6 +163,29 @@ try {
       } finally {await employee.context.close()}
     }
   } finally {await owner.context.close()}
+  await browser.close();browser=null
+  if(server) {
+    await server.close();server=null
+    await command(root,['export','--output','exports/close-evidence.rer'])
+    const archive=join(root,'exports/close-evidence.rer'), exported=await records(archive)
+    const table=name=>rows(exported).filter(r=>r.table===name).map(r=>r.row)
+    assert.ok(table('c_proposals').some(p=>JSON.parse(p.payload).cardEvidence?.statements.some(s=>s.verified)))
+    assert.ok(table('c_card_statement_resolutions').length>0)
+    assert.ok(table('c_card_ledger').length>0)
+    assert.ok(table('c_events').some(e=>e.action==='proposal-accepted'))
+    const destination=await fresh()
+    try {
+      execFileSync('git',['config','user.name','Run Edit Run fleet'],{cwd:destination})
+      execFileSync('git',['config','user.email',['fleet','runeditrun.com'].join('@')],{cwd:destination})
+      await command(destination,['install'])
+      await mkdir(join(destination,'exports'),{recursive:true})
+      await copyFile(archive,join(destination,'exports/close-evidence.rer'))
+      await command(destination,['import','--input','exports/close-evidence.rer','--yes'])
+      await command(destination,['export','--output','exports/close-restored.rer'])
+      assert.deepEqual(rows(await records(join(destination,'exports/close-restored.rer'))),rows(exported),'real CLI restore preserves every proposal, reconciliation, native ledger and numbered history row exactly')
+      await copyFile(archive,join(evidence,'close-evidence.rer'))
+    } finally {await rm(destination,{recursive:true,force:true})}
+  }
   await writeFile(join(evidence,'native-preparations.json'),JSON.stringify({head:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),results},null,2)+'\n')
   console.log('Native preparation screens passed at 1440 and 390')
 } finally {
