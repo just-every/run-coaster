@@ -60,7 +60,7 @@ export async function start(root,port,{readingEdge,site=false}={}){
   let runSite
   try {if(site)runSite=await sitePreview(join(root,'dist/site'),{ports:[0]})}
   catch(error){await runtime.dispose();throw error}
-  const server={origin,messages,siteOrigin:runSite?.url,providers:{bank,label},async scheduled(time=Date.now()){
+  const server={origin,messages,sessions:new Map(),siteOrigin:runSite?.url,providers:{bank,label},async scheduled(time=Date.now()){
     await (await runtime.getWorker()).scheduled({scheduledTime:time,cron:'17 * * * *'})
     return Response.json({ok:true})
   },async close(){servers.delete(origin);await runSite?.close();await runtime.dispose()}}
@@ -86,14 +86,22 @@ export async function startCli(root,port,mode='dev'){
 }
 function assertMail(request){if(request.url!=='https://api.resend.com/emails'||request.method!=='POST')throw new Error('Unexpected browser-journey egress')}
 export async function signIn(context,origin,email){
+  const server=servers.get(origin),saved=server.sessions.get(email)
+  if(saved){
+    await context.addCookies(saved)
+    const current=await (await context.request.get(origin+'/auth/session')).json()
+    if(current.operator?.email!==email)throw new Error('The reused native session has the wrong identity')
+    return
+  }
   const response=await context.request.post(origin+'/auth/magic-link',{headers:{origin},data:{email}})
   if(response.status()!==202)throw new Error('Native email-link request refused')
-  const message=servers.get(origin).messages.findLast(m=>m.to.includes(email))
+  const message=server.messages.findLast(m=>m.to.includes(email))
   if(!message)throw new Error('Native sign-in mail missing for synthetic member')
   const link=message.text.match(/http:\/\/[^\s]+\/auth\/confirm\?token=[^\s]+/)[0]
   const confirmed=await context.request.post(origin+'/auth/confirm',{headers:{origin},data:{token:new URL(link).searchParams.get('token')},maxRedirects:0})
   if(confirmed.status()!==303)throw new Error('Native email-link confirmation refused')
   const session=await (await context.request.get(origin+'/auth/session')).json()
   if(session.operator?.email!==email)throw new Error('Native session has the wrong identity')
+  server.sessions.set(email,await context.cookies(origin))
 }
 export async function report(path,value){await mkdir(path,{recursive:true});await (await import('node:fs/promises')).writeFile(join(path,'result.json'),JSON.stringify(value,null,2)+'\n')}

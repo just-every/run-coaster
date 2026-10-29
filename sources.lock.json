@@ -4392,7 +4392,7 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "419239cf4f5058bfd1c1846cca644b677271bf2fcf3de0271567eb5f246f0e60",
+      "sha256": "526349d0200deaaad661a8cf4bc568454c6c5ddc60484dc7f28c2109edc2340c",
       "executable": false
     },
     "tests/browser.mjs": {
