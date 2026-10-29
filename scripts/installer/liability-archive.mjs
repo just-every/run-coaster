@@ -18,6 +18,7 @@ export async function validateLiabilityArchive(read) {
     if (!item.card_charge_id) { check(liability(item)==='company' && personal(item)===0); return; }
     const charge=[...charges,...undone].find(c=>c.id===item.card_charge_id);
     check(charge && liability(item)===(charge.liability??'company') && (personal(item)===0 || liability(item)==='individual'));
+    check(item.amount_minor===charge.amount_minor && item.merchant===charge.descriptor && item.spent_on===(charge.transaction_on??charge.posted_on));
     if (item.card_transaction_key) check(item.card_transaction_key===charge.transaction_key);
   };
   items.forEach(validateItem);
@@ -33,10 +34,12 @@ export async function validateLiabilityArchive(read) {
       }
     }
   }
-  for (const key of keys.filter(k=>k.key.startsWith('card:'))) {
+  for (const key of keys) {
     const bc=batchClaims.find(b=>b.batch_id===key.batch_id && b.claim_id===key.claim_id);
     const revision=bc&&revisions.find(r=>r.claim_id===bc.claim_id && r.revision===bc.revision);
     const item=revision&&JSON.parse(revision.snapshot).items.find(i=>i.id===key.item_id);
-    check(item && item.card_charge_id && eligible(item) && key.key===`card:${item.card_transaction_key}`);
+    check(item && eligible(item));
+    if (item.card_charge_id) check(key.key===`card:${item.card_transaction_key}`);
+    else check(!key.key.startsWith('card:'));
   }
 }
