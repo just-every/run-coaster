@@ -4428,7 +4428,7 @@
       "executable": false
     },
     "tests/coaster-capture.test.mjs": {
-      "sha256": "364dd1a1256a7e12e47bc936276607cd2d32af79f35f2b2782a97d0067d7f5d9",
+      "sha256": "9883b777c4eb74e4ea5e3e59cd0654af4dede134d42b3bd6187ecc09dff7ea07",
       "executable": false
     },
     "tests/coaster-card-matching-volume.test.mjs": {
