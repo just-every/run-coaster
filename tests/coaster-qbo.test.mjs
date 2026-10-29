@@ -51,6 +51,10 @@ test('ACCT-007 Desktop scheduled SOAP catalog, posting replay and isolated error
     await edge.open(connected.configuration,connected.password);await edge.drain('BillAdd')
     assert.match(edge.sent.find(r=>r.kind==='CreditCardChargeAdd').request,/<Amount>12.30<\/Amount>/)
     assert.match(edge.sent.find(r=>r.kind==='JournalEntryAdd').request,/<Amount>10.00<\/Amount>/)
+    const postedJournal=edge.sent.find(r=>r.kind==='JournalEntryAdd').request
+    const journalTotal=side=>[...postedJournal.matchAll(new RegExp(`<Journal${side}Line>[\\s\\S]*?<Amount>([\\d.]+)</Amount>[\\s\\S]*?</Journal${side}Line>`,'g'))].reduce((total,line)=>total+Math.round(Number(line[1])*100),0)
+    assert.equal(journalTotal('Debit'),1000)
+    assert.equal(journalTotal('Credit'),journalTotal('Debit'),'the posted journal balances exactly')
     assert.equal(edge.sent.filter(r=>r.kind==='JournalEntryAdd').length,1,'purchase lines already represented by card charges are not journaled again')
     state=await h.get(root,book);const failed=state.requests.find(r=>r.kind==='BillAdd');assert.equal(failed.status,'failed');assert.equal(failed.message,'Account is inactive')
     await unchanged(()=>h.post(root+'/retry/'+failed.id,{},admin,403))

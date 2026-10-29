@@ -4392,7 +4392,7 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "526349d0200deaaad661a8cf4bc568454c6c5ddc60484dc7f28c2109edc2340c",
+      "sha256": "54d92ed88741733917616b9a0da16706a3a3fba7bafe7ae354488a0b59cf8e11",
       "executable": false
     },
     "tests/browser.mjs": {
@@ -4472,7 +4472,7 @@
       "executable": false
     },
     "tests/coaster-qbo.test.mjs": {
-      "sha256": "0fc617d12be0d03b95b656027ace37a52f2c50e42ff542e3824ab5ecc053084a",
+      "sha256": "37a2ec2585d25ac064e27a5c475c4188493c8733b2adac6bed648893b17cc306",
       "executable": false
     },
     "tests/coaster-reader.test.mjs": {

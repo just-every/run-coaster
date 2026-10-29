@@ -44,7 +44,10 @@ export async function start(root,port,{readingEdge,site=false}={}){
   const plan=await productionPlan(root,origin,port),bank=bankFixture(),label=JSON.parse(await readFile('tests/fixtures/receipts/reader/synthetic-coaster-1001.json','utf8'))
   plan.workers[0].bindings={...plan.workers[0].bindings,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-browser-mail',MAIL_FROM:'Coaster <coaster@harbourfinch.example>',AI_ENABLED:'true',AI_API_KEY:'synthetic-archive-reader'}
   plan.workers[0].outboundService=async request=>{
-    if(readingEdge && request.url.startsWith(readingEdge.url + '/'))return fetch(request)
+    if(readingEdge && (request.url.startsWith(readingEdge.url + '/') || new URL(request.url).hostname==='api.openai.com')){
+      const path=new URL(request.url).pathname.replace(/^\/v1/,'')
+      return fetch(readingEdge.url+path,{method:request.method,headers:Object.fromEntries(request.headers),body:await request.arrayBuffer()})
+    }
     if(new URL(request.url).hostname==='sandbox.plaid.com')return bank.fetch(request)
     if(new URL(request.url).hostname==='api.openai.com'){
       if(new URL(request.url).pathname!=='/v1/responses'||request.method!=='POST'||(await request.json()).store!==false)throw new Error('Receipt reading must use the declared no-store provider door')
