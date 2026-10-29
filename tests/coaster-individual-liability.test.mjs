@@ -19,11 +19,17 @@ test('Individual-liability SFTP charges reimburse only four approved business pu
     const connectionGrant=await h.post('delegates',{delegate:'synthetic-coaster-1204@example.test',level:'full'},f.finance);
     const fullHeaders={'x-coaster-acting-for':'synthetic-coaster-1203@example.test'};
     const delegated=await h.send('/api/coaster/'+endpoint,{...f.config,issuer:'synthetic-coaster-1291'},f.other,fullHeaders);
-    assert.equal(delegated.status,200,JSON.stringify(delegated.value));
-    const stopped=await h.send(`/api/coaster/${endpoint}/${delegated.value.id}/disconnect`,{version:delegated.value.version,consent:true,liability:'company'},f.other,fullHeaders);
-    assert.equal(stopped.status,200);assert.equal(stopped.value.liability,'individual');
-    const connectionLine=(await h.get('history',f.finance)).lines.find(e=>e.action==='program-feed-connected'&&e.detail.feed===delegated.value.id);
-    assert.equal(connectionLine.actor_email,'synthetic-coaster-1204@example.test');assert.equal(connectionLine.detail.actingFor,'synthetic-coaster-1203@example.test');
+    assert.equal(delegated.status,403,'current SEC-001 requires the connection authority’s own native sign-in');
+    assert.deepEqual(await h.get(endpoint,f.finance),beforeFeeds,'Full delegation retains no feed or credential custody');
+    const direct=await h.post(endpoint,{...f.config,issuer:'synthetic-coaster-1291'},f.finance);
+    const beforeDisconnect=await h.get(endpoint,f.finance);
+    const stopped=await h.send(`/api/coaster/${endpoint}/${direct.id}/disconnect`,{version:direct.version,consent:true,liability:'company'},f.other,fullHeaders);
+    assert.equal(stopped.status,403);
+    assert.deepEqual(await h.get(endpoint,f.finance),beforeDisconnect,'delegated disconnect changes no connection state');
+    const disconnected=await h.post(`${endpoint}/${direct.id}/disconnect`,{version:direct.version,consent:true,liability:'company'},f.finance);
+    assert.equal(disconnected.liability,'individual');
+    const connectionLine=(await h.get('history',f.finance)).lines.find(e=>e.action==='program-feed-connected'&&e.detail.feed===direct.id);
+    assert.equal(connectionLine.actor_email,'synthetic-coaster-1203@example.test');assert.ok(!connectionLine.detail.actingFor);
     await h.post(`delegates/${connectionGrant.id}/revoke`,{},f.finance);
     assert.equal((await h.send('/api/coaster/'+endpoint,f.config,f.other,fullHeaders)).status,403);
 
