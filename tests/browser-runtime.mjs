@@ -46,7 +46,9 @@ export async function start(root,port,{readingEdge,site=false}={}){
   plan.workers[0].outboundService=async request=>{
     if(readingEdge && (request.url.startsWith(readingEdge.url + '/') || new URL(request.url).hostname==='api.openai.com')){
       const path=new URL(request.url).pathname.replace(/^\/v1/,'')
-      return fetch(readingEdge.url+path,{method:request.method,headers:Object.fromEntries(request.headers),body:await request.arrayBuffer()})
+      // The forwarded body is serialized again; let Node calculate its Content-Length.
+      const headers=new Headers(request.headers);headers.delete('content-length')
+      return fetch(readingEdge.url+path,{method:request.method,headers:Object.fromEntries(headers),body:await request.arrayBuffer()})
     }
     if(new URL(request.url).hostname==='sandbox.plaid.com')return bank.fetch(request)
     if(new URL(request.url).hostname==='api.openai.com'){
