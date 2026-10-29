@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { runtime } from './runtime.mjs'
-import { createAgentDoor } from '../index.ts'
+import { createAgentDoor, defineTool, operatorAuthPeople, ToolRefusal } from '../index.ts'
 import { autonomousPolicy, heldPolicy, policyEnvelope } from '../conformance/crypto.mjs'
 import { runAgentDoorConformance } from '../conformance/index.mjs'
 import { decide } from '../policy/decide.ts'
@@ -184,13 +184,13 @@ test('credentials, pause, embedded calls, subscriptions and the generic conforma
  try {
   assert.equal((await local.adopt()).status,404)
   assert.equal((await local.person('/agents/api/pause',{paused:true})).body.paused.local,true)
-  assert.equal(code(await local.tool('records.list',{}, {token:'synthetic-base-local'})),'agents_paused')
+  assert.equal(code(await local.tool('records.list',{}, {token:local.localToken})),'agents_paused')
   await local.person('/agents/api/pause',{paused:false})
   assert.equal((await local.mcp('tools/list')).status,401)
   assert.equal((await local.person('/agents/api/policy',{document:autonomousPolicy()})).status,405)
   const incomplete=await local.fetch('/agents/api/policy',{method:'PUT',headers:{origin:local.c.origin,cookie:local.c.person.cookie,'content-type':'application/json'},body:JSON.stringify({document:{...autonomousPolicy(),rules:[],spend:undefined}})}); assert.equal(incomplete.status,409); assert.ok((await incomplete.json()).problems.some(p=>p.kind==='spend'))
   const saved=await local.fetch('/agents/api/policy',{method:'PUT',headers:{origin:local.c.origin,cookie:local.c.person.cookie,'content-type':'application/json'},body:JSON.stringify({document:autonomousPolicy()})}); assert.equal(saved.status,200)
-  assert.equal((await local.mcp('tools/list',{}, {token:'synthetic-base-local'})).status,200)
+  assert.equal((await local.mcp('tools/list',{}, {token:local.localToken})).status,200)
  } finally { await local.close() }
  const fresh=await runtime({resourceScope:'resources:read'})
  try {
@@ -207,7 +207,87 @@ test('credentials, pause, embedded calls, subscriptions and the generic conforma
     {id:'access',tool:'synthetic.access.change',args:{id:'synthetic-base-other'},expect:[{class:'access'}]},
     {id:'erase',tool:'synthetic.records.erase',args:{id:'synthetic-base-1'},expect:[{class:'destructive'}]},
     {id:'events',tool:'synthetic.events.list',args:{},expect:[{class:'standard'}]}]}
-  const result=await runAgentDoorConformance({fetch:fresh.fetch,origin:fresh.c.origin,surface,signer:fresh.c.signer,person:fresh.c.person,now:()=>fresh.c.now})
+  const result=await runAgentDoorConformance({fetch:fresh.fetch,origin:fresh.c.origin,surface,signer:fresh.c.signer,person:fresh.c.person,now:()=>fresh.c.now,
+   invoke: async (name: string, args: Record<string, unknown>, who: any) => (await fresh.person('/__embedded',{name,args,agent:who.agent,consent:who.consent,scopes:who.scopes})).body })
   assert.deepEqual(result.points.filter((p:any)=>!p.ok),[])
  } finally { await fresh.close() }
+})
+
+
+test('review audit distinguishes a native refusal from a completed effect and rejects false refusal evidence', async t => {
+ for (const mode of ['refused', 'done', 'missing-review', 'effect', 'wrong-code', 'unexpected-review', 'wrong-link']) await t.test(mode, async () => {
+  const r = await runtime()
+  try {
+   let held = false
+   const schema = { type: 'object' as const, properties: {}, additionalProperties: false }
+   const capabilities = ['tools', 'policy', 'pause', 'audit', 'idempotency']
+   const tools = [
+    defineTool({ name:'synthetic.records.list', title:'Read records', description:'Read the native effect witness.', scope:'records:read', readOnly:true,
+     inputSchema:schema, outputSchema:{type:'object',properties:{records:{type:'array',items:{type:'object'}}},required:['records']}, classes:['standard'], clauses:['BASE-AGENT-002'],
+     classify:()=>[{class:'standard',facts:{measure:1}}], run:async()=>({result:{records:await rows(r)}}) }),
+    defineTool({ name:'synthetic.records.write', title:'Write record', description:'Apply or refuse one native effect.', scope:'records:write', readOnly:false,
+     inputSchema:schema, outputSchema:schema, classes:['standard'], clauses:['BASE-AGENT-002'], summary:()=>({target:{id:'synthetic-review-record'}}),
+     classify:()=>[{class:'standard',facts:{measure:1}}], async run() {
+      if (held && !['done','missing-review','wrong-link'].includes(mode)) {
+       if (mode === 'effect') await r.db.prepare("INSERT INTO test_records VALUES(?,?,1,'internal')").bind(crypto.randomUUID(),'unreviewed effect').run()
+       throw new ToolRefusal('native_refused')
+      }
+      await r.db.prepare("INSERT INTO test_records VALUES(?,?,1,'internal')").bind(crypto.randomUUID(),'completed effect').run()
+      return {result:{}}
+     } }),
+   ]
+   const publicKey = await crypto.subtle.exportKey('jwk', r.c.ring.publicKey)
+   const door = createAgentDoor({seed:'synthetic',name:'Synthetic',specialist:'operations',origin:r.c.origin,db:r.db,capabilities,
+    trust:{issuer:r.c.signer.issuer,installationId:r.c.signer.installationId,appOrigin:r.c.origin,publicKeys:{[r.c.signer.kid]:publicKey}},
+    now:()=>r.c.now, tools, people:operatorAuthPeople({db:r.db,session:async request=>{
+     const response = await r.fetch('/auth/session',{headers:{cookie:request.headers.get('cookie') ?? ''}})
+     return response.ok ? response.json() : null
+    }})})
+   const fetch = async (url: string, init: RequestInit = {}) => {
+    const request = new Request(url, init), response = await door.handle(request)
+    if (!response) return r.fetch(url,init)
+    // Corrupt real persisted evidence to model an adapter's incomplete audit;
+    // native execution, sessions, policy and conformance still use the live door.
+    if (held && new URL(url).pathname === '/mcp' && ['missing-review','wrong-code','unexpected-review','wrong-link'].includes(mode)) {
+     const records = (await r.db.prepare('SELECT id,row FROM agent_door_audit').all()).results
+     for (const record of records) {
+      const row = JSON.parse(record.row)
+      if (row.tool !== 'synthetic.records.write' || row.decision !== 'review') continue
+      if (mode === 'missing-review' && row.review?.id) { await r.db.prepare('DELETE FROM agent_door_reviews WHERE id=?').bind(row.review.id).run(); row.review = null }
+      if (mode === 'wrong-code') row.code = 'different_refusal'
+      if (mode === 'unexpected-review') row.review = {id:crypto.randomUUID()}
+      if (mode === 'wrong-link') {
+       const review = await r.db.prepare('SELECT saved FROM agent_door_reviews WHERE id=?').bind(row.review.id).first()
+       const saved = JSON.parse(review.saved); saved.decision_id = crypto.randomUUID()
+       await r.db.prepare('UPDATE agent_door_reviews SET saved=? WHERE id=?').bind(JSON.stringify(saved),row.review.id).run()
+      }
+      await r.db.prepare('UPDATE agent_door_audit SET row=? WHERE id=?').bind(JSON.stringify(row),record.id).run()
+     }
+    }
+    return response
+   }
+   const surface = {schema:'rer-agent-surface/1',seed:'synthetic',specialist:'operations',capabilities,
+    tools:tools.map(({name,scope,readOnly,classes,clauses})=>({name,scope,readOnly,classes,clauses})),notTools:[],resources:[],escalations:[],
+    witness:{tool:'synthetic.records.list',args:{}},journey:[
+     {id:'before',tool:'synthetic.records.list',args:{},expect:[{class:'standard'}]},
+     {id:'write',tool:'synthetic.records.write',args:{},expect:[{class:'standard'}]},
+     {id:'after',tool:'synthetic.records.list',args:{},expect:[{class:'standard'}]},
+    ]}
+   const result = await runAgentDoorConformance({fetch,origin:r.c.origin,surface,signer:r.c.signer,person:r.c.person,now:()=>r.c.now,
+    prepare:async ({phase}:any)=>{held=phase==='held';return {}}})
+   const reviewPoints = result.points.filter((point:any)=>point.id.startsWith('BASE-AGENT-009.4.review.'))
+   assert.ok(reviewPoints.length, mode)
+   const failures = reviewPoints.filter((point:any)=>!point.ok)
+   if (mode === 'refused' || mode === 'done') {
+    assert.deepEqual(failures,[],mode)
+    // A refused journey step still fails its independent completion/history point.
+    assert.deepEqual(result.points.filter((point:any)=>!point.ok).map((point:any)=>point.id),mode==='refused'?['BASE-AGENT-013.4.held.write']:[],mode)
+   } else {
+    assert.equal(failures.length,1,JSON.stringify({mode,failures:result.points.filter((point:any)=>!point.ok)}))
+    console.log(`Review audit negative ${mode}: rejected`)
+    assert.match(failures[0].detail, mode==='missing-review'?/review row/:mode==='effect'?/witness/:mode==='wrong-code'?/code/:mode==='wrong-link'?/linked/:/review/,mode)
+   }
+   console.log(`Review audit fixture ${mode}: ${failures.length ? 'rejected' : 'accepted'}`)
+  } finally { await r.close() }
+ })
 })

@@ -19,6 +19,8 @@ export type Actor = {
   operatorId?: string;
   session?: string;
   keyId?: string;
+  /** Admission from the shared door; fenced with native authority in every write. */
+  doorCredential?: { operatorId: string; agentId: string; envelope: string | null; document: string | null; revision: number; localKey?: string };
   /** Public REST credential, separate from native sessions and agent keys. */
   publicCredential?: { id: string; scope: string; scopes: string; draftClaim?: string };
   agentLabel?: string;

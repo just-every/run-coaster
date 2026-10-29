@@ -131,7 +131,7 @@ Native-session/runtime evidence: https://github.com/runeditrun/base/tree/79f61fa
 CONTRACT.md is the source for acceptance requirements and Status rows. Preserve
 unrelated legacy acceptance prose when changing a scoped row.
 
-Lander-Regenerate: `node scripts/contract-docs.mjs write --clause AGENT-008`
+Lander-Regenerate: node scripts/contract-docs.mjs write --clause AGENT-008
 (repeat `--clause ID` for each touched clause). Then run the same command with
 `check` instead of `write`. It regenerates the selected acceptance notes,
 `docs/claims.md` and summary counts without changing acceptance requirements.

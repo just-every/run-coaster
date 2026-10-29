@@ -65,7 +65,7 @@ The owner can review optional AI costs in Settings before enabling receipt readi
 
 Generated from the Status table in [CONTRACT.md](https://github.com/just-every/run-coaster/blob/main/CONTRACT.md). That source retains the acceptance requirements, current evidence and remaining work for each clause.
 
-**104 clauses: 60 done, 23 partial, 21 missing.**
+**117 clauses: 60 done, 36 partial, 21 missing.**
 
 | Clause | Title | Kind | Status |
 | --- | --- | --- | --- |
@@ -173,3 +173,16 @@ Generated from the Status table in [CONTRACT.md](https://github.com/just-every/r
 | AGENT-007 | Conversational expenses and spend questions | push-further | partial |
 | AGENT-008 | Month-end close preparation | push-further | partial |
 | AGENT-009 | Trip assembly | push-further | partial |
+| BASE-AGENT-001 | One MCP door per seed | target | partial |
+| BASE-AGENT-002 | The seed's jobs are tools, through the UI's own actions | target | partial |
+| BASE-AGENT-003 | Records are resources | target | partial |
+| BASE-AGENT-004 | Business identity and short-lived, audience-bound tokens | target | partial |
+| BASE-AGENT-005 | An agent acts as a person in a role, never more | target | partial |
+| BASE-AGENT-006 | Every action declares its risk class | target | partial |
+| BASE-AGENT-007 | The company's policy decides, at one chokepoint | target | partial |
+| BASE-AGENT-008 | Truthful attribution | target | partial |
+| BASE-AGENT-009 | Every agent action is audited with its class and decision | target | partial |
+| BASE-AGENT-010 | Agents can follow changes | target | partial |
+| BASE-AGENT-011 | Limits are policy, and Pause stops everything | target | partial |
+| BASE-AGENT-012 | Writes are idempotent and conflict-safe | target | partial |
+| BASE-AGENT-013 | Manifest, docs and the conformance journey | target | partial |
