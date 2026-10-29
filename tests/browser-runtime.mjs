@@ -84,7 +84,11 @@ export async function startCli(root,port,mode='dev'){
       await new Promise(resolve=>setTimeout(resolve,250))
     }
     if(!output.includes('RER_READY'))throw new Error(`${mode} readiness timed out`)
-    return {origin:`http://127.0.0.1:${port}`,close}
+    return {origin:`http://127.0.0.1:${port}`,get siteOrigin(){
+      const site=output.replace(/\x1b\[[0-9;]*m/g,'').match(/RER_SITE (https?:\/\/[^\s]+)/)
+      if(!site)throw new Error('The native CLI did not publish its run site')
+      return new URL(site[1]).origin
+    },close}
   }catch(error){await close();throw error}
 }
 function assertMail(request){if(request.url!=='https://api.resend.com/emails'||request.method!=='POST')throw new Error('Unexpected browser-journey egress')}

@@ -4392,11 +4392,11 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "fd24e889dd95a400a110ec28b42637520ef9df33d2bcd4c5ecf50d6d13f953a8",
+      "sha256": "09cee9d04fb1a72ba20a84d3ca849cba2d21460e1794c3933f5ee950750abbca",
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "8ffe5d296695ecbe366187fa701e6ae4683d53ccf2349ad7d550166ee8e3d3ff",
+      "sha256": "34d8fc366285549949ea43be7164afa043c1f60a17d1f785ca96fe8d53c9702d",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
