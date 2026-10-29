@@ -4376,7 +4376,7 @@
       "executable": false
     },
     "tests/browser-journey.mjs": {
-      "sha256": "451006b941b847672aa192f19e2b779093d70ea9098725aa69412585a572d612",
+      "sha256": "fbf551a7e60736a893ab1e6cebd5f37150cf3092b52df88e5f163c29422ea339",
       "executable": false
     },
     "tests/browser-per-diem.mjs": {
@@ -6576,7 +6576,7 @@
       "executable": false
     },
     "tests/journeys/browser-cash-attachment.mjs": {
-      "sha256": "1c21c209d3d7b7b7c442b333d515512ff885def838277180c0dea983b457f881",
+      "sha256": "32f57ffa46916cc5603faeaf668a4a278ccdc57df734f69d483b4f5b05004d82",
       "executable": false
     },
     "tests/journeys/browser-desktop-connection.mjs": {
@@ -6584,7 +6584,7 @@
       "executable": false
     },
     "tests/journeys/browser-matching.mjs": {
-      "sha256": "5e05a2aeb2d0dc77053b1708f0f27f3d088226127ab7cc2d8ba81f08412cf4b2",
+      "sha256": "fe066aaefad76e7b5d9f6f5d2f8b53dc17f9859f9f2bc45a2f700f0640f51036",
       "executable": false
     },
     "tests/journeys/browser-policy-agent.mjs": {
@@ -6596,7 +6596,7 @@
       "executable": false
     },
     "tests/journeys/browser-receipt-custody.mjs": {
-      "sha256": "ce8c0f32c8e4a1ba45d4a091032aa06052f0a7c9a0632e22963285c7141515b3",
+      "sha256": "4d73ffe9827888ed1e48f8bf88bbf2682a3a98a60ab5f97802581f4017bcabb7",
       "executable": false
     },
     "tests/journeys/browser-signal-investigation.mjs": {

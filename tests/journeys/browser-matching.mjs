@@ -4,7 +4,7 @@ import {chromium} from '@playwright/test'
 import {copyFile,mkdir,readFile,rm,writeFile} from 'node:fs/promises'
 import {join,resolve} from 'node:path'
 import {command,fresh,freePort,start} from '../browser-runtime.mjs'
-import {api,PEOPLE,session,setUp} from '../browser-journey.mjs'
+import {api,PEOPLE,session,setUp,inviteRestoredPerson} from '../browser-journey.mjs'
 import {records,rows,tampered} from '../browser-archive.mjs'
 import {statementScreens,statementPrivacyScreens} from './screens-statements.mjs'
 import {readingEdge,readingScreens} from './screens-reading.mjs'
@@ -215,6 +215,7 @@ export async function runMatchingJourney() {
     server=await start(restored,restorePort,{readingEdge:readerEdge});browser=await launch()
     const restoredOwner=await session(browser,restored,server.origin,'owner',1440)
     await verifyPrivateStatementDownloads(statementDoor(restoredOwner.context,server.origin),privateStatements)
+    await inviteRestoredPerson(restoredOwner.context,server.origin,PEOPLE.employee)
     await restoredOwner.context.close()
     const restoredEmployee=await session(browser,restored,server.origin,'employee',390)
     const before=(await api(restoredEmployee.context,server.origin,'receipt-inbox')).receipts

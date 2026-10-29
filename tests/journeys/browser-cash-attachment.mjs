@@ -4,7 +4,7 @@ import { chromium } from '@playwright/test'
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, start } from '../browser-runtime.mjs'
-import { api, session, setUp } from '../browser-journey.mjs'
+import { api, session, setUp, PEOPLE, inviteRestoredPerson } from '../browser-journey.mjs'
 import { attachmentJourney, cashWindowJourney } from './screens-cash-attachment.mjs'
 import { records, rows, tampered } from '../browser-archive.mjs'
 
@@ -38,6 +38,8 @@ export async function runCashAttachmentJourney({ evidence = resolve('.cache/coas
     },row=>row.id===aged.row.id),{mode:0o600});
     await command(cash,['import','--input','exports/aged.rer','--yes']);
     server=await start(cash,cashPort,{site:true});browser=await launch();
+    const cashOwner=await session(browser,cash,server.origin,'owner',1440)
+    await inviteRestoredPerson(cashOwner.context,server.origin,PEOPLE.employee);await cashOwner.context.close()
     await cashWindowJourney(browser,cash,server.origin,evidence,shots,()=>server.scheduled());
     await attachmentJourney(browser,cash,server.origin,evidence,shots,server.siteOrigin);
     // The entered expense now belongs to FOLLOWUP-001 as well. Finish its first hourly cycle before taking the replay baseline.
@@ -63,6 +65,8 @@ export async function runCashAttachmentJourney({ evidence = resolve('.cache/coas
     assert.deepEqual(rows(await records(join(restoredCash,'exports/restored.rer'))),rows(await records(prepared)),'cash reservations and originals round trip exactly');
     server=await start(restoredCash,restorePort);
     browser=await launch();
+    const restoredOwner=await session(browser,restoredCash,server.origin,'owner',1440)
+    await inviteRestoredPerson(restoredOwner.context,server.origin,PEOPLE.employee);await restoredOwner.context.close()
     const employeeRestored=await session(browser,restoredCash,server.origin,'employee',390);
     const restoredInbox=(await api(employeeRestored.context,server.origin,'receipt-inbox')).receipts;
     const active=restoredInbox.find(r=>r.attachment);assert.ok(active,'the final attached original survives restore');

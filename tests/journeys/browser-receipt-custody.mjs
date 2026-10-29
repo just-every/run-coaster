@@ -4,7 +4,7 @@ import { chromium } from '@playwright/test'
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, start } from '../browser-runtime.mjs'
-import { PEOPLE, api, session, setUp } from '../browser-journey.mjs'
+import { PEOPLE, api, session, setUp, inviteRestoredPerson } from '../browser-journey.mjs'
 import { records, rows, tampered, rejectCaptureLifecycleArchives } from '../browser-archive.mjs'
 import { receiptDispositionScreens, assertRestoredInbox, expandedReasonJourney, assertReceiptRolePrivacy } from './screens-receipt-custody.mjs'
 
@@ -58,6 +58,9 @@ export async function runReceiptCustodyJourney({ evidence = resolve('.cache/coas
     assert.deepEqual(rows(await records(join(second, 'exports/restored.rer'))), rows(await records(archive)), 'receipt rows and original R2 payloads survive restore')
     server = await start(second, secondPort)
     browser = await launch()
+    const destinationOwner=await session(browser,second,server.origin,'owner',1440)
+    await inviteRestoredPerson(destinationOwner.context,server.origin,PEOPLE.employee)
+    await destinationOwner.context.close()
     const restored = await session(browser, second, server.origin, 'employee', 390)
     try { await assertRestoredInbox(restored.context, server.origin, captured) }
     finally { await restored.context.close() }

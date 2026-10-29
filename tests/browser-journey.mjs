@@ -33,6 +33,12 @@ export async function api(context, origin, path, body) {
   return value
 }
 
+/** Native accounts belong to the destination installation, outside the domain archive. */
+export async function inviteRestoredPerson(context,origin,email){
+  const response=await context.request.post(origin+'/auth/invite',{headers:{origin},data:{email,displayName:'Sam Taylor',role:'member',returnTo:'/app'}})
+  assert.equal(response.status(),202,'the destination owner invites the restored person')
+}
+
 /** The synthetic Harbour & Finch Studio: policy, categories and three dev personas with roles. */
 export async function setUp(owner, origin) {
   await api(owner.context, origin, 'settings/business', { name: 'Harbour & Finch Studio', currency: 'AUD', timezone: 'Australia/Sydney', perDiem: '', receiptThreshold: '' })
