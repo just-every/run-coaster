@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import { harness } from './harness.mjs';
 import { address, correctionClaims, correctionPath, correctionBody } from './account-correction-kit.mjs';
 
+function worksheet(bytes) {
+  const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.length);
+  let end=bytes.length-22;while(view.getUint32(end,true)!==0x06054b50)end--;
+  let at=view.getUint32(end+16,true),sheet='';
+  for(let n=view.getUint16(end+10,true);n>0;n--) {
+    const size=view.getUint32(at+20,true),length=view.getUint16(at+28,true),offset=view.getUint32(at+42,true);
+    const start=offset+30+view.getUint16(offset+26,true)+view.getUint16(offset+28,true);
+    if(bytes.subarray(at+46,at+46+length).toString()==='xl/worksheets/sheet1.xml')sheet=bytes.subarray(start,start+size).toString();
+    at+=46+length+view.getUint16(at+30,true)+view.getUint16(at+32,true);
+  }
+  return [...sheet.matchAll(/<row[^>]*>(.*?)<\/row>/g)].map(row=>[...row[1].matchAll(/<c\b[^>]*>(.*?)<\/c>/g)].map(cell=>cell[1].match(/<t\b[^>]*>(.*?)<\/t>/)?.[1]??cell[1].match(/<v>(.*?)<\/v>/)?.[1]??''));
+}
 const rows = async (h, table) => (await h.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results;
 const state = async h => Object.fromEntries(await Promise.all(['c_account_corrections','c_batch_coding','c_claims','c_revisions','c_decisions','c_items','c_allocations','c_events','c_batches','c_reimbursement_keys'].map(async table => [table, await rows(h,table)])));
 const evidence = async (h,c) => (await h.get(`claims/${c.id}`));
@@ -15,13 +27,18 @@ test('Native account corrections preserve submitted facts, enforce role and revi
     const { t, create, approve } = await correctionClaims(h);
     let c = await create(), d = await evidence(h,c), original = preserved(d);
     const originalBytes = await rows(h,'c_revisions');
-    for (const extra of [{ reason: '' }, { allocation: 3 }, { accountCode: '6500' }, { revision: c.revision - 1 }, { version: c.version - 1 }]) {
+    for (const extra of [{ reason: '' }, { sequence: -1 }, { allocation: 3 }, { accountCode: '6500' }, { revision: c.revision - 1 }, { version: c.version - 1 }]) {
       const before = await state(h), r = await h.send('/api/coaster/' + correctionPath(c), correctionBody(d,extra), h.owner);
       assert.ok([400,409].includes(r.status),r.text); assert.deepEqual(await state(h),before);
     }
+    const selfGrant=await h.post('delegates',{delegate:address('sam'),level:'full'},t.priya);
+    const selfBefore=await state(h);
+    assert.equal((await h.send('/api/coaster/'+correctionPath(c),correctionBody(d),t.sam,{'x-coaster-acting-for':address('priya')})).status,403,'a delegated approver cannot review their own claim');
+    assert.deepEqual(await state(h),selfBefore);
+    await h.post(`delegates/${selfGrant.id}/revoke`,{},t.priya);
     const cookies = { owner: h.owner, finance: await h.person(address('synthetic-coaster-finance'),{finance:true}), bookkeeper: await h.person(address('synthetic-coaster-bookkeeper'),{bookkeeper:true}), approver: t.priya };
     for (const [i, role] of ['owner','finance','bookkeeper','approver'].entries()) {
-      const body = correctionBody(d,{accountCode:String(6750+i)});
+      const body = correctionBody(d,{accountCode:String(6750+i), reason: role==='finance' ? 'Requested by '+address('synthetic-coaster-finance') : 'Use the expense-specific account'});
       c = await h.post(correctionPath(c),body,cookies[role]);
       d = await evidence(h,c);
       assert.equal(d.accountCoding.sequence,i+1); assert.equal(d.accountCoding.corrections.at(-1).after_account,String(6750+i));
@@ -74,8 +91,12 @@ test('Native account corrections preserve submitted facts, enforce role and revi
     assert.deepEqual(detail.lines.map(l=>[l.account,l.amountMinor]),[['6800',6000],['6200',4000],['GST paid',1000]]);
     assert.equal(detail.lines.reduce((n,l)=>n+l.amountMinor,0),detail.people.reduce((n,p)=>n+p.amountMinor,0));
     for (const format of ['csv','xlsx']) {
-      const file = await h.send(`/api/coaster/batches/${batch.id}/accounting.${format}`,undefined,t.morgan);
-      assert.equal(file.status,200); assert.match(file.text,/6800/); assert.match(file.text,/6200/); assert.match(file.text,/GST paid/);
+      const response=await h.mf.dispatchFetch(`${h.origin}/api/coaster/batches/${batch.id}/accounting.${format}`,{headers:{cookie:t.morgan}});
+      assert.equal(response.status,200);
+      const table=format==='xlsx'?worksheet(Buffer.from(await response.arrayBuffer())):(await response.text()).trim().split('\r\n').map(line=>line.split('","').map(v=>v.replace(/^"|"$/g,'')));
+      const header=table.shift(),account=header.indexOf('account_code'),amount=header.indexOf('amount');
+      assert.deepEqual(table.map(row=>[row[account],Number(row[amount])]),[['6800',60],['6200',40],['GST paid',10]],format+' keeps corrected codes and independent exact amounts');
+      assert.equal(table.reduce((n,row)=>n+Number(row[amount]),0),110);
     }
     const csv = await h.send(`/api/coaster/batches/${batch.id}/reimbursements.csv`,undefined,t.morgan);
     assert.match(csv.text,/110\.00/);
@@ -90,6 +111,16 @@ test('Native account corrections preserve submitted facts, enforce role and revi
     assert.equal(history.length,6); assert.deepEqual(history.map(l=>l.detail.sequence),[1,2,3,4,5,6]);
     assert.ok(history.every((l,i)=>l.seq>0&&(!i||l.seq>history[i-1].seq)));
     assert.equal(corrections.length,6);
+    // Erasure removes a former actor's identity from overlay reasons and numbered evidence.
+    const erasedEmail=address('synthetic-coaster-finance');
+    await h.post(['settings','members'].join('/'),{email:erasedEmail,name:'synthetic-coaster-finance',finance:true,active:false});
+    await h.post(['settings','members','erase'].join('/'),{email:erasedEmail});
+    const erased=await rows(h,'c_account_corrections'),events=await rows(h,'c_events');
+    assert.ok(!JSON.stringify([erased,events]).includes(erasedEmail));
+    assert.match(erased[1].reason,/former-member-[0-9a-f]{8}/);
+    before=await state(h);
+    await h.post(correctionPath(c),correctionBody(d),cookies.finance,401);
+    assert.deepEqual(await state(h),before,'erased credentials cannot replay a correction');
   } finally { await h.close(); }
 });
 
@@ -102,19 +133,22 @@ test('Correction commit fences concurrent batching, posting, revision changes an
   try {
     const {t,create,approve} = await correctionClaims(h);
     const financeEmail = address('synthetic-coaster-finance'), finance = await h.person(financeEmail,{finance:true});
-    for (const scenario of ['batch','authority','revision','posting']) {
+    for (const scenario of ['batch','authority','revision','posting','authority-after']) {
       let c=await create('Client '+scenario); if(scenario!=='revision') c=await approve(c);
-      const d=await evidence(h,c); pause=true;
+      const d=await evidence(h,c);
+      if(scenario==='authority-after') await h.db.prepare(`CREATE TRIGGER synthetic_correction_withdrawal AFTER INSERT ON c_account_corrections BEGIN UPDATE c_members SET is_finance=0 WHERE email='${financeEmail}'; END`).run();
+      pause=true;
       const reached=new Promise(r=>{arrived=r});
       const pending=h.send('/api/coaster/'+correctionPath(c),correctionBody(d),finance);
       await reached;
       if(scenario==='batch') await h.post('batches',{claims:[c.id]},t.morgan);
-      if(scenario==='authority') await h.post('settings/members',{email:financeEmail,name:'Finance',employee:true});
+      if(scenario==='authority') await h.post(['settings','members'].join('/'),{email:financeEmail,name:'Finance',employee:true});
       if(scenario==='revision') await h.post(`claims/${c.id}/retract`,{version:c.version},t.sam);
       if(scenario==='posting') await h.db.prepare("INSERT INTO c_qbd_requests(id,source,kind,payload,status,created_at) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),'synthetic-coaster-1','BillAdd',JSON.stringify({claim:c.id}),'uncertain','2026-04-01T00:00:00Z').run();
       const before=await state(h); release(); const r=await pending;
       assert.equal(r.status,409,r.text); assert.deepEqual(await state(h),before,scenario+' fences every correction write');
-      if(scenario==='authority') await h.post('settings/members',{email:financeEmail,name:'Finance',finance:true});
+      if(scenario==='authority') await h.post(['settings','members'].join('/'),{email:financeEmail,name:'Finance',finance:true});
+      if(scenario==='authority-after') await h.db.prepare('DROP TRIGGER synthetic_correction_withdrawal').run();
     }
   } finally { release?.(); await h.close(); }
 });

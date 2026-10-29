@@ -17,10 +17,10 @@ function noPosting(id: string): Sql {
 function codingAuthority(actor: Actor, claim: Claim): Sql {
   const global = rowAuthority(actor, 'coding'), reviewer = authority(actor, 'manager');
   return { sql: `((${global.sql}) OR ((${reviewer.sql}) AND EXISTS(SELECT 1 FROM c_claims c WHERE c.id=? AND c.status='submitted'
-    AND c.employee_email<>? AND (EXISTS(SELECT 1 FROM c_workflow_tasks t WHERE t.kind='claim' AND t.record_id=c.id AND t.revision=c.revision AND t.status='waiting' AND t.email=?)
+    AND c.employee_email<>? AND c.employee_email<>? AND (EXISTS(SELECT 1 FROM c_workflow_tasks t WHERE t.kind='claim' AND t.record_id=c.id AND t.revision=c.revision AND t.status='waiting' AND t.email=?)
       OR (NOT EXISTS(SELECT 1 FROM c_workflow_tasks t WHERE t.kind='claim' AND t.record_id=c.id AND t.revision=c.revision) AND c.approver_email=?))
     AND NOT EXISTS(SELECT 1 FROM c_decisions d WHERE d.claim_id=c.id AND d.revision=c.revision AND (d.actor_email IN (?,?) OR d.on_behalf_of=?)))))`,
-    params: [...global.params, ...reviewer.params, claim.id, actor.email, actor.email, actor.email, actor.email, actor.delegate?.email ?? actor.email, actor.email] };
+    params: [...global.params, ...reviewer.params, claim.id, actor.email, actor.delegate?.email ?? actor.email, actor.email, actor.email, actor.email, actor.delegate?.email ?? actor.email, actor.email] };
 }
 
 export async function accountCoding(db: D1Database, actor: Actor, claim: Claim) {

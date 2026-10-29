@@ -23,6 +23,9 @@ export async function validateAccountCorrectionsArchive(read) {
     const detail = event && JSON.parse(event.detail);
     check(event?.actor_email === c.actor_email && detail.revision === c.revision && detail.sequence === c.sequence && detail.item === c.item_id && detail.allocation === c.allocation_position && detail.before === c.before_account && detail.after === c.after_account && detail.reason === c.reason && (detail.actingFor ?? null) === c.acting_for);
   }
+  for (const e of events.filter(e => e.action === 'account-code-corrected')) {
+    check(corrections.some(c => c.id === JSON.parse(e.detail).correction && c.claim_id === e.claim_id));
+  }
   for (const f of frozen) {
     check(batches.some(b => b.id === f.batch_id) && revisions.some(r => r.claim_id === f.claim_id && r.revision === f.revision));
     check(Number.isSafeInteger(f.correction_sequence) && f.correction_sequence >= 0 && f.correction_sequence <= (seen.get(f.claim_id) ?? 0));
