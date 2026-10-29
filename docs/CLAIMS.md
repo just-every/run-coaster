@@ -2,7 +2,7 @@
 
 Generated from CONTRACT.md. Implementation status does not certify live provider qualification.
 
-**103 clauses: 60 done, 24 partial, 19 missing.**
+**104 clauses: 60 done, 24 partial, 20 missing.**
 
 | Clause | Title | Status |
 | --- | --- | --- |
@@ -73,6 +73,7 @@ Generated from CONTRACT.md. Implementation status does not certify live provider
 | ACCT-005 | Exports alongside live sync | done |
 | ACCT-006 | Posting integrity and close | partial |
 | ACCT-007 | QuickBooks Desktop connection | done |
+| ACCT-008 | A purchase removed from a batch stays correctable while another claim posts: the posting guard counts current batch membership only | missing |
 | REPORT-001 | Spend analytics | done |
 | REPORT-002 | Operational and compliance reports | done |
 | REPORT-003 | Searchable audit history and auditor access | done |
