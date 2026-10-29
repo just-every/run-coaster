@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "4da53e50967244760ed40b75190eebde87adedea9b9732ce6185900ec393bee6",
+      "sha256": "8ae1d72fdbb35504dd13cbc81b91a65310220cdf35b549e3d9cfa0c758b566ab",
       "executable": false
     },
     ".gitignore": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6628819309e65ce6826728d4f05495af27c9936ee2a3ce47511ac1e30a4942f5",
+      "sha256": "8e4c8221cc1161fef6ada58cb024fab554c6f1869662240e7fd409a4fc5a0106",
       "executable": false
     },
     "DEMO.md": {
@@ -4396,7 +4396,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "de92d22f0a46bc2f1701925ffe8f701b7e7bfdf26e22de0c8081fbc4080da589",
+      "sha256": "ffac918e752324afe1d09fb0cec63ecf9bc8606371622da382a08b5024bbc967",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
