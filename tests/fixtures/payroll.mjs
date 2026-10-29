@@ -8,14 +8,14 @@ export const gustoFixture = () => {
     fixed_compensations:[{name:'Bonus',amount:'3.00',job_uuid:'synthetic-coaster-105'},{name:'Salary',amount:'1000.00',job_uuid:'synthetic-coaster-105'}],
   }]};
   const writes=[];
-  const fixture={company,employee,payrollId,writes,earnings:{default:[{name:'Bonus'}],custom:[]},employees:[{uuid:employee,first_name:'Sam',last_name:'Taylor',email:'sam@harbourfinch.example',terminated:false}],lostAck:false,uncalculated:false,hold:null,get payroll(){return payroll;},set payroll(value){payroll=value;},async fetch(request){
+  const fixture={company,employee,payrollId,writes,earnings:{default:[{name:'Bonus'}],custom:[]},employees:[{uuid:employee,first_name:'Sam',last_name:'Taylor',email:'sam@harbourfinch.example',terminated:false}],lostAck:false,uncalculated:false,hold:null,runs:null,receipt:null,get payroll(){return payroll;},set payroll(value){payroll=value;},async fetch(request){
     const url=new URL(request.url),path=url.pathname;
     assert.equal(url.origin,'https://api.gusto-demo.com');
     if(fixture.hold)await fixture.hold(request);
     if(path===`/v1/companies/${company}`)return Response.json({uuid:company,name:'Harbour and Finch sandbox'});
     if(path.endsWith('/employees'))return Response.json(fixture.employees.slice((Number(url.searchParams.get('page')??1)-1)*100,Number(url.searchParams.get('page')??1)*100));
     if(path.endsWith('/earning_types'))return Response.json(fixture.earnings);
-    if(path.endsWith('/payrolls'))return Response.json([payroll]);
+    if(path.endsWith('/payrolls'))return Response.json(fixture.runs ?? [payroll]);
     const page=()=>({...payroll,employee_compensations:payroll.employee_compensations.slice((Number(url.searchParams.get('page')??1)-1)*100,Number(url.searchParams.get('page')??1)*100)});
     if(path.endsWith('/prepare'))return Response.json(page());
     if(path===`/v1/companies/${company}/payrolls/${payrollId}`){
@@ -29,7 +29,7 @@ export const gustoFixture = () => {
       }
       return Response.json(fixture.uncalculated ? {...payroll,employee_compensations:undefined} : page());
     }
-    if(path===`/v1/payrolls/${payrollId}/receipt`)return Response.json({payroll_uuid:payrollId,company_uuid:company,employee_compensations:page().employee_compensations.map(e=>({employee_uuid:e.employee_uuid,total_reimbursement:e.reimbursements.reduce((sum,r)=>sum+Math.round(Number(r.amount)*100),0)/100+'',net_pay:'1000.00',total_tax:'5.00'}))});
+    if(path===`/v1/payrolls/${payrollId}/receipt`)return Response.json({...{payroll_uuid:payrollId,company_uuid:company,employee_compensations:page().employee_compensations.map(e=>({employee_uuid:e.employee_uuid,total_reimbursement:e.reimbursements.reduce((sum,r)=>sum+Math.round(Number(r.amount)*100),0)/100+'',net_pay:'1000.00',total_tax:'5.00'}))},...fixture.receipt});
     assert.fail(`Unexpected Gusto request ${request.method} ${path}`);
   }};
   return fixture;
