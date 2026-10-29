@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { issuerServer } from './fixtures/feed/server.mjs';
 
 const n = i => `synthetic-coaster-${i}`;
-export async function individualProgram(h) {
+export async function individualProgram(h, {beforeIngest}={}) {
   const issuer=await issuerServer();
   try {
     await h.post('settings' + '/' + 'business',{name:n(1200),currency:'USD',timezone:'UTC',receiptThreshold:'10000'});
@@ -15,6 +15,7 @@ export async function individualProgram(h) {
     await h.post('statements' + '/' + 'cards',{issuer:config.issuer,last4:'1111',employee:address});
     const feed=await h.post('feeds' + '/' + 'program',config,finance);
     assert.equal(feed.liability,'individual');
+    await beforeIngest?.({employee,finance,manager,address,category});
     const content='Date,Merchant,Amount,Card,Transaction,Sequence\n'+[10,20,30,40,50,60].map((amount,i)=>`2031-06-10,${n(1210+i)},${amount}.00,1111,${n(1220+i)},${n(1230)}`).join('\n');
     issuer.files.set(n(1231)+'.csv',content);
     const worker=await h.mf.getWorker();
