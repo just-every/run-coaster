@@ -73,7 +73,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -116,7 +116,7 @@ jobs:
     needs: [plan, app]
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -138,7 +138,7 @@ jobs:
     needs: [plan, app]
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
