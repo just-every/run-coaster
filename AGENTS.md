@@ -134,6 +134,6 @@ unrelated legacy acceptance prose when changing a scoped row.
 Lander-Regenerate: `node scripts/contract-docs.mjs write --clause AGENT-008`
 (repeat `--clause ID` for each touched clause). Then run the same command with
 `check` instead of `write`. It regenerates the selected acceptance notes,
-`docs/CLAIMS.md` and summary counts without changing acceptance requirements.
+`docs/claims.md` and summary counts without changing acceptance requirements.
 Stage new source files, run `node scripts/edition-authoring/cli.mjs lock` last,
 then `node scripts/edition-authoring/cli.mjs check` before committing.

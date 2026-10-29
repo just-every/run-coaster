@@ -27,8 +27,9 @@ for (const id of ids) {
   acceptance=acceptance.replace(match,()=>line);
 }
 const table = ['| Clause | Title | Kind | Status |','| --- | --- | --- | --- |',...contract.clauses.map(c=>`| ${c.id} | ${c.title} | ${c.kind} | ${c.status} |`)].join('\n');
-const claims=`# Coaster implementation claims\n\nGenerated from the Status table in [CONTRACT.md](../CONTRACT.md). That source retains the acceptance requirements, current evidence and remaining work for each clause.\n\n**${total} clauses: ${done} done, ${partial} partial, ${missing} missing.**\n\n${table}\n`;
-const views={'CONTRACT.md':source,'ACCEPTANCE.md':acceptance,'docs/CLAIMS.md':claims};
+const guide = readFileSync('docs/claims.md','utf8').split('\n## Implementation status\n')[0].trimEnd();
+const claims=`${guide}\n\n## Implementation status\n\nGenerated from the Status table in [CONTRACT.md](https://github.com/just-every/run-coaster/blob/main/CONTRACT.md). That source retains the acceptance requirements, current evidence and remaining work for each clause.\n\n**${total} clauses: ${done} done, ${partial} partial, ${missing} missing.**\n\n${table}\n`;
+const views={'CONTRACT.md':source,'ACCEPTANCE.md':acceptance,'docs/claims.md':claims};
 let stale=false;
 for(const [path,content] of Object.entries(views)) {
   if(existsSync(path) && readFileSync(path,'utf8')===content) continue;

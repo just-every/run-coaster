@@ -304,7 +304,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "a50b95f7304393df52c9fd5fee8d3a515fb5ec3b6fdfa7f2ae57d32942d300e1",
+      "sha256": "ecf282aa0c956f05366f46100eddc02a6add10d4595687486d2c62d17444df22",
       "executable": false
     },
     "API.md": {
@@ -356,11 +356,7 @@
       "executable": false
     },
     "docs/claims.md": {
-      "sha256": "b11475b4d3d6a441ede59c40e91b196b16a4307fb1339433979c4381dadeb309",
-      "executable": false
-    },
-    "docs/CLAIMS.md": {
-      "sha256": "4e45ad7d8b6e8085f78d244c3fb14014ae5878a7114f6a8ebcfad5324e8e4f2b",
+      "sha256": "8c1fe52be6e1c9d6d1aac0df50708cca9dc71c4b3320b08e273a0ce1de6f8826",
       "executable": false
     },
     "docs/deploy.md": {
@@ -964,7 +960,7 @@
       "executable": false
     },
     "scripts/contract-docs.mjs": {
-      "sha256": "c9884c4c2cc944d49355b5e350c49b30bb6b73e9ea2dc34afea4e6f3e6cfe025",
+      "sha256": "97d95e375b7f87d5915180dde89dddb9056e3c9969206c9df6b8824ffb052550",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
@@ -4552,7 +4548,7 @@
       "executable": false
     },
     "tests/coaster-close-statements.test.mjs": {
-      "sha256": "475da3df61ae8c0bf8d44413c992db2c0e9bf3bdddcfe288aecc83637e493825",
+      "sha256": "d4885cd92a3156e455704d39d37ad56a4ad909fc94518ba9cdfd23aca2e66652",
       "executable": false
     },
     "tests/coaster-coding.test.mjs": {

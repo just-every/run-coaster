@@ -129,6 +129,15 @@ test('Close preparation and acceptance fence concurrent source changes at both g
     }
     await h.post(['preparations','close'].join('/'),closePeriod,t.morgan,403)
     assert.deepEqual([await proposalRows(h),await history(h),await financial(h)],snapshot)
-    await h.post(`proposals/${p.id}/accept`,{})
+    const reviewsBefore=(await history(h)).filter(e=>e.action==='proposal-accepted').length
+    const decisions=await Promise.all([h.send(`/api/coaster/proposals/${p.id}/accept`,{},h.owner),h.send(`/api/coaster/proposals/${p.id}/accept`,{},h.owner)])
+    assert.deepEqual(decisions.map(r=>r.status).sort(),[200,409],'simultaneous acceptance records one review only')
+    assert.equal((await history(h)).filter(e=>e.action==='proposal-accepted').length,reviewsBefore+1)
+    assert.deepEqual(await financial(h),snapshot[2])
+    p=await prepareClose(h)
+    const revokedSnapshot=[await proposalRows(h),await history(h),await financial(h)]
+    pause=()=>h.db.prepare("UPDATE oa_sessions SET revoked_at='2026-01-01T00:00:00Z' WHERE operator_id IN (SELECT id FROM oa_operators WHERE role='owner')").run()
+    await h.post(`proposals/${p.id}/accept`,{},h.owner,409)
+    assert.deepEqual([await proposalRows(h),await history(h),await financial(h)],revokedSnapshot,'revoked native authority cannot finish a review or change financial data')
   } finally {await h.close()}
 })
