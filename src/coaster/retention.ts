@@ -117,10 +117,10 @@ export async function confirmExpiry(db: D1Database, actor: Actor, id: string) {
       db.prepare(`DELETE FROM c_escalations WHERE key IN (SELECT key FROM c_reminder_items WHERE claim_id ${inClaims})`).bind(list),
       db.prepare(`DELETE FROM c_reminders WHERE key IN (SELECT key FROM c_reminder_items WHERE claim_id ${inClaims})`).bind(list),
       db.prepare(`DELETE FROM c_workflow_tasks WHERE kind='claim' AND record_id ${inClaims}`).bind(list),
-      ...['c_batch_coding', 'c_account_corrections', 'c_reminder_items', 'c_exception_reviews', 'c_audit_samples', 'c_decisions', 'c_revisions', 'c_reimbursement_keys', 'c_batch_claims', 'c_allowance_runs', 'c_nonaccountable'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),
+      ...['c_coding_corrections', 'c_coding_batch_selections', 'c_batch_coding', 'c_account_corrections', 'c_reminder_items', 'c_exception_reviews', 'c_audit_samples', 'c_decisions', 'c_revisions', 'c_reimbursement_keys', 'c_batch_claims', 'c_allowance_runs', 'c_nonaccountable'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),
       db.prepare(`DELETE FROM c_comments WHERE claim_id ${inClaims} AND parent_id IS NOT NULL`).bind(list),
       ...['c_comments', 'c_items', 'c_receipts', 'c_events'].map(t => db.prepare(`DELETE FROM ${t} WHERE claim_id ${inClaims}`).bind(list)),
-      ...(unit.batch ? [db.prepare('DELETE FROM c_events WHERE batch_id=?').bind(unit.batch)] : []),
+      ...(unit.batch ? [db.prepare('DELETE FROM c_coding_batch_selections WHERE batch_id=?').bind(unit.batch), db.prepare('DELETE FROM c_batch_coding WHERE batch_id=?').bind(unit.batch), db.prepare('DELETE FROM c_events WHERE batch_id=?').bind(unit.batch)] : []),
       db.prepare(`DELETE FROM c_claims WHERE id ${inClaims}`).bind(list),
       ...(unit.batch ? [db.prepare('DELETE FROM c_payroll_handoffs WHERE batch_id=?').bind(unit.batch), db.prepare('DELETE FROM c_batches WHERE id=?').bind(unit.batch)] : []),
     );

@@ -1,5 +1,6 @@
 import { batchCorrections } from './accounting/coding-corrections';
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
+import { selectBatchCoding } from './accounting/expense-corrections';
 import { finalApproval } from './approval-chain';
 import { event, ruleEvent } from './events';
 import { business } from './settings';
@@ -96,6 +97,7 @@ const unchanged = (claims: Claim[]): Sql => ({ sql: "(SELECT COUNT(*) FROM c_cla
  * advance (CLAIM-004) is paid its total less what the advance covers. */
 async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awaited<ReturnType<typeof reimbursementKeys>>, applied: Awaited<ReturnType<typeof appliedTo>>, by: string, line: Line, detail: Data) {
   const at = now(), pays = (c: Claim) => c.total_minor - (applied.get(c.id)?.appliedMinor ?? 0), total = claims.reduce((n, c) => n + pays(c), 0);
+  const selection = await selectBatchCoding(db,id,claims);
   const next = await db.prepare('SELECT COALESCE(MAX(number),0)+1 AS n FROM c_batches').first<{ n: number }>(), number = next?.n ?? 1;
   return [
     db.prepare("INSERT INTO c_batches(id,number,status,currency,total_minor,created_by,created_at,prepared_by) VALUES(?,?,'draft',?,?,?,?,?)").bind(id, number, claims[0].currency, total, by, at, detail.preparedBy ?? null),
@@ -105,8 +107,9 @@ async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awai
       db.prepare("UPDATE c_claims SET status='batched',batch_id=?,version=version+1,updated_at=? WHERE id=?").bind(id, at, c.id),
       line('claim-batched', { claim: c.id, batch: id }, { claim: claimNumber(c.number), batch: batchNumber(number), ...(applied.has(c.id) ? { advance: advanceNumber(applied.get(c.id)!.number), advanceAppliedMinor: applied.get(c.id)!.appliedMinor, amountMinor: pays(c) } : {}) }),
     ]),
+    ...selection,
     ...keys.map(k => db.prepare('INSERT INTO c_reimbursement_keys(key,batch_id,claim_id,item_id) VALUES(?,?,?,?)').bind(k.key, id, k.claim.id, k.item)),
-    line('batch-created', { batch: id }, { claims: claims.length, totalMinor: total, ...detail }),
+    line('batch-created', { batch: id }, { claims: claims.length, totalMinor: total, codingSelections: 1, ...detail }),
   ];
 }
 
@@ -141,17 +144,20 @@ export async function runPaySchedule(db: D1Database, at: Date) {
 export async function removeFromBatch(db: D1Database, actor: Actor, id: string, b: Data) {
   need(actor, 'finance');
   const batch = await loadBatch(db, id);
-  requireThat(batch.status === 'draft' && b.version === batch.version, 'Only an unreviewed draft batch can change; reload', 409);
+  requireThat(actor.kind === 'person', 'Only a person changes a batch', 403);
+  requireThat(['draft','approved'].includes(batch.status) && !batch.first_released_at && !batch.released_at && b.version === batch.version, 'Only an unreleased draft or reviewed batch can change; reload', 409);
+  const unposted: Sql = {sql: "NOT EXISTS(SELECT 1 FROM c_qbd_requests WHERE json_extract(payload,'$.batch')=? AND status IN ('pending','sent','succeeded','failed','uncertain')) AND NOT EXISTS(SELECT 1 FROM c_payroll_handoffs WHERE batch_id=?)", params:[id,id]};
+  requireThat(await db.prepare(`SELECT 1 WHERE ${unposted.sql}`).bind(...unposted.params).first(), 'This batch has accounting or payroll execution evidence; reconcile it before removal', 409);
   requireThat(typeof b.claim === 'string' && b.claim, 'Choose the claim to take out of the batch');
   const row = await db.prepare('SELECT claim_id,amount_minor FROM c_batch_claims WHERE batch_id=? AND claim_id=?').bind(id, b.claim).first<{ claim_id: string; amount_minor: number }>();
   requireThat(row, 'That claim is not in this batch', 404);
   const at = now();
-  await commit(db, all(authority(actor, 'finance'), batchState(id, batch.version, 'draft')), [
+  await commit(db, all(authority(actor, 'finance'), batchState(id, batch.version, batch.status), unposted, {sql:'EXISTS(SELECT 1 FROM c_batches WHERE id=? AND first_released_at IS NULL AND released_at IS NULL)',params:[id]}), [
     db.prepare('DELETE FROM c_reimbursement_keys WHERE batch_id=? AND claim_id=?').bind(id, row.claim_id),
     db.prepare('DELETE FROM c_batch_claims WHERE batch_id=? AND claim_id=?').bind(id, row.claim_id),
     db.prepare("UPDATE c_claims SET status='approved',batch_id=NULL,version=version+1,updated_at=? WHERE id=?").bind(at, row.claim_id),
-    db.prepare('UPDATE c_batches SET total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_batch_claims WHERE batch_id=?),version=version+1 WHERE id=?').bind(id, id),
-    event(db, actor, 'claim-unbatched', { claim: row.claim_id, batch: id }, {}),
+    db.prepare("UPDATE c_batches SET status='draft',total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_batch_claims WHERE batch_id=?),version=version+1 WHERE id=?").bind(id, id),
+    event(db, actor, 'claim-unbatched', { claim: row.claim_id, batch: id }, { previousStatus:batch.status, reviewedBy:batch.reviewed_by, reviewedAt:batch.reviewed_at, renewedReviewRequired:true }),
   ]);
   return loadBatch(db, id);
 }
@@ -234,6 +240,7 @@ export const csv = (rows: unknown[][]) => rows.map(r => r.map(cell).join(',')).j
 export async function batchLines(db: D1Database, id: string) {
   const { results } = await db.prepare(`SELECT bc.claim_id, bc.revision, bc.amount_minor, c.number, c.employee_email, m.name AS employee_name, r.snapshot, r.submitted_by, d.actor_email AS approver, d.on_behalf_of, d.at AS approved_at, d.reason AS approval_reason, a.number AS advance_number, a.paid_on AS advance_paid_on, c.total_minor AS claim_total_minor FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id LEFT JOIN c_advances a ON a.claim_id=bc.claim_id LEFT JOIN c_members m ON m.email=c.employee_email JOIN c_revisions r ON r.claim_id=bc.claim_id AND r.revision=bc.revision LEFT JOIN c_decisions d ON d.claim_id=bc.claim_id AND d.revision=bc.revision AND ${finalApproval('d')} WHERE bc.batch_id=? ORDER BY c.number`).bind(id).all<Data>();
   const lines: Data[] = [], people = new Map<string, Data>();
+  const selections=(await db.prepare('SELECT * FROM c_coding_batch_selections WHERE batch_id=?').bind(id).all<Data>()).results;
   // Accountable-plan treatment (CLAIM-008): expenses finance marked non-accountable and taxable stipends are taxable pay;
   // a contractor's reimbursements are flagged for 1099 review. Coaster only labels them; taxability stays with the accountant.
   const advanceAccount = (await db.prepare('SELECT advance_account FROM c_business WHERE id=1').first<{ advance_account: string }>())?.advance_account ?? '';
@@ -257,10 +264,10 @@ export async function batchLines(db: D1Database, id: string) {
       const expenseApproval=snapshot.expenseApprovals?.find((a:Data)=>a.item===item.id);
       const flags = snapshot.exceptions.filter((e: Data) => e.item === item.id).map((e: Data) => e.code).join(' ');
       // An itemized part's own description (room, tax, in-room dining) stands for the expense's on its accounting line.
-      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number, part = '', originalMinor: number | null = null) => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: part || item.description, kind: item.kind, billable: !!item.billable, customer: item.customer ?? '', project: item.project ?? '', category, account, tax, costCentre, amountMinor, originalMinor, originalCurrency: item.original_currency ?? '', exchangeRate: item.fx_rate ?? '', rateDate: item.fx_date ?? '', rateSource: item.fx_source ?? '', perDiem: item.per_diem ? JSON.stringify(item.per_diem) : '', receipt: item.receipt?.sha256 ?? '', receiptId: item.receipt?.id ?? '', employeeName: row.employee_name ?? row.employee_email, exceptions: flags, explanation: flags ? item.explanation : '', approver: expenseApproval?.actor??row.approver, approvedAt: expenseApproval?.at??row.approved_at, memo, taxable, form1099 });
+      const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number, part = '', originalMinor: number | null = null) => lines.push({ claimId:row.claim_id, itemId:item.id, revision:row.revision, claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: part || item.description, kind: item.kind, billable: !!item.billable, customer: item.customer ?? '', project: item.project ?? '', category, account, tax, costCentre, amountMinor, originalMinor, originalCurrency: item.original_currency ?? '', exchangeRate: item.fx_rate ?? '', rateDate: item.fx_date ?? '', rateSource: item.fx_source ?? '', perDiem: item.per_diem ? JSON.stringify(item.per_diem) : '', receipt: item.receipt?.sha256 ?? '', receiptId: item.receipt?.id ?? '', employeeName: row.employee_name ?? row.employee_email, exceptions: flags, explanation: flags ? item.explanation : '', approver: expenseApproval?.actor??row.approver, approvedAt: expenseApproval?.at??row.approved_at, memo, taxable, form1099 });
       for (const part of item.allocations) {
         const selected = corrections.filter(c => c.item_id === item.id && c.allocation_position === part.position).at(-1);
-        line(part.category_name, selected?.after_account ?? part.account_code, part.tax_code, part.cost_centre, part.amount_minor, part.description, part.original_minor ?? null);
+        line(part.category_name, selections.find(s=>s.claim_id===row.claim_id&&s.revision===row.revision&&s.item_id===item.id&&s.allocation===part.position)?.account_code ?? selected?.after_account ?? part.account_code, part.tax_code, part.cost_centre, part.amount_minor, part.description, part.original_minor ?? null);
       }
       // A receipt's sales tax posts on its own line to the sales tax account and code copied onto the expense.
       if (item.sales_tax_minor) line('Sales tax', item.sales_tax_account, item.sales_tax_code, '', item.sales_tax_minor, '', item.original_sales_tax_minor ?? null);
@@ -268,7 +275,7 @@ export async function batchLines(db: D1Database, id: string) {
     // A cash advance the claim draws down (CLAIM-004) posts as one negative line to the owner's advance account, so the
     // lines add up to what the batch pays.
     const advanceApplied = row.advance_number ? row.claim_total_minor - row.amount_minor : 0;
-    if (advanceApplied) lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: row.advance_paid_on, merchant: '', description: `Cash advance ${advanceNumber(row.advance_number)} applied`, kind: 'advance', billable: false, customer: '', project: '', category: 'Cash advance applied', account: advanceAccount, tax: '', costCentre: '', amountMinor: -advanceApplied, receipt: '', receiptId: '', employeeName: row.employee_name ?? row.employee_email, exceptions: '', explanation: '', approver: row.approver, approvedAt: row.approved_at, memo, taxable: false, form1099 });
+    if (advanceApplied) lines.push({ claimId:row.claim_id, revision:row.revision, claim: claimNumber(row.number), employee: row.employee_email, date: row.advance_paid_on, merchant: '', description: `Cash advance ${advanceNumber(row.advance_number)} applied`, kind: 'advance', billable: false, customer: '', project: '', category: 'Cash advance applied', account: advanceAccount, tax: '', costCentre: '', amountMinor: -advanceApplied, receipt: '', receiptId: '', employeeName: row.employee_name ?? row.employee_email, exceptions: '', explanation: '', approver: row.approver, approvedAt: row.approved_at, memo, taxable: false, form1099 });
     const person = people.get(row.employee_email) ?? { email: row.employee_email, name: row.employee_name ?? row.employee_email, claims: [] as string[], amountMinor: 0, taxableMinor: 0, form1099 };
     person.claims.push(claimNumber(row.number)); person.amountMinor += row.amount_minor; person.taxableMinor += taxableMinor;
     people.set(row.employee_email, person);

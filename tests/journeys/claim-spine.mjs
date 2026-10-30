@@ -225,8 +225,12 @@ async function reconcileReimbursements(h, t) {
   assert.equal(sum(accounting, 'amount'), total); assert.equal(sum(people, 'amount'), total)
   assert.equal(accounting.trim().split('\r\n').length, 1 + 4); assert.equal(people.trim().split('\r\n').length, 1 + 3)
   assert.match(accounting, new RegExp(sha(await readFile('tests/fixtures/receipts/hotel.png'))))
+  // ACCT-008 permits reviewed removal with renewed review; release still locks the batch.
+  batch = await h.post(`batches/${batch.id}/release`, { version: batch.version })
+  const released = await h.get(`batches/${batch.id}`, t.jordan)
   await h.post(`batches/${batch.id}/remove`, { version: batch.version, claim: a.id }, t.jordan, 409)
-  batch = await h.paid(batch.id, batch.version, { reference: 'CBA-ABA-0517', paidOn: '2026-05-17' }, t.jordan)
+  assert.deepEqual(await h.get(`batches/${batch.id}`, t.jordan), released, 'refused removal preserves the released claims, review, totals and history')
+  batch = await h.post(`batches/${batch.id}/paid`, { version: batch.version, reference: 'CBA-ABA-0517', paidOn: '2026-05-17' }, t.jordan)
   assert.equal(batch.status, 'reimbursed')
   assert.deepEqual((await h.get('state', t.jordan)).claims.filter(c => [a.id, b.id, m.id].includes(c.id)).map(c => c.status), ['reimbursed', 'reimbursed', 'reimbursed'])
   const events = (await h.get(`batches/${batch.id}`, t.jordan)).events.map(e => e.action)

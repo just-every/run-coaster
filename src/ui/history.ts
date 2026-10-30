@@ -6,6 +6,7 @@ export function describe(e: D, names: Record<string, string> = {}) {
   const words: Record<string, string> = {
     'native-work-proposed': `${who} requested a ${d.preparation} proposal`, 'trip-expenses-grouped': `${who} grouped expenses into a trip draft`,
     'account-code-corrected': `${who} corrected account ${d.before || 'not set'} to ${d.after} on revision ${d.revision}: ${d.reason}`,
+    'expense-account-code-corrected': `${who} corrected account ${d.before || 'not set'} to ${d.after} on revision ${d.revision}: ${d.reason}`,
     'claim-created': `Started by ${who}`, 'claim-renamed': `Renamed by ${who} to “${d.title}”`,
     'expense-added': `${who} added ${d.merchant} · ${money(d.amountMinor ?? 0)}`, 'expense-changed': `${who} changed ${d.merchant}`, 'expense-removed': `${who} removed ${d.merchant}`,
     'receipt-signal-reviewed': `${who} reviewed receipt/spend signal (${d.code}) on revision ${d.revision} · ${d.note}`,
@@ -21,7 +22,7 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'claim-held': `Held by ${who} from ${d.fromNumber} revision ${d.fromRevision} · ${d.reason}`, 'hold-released': `Hold released and approved by ${who}${d.reason ? ` · ${d.reason}` : ''}`,
     'workflow-review-reassigned': `Moved ${d.role} review from ${names[d.from] ?? d.from} to ${names[d.to] ?? d.to} by ${who} · ${d.reason}`,
     'claim-reassigned': `Moved from ${names[d.from] ?? d.from} to ${names[d.to] ?? d.to} by ${who}${d.reason ? ` · ${d.reason}` : ''}`,
-    'claim-batched': d.claim && d.batch ? `${d.claim} added to ${d.batch} by ${who}` : `Added to a reimbursement batch by ${who}`, 'claim-unbatched': `Taken out of a draft batch by ${who}${d.unapproved ? ' when it was unapproved' : ''}`,
+    'claim-batched': d.claim && d.batch ? `${d.claim} added to ${d.batch} by ${who}` : `Added to a reimbursement batch by ${who}`, 'claim-unbatched': `Taken out of a ${d.previousStatus === 'approved' ? 'reviewed' : 'draft'} batch by ${who}${d.renewedReviewRequired ? '; renewed review required' : ''}${d.unapproved ? ' when it was unapproved' : ''}`,
     'proposal-accepted': `Prepared by ${d.agent} and accepted by ${who}`,
     'batch-created': `Batch created by ${who}${d.preparedBy ? ` from ${d.preparedBy}’s proposal` : ''} · ${plural(d.claims, 'claim')} · ${money(d.totalMinor ?? 0)}`,
     'batch-approved': `Reviewed and approved by ${who} · ${money(d.totalMinor ?? 0)}`, 'batch-exported': `${d.file === 'accounting' ? 'Accounting' : 'Reimbursement'} file downloaded by ${who} · ${d.rows} rows`,

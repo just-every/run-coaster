@@ -15,6 +15,7 @@ import { email, Fault, now, requireThat, uid, type Actor, type Data } from './ty
 /** Columns that hold a member's address as their whole value. */
 const ADDRESS: [string, string[]][] = [
   ['c_account_corrections', ['actor_email', 'acting_for']],
+  ['c_coding_corrections', ['actor_email','on_behalf_of']],
   ['c_plaid_settings', ['set_by']], ['c_plaid_connections', ['connected_by']],
   ['c_receipt_mail_messages',['sender','owner_email']], ['c_receipt_mail_settings',['set_by']],
   ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']], ['c_bank_providers', ['connected_by']], ['c_bank_settings', ['set_by']],
@@ -120,6 +121,8 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     if (typeof value.merchant === 'string') value.merchant = replaceDiscardIdentity(value.merchant,members,address,member.name,subject,label);
     return {...row,replaced:JSON.stringify(value)};
   }).filter(row=>row.replaced!==row.match_data);
+  const correctionReasons = (await db.prepare(`SELECT id,reason FROM c_coding_corrections WHERE ${matchReasons}`).bind(address,member.name).all<{id:string;reason:string}>()).results;
+  const rewrittenCorrections = correctionReasons.map(row=>({...row,replaced:replaceDiscardIdentity(row.reason,members,address,member.name,subject,label)})).filter(row=>row.reason!==row.replaced);
   const rewrittenReasons = discardReasons.map(row => ({ ...row, replaced: replaceDiscardIdentity(row.reason, members, address, member.name, subject, label) })).filter(row => row.reason !== row.replaced);
   const removed = {
     name: true, email: true, signInAccount: Boolean(operator),
@@ -140,6 +143,8 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   const native: D1Sql[] = [
     check, sql(`INSERT INTO c_guard SELECT CASE WHEN (SELECT COUNT(*) FROM c_capture_lifecycle WHERE ${matchReasons})=? THEN 1 ELSE 0 END`, address, member.name, discardReasons.length),
     ...matchRows.map(row => sql('INSERT INTO c_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND sequence=? AND match_data=?) THEN 1 ELSE 0 END',row.receipt_id,row.sequence,row.match_data)),
+    sql(`INSERT INTO c_guard SELECT CASE WHEN (SELECT COUNT(*) FROM c_coding_corrections WHERE ${matchReasons})=? THEN 1 ELSE 0 END`,address,member.name,correctionReasons.length),
+    ...correctionReasons.map(row=>sql('INSERT INTO c_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM c_coding_corrections WHERE id=? AND reason=?) THEN 1 ELSE 0 END',row.id,row.reason)),
     ...discardReasons.map(row => sql('INSERT INTO c_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM c_capture_lifecycle WHERE receipt_id=? AND sequence=? AND reason=?) THEN 1 ELSE 0 END', row.receipt_id, row.sequence, row.reason)),
     sql('INSERT INTO c_erasing(email) VALUES(?)', address), sql('INSERT INTO c_capture_erasing(email) VALUES(?)', address),
     // Removed outright: their own comments (replies by others stay, as top-level comments), agent keys, delegations and reminders.
@@ -187,6 +192,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
       return reason === row.reason ? [] : [sql('UPDATE c_account_corrections SET reason=? WHERE id=?', reason, row.id), sql("UPDATE c_events SET detail=json_set(detail,'$.reason',?) WHERE action='account-code-corrected' AND json_extract(detail,'$.correction')=?",reason,row.id)];
     }),
     ...rewrittenReasons.map(row => sql('UPDATE c_capture_lifecycle SET reason=? WHERE receipt_id=? AND sequence=? AND reason=?', row.replaced, row.receipt_id, row.sequence, row.reason)),
+    ...rewrittenCorrections.flatMap(row=>[sql('UPDATE c_coding_corrections SET reason=? WHERE id=?',row.replaced,row.id),sql("UPDATE c_events SET detail=json_set(detail,'$.reason',?) WHERE action='expense-account-code-corrected' AND json_extract(detail,'$.correction')=?",row.replaced,row.id)]),
     ...ADDRESS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=? WHERE ${c}=?`, subject, address))),
     ...JSON_COLUMNS.flatMap(([table, columns]) => columns.map(c => sql(`UPDATE ${table} SET ${c}=replace(${c},?,?) WHERE instr(${c},?)>0`, quoted, quotedLabel, quoted))),
     sql("UPDATE c_members SET email=?,name=?,member_id=?,approver_email=NULL,updated_at=? WHERE email=?", subject, label, uid(), at, address),

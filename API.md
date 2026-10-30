@@ -611,3 +611,25 @@ only the native export account code changes. A later batch freezes its selected
 correction sequence. Stale requests, an existing batch or any existing ledger
 posting are refused without a correction or history write. Closed-period and
 already-posted correction workflows are not supplied by this native door.
+## Native coding-correction eligibility (ACCT-008 remains missing)
+
+`POST /api/coaster/claims/:id/coding-corrections` accepts the exact current
+`version`, submitted `revision`, `item`, zero-based `allocation`, current
+correction `sequence` (zero initially), `accountCode` and required `reason`.
+Owner, finance and bookkeeper may correct submitted or approved native expenses;
+a waiting routed reviewer may correct before deciding. Existing Full delegates
+act inside the granting person's row with both identities recorded. Agent keys
+have no correction door. Readback includes `codingCorrections` alongside the
+unaltered submitted revisions. Only the account code changes; caps, amounts,
+categories, dimensions, receipt evidence and reimbursement identity stay intact.
+
+Take a claim out of its draft or reviewed batch before correcting it. Removal
+requires an unreleased batch without accounting or payroll execution evidence,
+retains its original review and frozen coding selections, reconciles its remaining
+total and returns it to draft for renewed review. Later batches freeze the chosen
+correction for accounting CSV and XLSX. Retained selections alone are never
+posting evidence. Eligibility checks the expense identities in its actual posting
+request or its own native card entry, and refuses an own closed entry with 409.
+Native period fixtures qualify this comparison only. Connected-provider period
+close, dated reversal and replacement posting remain ACCT-006 work; no provider
+reversal is performed by this native correction door.

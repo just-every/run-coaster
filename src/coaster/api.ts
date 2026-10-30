@@ -58,6 +58,7 @@ import { approveBatch, createBatch, markReimbursed, releaseBatch, removeFromBatc
 import { batchFile, periodFile, saveExportTemplate } from './exports';
 import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
+import { correctCoding } from './accounting/expense-corrections';
 import { auditPack, searchHistory } from './audit';
 import { claimPdf, batchPdf } from './claim-pdf';
 import { carryOpenReport } from './imports/carry';
@@ -168,6 +169,7 @@ api.post('/api/coaster/receipt-inbox/:id/detach', as(async (a, c) => changeAttac
 api.get('/api/coaster/receipt-inbox/:id', as(async (a, c) => inboxReceiptFile(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, param(c, 'id'), c.req.query('inline') === '1')));
 
 api.get('/api/coaster/state', as(async (a, c) => workspace(db(c), a)));
+api.post('/api/coaster/claims/:id/coding-corrections', as(async (a, c) => correctCoding(db(c), a, param(c, 'id'), await body(c))));
 api.get('/api/coaster/claims/:id', as(async (a, c) => claimDetail(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/claims/:id/pdf', as(async (a, c) => claimPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/claims', as(async (a, c) => createClaim(db(c), a, await body(c))));

@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "f23893bf129b8a00e0fd1384bb7c36b11ba621699a374c2bcc29e23288125cf4",
+      "sha256": "e3f40e04c64e7338813aa797de75131cdee3e75b06505362add9bf67fca17cb1",
       "executable": false
     },
     "base-copies.json": {
@@ -412,7 +412,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "dc44e0706c0d615c2ea537521be1944acc5735da367b6568b1eb762894920a6e",
+      "sha256": "cb774c3ba0ec4be933b0c947863a654ed557c9510114755a20576af896229d6a",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -763,6 +763,10 @@
       "sha256": "e811610f4837c261b2920508d6fa4ad8c7a062e74e3116b9f80e829e792bba0a",
       "executable": false
     },
+    "migrations/core/0087_accounting_corrections.sql": {
+      "sha256": "dd6e0a31ff46506cedb86edecaeebce13fa63d542564d1d034c4784eeb96df9d",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -936,7 +940,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "963e75747874300ed3759bf93839d11c8c8da223e6b796061ab58b7d42aa9531",
+      "sha256": "80707354e2462498e603a43b4346f3266f7aee4351a79e6dc30ab381a5dddfca",
       "executable": false
     },
     "rer-project.json": {
@@ -1139,6 +1143,10 @@
       "sha256": "bcfb79f45d52620a0ad9a769810e48c4458848fed2f4c7110e5626e07200d040",
       "executable": false
     },
+    "scripts/installer/accounting-corrections-archive.mjs": {
+      "sha256": "70644adcf69e0398bdb685b8152e748c3a9db74addc43927d6d3df2f8c766ed7",
+      "executable": false
+    },
     "scripts/installer/automatic-coding-archive.mjs": {
       "sha256": "764066e6bb3cfd8098e14c927cd0c808168d7cfd1a99e0d7449a94f13976b89b",
       "executable": false
@@ -1172,7 +1180,7 @@
       "executable": false
     },
     "scripts/installer/portability.mjs": {
-      "sha256": "30d32941399f69e1a9210f84600482f586ba3eaf1b4a8ef3f707d18b94ecb39c",
+      "sha256": "96e746aac244a65c6e260f5611843bb538e7a1fd380f55d5b5fb79258ecaf900",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {
@@ -1364,11 +1372,15 @@
       "executable": false
     },
     "src/coaster/accounting/desktop/posting.ts": {
-      "sha256": "c024ae5e76737e9a38cf44cf431d8d72d8c8b817f8b63623653221dd9b9ee275",
+      "sha256": "b473a74b437804b5f76a66bc8ee9f838c4295d8114a5f8ed4d1ae0a6fce51d36",
       "executable": false
     },
     "src/coaster/accounting/desktop/xml.ts": {
       "sha256": "7e97db833073569e2f271aa9a350e1178ed6c570e208ef3fef5885b7bc3708c9",
+      "executable": false
+    },
+    "src/coaster/accounting/expense-corrections.ts": {
+      "sha256": "b79df7b5ffa771cecc9d71b7dba2ae1dc0a85b567ebbf1c79ee92cf6fd4ded22",
       "executable": false
     },
     "src/coaster/accounting/qbo/catalog.ts": {
@@ -1424,7 +1436,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "05295f4db7ecd13523668d437fc5b642c956ab3fe084ab09beec96330ae3a683",
+      "sha256": "b5dd838aa87adf399c277cdbe3f16a71a50b024cb348f6f91a5e3293d6cc1adb",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1472,7 +1484,7 @@
       "executable": false
     },
     "src/coaster/batches.ts": {
-      "sha256": "e4cb2c0765a8b896f660fc7f0e29c49fa91ecbc767924596e81615bb75974d4b",
+      "sha256": "64f97b54f4dbf397544d5656d7ce26f47d362a930cefb692692322da9d48eb9b",
       "executable": false
     },
     "src/coaster/budgets.ts": {
@@ -1504,7 +1516,7 @@
       "executable": false
     },
     "src/coaster/cards/ledger.ts": {
-      "sha256": "7bf2e6a209f33f93b6fd8506cb5574cc6c0e7312c11c2642f672fbbb6d15ba05",
+      "sha256": "f88d836613cfb5fb8b0597903a56def629d28a12528f8769d1ddbdb4af862d9c",
       "executable": false
     },
     "src/coaster/cards/liability.ts": {
@@ -1636,7 +1648,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "ba4068ba2b75f8adf562145b35f6ed8d7be46e5fd5804db47ecdf38b875c4947",
+      "sha256": "4889210d162b14c46ab4f97dc21e0e41977f76d993cbe30859a6cb799c81adb5",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -2092,7 +2104,7 @@
       "executable": false
     },
     "src/coaster/retention.ts": {
-      "sha256": "3ee53d6a96a2ee5a72140c3fc247a48870b5c7b53486b610a23ccb3ee674bac9",
+      "sha256": "e6edfad12177a0529e83d5a65f09f33a6d0458dc90371501359651346bffabaf",
       "executable": false
     },
     "src/coaster/reversals.ts": {
@@ -2124,7 +2136,7 @@
       "executable": false
     },
     "src/coaster/views.ts": {
-      "sha256": "400480b5c597f77c7e379e14bcf7d3f910d85e13a59e5d7c95cef7ab214168e6",
+      "sha256": "334a7675e62476bb965cc7c2cf65688db500cc2da57f8a5e7a7af3e9be9f30d2",
       "executable": false
     },
     "src/coaster/workflow-configuration.ts": {
@@ -4168,7 +4180,7 @@
       "executable": false
     },
     "src/ui/batches.tsx": {
-      "sha256": "319aeece0cf3e28b02a280d8878ca539f40839664216ebb8284f3c633b717657",
+      "sha256": "77c761f63b0a8afef150af403a4f76bf46a391a766dde1d873548109da498a03",
       "executable": false
     },
     "src/ui/budgets.tsx": {
@@ -4192,7 +4204,7 @@
       "executable": false
     },
     "src/ui/claim-panel.tsx": {
-      "sha256": "2d9d43a1eb1f8dca636b42fd695f3bcec5486193554d0f9aa9201bb368c2cdf9",
+      "sha256": "0a4746f6047fa7f1515da08d1c7abc771a6751e18ee81b20bd03fe509414a6e0",
       "executable": false
     },
     "src/ui/claims-table.tsx": {
@@ -4243,6 +4255,10 @@
       "sha256": "82af8e574453ee4830c32c70a07ccaddc1fa4c83538727495be16a8a3713d2a5",
       "executable": false
     },
+    "src/ui/expense-corrections.tsx": {
+      "sha256": "657e50243765aad727fc420c00a1b6e5c6527aba6a9d69b978b80590c3a4c805",
+      "executable": false
+    },
     "src/ui/exports.tsx": {
       "sha256": "8e81655dde9c06286ffdac87ff93aacd68486ceb32ea441217552bef5d040300",
       "executable": false
@@ -4252,7 +4268,7 @@
       "executable": false
     },
     "src/ui/history.ts": {
-      "sha256": "799f933a69c98d18019a569c6f5cd586682f5fd6b3fdece6ad6567e8cddddee4",
+      "sha256": "f2d5492eff264307bac37e27d8636080d596abae9d90733517b185d2875a14d8",
       "executable": false
     },
     "src/ui/icons.tsx": {
@@ -4452,7 +4468,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "62b84728e8be9bceb01167236c5d3e577775e80deb08556a0471844f77c083a6",
+      "sha256": "1465c9f4c726558bc2e3c6480fe3ee95bc01925774c373690fb6de9a1b0cc735",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -4472,7 +4488,7 @@
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {
-      "sha256": "28cd41a3792c23d0917a55e689a33be0f78a6d3ed6ee62c8e470d635e0ef7a1a",
+      "sha256": "843b913bc98ac4dea6b80cbe2d6dbee22540b64295e8a926c2968509052dc777",
       "executable": false
     },
     "tests/coaster-agents.test.mjs": {
@@ -4507,8 +4523,16 @@
       "sha256": "d4885cd92a3156e455704d39d37ad56a4ad909fc94518ba9cdfd23aca2e66652",
       "executable": false
     },
+    "tests/coaster-coding-corrections.test.mjs": {
+      "sha256": "cf498ba71820be0c9ac0f7f761610b55e04dfbf68e5686ff41e2212d8da6330b",
+      "executable": false
+    },
     "tests/coaster-concur.test.mjs": {
       "sha256": "204c78716d504e766a7cef70471a32e3aa621c1fd04d76a8df379118332873d7",
+      "executable": false
+    },
+    "tests/coaster-correction-compatibility.test.mjs": {
+      "sha256": "bdf87886d19c424921ad071b9205e5f2bcd6ac9fa425a68d077bce194a801215",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
@@ -4583,8 +4607,12 @@
       "sha256": "173687e3e992c49f443c3b08e8fab485a964362b3f13b923271e098ddcadfd6e",
       "executable": false
     },
+    "tests/coding-corrections-archive.mjs": {
+      "sha256": "89b9811152fd16de964e6960d9071f62df4e6f8d78ad0d8bcb6ccee15e9f4798",
+      "executable": false
+    },
     "tests/d1-edge.ts": {
-      "sha256": "65c5dddef5cd5216e3ac8e7c1fb585012c3dfa5b0c126c283c8e0308183c0082",
+      "sha256": "8dad85caaa5c6f37689988298d6263dcb9a11838f95973b42d45738710ab992f",
       "executable": false
     },
     "tests/fixtures/bank.mjs": {
@@ -6663,6 +6691,10 @@
       "sha256": "627b9a2314656ace74d51b2cb13dbf7b06f2766ecce8b87eb57497cba46e83be",
       "executable": false
     },
+    "tests/journeys/browser-accounting-corrections.mjs": {
+      "sha256": "0489426aab8d094c34e89ffba9d78bb4112216b449e94535ecda481f6e615cad",
+      "executable": false
+    },
     "tests/journeys/browser-cash-attachment.mjs": {
       "sha256": "32f57ffa46916cc5603faeaf668a4a278ccdc57df734f69d483b4f5b05004d82",
       "executable": false
@@ -6708,7 +6740,7 @@
       "executable": false
     },
     "tests/journeys/claim-spine.mjs": {
-      "sha256": "f3f68ee9fd636ede70fe0587276f27db54d68406e0b20204ba34c1a223cce70b",
+      "sha256": "9cd4225c567eeb48fb1141eb2feb81a92257ec00b0e1b1fdf0293f7b76df78fd",
       "executable": false
     },
     "tests/journeys/concur-custody-1.mjs": {

@@ -28,7 +28,7 @@ const tables = ['c_account_corrections', 'c_batch_coding', 'c_events', 'c_member
   'c_escalation_chains', 'c_card_match_rules', 'c_statement_files', 'c_card_charges', 'c_delegates', 'c_requests', 'c_advances', 'c_agent_keys', 'c_proposals', 'c_coding_dimensions', 'c_coding_values', 'c_category_dimensions', 'c_coding_refreshes', 'c_qbo_oauth_states', 'c_qbo_connections',
   'c_bank_accounts', 'c_bank_settings', 'c_bank_providers',
   'c_receipt_reading_settings', 'c_receipt_readings', 'c_receipt_reading_match_defaults', 'c_program_feeds', 'c_program_deliveries',
-  'c_auto_coding_rules', 'c_auto_coding_contexts', 'c_auto_coding_suggestions', 'c_auto_coding_feedback', 'c_auto_coding_observations', 'c_auto_coding_flags']
+  'c_coding_corrections', 'c_coding_batch_selections', 'c_auto_coding_rules', 'c_auto_coding_contexts', 'c_auto_coding_suggestions', 'c_auto_coding_feedback', 'c_auto_coding_observations', 'c_auto_coding_flags']
 const snapshot = h => h.db.prepare(`SELECT ${tables.map(t => `(SELECT COUNT(*) FROM ${t}) AS ${t}`).join(',')}`).first()
 
 /** The role permission matrix in CONTRACT.md: each row's label and, per role, its cell text ('' is refused). */
@@ -129,6 +129,7 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
     { row: 'Approve, hold', prepare: request, call: (who, r) => send(`requests/${r.id}/decision`, { version: r.version, decision: 'approved' }, who) },
     { row: 'Approve, hold', prepare: () => h.post('advances', { purpose: `Trip ${++n}`, amount: '50.00' }, team), call: (who, a) => send(`advances/${a.id}/decision`, { version: a.version, decision: 'approved' }, who) },
     { row: 'Unapprove', prepare: async () => decide(h, cookie.Approver, await owned('To unapprove')), call: (who, c) => send(`claims/${c.id}/unapprove`, { version: c.version, to: 'employee', reason: 'Matrix check' }, who) },
+    { row: 'Edit coding on submitted', prepare: () => owned('Account correction'), call: async (who,c) => { const d=await h.get(`claims/${c.id}`);return send(`claims/${c.id}/coding-corrections`,{version:c.version,revision:c.revision,item:d.items[0].id,allocation:0,sequence:0,accountCode:'6990',reason:'Matrix correction'},who) } },
     // Reads. A limited cell is driven inside its limit (scoped) or, where the door lies outside it, refused (outside).
     { row: 'Read all claims', prepare: async () => ({ routed: await owned('Routed to the approver'), mine: await submitted(h, cookie.Employee, 'My own', '10.00', t.c.office) }), call: (who, c) => send(`claims/${c.routed.id}`, undefined, who),
       scoped: { Employee: (who, c) => send(`claims/${c.mine.id}`, undefined, who) }, outside: ['Card admin'] },
