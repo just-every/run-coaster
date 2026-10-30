@@ -8,6 +8,8 @@ import { records, rows, tampered } from './browser-archive.mjs'
 export async function personalSpendArchive(root, evidence) {
   await command(root,['export','--output','exports/personal-spend.rer'])
   const archive=join(root,'exports/personal-spend.rer'),source=rows(await records(archive))
+  assert.ok(source.some(r=>r.table==='c_receipts'&&r.row.size>0),'the archive contains the classified charge receipt original')
+  assert.ok(source.some(r=>r.table==='c_allocations'),'the archive contains native coding')
   const personal=source.filter(r=>r.table==='c_card_personal_spend').map(r=>r.row)
   assert.equal(personal.length,2)
   assert.deepEqual(personal.map(p=>p.outstanding_minor).sort((a,b)=>a-b),[1234,2346])
@@ -29,8 +31,8 @@ export async function personalSpendArchive(root, evidence) {
       await writeFile(join(destination,'exports/invalid.rer'),await tampered(archive,'c_card_personal_spend',change),{mode:0o600})
       const output=await command(destination,['import','--input','exports/invalid.rer','--yes'],{expected:4})
       assert.match(output,/coaster_personal_spend/,`malformed ${name} is refused by staged validation`)
-      await command(destination,['export','--output','exports/after.rer'])
-      assert.deepEqual(rows(await records(join(destination,'exports/after.rer'))),before,`malformed ${name} writes nothing`)
+      await command(destination,['export','--output',`./exports/after-${name}.rer`])
+      assert.deepEqual(rows(await records(join(destination,`./exports/after-${name}.rer`))),before,`malformed ${name} writes nothing`)
     }
     await copyFile(archive,join(destination,'exports/personal-spend.rer'))
     await command(destination,['import','--input','exports/personal-spend.rer','--yes'])

@@ -594,3 +594,21 @@ The claim screen labels the later evidence; ordinary expense edits still require
 an editable claim. This also permits completing retained evidence after closure.
 Mail adapter acceptance does not establish mailbox delivery. This native slice makes
 no issuer request and establishes neither card freeze nor issuer unfreeze (CARD-001).
+
+## Personal company-card spend
+
+An employee uses their own native session to confirm a posted company-card charge
+as personal on a never-submitted draft:
+`POST /api/coaster/claims/:id/personal-spend` with `version`, `item`, `charge` and
+`confirm: true`. The exact posted amount becomes an unpaid obligation; the charge
+remains non-reimbursable. This operation collects no money and clears no balance.
+Delegates, execution credentials, other cardholders and previously submitted
+claims are refused. Replayed or stale requests write nothing.
+
+`GET /api/coaster/personal-spend` returns only the signed-in employee's recorded
+charges and exact outstanding amounts grouped by currency. Claim readback shows
+their classification on a reimported source too. Statement undo retains the
+original obligation and its numbered attribution; the same source cannot acquire
+a second debt or a different debtor or amount through reimport. There is no
+manual paid flag or classification removal operation. Repayment netting, ACH
+settlement, deadlines, reminders and issuer freeze remain unavailable.

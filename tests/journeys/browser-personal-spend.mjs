@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import { chromium } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, start } from '../browser-runtime.mjs'
 import { api, session, setUp } from '../browser-journey.mjs'
 import { assertAccessible } from '../browser-accessibility.mjs'
-import { importPersonalStatement } from '../personal-spend-kit.mjs'
+import { importPersonalStatement, personalInput } from '../personal-spend-kit.mjs'
 import { personalSpendArchive } from '../personal-spend-archive.mjs'
 
 export async function runPersonalSpendJourney() {
@@ -24,6 +24,8 @@ export async function runPersonalSpendJourney() {
     employee=await session(browser,root,server.origin,'employee',1440)
     const state=await api(employee.context,server.origin,'state'),category=state.categories.find(c=>c.name==='Office supplies').id
     const imported=await importPersonalStatement((path,body)=>api(owner.context,server.origin,path,body),category,state.actor.email)
+    const beforeMark=await api(employee.context,server.origin,`claims/${imported.claims[0]}`)
+    await api(employee.context,server.origin,`claims/${imported.claims[0]}/receipts`,{version:beforeMark.claim.version,item:beforeMark.items[0].id,name:'synthetic-coaster-1.png',base64:(await readFile('tests/fixtures/receipts/bistro.png')).toString('base64')})
     const page=employee.page
     await page.goto(server.origin+`/app#/claims/${imported.claims[0]}`)
     const line=merchant=>page.locator('.line').filter({has:page.locator('strong').filter({hasText:merchant})})
@@ -38,13 +40,15 @@ export async function runPersonalSpendJourney() {
     await second.getByLabel('I owe the company this full posted amount',{exact:true}).check()
     await second.getByRole('button',{name:'Confirm personal spend',exact:true}).click()
     await second.getByRole('status').filter({hasText:'You owe AUD 23.46'}).waitFor()
-    await page.getByRole('status').filter({hasText:'Your personal company-card balance: AUD 35.80 unpaid'}).waitFor()
+    await page.locator('.detail').getByRole('status').filter({hasText:'Your personal company-card balance: AUD 35.80 unpaid'}).waitFor()
     const detail=await api(employee.context,server.origin,`claims/${imported.claims[0]}`)
     assert.equal(detail.claim.total_minor,0)
     assert.deepEqual(detail.personalSpend.balances,[{currency:'AUD',outstandingMinor:3580}])
     // Assert the changed behavior once; capture the resulting screen at both required widths.
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:1100})
+      if(width===390) await page.getByRole('main',{name:/Claim CL-/}).waitFor()
+      else await page.locator('.detail[role=complementary]').waitFor()
       await assertAccessible(page,`personal spend ${width}`)
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
       const small=await page.locator('.detail').evaluate(panel=>[...panel.querySelectorAll('p,button,summary,label')].filter(e=>e.getBoundingClientRect().width&&e.textContent.trim()).filter(e=>parseFloat(getComputedStyle(e).fontSize)<13).map(e=>e.textContent))
@@ -58,6 +62,14 @@ export async function runPersonalSpendJourney() {
         assert.equal(await close.getAttribute('data-tooltip'),'Back to claims')
       }
     }
+    const beforeUndo=await api(employee.context,server.origin,'personal-spend')
+    const undone=await api(owner.context,server.origin,`statements/${imported.file}/undo`,{})
+    assert.equal(undone.removed,1,'the attached original protects its source charge from undo')
+    const input=personalInput(category),preview=await api(owner.context,server.origin,['statements','preview'].join('/'),input)
+    const reimported=await api(owner.context,server.origin,['statements','commit'].join('/'),{...input,fingerprint:preview.fingerprint})
+    const restoredDetail=await api(employee.context,server.origin,`claims/${reimported.claims[0]}`)
+    assert.deepEqual(await api(employee.context,server.origin,'personal-spend'),beforeUndo,'undo and reimport retain every original obligation and history identity')
+    assert.deepEqual(restoredDetail.items.map(i=>i.personal_spend.outstanding_minor),[1234,2346])
     await employee.context.close();employee=null
     await owner.context.close();owner=null
     await browser.close();browser=null
