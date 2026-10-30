@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "2f1a3e8a3b6e72fd5e37b420d3fd27e41d74dad893fabd23e889b37b15a6bd6e",
+      "sha256": "3c271595f6d9923ecfe207d27d67e7cd89bf95de3f9e4831b6e5fc429cdd7f7a",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "63d7870ad911f53be23d33b676f5a911728e67f1c27ce942859102e9f5747a99",
+      "sha256": "11cadabb99cd8fd89651eb058d28a8d80bff329e3b74ccc8feb98420808c8396",
       "executable": false
     },
     "DEMO.md": {
@@ -412,7 +412,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "ae064fbda50fc13f36a27e10ca9384300383d6e1db7ca77fff3d15382485efb6",
+      "sha256": "dc44e0706c0d615c2ea537521be1944acc5735da367b6568b1eb762894920a6e",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -936,7 +936,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "b7adb4b273d911505c131e2ab2fa8dc2ad857f5c8a7db7d37f2a81ecd31cde21",
+      "sha256": "963e75747874300ed3759bf93839d11c8c8da223e6b796061ab58b7d42aa9531",
       "executable": false
     },
     "rer-project.json": {
@@ -4392,7 +4392,7 @@
       "executable": false
     },
     "tests/accounting-corrections-archive.mjs": {
-      "sha256": "cadce19e8d7ed6c4fab87221e7c1034f98e74241b534047946a898d7d1dfd822",
+      "sha256": "84541e40fafc0da29f9d864e8e573e4cdd792452be61fc879c4b27d184d4b838",
       "executable": false
     },
     "tests/archive-data.mjs": {
