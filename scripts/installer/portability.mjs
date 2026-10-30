@@ -7,6 +7,7 @@ import { validateReceiptReadingArchive } from './receipt-reading-archive.mjs';
 import { validatePayrollArchive } from './payroll-archive.mjs';
 import { validateBankArchive } from './bank-archive.mjs';
 import { validateCodingArchive } from './coding-archive.mjs';
+import { validateAccountingCorrectionsArchive } from './accounting-corrections-archive.mjs';
 import { validateStatementArchive } from './statement-archive.mjs';
 
 const refuse = code => { throw new PortabilityError('coaster_' + code, 409); };
@@ -101,6 +102,7 @@ export async function validateCoasterArchive(read, manifest) {
   await validateProgramFeedArchive(read);
   await validatePayrollArchive(read);
   await validateBankArchive(read);
+  await validateAccountingCorrectionsArchive(read);
   return true;
 }
 

@@ -1,3 +1,4 @@
+import { AccountingCorrections } from './accounting-corrections';
 import { PerDiemBreakdown } from './per-diem';
 import { useCallback, useEffect, useState } from 'react';
 import { amount, apiHref, call, claimNumber, day, exceptionWords, fileBase64, money, moment, plural, rate, type D } from './api';
@@ -125,7 +126,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
             {item.attendees?.length > 0 && <span className="split-line">Attendees: {item.attendees.map((a: D) => a.kind === 'guest' ? `${a.name} (guest)` : a.name).join(', ')}</span>}
             {(item.per_person ?? []).map((p: D) => <span key={p.category} className="split-line">{money(p.share_minor, currency)} a person · {p.over ? 'over' : p.amount_minor === p.limit_minor * p.people ? 'at' : 'under'} {money(p.limit_minor, currency)}</span>)}
             {Object.entries(item.fields ?? {}).map(([name, value]) => <span key={name} className="split-line">{name}: {String(value)}</span>)}
-            <CodingSuggestions claim={claim} item={item} state={state} editable={editable || deciding} onDone={done} /></div>
+            <AccountingCorrections claim={claim} item={submitted?.snapshot.items.find((i:D)=>i.id===item.id)??item} rows={detail.codingCorrections??[]} actor={state.actor} onDone={done}/><CodingSuggestions claim={claim} item={item} state={state} editable={editable || deciding} onDone={done} /></div>
           <span className="amount">{amount(item.amount_minor)}</span>
           {(flags.length > 0 || editable) && <span className="line-extra">
             {flags.map((f: D) => <Warning key={f.code}>{exceptionWords[f.code] ?? f.code}</Warning>)}

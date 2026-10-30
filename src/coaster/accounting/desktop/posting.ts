@@ -1,3 +1,4 @@
+import { correctionsFor, effectiveCode } from '../coding-corrections';
 import { batchLines } from '../../batches';
 import { decimal, now, uid, requireThat, type Data } from '../../types';
 import { ref, tag } from './xml';
@@ -12,7 +13,7 @@ export async function preparePosting(db: D1Database) {
     for(const person of people) {
       const source=`bill:${batch.id}:${person.email}`,own=lines.filter(l=>l.employee===person.email);
       requireThat(own.reduce((n,l)=>n+l.amountMinor,0)===person.amountMinor,'Employee bill does not reconcile',409);
-      add(source,'BillAdd',{ employee:person.email,date:batch.reviewed_at.slice(0,10),lines:own.map(l=>({account:l.account,amountMinor:l.amountMinor,merchant:l.merchant,description:l.description,costCentre:l.costCentre})),total:person.amountMinor,batch:batch.id,currency:batch.currency });
+      add(source,'BillAdd',{ employee:person.email,date:batch.reviewed_at.slice(0,10),lines:own.map(l=>({account:l.account,amountMinor:l.amountMinor,merchant:l.merchant,description:l.description,costCentre:l.costCentre})),total:person.amountMinor,batch:batch.id,currency:batch.currency,expenses:[...new Map(own.filter(l=>l.itemId).map(l=>[l.itemId,{claim:l.claimId,item:l.itemId,revision:l.revision}])).values()] });
       const posted=await db.prepare("SELECT txn_id FROM c_qbd_requests WHERE source=? AND status='succeeded'").bind(source).first<{txn_id:string}>();
       if(batch.status==='reimbursed' && posted) add(`payment:${batch.id}:${person.email}`,'BillPaymentCheckAdd',{employee:person.email,date:batch.paid_on,txn:posted.txn_id,total:person.amountMinor,reference:batch.paid_reference,currency:batch.currency});
     }
@@ -21,7 +22,8 @@ export async function preparePosting(db: D1Database) {
   for(const claim of claims) for(const item of JSON.parse(claim.snapshot).items) if(item.card_charge_id) {
     const charge=await db.prepare('SELECT card_id FROM c_card_charges WHERE id=?').bind(item.card_charge_id).first<{card_id:string}>();
     requireThat(charge,'Card expense has no source charge',409);
-    const lines=item.allocations.map((p:Data)=>({account:p.account_code,amountMinor:p.amount_minor,costCentre:p.cost_centre,description:item.description,merchant:item.merchant}));
+    const corrections=await correctionsFor(db,claim.id);
+    const lines=item.allocations.map((p:Data,allocation:number)=>({account:effectiveCode(corrections,claim.revision,item.id,allocation,p.account_code),amountMinor:p.amount_minor,costCentre:p.cost_centre,description:item.description,merchant:item.merchant}));
     if(item.sales_tax_minor) lines.push({account:item.sales_tax_account,amountMinor:item.sales_tax_minor,costCentre:'',description:'Sales tax',merchant:item.merchant});
     requireThat(lines.reduce((n:number,l:Data)=>n+l.amountMinor,0)===item.amount_minor,'Card accounting lines do not equal the charge',409);
     add('card:'+item.card_charge_id,'CreditCardChargeAdd',{card:charge.card_id,claim:claim.id,revision:claim.revision,date:item.spent_on,lines,total:item.amount_minor});

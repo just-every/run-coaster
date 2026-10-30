@@ -24,6 +24,7 @@ import { can } from './permissions';
 import { departments } from './departments';
 import { escalationChains } from './escalation-chains';
 import { codingCatalog } from './coding/catalog';
+import { correctionsFor } from './accounting/coding-corrections';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -101,7 +102,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const linked = [...new Set(items.map(i => i.request_id).filter(Boolean))];
   const requests = await Promise.all(linked.map(async id => ({ ...(await loadRequest(db, id)), claim_minor: items.filter(i => i.request_id === id).reduce((n, i) => n + i.amount_minor, 0) })));
   return {
-    claim, requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
+    claim, requests, codingCorrections: await correctionsFor(db,id), advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
     events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
   };
