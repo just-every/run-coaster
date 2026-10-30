@@ -33,6 +33,14 @@ async function roundTrip(stage) {
     const plaidCosts=(await h.db.prepare('SELECT * FROM c_plaid_costs').all()).results;
     assert.equal(plaidCosts.length,2);assert.deepEqual(plaidCosts.map(c=>c.kind).sort(),['reserved','settled']);assert.ok(plaidCosts.every(c=>c.usd_minor===250));assert.equal((await h.get(['plaid','settings'].join('/'))).monthToDateMinor,250);
     const t = await payrollBatch(h);
+    // Account-code correction changes no wages or reimbursement amounts; the batch needs a fresh review.
+    const coding=await h.get(`claims/${t.claims[0]}/accounting-coding`);
+    await h.post(`claims/${t.claims[0]}/accounting-coding`,{version:coding.claim.version,revision:coding.claim.revision,item:coding.effective[0].id,sequence:0,accounts:['synthetic-coaster-8701'],reason:'Correct native account'},t.finance);
+    const changed=(await h.get(`batches/${t.batch.id}`)).batch;
+    t.batch=await h.post(`batches/${changed.id}/approve`,{version:changed.version,expectedTotal:changed.total_minor},t.finance);
+    const corrections=(await h.db.prepare('SELECT * FROM c_accounting_corrections ORDER BY id').all()).results;
+    const selections=(await h.db.prepare('SELECT * FROM c_batch_coding ORDER BY batch_id,claim_id,generation').all()).results;
+    assert.equal(corrections.length,1);assert.equal(selections.length,3);
     await connectFixture(h, edge, t.memberEmail);
     const batch = await h.post(`batches/${t.batch.id}/release`, { version: t.batch.version });
     const path = `batches/${batch.id}/payroll`;
@@ -53,6 +61,8 @@ async function roundTrip(stage) {
 
     await command(source, ['export', '--output', 'exports/payroll.rer']);
     const archive = join(source, 'exports/payroll.rer'), exported = await records(archive);
+    assert.deepEqual(tableRows(exported,'c_accounting_corrections'),corrections);
+    assert.deepEqual(tableRows(exported,'c_batch_coding'),selections);
     assert.deepEqual(tableRows(exported, 'c_payroll_handoffs'), [handoff], 'CLI exports the exact native financial handoff, including its pending state and expected provider lines');
     assert.deepEqual(numbered(tableRows(exported, 'c_events')), history, 'CLI exports every numbered native history line unchanged');
     assert.equal(tableRows(exported, 'c_batches').find(row => row.id === batch.id).status, stage === 'confirmed' ? 'reimbursed' : 'approved');
@@ -76,6 +86,13 @@ async function roundTrip(stage) {
     assert.match(refusal, /coaster_payroll/, 'the real staged payroll validator refuses a re-sealed inconsistent handoff');
     await command(destination, ['export', '--output', 'exports/empty-after.rer']);
     assert.deepEqual(rows(await records(join(destination, 'exports/empty-after.rer'))), empty, 'refused payroll archive writes no portable destination data');
+
+    const invalidCorrection=await tampered(archive,'c_accounting_corrections',row=>{row.sequence+=1;});
+    await writeFile(join(destination,'exports/invalid-correction.rer'),invalidCorrection,{mode:0o600});
+    const correctionRefusal=await command(destination,['import','--input','exports/invalid-correction.rer','--yes'],{expected:4});
+    assert.match(correctionRefusal,/coaster_accounting_corrections/);
+    await command(destination,['export','--output','exports/correction-refused.rer']);
+    assert.deepEqual(rows(await records(join(destination,'exports/correction-refused.rer'))),empty,'inconsistent correction history is refused before writes');
 
     await copyFile(archive, join(destination, 'exports/payroll.rer'));
     await command(destination, ['import', '--input', 'exports/payroll.rer', '--yes']);
