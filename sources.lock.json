@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b9f77bfaa2807b2f9f67c9fec438f073d6917bfc3fe5159ad87555f676a95123",
+      "sha256": "78f7aa4c330dae0111c3aab54036bc8a84e0af3e8391877f7523dc72a8d9d201",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "858b24d2a30d7eb0b07c5757b6757ab0891b3c645ff91df2c54bcac918d83f06",
+      "sha256": "03abe2a6253e364a494837f85cec52e825c4e8451478bf9752bbd54356e6458d",
       "executable": false
     },
     "base-copies.json": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f25d7dea5d0c71c1ff56cfc269f6d6924406efee56139f90de5ef30d61cb86d0",
+      "sha256": "cb93c464c5ea13c75fc5619296486c63f5f7b352481c79f2cd616345231be1cc",
       "executable": false
     },
     "DEMO.md": {
@@ -412,7 +412,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "0802356e4455cc832311d2f449704d0710026f5ea93f108635814b866a5fd288",
+      "sha256": "8a00126e95991daba4bc3b6484e675e2ad45f9cca3b73ab5e2cdd35c81542544",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -1416,7 +1416,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "dd09e77112cd7a62d45b54b3f3663a0fa73428a0b515a61f5933a3dad44e0028",
+      "sha256": "1abca20501b5e4948f5091475380371bb6e72a19bc67860b7006526e1405c03e",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1464,7 +1464,7 @@
       "executable": false
     },
     "src/coaster/batches.ts": {
-      "sha256": "17ef246d1d876c618d2fa193a9eae29daffb29988591032e27dfeb451fb2f1ac",
+      "sha256": "3a37ad9b431e86a283e6390a8d81501ec2e08e2b3cd8e73e683400e3f8c53a5d",
       "executable": false
     },
     "src/coaster/budgets.ts": {
@@ -4372,7 +4372,7 @@
       "executable": false
     },
     "tests/accounting-corrections.mjs": {
-      "sha256": "4321954a4225511da19e986e689add37e34d84b1d70be7c48d720afe19be43f8",
+      "sha256": "d48a81626125281c478de80507c731c2f0f85569e9acad5fcc002ee780e3d727",
       "executable": false
     },
     "tests/archive-data.mjs": {

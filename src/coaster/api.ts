@@ -53,7 +53,7 @@ import { revokeDelegation, saveDelegation } from './delegation';
 import { actingAs, grantDelegate, revokeDelegate } from './delegates';
 import { createRequest, decideRequest, reassignRequest } from './requests';
 import { advancesFor, decideAdvance, linkAdvance, payAdvance, recordReturn, requestAdvance } from './advances';
-import { approveBatch, createBatch, markReimbursed, releaseBatch, removeFromBatch } from './batches';
+import { approveBatch, createBatch, markReimbursed, releaseBatch, removeFromBatch, removeForCoding } from './batches';
 import { batchFile, periodFile, saveExportTemplate } from './exports';
 import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
@@ -233,6 +233,7 @@ api.post('/api/coaster/claims/:id/accounting-coding', as(async (a,c) => correctA
 api.get('/api/coaster/batches/:id', as(async (a, c) => batchDetail(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/batches/:id/pdf', as(async (a, c) => batchPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/batches', as(async (a, c) => createBatch(db(c), a, await body(c))));
+api.post('/api/coaster/batches/:id/remove-for-coding', as(async (a, c) => removeForCoding(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/batches/:id/remove', as(async (a, c) => removeFromBatch(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/batches/:id/approve', as(async (a, c) => approveBatch(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/batches/:id/release', as(async (a, c) => releaseBatch(db(c), a, param(c, 'id'), await body(c))));
