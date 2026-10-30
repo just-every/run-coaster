@@ -7,7 +7,7 @@ import { records, rows, tampered } from './browser-archive.mjs'
 /** Real CLI staging rejects forged coverage before writes; an intact archive retains immutable evidence but no SFTP authority. */
 export async function restoreFeedHealth(archive,evidence) {
   const before=rows(await records(archive)),feeds=before.filter(r=>r.table==='c_program_feeds')
-  assert.ok(feeds.length && feeds.every(r=>r.row.enabled===0 && r.row.credentials_sealed===null && r.row.lease_id===null),'export strips provider execution authority')
+  assert.ok(feeds.length && feeds.every(r=>r.row.enabled===0 && !Object.hasOwn(r.row,'credentials_sealed') && r.row.lease_id===null),'export strips provider execution authority')
   const health=before.filter(r=>r.table==='c_program_health')
   assert.ok(health.some(r=>r.row.kind==='missed') && health.some(r=>r.row.kind==='covered'),'both sides of the late delivery survive export')
   const root=await fresh();let server

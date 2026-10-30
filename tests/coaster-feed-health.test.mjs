@@ -120,6 +120,13 @@ test('Mapped SFTP delivery health and authorized coverage reports preserve sourc
       assert.equal(evidence.detail.deadline,expected,'gap and repeated-hour deadlines use the configured local calendar')
       await h.post(`${endpoint}/${f.id}/disconnect`,{version:f.version,consent:true},finance)
     }
+    const {deliveryTime,deliveryTimezone,graceMinutes,expectedFrom,...legacyConfig}=config
+    const legacy=await h.post(endpoint,legacyConfig,finance)
+    issuer.files.set(n(2046)+'.csv',file(n(2047),'2031-06-29',n(2048)))
+    await tick('2031-06-30T19:17:00Z')
+    const legacyRows=(await report()).rows.filter(r=>r[1]===legacy.id)
+    assert.deepEqual(legacyRows.map(r=>r[3]),['unverified','unverified'],'a legacy connection without an explicit calendar makes no coverage claim')
+    assert.equal((await health(legacy.id)).coverage,'unverified')
     console.log('PROBE FEED-003 calendar: real scheduled SFTP before grace -> no miss; after grace -> dated immutable miss')
     console.log('PROBE FEED-003 evidence: wrong date, ambiguous period, invalid file, upload and empty poll -> gap retained; late evidenced file -> only its date covered')
     console.log('PROBE FEED-003 reports: authorized JSON, CSV and scheduled attachment -> exact dates; replay -> one delivery')

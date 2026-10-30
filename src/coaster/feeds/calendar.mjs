@@ -30,4 +30,3 @@ export function deliveryPeriod(f, headers, rows, at) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? '') || !Number.isFinite(Date.parse(date + 'T00:00:00Z')) || new Date(date + 'T00:00:00Z').toISOString().slice(0, 10) !== date || periods.some(([start, end]) => start !== date || end !== date)) return null;
   return date >= f.expected_from && date <= feedDate(at, f.delivery_timezone) ? date : null;
 }
-

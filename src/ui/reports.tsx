@@ -11,7 +11,7 @@ const titleOf = (report: string) => REPORTS.find(r => r.value === report)?.label
 export function Reports({ owner, schedules: canSchedule }: { owner: boolean; schedules: boolean }) {
   const [shown, setShown] = useState<D>(), [query, setQuery] = useState(''), [schedules, setSchedules] = useState<D[]>([]);
   useEffect(() => { call('report-schedules').then(setSchedules, () => setSchedules([])); }, []);
-  return <Section title="Reports">
+  return <Section title="Reports" label="Reports">
     <p className="muted">Aging of approved claims not yet paid, approval cycle time per approver, receipt compliance, unsubmitted spend for month-end accruals and policy exception trends. Dates are in the business time zone; both ends count.</p>
     <Form label="Run report" onSubmit={async v => { const q = new URLSearchParams({ ...(v.from ? { from: v.from } : {}), ...(v.to ? { to: v.to } : {}) }).toString(); setShown(await call(`reports/${v.report}${q ? `?${q}` : ''}`)); setQuery(q); }}>
       <Field label="Report" name="report" options={REPORTS} defaultValue="aging" />

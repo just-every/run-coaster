@@ -1652,7 +1652,7 @@
       "executable": false
     },
     "src/coaster/feeds/calendar.mjs": {
-      "sha256": "f3cae8105cadef542b2d4008d8890dc56c0d60aaf500eaf9988dff1af0df9425",
+      "sha256": "42aa654007c75931ce403ca6b8b19febadb6a566d83afa549fe1a0b30f4c04bd",
       "executable": false
     },
     "src/coaster/feeds/configuration.ts": {
@@ -4348,7 +4348,7 @@
       "executable": false
     },
     "src/ui/reports.tsx": {
-      "sha256": "7578c49b99c14ce5667d83bb818df1baf1b724d0d75605fe6c7a94c6d49d89b1",
+      "sha256": "317cd008ce0c7bd2513ba6ab6c303f1e296643f8ffedfd94208a704276563593",
       "executable": false
     },
     "src/ui/requests.tsx": {
@@ -4480,7 +4480,7 @@
       "executable": false
     },
     "tests/coaster-feed-health.test.mjs": {
-      "sha256": "82ff4a78fb4d050148e56e69157324fa68f2a4500410dae2a6b00d4792828f61",
+      "sha256": "8d23587130ff2ed79afbc50e96fb4a0dabcbe5165fb3614e7e15165b90f2420e",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
@@ -4556,7 +4556,7 @@
       "executable": false
     },
     "tests/feed-health-archive.mjs": {
-      "sha256": "16692d54fc0dbe28209a7c791a2a3018f0689aac64ed200d4ff58c5ec5428b3b",
+      "sha256": "7b618b6323c60b51b5214f5a0e1ec580ca351bd435e8e65ebed010e2cbf29d09",
       "executable": false
     },
     "tests/fixtures/bank.mjs": {
@@ -6632,7 +6632,7 @@
       "executable": false
     },
     "tests/journeys/browser-feed-health.mjs": {
-      "sha256": "fd008ad5365550938193c481f3bf255d6376e8b7f4e8520611164643e3b5bd3e",
+      "sha256": "86bc7a1aa1c5158b4ba9e6291f67f5683d9deddb02803a068addd362ac059750",
       "executable": false
     },
     "tests/journeys/browser-matching.mjs": {
