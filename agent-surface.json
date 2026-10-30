@@ -192,6 +192,20 @@
                 }
               }
             ]
+          },
+          {
+            "kind": "mileage",
+            "date": "2026-10-29",
+            "merchant": "Synthetic return trip",
+            "distance": "3",
+            "allocations": [
+              {
+                "category": {
+                  "$from": "context",
+                  "pointer": "/categories/0/id"
+                }
+              }
+            ]
           }
         ]
       },
@@ -199,7 +213,7 @@
         {
           "class": "standard",
           "facts": {
-            "measure": 1
+            "measure": 2
           }
         },
         {

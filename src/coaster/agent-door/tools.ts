@@ -33,7 +33,7 @@ async function claimFacts(args: Record<string, unknown>, ctx: ToolContext) {
     const currency = item.per_diem ? 'USD' : raw.currency === undefined || raw.currency === '' ? settings.currency : text(raw.currency, 'Currency', 3).toUpperCase();
     return currency !== settings.currency && (raw.manualRate === undefined || raw.manualRate === '');
   }));
-  return [...privateFacts, ...(foreign ? [{ class: 'external' as const, facts: { measure: 1, counterparty: 'known' as const } }] : [])];
+  return [{ class: 'standard' as const, facts: { measure: (args.items as unknown[]).length } }, privateFacts[1]!, ...(foreign ? [{ class: 'external' as const, facts: { measure: 1, counterparty: 'known' as const } }] : [])];
 }
 
 export function coasterTools(): ToolDefinition[] {
