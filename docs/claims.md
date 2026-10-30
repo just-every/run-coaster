@@ -65,7 +65,7 @@ The owner can review optional AI costs in Settings before enabling receipt readi
 
 Generated from the Status table in [CONTRACT.md](https://github.com/just-every/run-coaster/blob/main/CONTRACT.md). That source retains the acceptance requirements, current evidence and remaining work for each clause.
 
-**104 clauses: 60 done, 23 partial, 21 missing.**
+**104 clauses: 60 done, 24 partial, 20 missing.**
 
 | Clause | Title | Kind | Status |
 | --- | --- | --- | --- |
@@ -97,7 +97,7 @@ Generated from the Status table in [CONTRACT.md](https://github.com/just-every/r
 | FEED-005 | Card statement reconciliation and liability clearing | target | done |
 | FEED-006 | Individual-liability corporate cards | target | missing |
 | CARD-001 | Company cards through an issuing partner | target | missing |
-| CARD-002 | Personal spend on company cards | target | missing |
+| CARD-002 | Personal spend on company cards | target | partial |
 | CLAIM-001 | US mileage | target | partial |
 | CLAIM-002 | GSA per diem by location | target | done |
 | CLAIM-003 | Foreign-currency expenses | target | done |
