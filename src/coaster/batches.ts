@@ -138,10 +138,11 @@ export async function runPaySchedule(db: D1Database, at: Date) {
   await commit(db, all({ sql: '1', params: [] }, unchanged(claims), advancesUnchanged(applied), reimbursementState(keys)), [run, ...await openBatch(db, id, claims, keys, applied, PAY_SCHEDULE, (action, target, detail) => ruleEvent(db, PAY_SCHEDULE, action, target, detail), { payDay: day })]);
 }
 
-export async function removeFromBatch(db: D1Database, actor: Actor, id: string, b: Data) {
+export async function removeFromBatch(db: D1Database, actor: Actor, id: string, b: Data, codingCorrection = false) {
   need(actor, 'finance');
   const batch = await loadBatch(db, id);
-  requireThat(['draft','approved'].includes(batch.status) && !batch.first_released_at && !batch.released_at && b.version === batch.version, 'Only an unpaid batch without release authorization can change; reload', 409);
+  requireThat((codingCorrection ? ['draft','approved'] : ['draft']).includes(batch.status) && !batch.first_released_at && !batch.released_at && b.version === batch.version, codingCorrection ? 'Only an unpaid batch without release authorization accepts a coding removal; reload' : 'Only an unreviewed draft batch can change; reload', 409);
+  if (codingCorrection) requireThat(b.confirm === true, 'Confirm removing this claim for a coding correction and a new batch review');
   const notPosted: Sql = { sql: `NOT EXISTS(SELECT 1 FROM c_qbd_requests WHERE json_extract(payload,'$.batch')=? AND status IN('sent','uncertain','succeeded')) AND NOT EXISTS(SELECT 1 FROM c_payroll_handoffs WHERE batch_id=?)`, params: [id,id] };
   requireThat(await db.prepare('SELECT ' + notPosted.sql + ' AS ok').bind(...notPosted.params).first<{ok:number}>().then(r=>r?.ok), 'Reconcile this batch ledger posting or payroll handoff before removing a claim',409);
   requireThat(typeof b.claim === 'string' && b.claim, 'Choose the claim to take out of the batch');
@@ -154,9 +155,14 @@ export async function removeFromBatch(db: D1Database, actor: Actor, id: string, 
     db.prepare('DELETE FROM c_batch_claims WHERE batch_id=? AND claim_id=?').bind(id, row.claim_id),
     db.prepare("UPDATE c_claims SET status='approved',batch_id=NULL,version=version+1,updated_at=? WHERE id=?").bind(at, row.claim_id),
     db.prepare("UPDATE c_batches SET status='draft',reviewed_by=NULL,reviewed_at=NULL,total_minor=(SELECT COALESCE(SUM(amount_minor),0) FROM c_batch_claims WHERE batch_id=?),version=version+1 WHERE id=?").bind(id, id),
-    event(db, actor, 'claim-unbatched', { claim: row.claim_id, batch: id }, { previousStatus: batch.status, previousReviewer: batch.reviewed_by, previousReviewedAt: batch.reviewed_at, requiresReview: true }),
+    event(db, actor, 'claim-unbatched', { claim: row.claim_id, batch: id }, { previousStatus: batch.status, previousReviewer: batch.reviewed_by, previousReviewedAt: batch.reviewed_at, requiresReview: true, ...(codingCorrection ? { codingCorrection: true } : {}) }),
   ]);
   return loadBatch(db, id);
+}
+
+/** Explicit coding removal invalidates review; ordinary reviewed-batch removal stays locked. */
+export function removeForCoding(db: D1Database, actor: Actor, id: string, b: Data) {
+  return removeFromBatch(db, actor, id, b, true);
 }
 
 /** Review locks the batch: the reviewer confirms the reconciled total and may not review their own claims, nor, as a
