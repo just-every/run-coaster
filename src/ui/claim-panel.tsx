@@ -1,3 +1,4 @@
+import { PersonalSpend } from './personal-spend';
 import { PerDiemBreakdown } from './per-diem';
 import { useCallback, useEffect, useState } from 'react';
 import { amount, apiHref, call, claimNumber, day, exceptionWords, fileBase64, money, moment, plural, rate, type D } from './api';
@@ -126,6 +127,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
             {item.attendees?.length > 0 && <span className="split-line">Attendees: {item.attendees.map((a: D) => a.kind === 'guest' ? `${a.name} (guest)` : a.name).join(', ')}</span>}
             {(item.per_person ?? []).map((p: D) => <span key={p.category} className="split-line">{money(p.share_minor, currency)} a person · {p.over ? 'over' : p.amount_minor === p.limit_minor * p.people ? 'at' : 'under'} {money(p.limit_minor, currency)}</span>)}
             {Object.entries(item.fields ?? {}).map(([name, value]) => <span key={name} className="split-line">{name}: {String(value)}</span>)}
+            <PersonalSpend claim={claim} item={item} actor={state.actor} done={done} />
             <CodingSuggestions claim={claim} item={item} state={state} editable={editable || deciding} onDone={done} /></div>
           <span className="amount">{amount(item.amount_minor)}</span>
           {(flags.length > 0 || editable) && <span className="line-extra">
@@ -135,6 +137,7 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
           </span>}
         </li>;
       })}</ul> : <Empty title="No expenses yet">{editable ? 'Add each expense with its receipt; mileage is priced at the rate for its date.' : null}</Empty>}
+      {detail.personalSpend?.balances.map((balance: D) => <p key={balance.currency} role="status">Your personal company-card balance: {money(balance.outstandingMinor, balance.currency)} unpaid. Repayment has not been collected.</p>)}
       <div className="total"><span>Claim total ({currency})</span><span>{money(claim.total_minor, currency)}</span></div>
       {error && <p className="form-error" role="alert">{error}</p>}
       {editable && (editing

@@ -1,3 +1,4 @@
+import { validatePersonalSpendArchive } from './personal-spend-archive.mjs';
 import { createHash } from 'node:crypto';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 import { validateLiabilityArchive } from './liability-archive.mjs';
@@ -71,6 +72,7 @@ export async function validateCoasterArchive(read, manifest) {
   if((await read('c_import_card_undo')).length)throw new PortabilityError('coaster_import_card_undo',409);
   const cards=await read('c_cards'), charges=await read('c_card_charges'), files=await read('c_statement_files'), events=await read('c_events');
   await validateStatementArchive(read);
+  await validatePersonalSpendArchive(read);
   for(const card of cards) check(/^\d{4}$/.test(card.last4),'card_last_four');
   const undone=await read('c_card_charge_undo_history');
   check(new Set([...charges,...undone].map(c=>c.id)).size===charges.length+undone.length,'card_charge');

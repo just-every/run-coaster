@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "53712d2373cee03d21f09c3c2bf408710fbe1fcebbcd91c71ce27d5c560e72e7",
+      "sha256": "ec9b3dcf654b5e5fb6f930a073cc4ed86d94bb88bf2446727a323f37467343c9",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "55d10374dbf831665bb7a4b52c235e8e1b47ce117f054b4eb9920a60d0eac5c1",
+      "sha256": "6bffbfd4d04797595ee5ac474705f90cceea146efeeffe26c8f3f52c063cff17",
       "executable": false
     },
     "DEMO.md": {
@@ -759,6 +759,10 @@
       "sha256": "8fa38a6338a5c29833725bcc6e970c233eb63ebf0fe391169148f540ad124540",
       "executable": false
     },
+    "migrations/core/0086_personal_spend.sql": {
+      "sha256": "fda15211030b6dbbd9292ebaaa411de4d07b4d7bd724f11610f76dce0458446f",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -1163,8 +1167,12 @@
       "sha256": "8a7660b693a1e40a9aa9305480a991988ccc2dbc4dfb8fdcf2912f211efc4365",
       "executable": false
     },
+    "scripts/installer/personal-spend-archive.mjs": {
+      "sha256": "fcc8f301c63ca8ad06cba69baa510c2d186c2c56c9a70fd5bd1449879bd099a3",
+      "executable": false
+    },
     "scripts/installer/portability.mjs": {
-      "sha256": "820cdf0aee7214643f55b4dafe23bb1542980fa73572c6b38ed9d87a0249dea1",
+      "sha256": "a22e6f7f1fe8235bb594c8eec0a8514760d4b3776fb35220c71b4562e104b2d9",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {
@@ -1412,7 +1420,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "46d01a6a17a92042968b3cb6ba25b1efbb65574be5d65766604591d983a75234",
+      "sha256": "4c9e3600c5c808a1c9926781ca74ee6f37d36460321bd2fa5bc5ee54827fb199",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1488,7 +1496,7 @@
       "executable": false
     },
     "src/coaster/cards/charges.ts": {
-      "sha256": "81c131da45c5fe379f2c9bcaf795c6df324c2f30848ac27e2403a1e97750828f",
+      "sha256": "b5346a83b7db2fd5ed053ac3cf9823758ad0795c064960e6f3a233bb2faa6104",
       "executable": false
     },
     "src/coaster/cards/ledger.ts": {
@@ -1501,6 +1509,10 @@
     },
     "src/coaster/cards/ofx.ts": {
       "sha256": "76f2b399ef5b52cdef877efa7abdf94045f8e36bd1b3dccb951e0a98158c13ae",
+      "executable": false
+    },
+    "src/coaster/cards/personal-spend.ts": {
+      "sha256": "c10261416e73cb9f4c300f85243880c076f43eeb0089d5136e3abbf71ca783ff",
       "executable": false
     },
     "src/coaster/cards/plan.ts": {
@@ -1624,7 +1636,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "8abe3addff9c70aa7465b4f71dceb774cdd2fff4b1132692e5ab5a28b1661f65",
+      "sha256": "36449085d2cffac9a2664f43ccebc1132049f30e8a12e7899742eaadb71a0fb2",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -2080,7 +2092,7 @@
       "executable": false
     },
     "src/coaster/retention.ts": {
-      "sha256": "e4e7b7713f6c6a994df7b33f29124f24fd108899ffc26028b45a4087c4725536",
+      "sha256": "9bb50050d52f5be6585b6eb8684cf7aa551561aea5e798a4f74dd3d181c6768f",
       "executable": false
     },
     "src/coaster/reversals.ts": {
@@ -2112,7 +2124,7 @@
       "executable": false
     },
     "src/coaster/views.ts": {
-      "sha256": "e58b74cbd58da0376eb0c994a54eb23999a473b4b7bf60e2879007289b06c8fc",
+      "sha256": "9f0d21486ca9a19a914aa366c39c5ee9bedecc6c1ab3b0e026f88378b1c96960",
       "executable": false
     },
     "src/coaster/workflow-configuration.ts": {
@@ -4176,7 +4188,7 @@
       "executable": false
     },
     "src/ui/claim-panel.tsx": {
-      "sha256": "dba9a32beba897f4e11a5dbb33778a03dcba295776cb30f26bfc4e2de8b79c3f",
+      "sha256": "448dd38bf7b945f1aa327405a2392ef9a438923230bbb1dad2b5df305abf64c7",
       "executable": false
     },
     "src/ui/claims-table.tsx": {
@@ -4265,6 +4277,10 @@
     },
     "src/ui/per-diem.tsx": {
       "sha256": "3bde5c68d1007e3d4ab9c982266d700dd9c3f548ad9f53d27b8d3b4f4666c6d7",
+      "executable": false
+    },
+    "src/ui/personal-spend.tsx": {
+      "sha256": "3cd2ee837501ef3318cfd9249a8b44807acd303438979a81152a765851ecb5d4",
       "executable": false
     },
     "src/ui/policy-advice.tsx": {
@@ -4424,7 +4440,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "dde8ed3e45060dd8438d90e50ec9168c42cbc785bd46a44f7f9f6567c04b12f1",
+      "sha256": "4274e083836160dc127d2242c429ab0830cb87a59973feffafc617fbcbc5f3d4",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -4499,6 +4515,10 @@
       "sha256": "8e7af1d3fe8a4b39279568e5fa83fca869a9ffb3ad5964611c7f5679aec2246c",
       "executable": false
     },
+    "tests/coaster-personal-spend.test.mjs": {
+      "sha256": "753d19e99053aa085fabda244111f77288f522558f39ec4a96f2ee5b86b9c0fa",
+      "executable": false
+    },
     "tests/coaster-plaid.test.mjs": {
       "sha256": "ed1e81210ee3a5f047f3fd460b28f610ba2d30f0e94cd739583233c4438b1582",
       "executable": false
@@ -4552,7 +4572,7 @@
       "executable": false
     },
     "tests/d1-edge.ts": {
-      "sha256": "e0cdf2c4be12508ec78650f17dbb38b4bdec5fc7a2144b457cb7049d804e3b32",
+      "sha256": "2e650866754b491a0b1b1bc64db8a4a47cddc962cba1a3bff72313323dd29584",
       "executable": false
     },
     "tests/fixtures/bank.mjs": {
@@ -6643,6 +6663,10 @@
       "sha256": "b436cf3eb18e02a539de0ddf67b59c72741e75ff757be612b102cf1104428265",
       "executable": false
     },
+    "tests/journeys/browser-personal-spend.mjs": {
+      "sha256": "ee26a8cca744999092744f98fa057f6bf1943fff25aace8af3324d9c302d5fa8",
+      "executable": false
+    },
     "tests/journeys/browser-policy-agent.mjs": {
       "sha256": "d84732cc4f86bd86e631b275c5d4c85aa69955395c2576755f0d540288986400",
       "executable": false
@@ -6845,6 +6869,14 @@
     },
     "tests/payroll-kit.mjs": {
       "sha256": "3892c68539254895aa47a8e5c33929c587ab307aea81ae411f45a068ba398f5a",
+      "executable": false
+    },
+    "tests/personal-spend-archive.mjs": {
+      "sha256": "31af749120604fc3662872374a3f386d34b3fe02e68ed47078613acbd5deb0a2",
+      "executable": false
+    },
+    "tests/personal-spend-kit.mjs": {
+      "sha256": "672ad1c00a6e9c67036f4803554dd66fc108017f886c0e683813633f88c2e381",
       "executable": false
     },
     "tests/plaid-native.mjs": {

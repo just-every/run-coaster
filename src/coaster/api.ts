@@ -1,4 +1,5 @@
 import { classifyCharge } from './cards/liability';
+import { markPersonalSpend, personalSpend } from './cards/personal-spend';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
@@ -167,6 +168,8 @@ api.post('/api/coaster/receipt-inbox/:id/detach', as(async (a, c) => changeAttac
 api.get('/api/coaster/receipt-inbox/:id', as(async (a, c) => inboxReceiptFile(db(c), runtimeBindings(c.env).COASTER_RECEIPTS, a, param(c, 'id'), c.req.query('inline') === '1')));
 
 api.get('/api/coaster/state', as(async (a, c) => workspace(db(c), a)));
+api.get('/api/coaster/personal-spend', as(async (a, c) => personalSpend(db(c), a)));
+api.post('/api/coaster/claims/:id/personal-spend', as(async (a, c) => markPersonalSpend(db(c), a, param(c, 'id'), await body(c))));
 api.get('/api/coaster/claims/:id', as(async (a, c) => claimDetail(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/claims/:id/pdf', as(async (a, c) => claimPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/claims', as(async (a, c) => createClaim(db(c), a, await body(c))));
