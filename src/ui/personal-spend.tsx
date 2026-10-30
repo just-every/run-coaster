@@ -2,7 +2,7 @@ import { call, money, type D } from './api';
 import { Details, Field, Form } from './parts';
 
 export function PersonalSpend({ claim, item, actor, done }: { claim: D; item: D; actor: D; done: () => Promise<void> }) {
-  if (!item.card_charge_id || actor.delegate || actor.email !== claim.employee_email) return null;
+  if (!actor.roles.employee || !item.card_charge_id || actor.delegate || actor.email !== claim.employee_email) return null;
   if (item.personal_spend) return <p role="status">Personal spend · You owe {money(item.personal_spend.outstanding_minor, item.personal_spend.currency)} · Unpaid</p>;
   if (claim.status !== 'draft' || claim.revision !== 0) return null;
   return <Details label="Mark personal spend">

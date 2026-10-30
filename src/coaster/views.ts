@@ -93,7 +93,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
     : actor.email!==claim.employee_email&&['draft','returned'].includes(claim.status)
       ? {...item,receipt_resolution:history.at(-1)?.snapshot.items.find((i:Data)=>i.id===item.id)?.receipt_resolution??null}
       : item);
-  const personal = actor.email === claim.employee_email && !actor.delegate && actor.kind === 'person' && actor.roles.employee ? await personalSpend(db, actor) : null;
+  const personal = actor.email === claim.employee_email && !actor.delegate && !actor.publicCredential && actor.kind === 'person' && actor.roles.employee ? await personalSpend(db, actor) : null;
   const chargeKeys = new Map((await db.prepare('SELECT id,transaction_key FROM c_card_charges WHERE item_id IN (SELECT id FROM c_items WHERE claim_id=?)').bind(id).all<{id:string;transaction_key:string}>()).results.map(c => [c.id,c.transaction_key]));
   const classified = await Promise.all(shownItems.map(async item => {
     const transaction = chargeKeys.get(item.card_charge_id), key = transaction ? await personalSourceKey(transaction) : null;

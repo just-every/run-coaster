@@ -56,6 +56,7 @@ export function Claims({ state, reload, id, query, creating, onCreating, onNewCl
       { label: 'Approved', value: approved.length, note: `${paid.length} reimbursed · ${money(sum(approved), state.business.currency)}` },
       { label: 'Waiting for approval', value: waiting.length, note: money(sum(waiting), state.business.currency), wash: true },
     ]} />
+    {!open && state.personalSpend?.balances.map((balance: D) => <p key={balance.currency} role="status">Your personal company-card balance: {money(balance.outstandingMinor, balance.currency)} unpaid. Repayment has not been collected.</p>)}
     {state.actor.roles.employee && <AgentStrip proposals={proposals} reload={reload} currency={state.business.currency} idle={<><strong>Agents:</strong> nothing prepared for you right now. An agent with your key turns receipts into draft claims here for you to accept; it never submits, approves or pays. <a href="#/settings">Agent keys</a></>} />}
     <PrepareNativeWork state={state} reload={reload} />
     {shown.length

@@ -21,7 +21,7 @@ function ownSession(actor: Actor) {
 
 export async function personalSpend(db: D1Database, actor: Actor) {
   ownSession(actor);
-  const rows = (await db.prepare('SELECT * FROM c_card_personal_spend WHERE employee_email=? ORDER BY marked_at,id').bind(actor.email).all<Data>()).results;
+  const rows = (await db.prepare('SELECT p.*,(SELECT seq FROM c_events e WHERE e.id=p.event_id) AS sequence FROM c_card_personal_spend p WHERE p.employee_email=? ORDER BY p.marked_at,p.id').bind(actor.email).all<Data>()).results;
   const totals = new Map<string, number>();
   for (const row of rows) totals.set(row.currency, (totals.get(row.currency) ?? 0) + row.outstanding_minor);
   return { charges: rows, balances: [...totals].map(([currency, outstandingMinor]) => ({ currency, outstandingMinor })), settlement: 'unpaid' };
