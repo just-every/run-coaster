@@ -3,6 +3,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
 import {harness,agency,receipt} from './harness.mjs'
+import {desktopEdge} from './fixtures/desktop.mjs'
 
 let next=0
 const counts=async h=>{
@@ -176,9 +177,9 @@ test('ACCT-008 native correction preserves submitted evidence across every expen
 })
 
 test('ACCT-008 correction guards fence stale authority, concurrent batching and posting changes before and after writes',async()=>{
- let paused,release,armed=false
+ let paused,release,armed=false,door='/before-coding-correction'
  const gate=()=>{paused=new Promise(r=>gate.arrived=r);return new Promise(r=>release=r)}
- const h=await harness({d1Barrier:async request=>{if(armed&&new URL(request.url).pathname==='/before-coding-correction'){armed=false;gate.arrived();await gate.wait}return new Response('ok')}})
+ const h=await harness({d1Barrier:async request=>{if(armed&&new URL(request.url).pathname===door){armed=false;gate.arrived();await gate.wait}return new Response('ok')}})
  try{
   const t=await agency(h)
   for(const change of ['batch','authority','posting','revision','sequence']){
@@ -193,6 +194,37 @@ test('ACCT-008 correction guards fence stale authority, concurrent batching and 
    const changed=await counts(h);release();const result=await pending;assert.equal(result.status,409,result.text);assert.deepEqual(await counts(h),changed)
    if(change==='authority')await h.db.prepare('UPDATE c_members SET is_finance=1 WHERE email=?').bind((await h.get('state',t.morgan)).actor.email).run()
   }
+  // A frozen finance task cannot borrow a remaining manager role after finance is withdrawn.
+  const reviewer=(await h.get('state',t.morgan)).actor.email
+  await h.post(['settings','members'].join('/'),{email:reviewer,name:'synthetic-coaster-reviewer',manager:true,finance:true})
+  await h.post(['settings','approval-workflow'].join('/'),{version:0,rules:[{label:'synthetic-coaster-review',condition:{kind:'always',value:''},stages:[[{kind:'finance',email:reviewer}]]}]})
+  for(const phase of ['before','opening','closing']){
+   let waiting=await submitted(h,t)
+   waiting=await h.post(`claims/${waiting.id}/decision`,{version:waiting.version,revision:waiting.revision,decision:'approved',acknowledge:true},t.priya)
+   const request=await body(h,waiting)
+   if(phase==='before'){
+    await h.post(['settings','members'].join('/'),{email:reviewer,name:'synthetic-coaster-reviewer',manager:true})
+    const before=await counts(h)
+    await h.post(`claims/${waiting.id}/decision`,{version:waiting.version,revision:waiting.revision,decision:'approved',acknowledge:true},t.morgan,403)
+    const result=await h.send(`/api/coaster/claims/${waiting.id}/coding-corrections`,request,t.morgan)
+    console.log(`PROBE gate-authority: finance removed, manager retained -> decision 403, correction ${result.status}`)
+    assert.equal(result.status,403,result.text);assert.deepEqual(await counts(h),before)
+   }else if(phase==='opening'){
+    gate.wait=gate();armed=true
+    const pending=h.send(`/api/coaster/claims/${waiting.id}/coding-corrections`,request,t.morgan);await paused
+    await h.post(['settings','members'].join('/'),{email:reviewer,name:'synthetic-coaster-reviewer',manager:true})
+    const before=await counts(h);release();const result=await pending
+    assert.equal(result.status,409,result.text);assert.deepEqual(await counts(h),before)
+   }else{
+    await h.db.prepare(`CREATE TRIGGER synthetic_coaster_reviewer AFTER INSERT ON c_coding_corrections BEGIN UPDATE c_members SET is_finance=0 WHERE email='${reviewer}'; END`).run()
+    const before=await counts(h);await h.post(`claims/${waiting.id}/coding-corrections`,request,t.morgan,409);assert.deepEqual(await counts(h),before)
+    await h.db.prepare('DROP TRIGGER synthetic_coaster_reviewer').run()
+   }
+   await h.post(['settings','members'].join('/'),{email:reviewer,name:'synthetic-coaster-reviewer',manager:true,finance:true})
+   waiting=await h.post(`claims/${waiting.id}/coding-corrections`,request,t.morgan)
+   assert.equal((await h.get(`claims/${waiting.id}`)).codingCorrections.at(-1).after_code,request.accountCode)
+  }
+  await h.post(['settings','approval-workflow'].join('/'),{version:1,rules:[]})
   // A trigger changes authority after the opening guard. Closing guard must roll the whole transaction back.
   const c=await approved(h,t),financeEmail=(await h.get('state',t.morgan)).actor.email
   await h.db.prepare(`CREATE TRIGGER synthetic_coaster_guard AFTER INSERT ON c_coding_corrections BEGIN UPDATE c_members SET is_finance=0 WHERE email='${financeEmail}'; END`).run()
@@ -200,6 +232,37 @@ test('ACCT-008 correction guards fence stale authority, concurrent batching and 
   assert.equal((await h.db.prepare('SELECT is_finance FROM c_members WHERE email=?').bind(financeEmail).first()).is_finance,1)
   await h.db.prepare('DROP TRIGGER synthetic_coaster_guard').run()
   await correct(h,c,t.morgan)
+  // Hold a prepared sync at its transaction boundary while finance removes the reviewed claim.
+  const root=['accounting','desktop'].join('/'),edge=await desktopEdge(h)
+  const connected=await h.post(root+'/connect',{consent:true,company:'synthetic-coaster-1.QBW'})
+  await edge.open(connected.configuration,connected.password);await edge.drain()
+  const map=(name,listId,kind='Account')=>h.post(root+'/mappings',{name,listId,kind})
+  await map('account:6500','synthetic-coaster-1');await map('payable','synthetic-coaster-2')
+  const employee=(await h.get('state',t.sam)).actor.email
+  await map('vendor:'+employee,'synthetic-coaster-6','Vendor')
+  const purchase=await approved(h,t)
+  let batch=await h.post('batches',{claims:[purchase.id]})
+  batch=await review(h,batch)
+  door='/before-desktop-queue';gate.wait=gate();armed=true
+  const sync=h.send('/api/coaster/'+root+'/sync',{},h.owner);await paused
+  const removed=await h.post(`batches/${batch.id}/remove`,{version:batch.version,claim:purchase.id})
+  assert.equal(removed.status,'draft')
+  release();const syncResult=await sync;assert.equal(syncResult.status,200,syncResult.text)
+  const oldBills=(await h.db.prepare("SELECT * FROM c_qbd_requests WHERE kind='BillAdd' AND json_extract(payload,'$.batch')=?").bind(batch.id).all()).results
+  console.log(`PROBE gate-money: removal while Desktop queue paused -> removal 200, old batch bills ${oldBills.length}`)
+  assert.equal(oldBills.length,0,'a bill prepared before removal must not queue afterward')
+  let replacement=await h.post('batches',{claims:[purchase.id]});replacement=await review(h,replacement)
+  // The opposite order is safe too: a queued bill prevents removal and preserves every row.
+  await h.post(root+'/sync',{})
+  const beforeQueued=await counts(h)
+  await h.post(`batches/${replacement.id}/remove`,{version:replacement.version,claim:purchase.id},h.owner,409)
+  assert.deepEqual(await counts(h),beforeQueued)
+  await edge.open(connected.configuration,connected.password);await edge.drain()
+  const bills=edge.sent.filter(r=>r.kind==='BillAdd'&&r.request.includes(replacement.id))
+  assert.equal(bills.length,1,'the rebatched purchase posts exactly once')
+  await edge.open(connected.configuration,connected.password);await edge.drain()
+  assert.equal(edge.sent.filter(r=>r.kind==='BillAdd'&&r.request.includes(replacement.id)).length,1)
+  console.log('PROBE gate-money: paused sync then reviewed removal -> no former bill queued; rebatching posts once; queued posting refuses removal with no writes')
   console.log('PROBE ACCT-008 guards: paused correction plus batching, revoked authority, changed posting, revision or sequence -> 409 and no correction writes; closing authority guard rolls back')
  }finally{release?.();await h.close()}
 })

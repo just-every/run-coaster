@@ -3,7 +3,7 @@ import { PortabilityError } from '@runeditrun/rer/modules/portability';
 
 /** Submitted bytes anchor every chain; retained selections remain evidence after removal. */
 export async function validateAccountingCorrectionsArchive(read) {
-  const [corrections,selections,revisions,claims,batches,events,periods,members] = await Promise.all(['c_coding_corrections','c_batch_coding','c_revisions','c_claims','c_batches','c_events','c_accounting_periods','c_members'].map(read));
+  const [corrections,selections,revisions,claims,batches,events,periods,members,batchClaims] = await Promise.all(['c_coding_corrections','c_batch_coding','c_revisions','c_claims','c_batches','c_events','c_accounting_periods','c_members','c_batch_claims'].map(read));
   const check=ok=>{if(!ok)throw new PortabilityError('coaster_accounting_corrections',409);};
   const allocation=c=>JSON.parse(revisions.find(r=>r.claim_id===c.claim_id&&r.revision===c.revision)?.snapshot??'{}').items?.find(i=>i.id===c.item_id)?.allocations?.[c.allocation];
   const ids=new Set();
@@ -21,6 +21,21 @@ export async function validateAccountingCorrectionsArchive(read) {
     const original=allocation(s),c=corrections.find(c=>c.id===s.correction_id),key=JSON.stringify([s.batch_id,s.claim_id,s.revision,s.item_id,s.allocation]);
     check(original&&batches.some(b=>b.id===s.batch_id)&&!selected.has(key));selected.add(key);
     check(s.correction_id===null?s.account_code===original.account_code:c&&c.claim_id===s.claim_id&&c.revision===s.revision&&c.item_id===s.item_id&&c.allocation===s.allocation&&s.account_code===c.after_code);
+  }
+  // Frozen batches must retain every allocation, not merely validate whichever selections remain.
+  // Pre-correction installations can have legacy batches without selections; corrected revisions cannot use that fallback.
+  const complete=(batch,claim,revision)=>{
+    const snapshot=revisions.find(r=>r.claim_id===claim&&r.revision===revision);
+    check(snapshot);
+    for(const item of JSON.parse(snapshot.snapshot).items)for(const allocation of item.allocations.keys())
+      check(selected.has(JSON.stringify([batch,claim,revision,item.id,allocation])));
+  };
+  for(const s of selections)complete(s.batch_id,s.claim_id,s.revision);
+  for(const bc of batchClaims){
+    const frozen=events.some(e=>e.batch_id===bc.batch_id&&e.action==='batch-created'&&JSON.parse(e.detail).codingSelections===1)
+      ||selections.some(s=>s.batch_id===bc.batch_id)
+      ||corrections.some(c=>c.claim_id===bc.claim_id&&c.revision===bc.revision);
+    if(frozen)complete(bc.batch_id,bc.claim_id,bc.revision);
   }
   for(const p of periods)check(p.ledger==='desktop'&&/^\d{4}-\d{2}-\d{2}$/.test(p.start_on)&&/^\d{4}-\d{2}-\d{2}$/.test(p.end_on)&&p.start_on<=p.end_on&&(p.closed_at===null||Number.isFinite(Date.parse(p.closed_at))));
 }

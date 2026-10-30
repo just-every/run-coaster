@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import {copyFile,mkdir,rm,writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
-import {fresh,freePort,command} from './browser-runtime.mjs'
+import {request} from '@playwright/test'
+import {fresh,freePort,command,start,signIn} from './browser-runtime.mjs'
 import {records,rows,tampered} from './browser-archive.mjs'
 
 /** Real export and empty-installation restore; staged malformed chains and selections write nothing. */
@@ -12,7 +13,7 @@ export async function accountingCorrectionsArchive(root,evidence,ownerEmail){
  assert.ok(corrections.length>=2);assert.ok(before.some(r=>r.table==='c_batch_coding'&&r.row.correction_id))
  const history=before.filter(r=>r.table==='c_events'&&r.row.action==='account-code-corrected')
  assert.equal(history.length,corrections.length);assert.ok(history.every(r=>r.row.seq>0&&r.row.actor_email&&r.row.at))
- let restored
+ let restored,server,context
  try{
   restored=await fresh();await command(restored,['setup','--owner-email',ownerEmail,'--port',String(await freePort())])
   await mkdir(join(restored,'exports'),{recursive:true})
@@ -23,6 +24,20 @@ export async function accountingCorrectionsArchive(root,evidence,ownerEmail){
    ['chain','c_coding_corrections',r=>r.before_code='synthetic-coaster-wrong'],
    ['allocation','c_coding_corrections',r=>r.allocation+=100],
    ['selection','c_batch_coding',r=>r.account_code='synthetic-coaster-wrong'],
+   ...[
+    ['missing-selection',r=>r.account_code==='6972'],
+    ['missing-original-selection',(r,input)=>r.correction_id===null&&rows(input).some(i=>i.table==='c_batch_claims'&&i.row.batch_id===r.batch_id&&i.row.claim_id===r.claim_id)],
+    ['missing-all-selections',()=>true,true],
+   ].map(([name,pick,all])=>[name,'c_batch_coding',(_r,input)=>{
+    // Preserve a valid envelope and counts so the domain validator must refuse missing frozen rows.
+    const selected=rows(input).filter(item=>item.table==='c_batch_coding'&&pick(item.row,input))
+    assert.ok(selected.length,'the public journey froze the selected accounts')
+    const omitted=new Set(all?selected:selected.slice(0,1))
+    for(const part of input.filter(p=>p.kind==='part'))part.items=part.items.filter(item=>!omitted.has(item))
+    for(let index=input.length-2;index>0;index--)if(input[index].kind==='part'&&!input[index].items.length)input.splice(index,1)
+    rows(input).filter(item=>item.table==='c_batch_coding').forEach((item,index)=>item.index=index)
+    input[0].tables.find(t=>t.name==='c_batch_coding').count-=omitted.size
+   }]),
   ]){
    await writeFile(join(restored,'exports/malformed.rer'),await tampered(archive,table,change),{mode:0o600})
    const refused=await command(restored,['import','--input','exports/malformed.rer','--yes'],{expected:4})
@@ -35,6 +50,12 @@ export async function accountingCorrectionsArchive(root,evidence,ownerEmail){
   await command(restored,['export','--output','exports/restored.rer'])
   const after=rows(await records(join(restored,'exports/restored.rer')))
   assert.deepEqual(after,before,'every portable record, correction chain, original snapshot and numbered history field restores exactly')
+  server=await start(restored,await freePort());context=await request.newContext()
+  await signIn({request:context,cookies:async()=> (await context.storageState()).cookies},server.origin,ownerEmail)
+  const corrected=before.find(r=>r.table==='c_batch_coding'&&r.row.account_code==='6972').row
+  const csv=await context.get(server.origin+`/api/coaster/batches/${corrected.batch_id}/accounting.csv`)
+  assert.equal(csv.status(),200);assert.match(await csv.text(),/"6972"/,'restored frozen export keeps the selected correction')
+  console.log('PROBE gate-archive: missing frozen selection -> CLI exit 4 and identical empty destination; valid restore -> accounting CSV 6972')
   console.log('PROBE ACCT-008 archive: real CLI export and empty restore -> exact portable rows; malformed revision, allocation, chain and frozen selection -> refused with no writes')
- }finally{if(restored)await rm(restored,{recursive:true,force:true})}
+ }finally{if(context)await context.dispose();if(server)await server.close();if(restored)await rm(restored,{recursive:true,force:true})}
 }

@@ -86,7 +86,7 @@ async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awai
     ]),
     ...selection,
     ...keys.map(k => db.prepare('INSERT INTO c_reimbursement_keys(key,batch_id,claim_id,item_id) VALUES(?,?,?,?)').bind(k.key, id, k.claim.id, k.item)),
-    line('batch-created', { batch: id }, { claims: claims.length, totalMinor: total, ...detail }),
+    line('batch-created', { batch: id }, { claims: claims.length, totalMinor: total, codingSelections: 1, ...detail }),
   ];
 }
 

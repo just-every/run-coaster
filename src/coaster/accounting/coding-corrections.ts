@@ -15,8 +15,8 @@ function correctionAuthority(actor: Actor, claim: Claim): Sql {
   if (can(actor, 'coding')) return rowAuthority(actor, 'coding');
   const auth = authority(actor, ['manager', 'finance']);
   return { sql: `(${auth.sql}) AND EXISTS(SELECT 1 FROM c_claims c WHERE c.id=? AND c.revision=? AND c.status='submitted' AND c.employee_email NOT IN (?,?) AND (
-    EXISTS(SELECT 1 FROM c_workflow_tasks t WHERE t.kind='claim' AND t.record_id=c.id AND t.revision=c.revision AND t.status='waiting' AND t.email=?) OR
-    (NOT EXISTS(SELECT 1 FROM c_workflow_tasks t WHERE t.kind='claim' AND t.record_id=c.id AND t.revision=c.revision) AND c.approver_email=?)))`,
+    EXISTS(SELECT 1 FROM c_workflow_tasks t JOIN c_members m ON m.email=t.email AND m.active=1 WHERE ((t.role='finance' AND m.is_finance=1) OR (t.role='manager' AND m.is_manager=1)) AND t.kind='claim' AND t.record_id=c.id AND t.revision=c.revision AND t.status='waiting' AND t.email=?) OR
+    (NOT EXISTS(SELECT 1 FROM c_workflow_tasks t WHERE t.kind='claim' AND t.record_id=c.id AND t.revision=c.revision) AND c.approver_email=? AND EXISTS(SELECT 1 FROM c_members m WHERE m.email=c.approver_email AND m.active=1 AND m.is_manager=1))))`,
     params: [...auth.params, claim.id, claim.revision, actor.email, actor.delegate?.email ?? actor.email, actor.email, actor.email] };
 }
 

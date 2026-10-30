@@ -6,14 +6,18 @@ import { ref, tag } from './xml';
 /** Queue stable source identities; completed and uncertain requests can never be enqueued again. */
 export async function preparePosting(db: D1Database) {
   const out: D1PreparedStatement[]=[];
-  const add=(source:string,kind:string,payload:Data)=>out.push(db.prepare("INSERT OR IGNORE INTO c_qbd_requests(id,source,kind,payload,status,created_at) VALUES(?,?,?,?, 'pending',?)").bind(uid(),source,kind,JSON.stringify(payload),now()));
+  const add=(source:string,kind:string,payload:Data,batch?:Data)=>out.push(db.prepare(`INSERT OR IGNORE INTO c_qbd_requests(id,source,kind,payload,status,created_at)
+    SELECT ?,?,?,?,'pending',?${batch ? " WHERE EXISTS(SELECT 1 FROM c_batches WHERE id=? AND version=? AND status IN('approved','reimbursed'))" : ''}`)
+    .bind(uid(),source,kind,JSON.stringify(payload),now(),...(batch?[batch.id,batch.version]:[])));
+  // Removal advances the batch version. Check that version in the insert itself, including connector-driven queues.
+
   for(const batch of (await db.prepare("SELECT * FROM c_batches WHERE status IN('approved','reimbursed') ORDER BY number").all<Data>()).results) {
     const {lines,people}=await batchLines(db,batch.id);
     requireThat(lines.reduce((n,l)=>n+l.amountMinor,0)===batch.total_minor,'Batch accounting lines do not equal its total',409);
     for(const person of people) {
       const source=`bill:${batch.id}:${person.email}`,own=lines.filter(l=>l.employee===person.email);
       requireThat(own.reduce((n,l)=>n+l.amountMinor,0)===person.amountMinor,'Employee bill does not reconcile',409);
-      add(source,'BillAdd',{ employee:person.email,date:batch.reviewed_at.slice(0,10),lines:own.map(l=>({account:l.account,amountMinor:l.amountMinor,merchant:l.merchant,description:l.description,costCentre:l.costCentre})),total:person.amountMinor,batch:batch.id,currency:batch.currency,expenses:[...new Map(own.filter(l=>l.itemId).map(l=>[l.itemId,{claim:l.claimId,item:l.itemId,revision:l.revision}])).values()] });
+      add(source,'BillAdd',{ employee:person.email,date:batch.reviewed_at.slice(0,10),lines:own.map(l=>({account:l.account,amountMinor:l.amountMinor,merchant:l.merchant,description:l.description,costCentre:l.costCentre})),total:person.amountMinor,batch:batch.id,currency:batch.currency,expenses:[...new Map(own.filter(l=>l.itemId).map(l=>[l.itemId,{claim:l.claimId,item:l.itemId,revision:l.revision}])).values()] },batch);
       const posted=await db.prepare("SELECT txn_id FROM c_qbd_requests WHERE source=? AND status='succeeded'").bind(source).first<{txn_id:string}>();
       if(batch.status==='reimbursed' && posted) add(`payment:${batch.id}:${person.email}`,'BillPaymentCheckAdd',{employee:person.email,date:batch.paid_on,txn:posted.txn_id,total:person.amountMinor,reference:batch.paid_reference,currency:batch.currency});
     }
