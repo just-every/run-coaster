@@ -1,3 +1,5 @@
+import { coverageDates } from './feeds/health';
+import type { Feed } from './feeds/model';
 import { business, type Business } from './settings';
 import { needRow } from './permissions';
 import { nextDay, startOf } from './audit';
@@ -9,6 +11,7 @@ import { finalApproval } from './approval-chain';
 
 /** Operational and compliance reports (REPORT-002). Card spend and feed coverage join when FEED-003 and FEED-004 ship. */
 export const REPORTS = {
+  'feed-coverage': 'Feed coverage',
   aging: 'Reimbursement aging',
   'cycle-time': 'Approval cycle time',
   receipts: 'Receipt compliance',
@@ -16,7 +19,7 @@ export const REPORTS = {
   exceptions: 'Policy exception trends',
 } as const;
 type Name = keyof typeof REPORTS;
-type Period = { from: string; to: string; start: string; end: string; today: string };
+type Period = { from: string; to: string; start: string; end: string; today: string; at: Date };
 type Built = { columns: string[]; rows: unknown[][]; totals: Data; totalRow: unknown[] };
 export const reportCsv = (built: Built) => csv([built.columns, ...built.rows, built.totalRow]);
 
@@ -36,6 +39,15 @@ async function submittedIn(db: D1Database, p: Period) {
 }
 
 const builders: Record<Name, (db: D1Database, b: Business, p: Period) => Promise<Built>> = {
+  async 'feed-coverage'(db, _b, p) {
+    requireThat(daysBetween(p.from,p.to)<=366,'A feed-coverage report covers at most one year');
+    const feeds=(await db.prepare('SELECT * FROM c_program_feeds ORDER BY issuer,id').all<Feed>()).results;
+    const rows: unknown[][]=[]; const totals: Data={covered:0,uncovered:0,unverified:0,pending:0,inactive:0};
+    for(const f of feeds) for(const d of await coverageDates(db,f,p.from,p.to,p.at)) {
+      rows.push([f.issuer,f.id,d.date,d.status,f.delivery_timezone??'',d.deadline??'',d.file??'']); totals[d.status]++;
+    }
+    return {columns:['Feed','Feed ID','Delivery date','Coverage','Delivery time zone','Deadline with grace','Source file'],rows,totals,totalRow:['Total','','',rows.length,'','','']};
+  },
   /** Every approved claim not yet reimbursed, aged in whole business-time-zone days from its approval to today, and every
    * held claim (APPROVE-005) the employee has not resubmitted yet, aged from its hold. */
   async aging(db, b, p) {
@@ -106,8 +118,8 @@ export const isReport = (name: unknown): name is Name => typeof name === 'string
 export { localDate };
 
 /** Builds one report for calendar dates in the business time zone, both ends inclusive, as of `today`. */
-export function runReport(db: D1Database, settings: Business, name: Name, from: string, to: string, today: string) {
-  return builders[name](db, settings, { from, to, start: startOf(from, settings.timezone), end: startOf(nextDay(to), settings.timezone), today });
+export function runReport(db: D1Database, settings: Business, name: Name, from: string, to: string, today: string, at = new Date()) {
+  return builders[name](db, settings, { from, to, start: startOf(from, settings.timezone), end: startOf(nextDay(to), settings.timezone), today, at });
 }
 
 /** One report for the period (by default this month to today), as JSON or CSV. */

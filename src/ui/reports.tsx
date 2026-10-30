@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiHref, call, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 
-const REPORTS = [['aging', 'Reimbursement aging'], ['cycle-time', 'Approval cycle time'], ['receipts', 'Receipt compliance'], ['unsubmitted', 'Unsubmitted spend for accruals'], ['exceptions', 'Policy exception trends']].map(([value, label]) => ({ value, label }));
+const REPORTS = [['aging', 'Reimbursement aging'], ['cycle-time', 'Approval cycle time'], ['receipts', 'Receipt compliance'], ['unsubmitted', 'Unsubmitted spend for accruals'], ['exceptions', 'Policy exception trends'], ['feed-coverage', 'Feed coverage']].map(([value, label]) => ({ value, label }));
 
 const CADENCES = [{ value: 'last-business-day', label: 'Last US business day of each month, month to date' }, { value: 'first-business-day', label: 'First US business day of each month, for the month before' }];
 const titleOf = (report: string) => REPORTS.find(r => r.value === report)?.label ?? report;
@@ -18,6 +18,7 @@ export function Reports({ owner, schedules: canSchedule }: { owner: boolean; sch
       <Field label="From" name="from" type="date" required={false} hint="Defaults to the first of this month" />
       <Field label="Until" name="to" type="date" required={false} hint="Defaults to today" />
     </Form>
+    {shown?.report === 'feed-coverage' && <p>Coverage dates use each feed’s delivery time zone. Uncovered and unverified dates never establish zero spend; source files establish only their validated delivery periods.</p>}
     {shown && <div className="report">
       <h3>{shown.title} · {shown.period.from} to {shown.period.to}</h3>
       {shown.rows.length ? <table className="plain"><thead><tr>{shown.columns.map((c: string) => <th key={c}>{c}</th>)}</tr></thead><tbody>
