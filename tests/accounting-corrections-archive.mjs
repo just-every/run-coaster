@@ -20,14 +20,25 @@ try {
   }
   h=await harness({persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only'});
   const {t,create,approve}=await correctionClaims(h);
-  let c=await create(),d=await h.get(`claims/${c.id}`);
+  const cap=(await h.post('allowances',{name:'synthetic-coaster-1',type:'cap',period:'yearly',amount:'500.00',startsOn:'2026-01-01'},t.morgan)).all[0];
+  let c=await create('Client materials',t.sam,{allowance:cap.id}),d=await h.get(`claims/${c.id}`);
   c=await h.post(correctionPath(c),correctionBody(d),t.priya);
   c=await approve(c);d=await h.get(`claims/${c.id}`);
   c=await h.post(correctionPath(c),correctionBody(d,{accountCode:'6800'}));
+  let peer=await h.post('claims',{title:'Retained purchase'},t.sam);
+  peer=await h.post(`claims/${peer.id}/items`,{version:peer.version,kind:'receipt',date:'2026-03-11',merchant:'synthetic-coaster-2',amount:'20.00',category:t.c.office,explanation:'Retained purchase'},t.sam);
+  peer=await approve(await h.post(`claims/${peer.id}/submit`,{version:peer.version},t.sam));
+  let former=await h.post('batches',{claims:[c.id,peer.id]},t.morgan);
+  former=await h.post(`batches/${former.id}/remove`,{version:former.version,claim:c.id},t.morgan);
+  await h.post(`batches/${former.id}/approve`,{version:former.version,expectedTotal:2000},t.morgan);
+  await h.post(['accounting','desktop','connect'].join('/'),{consent:true,company:'synthetic-coaster-1.QBW'});
+  await h.post(['accounting','desktop','sync'].join('/'),{},t.morgan);
+  d=await h.get(`claims/${c.id}`);
+  c=await h.post(correctionPath(c),correctionBody(d,{accountCode:'6810'}));
   let batch=await h.post('batches',{claims:[c.id]},t.morgan);
   batch=await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:11000},t.morgan);
   const expected=await h.get(`batches/${batch.id}`,t.morgan),history=(await h.db.prepare('SELECT * FROM c_events ORDER BY seq').all()).results;
-  assert.equal(expected.lines[0].account,'6800');
+  assert.equal(expected.lines[0].account,'6810');
   await h.close();h=undefined;
   await command(source,['export','--output','exports/corrections.rer']);
   const archive=join(source,'exports/corrections.rer'),original=rows(await records(archive));
