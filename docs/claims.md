@@ -61,6 +61,23 @@ If a read receipt and its attached card charge disagree, open the private receip
 
 The owner can review optional AI costs in Settings before enabling receipt reading. USD estimates use the provider-reported tokens and the exact model rates the owner enters. The monthly cap includes reading and coding, settled usage and outstanding reservations. If reading pauses, enter expense details manually. Provider invoices remain authoritative; uncertain requests retain their reservation and a final charge above its reservation can pause later requests.
 
+
+## Correct an export account code
+
+On a submitted or approved manual purchase, **Account coding** shows each
+submitted account beside its effective native export account. The owner,
+finance or a bookkeeper can expand **Correct an account code**, choose the
+submitted allocation, enter its replacement account code and give a reason.
+The routed approver can do this before deciding. A full delegate keeps the
+same permissions and is identified in history.
+
+The correction preserves the submitted receipt, categories, dimensions,
+splits, tax, approval and reimbursement amounts. **Account correction history**
+keeps the original and replacement codes and reason. Reload after a stale-form
+refusal before reviewing another correction. Once a batch includes the claim,
+its selected account coding is frozen for exports. This door does not change
+ledger postings or correct expenses in closed ledger periods.
+
 ## Implementation status
 
 Generated from the Status table in [CONTRACT.md](https://github.com/just-every/run-coaster/blob/main/CONTRACT.md). That source retains the acceptance requirements, current evidence and remaining work for each clause.

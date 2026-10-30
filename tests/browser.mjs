@@ -34,6 +34,7 @@ const phases = {
   desktop: async () => {
     await (await import('./journeys/browser-desktop-connection.mjs')).runDesktopConnectionJourney();
     await import('./browser-accounting-corrections.mjs');
+    await import('./accounting-corrections-archive.mjs');
   },
 }
 const selected = process.env.COASTER_BROWSER_JOURNEY
