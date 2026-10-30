@@ -12,11 +12,12 @@ export async function cardChaseScreens(browser,root,server,owner,importRows,evid
     try {
       const result=await importRows(`late-evidence-${width}.csv`,'12.00','Client supplies',1,'2026-06-01')
       const id=result.claims[0], detail=()=>api(employee.context,server.origin,`claims/${id}`)
-      for(const day of ['2026-06-02','2026-06-04','2026-06-08']) await server.scheduled(new Date(day+'T14:17:00Z').getTime())
+      // The consolidated fixture uses Sydney: 02:17 UTC is outside its quiet hours.
+      for(const day of ['2026-06-02','2026-06-04','2026-06-08']) await server.scheduled(new Date(day+'T02:17:00Z').getTime())
       const reminders=d=>d.events.filter(e=>e.action==='reminder-sent'&&e.detail.item.startsWith('card-evidence:'))
       let before=await detail()
       for(const item of before.items) {
-        await api(employee.context,server.origin,`claims/${id}/items`,{version:before.claim.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),category:item.allocations[0].category_id,description:item.description,explanation:'Synthetic missing card receipt; employee will append evidence after review'})
+        await api(employee.context,server.origin,`claims/${id}/items`,{version:before.claim.version,item:item.id,kind:'receipt',date:item.spent_on,merchant:item.merchant,amount:(item.amount_minor/100).toFixed(2),category:item.allocations[0].category_id,description:'Client supplies',explanation:'Synthetic missing card receipt; employee will append evidence after review'})
         before=await detail()
       }
       const submitted=await api(employee.context,server.origin,`claims/${id}/submit`,{version:before.claim.version})
@@ -39,7 +40,7 @@ export async function cardChaseScreens(browser,root,server,owner,importRows,evid
       if(width===1440) {
         await tooltipProof(page,page.getByRole('link',{name:'Open receipt officeworks.png',exact:true}))
         await api(owner.context,server.origin,'settings/reminders',{days:'1,3,5,6',quietFrom:'20',quietUntil:'8',escalateAfter:''})
-        await server.scheduled(new Date('2026-06-09T14:17:00Z').getTime())
+        await server.scheduled(new Date('2026-06-09T02:17:00Z').getTime())
         const after=await detail()
         assert.equal(reminders(after).length,3)
         assert.deepEqual(after.revisions,frozen)
