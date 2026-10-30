@@ -7,10 +7,10 @@ import { now, requireThat, text, uid, type Actor, type Data } from '../types';
 export const correctionSequence = (claim: string): Sql => ({ sql: 'SELECT COALESCE(MAX(sequence),0) FROM c_account_corrections WHERE claim_id=?', params: [claim] });
 export const correctionsFor = async (db: D1Database, claim: string) => (await db.prepare('SELECT * FROM c_account_corrections WHERE claim_id=? ORDER BY sequence').bind(claim).all<Data>()).results;
 
-/** Any existing posting, including an unsuccessful or uncertain attempt, needs ledger reconciliation. */
+/** Existing claim postings and postings of batches still containing the claim need reconciliation. */
 function noPosting(id: string): Sql {
   return { sql: `NOT EXISTS(SELECT 1 FROM c_qbd_requests q WHERE json_extract(q.payload,'$.claim')=?
-    OR json_extract(q.payload,'$.batch') IN (SELECT batch_id FROM c_batch_coding WHERE claim_id=? UNION SELECT batch_id FROM c_batch_claims WHERE claim_id=?))`, params: [id, id, id] };
+    OR json_extract(q.payload,'$.batch') IN (SELECT batch_id FROM c_batch_claims WHERE claim_id=?))`, params: [id, id] };
 }
 
 /** Full delegates retain the granting person's row; native agent keys never gain this verb. */
@@ -43,7 +43,7 @@ export async function correctAccount(db: D1Database, actor: Actor, id: string, b
   const revision = await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(id, claim.revision).first<{snapshot:string}>();
   requireThat(revision, 'Submitted revision not found', 409);
   const snapshot = JSON.parse(revision.snapshot), item = snapshot.items.find((i: Data) => i.id === b.item), part = item?.allocations.find((p: Data) => p.position === b.allocation);
-  requireThat(item && item.kind === 'receipt' && !item.card_charge_id && !item.allowance_id && part, 'Choose a submitted manual purchase allocation', 409);
+  requireThat(item && item.kind === 'receipt' && !item.card_charge_id && part, 'Choose a submitted manual purchase allocation', 409);
   requireThat(Number.isInteger(b.allocation) && b.allocation >= 0, 'Choose an allocation');
   const before = rows.filter(r => r.revision === claim.revision && r.item_id === item.id && r.allocation_position === part.position).at(-1)?.after_account ?? part.account_code;
   const after = text(b.accountCode, 'Account code', 100), reason = text(b.reason, 'Correction reason', 1000);

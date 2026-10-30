@@ -14,7 +14,7 @@ export async function validateAccountCorrectionsArchive(read) {
     const revision = revisions.find(r => r.claim_id === c.claim_id && r.revision === c.revision);
     const item = revision && JSON.parse(revision.snapshot).items.find(i => i.id === c.item_id);
     const part = item?.allocations.find(p => p.position === c.allocation_position);
-    check(item?.kind === 'receipt' && !item.card_charge_id && !item.allowance_id && part);
+    check(item?.kind === 'receipt' && !item.card_charge_id && part);
     const earlier = corrections.filter(p => p.claim_id === c.claim_id && p.revision === c.revision && p.item_id === c.item_id && p.allocation_position === c.allocation_position && p.sequence < c.sequence).sort((a,b) => a.sequence-b.sequence).at(-1);
     check(c.before_account === (earlier?.after_account ?? part.account_code));
     check(typeof c.after_account === 'string' && c.after_account === c.after_account.trim() && c.after_account.length > 0 && c.after_account.length <= 100 && c.after_account !== c.before_account);
