@@ -4380,7 +4380,7 @@
       "executable": false
     },
     "tests/accounting-corrections-archive.mjs": {
-      "sha256": "e03c62281d0d4c4c7f95e771a1c9ed56b59764c58c3a882df8bee0d85c3d50cc",
+      "sha256": "cadce19e8d7ed6c4fab87221e7c1034f98e74241b534047946a898d7d1dfd822",
       "executable": false
     },
     "tests/archive-data.mjs": {
@@ -4452,7 +4452,7 @@
       "executable": false
     },
     "tests/coaster-accounting-corrections.test.mjs": {
-      "sha256": "4ab4923352d891d5f03450827a124d81a3828f74f343ded205bbdc33b7832de2",
+      "sha256": "3119cc5c668fa6f4d283fc9ad33bc144622c101c83b26f3ffbfaeb5fca6ef82d",
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {

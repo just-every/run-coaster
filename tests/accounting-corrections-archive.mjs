@@ -46,7 +46,7 @@ try {
     ['c_account_corrections',row=>{row.sequence+=4;}],
     ['c_account_corrections',row=>{row.revision+=2;}],
     ['c_account_corrections',row=>{row.reason=' ';}],
-    ['c_account_corrections',row=>{row.allocation_position=1;}],
+    ['c_account_corrections',row=>{row.allocation_position=row.allocation_position===0?1:0;}],
     ['c_events',row=>{const detail=JSON.parse(row.detail);detail.after='6900';row.detail=JSON.stringify(detail);},row=>row.action==='account-code-corrected'],
     ['c_batch_coding',row=>{row.correction_sequence=0;},row=>row.batch_id===batch.id],
   ]) {
@@ -70,6 +70,12 @@ try {
   const csv=await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`,undefined,h.owner);
   assert.equal(csv.status,200);assert.match(csv.text,/"6800"/);assert.match(csv.text,/"6810"/);
   assert.match(csv.text,/"60\.00"/);assert.match(csv.text,/"40\.00"/);assert.match(csv.text,/"10\.00"/);
+  for(const table of ['c_account_corrections','c_batch_coding']) {
+    const retained=(await h.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results;
+    await assert.rejects(h.db.prepare(`UPDATE ${table} SET revision=revision+1`).run(),/permanent/);
+    await assert.rejects(h.db.prepare(`DELETE FROM ${table}`).run(),/permanent/);
+    assert.deepEqual((await h.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results,retained,'restored correction and selection evidence stays immutable');
+  }
   const before=(await h.get(`claims/${c.id}`)).accountCoding;
   await h.post(correctionPath(c),correctionBody(await h.get(`claims/${c.id}`)),h.owner,409);
   assert.deepEqual((await h.get(`claims/${c.id}`)).accountCoding,before,'restored frozen correction cannot replay');
