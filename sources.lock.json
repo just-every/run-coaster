@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d1bbb9e4945868a1bf6a487f12e2f553f42da23f4919902e852549c2cfd42ad2",
+      "sha256": "34226abbda52765f0f98c072ad38a7333d04c2a786c56d0080380847d5c49e8c",
       "executable": false
     },
     "DEMO.md": {
@@ -755,6 +755,10 @@
       "sha256": "41007c0908b35eef684fe9e1d76cf56583f825e58c6ecb63da944d106336994d",
       "executable": false
     },
+    "migrations/core/0085_personal_spend.sql": {
+      "sha256": "fda15211030b6dbbd9292ebaaa411de4d07b4d7bd724f11610f76dce0458446f",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "cdb625fba564e87de4cc0242f29bcf427620e30e3e7958ad366d94c1ed8b1eae",
       "executable": false
@@ -1155,8 +1159,12 @@
       "sha256": "8a7660b693a1e40a9aa9305480a991988ccc2dbc4dfb8fdcf2912f211efc4365",
       "executable": false
     },
+    "scripts/installer/personal-spend-archive.mjs": {
+      "sha256": "fcc8f301c63ca8ad06cba69baa510c2d186c2c56c9a70fd5bd1449879bd099a3",
+      "executable": false
+    },
     "scripts/installer/portability.mjs": {
-      "sha256": "5963dd899afb458e203577fedd5c65c2f65e4b8e1c9738d1285860262c95b26a",
+      "sha256": "a956ab930f84c6dbe4dbfab861c9f3d26d2c1a2c17ef8178e3b72c0d1253c20d",
       "executable": false
     },
     "scripts/installer/program-feed-archive.mjs": {
@@ -1404,7 +1412,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "6630d4fd5b3556a0761e43194b707034a7bd3e4d3edcc4bfc525e5b401f18bfb",
+      "sha256": "9571946a7e871a0d7611628f97675d5f046df5184813ec820869fa4dc3389740",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1480,7 +1488,7 @@
       "executable": false
     },
     "src/coaster/cards/charges.ts": {
-      "sha256": "6c3f86838b211099ed4f6a5e3c03bdefea7394dae56e59fe04c56cf548b18fad",
+      "sha256": "eaf58866cda993a76c57b88a1e2ac448897a7a981d9b5f9c674fb96ededafb56",
       "executable": false
     },
     "src/coaster/cards/ledger.ts": {
@@ -1489,6 +1497,10 @@
     },
     "src/coaster/cards/ofx.ts": {
       "sha256": "76f2b399ef5b52cdef877efa7abdf94045f8e36bd1b3dccb951e0a98158c13ae",
+      "executable": false
+    },
+    "src/coaster/cards/personal-spend.ts": {
+      "sha256": "c10261416e73cb9f4c300f85243880c076f43eeb0089d5136e3abbf71ca783ff",
       "executable": false
     },
     "src/coaster/cards/plan.ts": {
@@ -1612,7 +1624,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "8abe3addff9c70aa7465b4f71dceb774cdd2fff4b1132692e5ab5a28b1661f65",
+      "sha256": "36449085d2cffac9a2664f43ccebc1132049f30e8a12e7899742eaadb71a0fb2",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -2068,7 +2080,7 @@
       "executable": false
     },
     "src/coaster/retention.ts": {
-      "sha256": "e4e7b7713f6c6a994df7b33f29124f24fd108899ffc26028b45a4087c4725536",
+      "sha256": "9bb50050d52f5be6585b6eb8684cf7aa551561aea5e798a4f74dd3d181c6768f",
       "executable": false
     },
     "src/coaster/reversals.ts": {
@@ -2100,7 +2112,7 @@
       "executable": false
     },
     "src/coaster/views.ts": {
-      "sha256": "e58b74cbd58da0376eb0c994a54eb23999a473b4b7bf60e2879007289b06c8fc",
+      "sha256": "9f0d21486ca9a19a914aa366c39c5ee9bedecc6c1ab3b0e026f88378b1c96960",
       "executable": false
     },
     "src/coaster/workflow-configuration.ts": {
@@ -4164,7 +4176,7 @@
       "executable": false
     },
     "src/ui/claim-panel.tsx": {
-      "sha256": "a0b79e0dfee22b0bbf7f965577d3d71ce2f34f584ba8ddc03dbe0b3184472ba8",
+      "sha256": "d5a73b389b2504fa72d6e7f049887e80a3a6b0360423eb12bc05ccc527f367cb",
       "executable": false
     },
     "src/ui/claims-table.tsx": {
@@ -4253,6 +4265,10 @@
     },
     "src/ui/per-diem.tsx": {
       "sha256": "3bde5c68d1007e3d4ab9c982266d700dd9c3f548ad9f53d27b8d3b4f4666c6d7",
+      "executable": false
+    },
+    "src/ui/personal-spend.tsx": {
+      "sha256": "3cd2ee837501ef3318cfd9249a8b44807acd303438979a81152a765851ecb5d4",
       "executable": false
     },
     "src/ui/policy-advice.tsx": {
@@ -4404,7 +4420,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "d468bdc17b17d770bbeaaab61ab51eaec92fe947597df452da6cc8b06283944f",
+      "sha256": "021c11e5cdf8900b8d9aabb7fabb409a04be989884a8c38f0548803a30b757a5",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -4475,6 +4491,10 @@
       "sha256": "8e7af1d3fe8a4b39279568e5fa83fca869a9ffb3ad5964611c7f5679aec2246c",
       "executable": false
     },
+    "tests/coaster-personal-spend.test.mjs": {
+      "sha256": "753d19e99053aa085fabda244111f77288f522558f39ec4a96f2ee5b86b9c0fa",
+      "executable": false
+    },
     "tests/coaster-plaid.test.mjs": {
       "sha256": "ed1e81210ee3a5f047f3fd460b28f610ba2d30f0e94cd739583233c4438b1582",
       "executable": false
@@ -4528,7 +4548,7 @@
       "executable": false
     },
     "tests/d1-edge.ts": {
-      "sha256": "e0cdf2c4be12508ec78650f17dbb38b4bdec5fc7a2144b457cb7049d804e3b32",
+      "sha256": "2e650866754b491a0b1b1bc64db8a4a47cddc962cba1a3bff72313323dd29584",
       "executable": false
     },
     "tests/fixtures/bank.mjs": {
@@ -6607,6 +6627,10 @@
       "sha256": "b436cf3eb18e02a539de0ddf67b59c72741e75ff757be612b102cf1104428265",
       "executable": false
     },
+    "tests/journeys/browser-personal-spend.mjs": {
+      "sha256": "ee26a8cca744999092744f98fa057f6bf1943fff25aace8af3324d9c302d5fa8",
+      "executable": false
+    },
     "tests/journeys/browser-policy-agent.mjs": {
       "sha256": "d84732cc4f86bd86e631b275c5d4c85aa69955395c2576755f0d540288986400",
       "executable": false
@@ -6801,6 +6825,14 @@
     },
     "tests/payroll-kit.mjs": {
       "sha256": "7e641fd641bc989c3ccf5dfa920890548105d1d0fcddd82c774a204a721f35ce",
+      "executable": false
+    },
+    "tests/personal-spend-archive.mjs": {
+      "sha256": "31af749120604fc3662872374a3f386d34b3fe02e68ed47078613acbd5deb0a2",
+      "executable": false
+    },
+    "tests/personal-spend-kit.mjs": {
+      "sha256": "672ad1c00a6e9c67036f4803554dd66fc108017f886c0e683813633f88c2e381",
       "executable": false
     },
     "tests/plaid-native.mjs": {

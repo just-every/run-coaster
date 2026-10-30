@@ -1,3 +1,4 @@
+import { personalSourceKey, personalSpend } from './cards/personal-spend';
 import { currentWorkflow } from './workflow-configuration';
 import { claimReceiptBytes } from './receipts/claim-storage';
 import { policyConfiguration } from './policy-configuration';
@@ -43,6 +44,7 @@ export async function workspace(db: D1Database, actor: Actor) {
   const policy = settings && await policyOn(db, today!);
   const waiting = (c: Claim & { submitted_at?: string }) => settings && c.status === 'submitted' && c.submitted_at ? businessDaysBetween(localDate(c.submitted_at, settings.timezone), today!) : null;
   return {
+    personalSpend: actor.roles.employee && actor.kind === 'person' && !actor.delegate && !actor.publicCredential ? await personalSpend(db, actor) : null,
     actor: { email: actor.email, name: actor.name, roles: actor.roles, delegate: actor.delegate ?? null },
     business: await business(db),
     categories: await categories(db),
@@ -91,6 +93,12 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
     : actor.email!==claim.employee_email&&['draft','returned'].includes(claim.status)
       ? {...item,receipt_resolution:history.at(-1)?.snapshot.items.find((i:Data)=>i.id===item.id)?.receipt_resolution??null}
       : item);
+  const personal = actor.email === claim.employee_email && !actor.delegate && actor.kind === 'person' && actor.roles.employee ? await personalSpend(db, actor) : null;
+  const chargeKeys = new Map((await db.prepare('SELECT id,transaction_key FROM c_card_charges WHERE item_id IN (SELECT id FROM c_items WHERE claim_id=?)').bind(id).all<{id:string;transaction_key:string}>()).results.map(c => [c.id,c.transaction_key]));
+  const classified = await Promise.all(shownItems.map(async item => {
+    const transaction = chargeKeys.get(item.card_charge_id), key = transaction ? await personalSourceKey(transaction) : null;
+    return { ...item, personal_spend: personal?.charges.find(p => p.source_key === key) ?? null };
+  }));
   const settings = await business(db), known = await categories(db);
   const configured = settings ? await policyConfiguration(db, settings, known, ['draft', 'returned'].includes(claim.status) ? undefined : history.at(-1)?.snapshot.policyVersion) : { categories: known };
   const byId = new Map(configured.categories.map(c => [c.id, c]));
@@ -101,7 +109,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const linked = [...new Set(items.map(i => i.request_id).filter(Boolean))];
   const requests = await Promise.all(linked.map(async id => ({ ...(await loadRequest(db, id)), claim_minor: items.filter(i => i.request_id === id).reduce((n, i) => n + i.amount_minor, 0) })));
   return {
-    claim, requests, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
+    claim, requests, personalSpend: personal, advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: classified.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
     events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
   };

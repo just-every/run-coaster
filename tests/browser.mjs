@@ -27,7 +27,11 @@ const phases = {
     await (await import('./journeys/browser-receipt-custody.mjs')).runReceiptCustodyJourney({evidence})
   },
   cash: async () => (await import('./journeys/browser-cash-attachment.mjs')).runCashAttachmentJourney({evidence:resolve(process.env.COASTER_EVIDENCE??'.cache/cash-attachment-proof')}),
-  preparations: async () => (await import('./journeys/browser-preparations.mjs')).runPreparationJourney(),
+  'personal-spend': async () => (await import('./journeys/browser-personal-spend.mjs')).runPersonalSpendJourney(),
+  preparations: async () => {
+    await phases['personal-spend']();
+    await (await import('./journeys/browser-preparations.mjs')).runPreparationJourney();
+  },
   'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),
   signals: async () => (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney(),
@@ -199,4 +203,4 @@ try {
   if (root) await rm(root, { recursive: true, force: true })
 }
 
-if(!selected)for(const run of Object.values(phases))await run()
+if(!selected)for(const [name,run] of Object.entries(phases))if(name!=='personal-spend')await run()
