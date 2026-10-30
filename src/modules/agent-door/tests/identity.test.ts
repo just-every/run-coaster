@@ -16,7 +16,7 @@ test('Business subjects, sponsor approvals and Business refs retain their people
   const x = (await r.db.prepare("SELECT operator_id FROM bs_team WHERE business_id='synthetic-base-a'").first()).operator_id
   const b = (await r.db.prepare("SELECT operator_id FROM bs_team WHERE business_id='synthetic-base-b'").first()).operator_id
   await r.adopt()
-  const token = await r.token({sub:'synthetic-base-a',email,act:{sub:'synthetic-base-agent-a',name:'Synthetic Agent A'}})
+  let token = await r.token({sub:'synthetic-base-a',email,act:{sub:'synthetic-base-agent-a',name:'Synthetic Agent A'}})
   const tool = (name: string, args: any) => r.tool(name,args,{token})
   const write = (value: string) => ({id:'synthetic-base-record',value,idempotency_key:crypto.randomUUID()})
   assert.equal((await tool('records.write',write('synthetic-base-1'))).result.isError,false)
@@ -26,6 +26,9 @@ test('Business subjects, sponsor approvals and Business refs retain their people
   const held = await tool('records.erase',input), approval = held.result._meta['com.runeditrun/approval']
   await r.db.prepare('UPDATE oa_operators SET email=? WHERE id=?').bind('synthetic-base-x-new@example.com',x).run()
   await r.db.prepare('UPDATE oa_operators SET email=? WHERE id=?').bind(email,b).run()
+  // The old address's token is refused, though another person now holds that address; a current one still acts as x.
+  assert.equal((await tool('records.write',write('synthetic-base-stale'))).status,401)
+  token = await r.token({sub:'synthetic-base-a',email:'synthetic-base-x-new@example.com',act:{sub:'synthetic-base-agent-a',name:'Synthetic Agent A'}})
   const person = async (cookie: string, path: string, body?: any) => {
    const response = body === undefined ? await r.fetch(path,{headers:{cookie}}) : await r.post(path,body,{cookie})
    return {status:response.status,body:await response.json()}
@@ -41,7 +44,7 @@ test('Business subjects, sponsor approvals and Business refs retain their people
   const embedded = createAgentDoor({seed:'synthetic',name:'Synthetic',specialist:'operations',db:r.db,origin:r.c.origin,trust:{issuer:r.c.signer.issuer,installationId:r.c.signer.installationId,appOrigin:r.c.origin,publicKeys:{[r.c.signer.kid]:await crypto.subtle.exportKey('jwk',r.c.ring.publicKey)}},people:operatorAuthPeople({db:r.db,session:async()=>null}),tools:[{
    name:'synthetic.person.read',title:'Read sponsor',description:'Read the current native sponsor.',scope:'records:read',readOnly:true,inputSchema:{type:'object',additionalProperties:false},outputSchema:{type:'object'},classes:['standard'],clauses:['BASE-AGENT-005'],classify:()=>[{class:'standard',facts:{measure:1}}],run:async(_args,ctx)=>({result:{id:ctx.person.id,email:ctx.person.email}}),
   }]})
-  const invoked=await embedded.invoke('synthetic.person.read',{}, {person:{id:x,email,name:'Synthetic A',role:'admin',active:true},agent:{id:'synthetic-base-embedded-identity',name:'Synthetic Embedded'}})
+  const invoked=await embedded.invoke('synthetic.person.read',{}, {person:{id:x,email,name:'Synthetic A',role:'admin',active:true},agent:{id:'synthetic-base-embedded-identity',name:'Synthetic Embedded'},scopes:['records:read']})
   assert.deepEqual(invoked.result,{id:x,email:'synthetic-base-x-new@example.com'})
   const embeddedRow=(await r.person('/agents/api/audit')).body.rows.find((row:any)=>row.agent.id==='synthetic-base-embedded-identity')
   assert.equal(embeddedRow.door,'embedded');assert.equal(embeddedRow.sponsor.id,x)

@@ -6,9 +6,59 @@ In **Settings**, under **Agent keys**, enter an **Agent name** such as "Receipt 
 
 A key acts only for you and only while you can sign in. It cannot submit, approve, batch, pay, change settings or read anyone else's claims.
 
-Coaster does not yet expose these jobs through MCP or accept a signed company
-agent policy. Use the personal-key routes below for the supported preparation
-work; native sign-in is required to accept proposals and make financial decisions.
+## Company agents through MCP
+
+Coaster serves one shared agent door at `/mcp`, discovery and canonical metadata,
+`/api/rer/agent-policy`, and native person policy, approval, review and audit pages
+at `/agents`. The specialist is **Expense controller**. The declared capability
+families are tools, policy, pause, audit and idempotency. Resources, prompts,
+events and subscriptions are undeclared and return typed refusals.
+
+| Tool | Scope | Classes | Clauses |
+| --- | --- | --- | --- |
+| `coaster.workspace.get` | `proposals:read` | standard | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
+| `coaster.proposals.get` | `proposals:read` | standard, sensitive | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
+| `coaster.claims.propose` | `proposals:write` | standard, sensitive | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
+| `coaster.batches.propose` | `proposals:write` | standard | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
+
+These tools call the same native preparation services as the existing personal
+agent API. Company policy can require review or named approval before preparation;
+it does not replace the separate native human acceptance, submission, approval,
+batch review and payment controls. Proposal payloads are private, untrusted
+expense content and are conservatively classified sensitive. The context returns
+only the existing personal-agent projection. Hidden and missing proposals have
+the same refusal. No resource links, receipt-byte reader or financial-decision
+tool is advertised. Screen, device, connector, import and installation doors
+retain their separate purposes. The existing narrow personal-key REST API below
+retains its native preparation contract; it is not a Business policy transport.
+
+Business tokens bind their subject to the existing native operator id through
+signed Business settings, never an email match. The current email must still
+match, and inactive operators and excluded Coaster members are refused. Business
+owner maps to owner, Business team admin to editor and member to no policy role;
+a native promotion grants no Business edit role. Business team binding links
+existing accounts only and creates no Coaster role or shadow account. Each tool
+re-reads the active Coaster member and transactionally fences native roles, the
+door policy snapshot, sponsor and agent. Personal keys remain narrow when used
+at MCP, and revoking a key removes its scopes immediately.
+
+The runtime is copied from Base `2135c394939f4a737adabdc8003b0e667b31ac5a`
+and the pinned CLI is released `@runeditrun/rer@0.2.91`. The normal `rer verify`
+runs `agent-surface.json` against the production Worker and all real migrations.
+Its initializer drives the declared setup-token `/auth/bootstrap`, ordinary
+native invitations, claim submission and a different person's approval. The
+negative fixtures suspend a real operator and remove a bound member's native
+admission. Only the built-in mail network edge is simulated; declared tools call
+no external provider. Spend is `none`; no provider cost is registered. There is
+no queued continuation in these preparation tools and no native Undo for a
+retained proposal. Reviews never erase proposal history.
+
+The draft ct surface at `bb0a3a35d2da9d4f9d4f274e0d8022a58c13f41d`
+is a larger target, not a grant of current agent authority. Coaster's COA-010
+boundary still requires people to decide. Its many screen-native financial,
+access, security, provider and administrative jobs have not been added to MCP.
+No SURFACE ids are introduced from that unlanded draft. BASE-AGENT-001 through
+BASE-AGENT-013 retain partial judgments and their specific gaps in CONTRACT.md.
 
 ## What your agent can do
 
