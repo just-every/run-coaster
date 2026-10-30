@@ -13,7 +13,7 @@ export function ProgramFeed({ state }: { state: D }) {
     <p>Connect an issuer’s SFTP directory of CSV deliveries with an explicit column mapping. Coaster reads files on the hourly schedule, keeps masked originals and imports each delivery once. Assign each card to its employee before the feed arrives. This connection does not issue cards or post a ledger entry.</p>
     {error && <p className="form-error" role="alert">{error}</p>}
     {data?.feeds.map((feed: D) => <div className="sub-form" key={feed.id}>
-      <h3>{feed.issuer}</h3><p>{feed.enabled ? 'Connected' : 'Disconnected'} · every {feed.intervalMinutes} minutes{Boolean(feed.enabled && feed.nextRunAt) && ` · next ${new Date(feed.nextRunAt).toISOString()}`}{Boolean(feed.lastSuccessAt) && ` · last received ${feed.lastSuccessAt}`}</p>
+      <h3>{feed.issuer}</h3><p>{feed.liability === 'individual' ? 'Employee pays issuer · approved business charges are reimbursable' : 'Company pays issuer · charges are not reimbursable'}</p><p>{feed.enabled ? 'Connected' : 'Disconnected'} · every {feed.intervalMinutes} minutes{Boolean(feed.enabled && feed.nextRunAt) && ` · next ${new Date(feed.nextRunAt).toISOString()}`}{Boolean(feed.lastSuccessAt) && ` · last received ${feed.lastSuccessAt}`}</p>
       {feed.error && <p role="alert">{feed.error}</p>}
       {feed.enabled && <Form label={`Disconnect ${feed.issuer}`} onSubmit={async values => { await call(`feeds/program/${feed.id}/disconnect`, { version: feed.version, consent: values.consent }); await load(); }}><Field label="I confirm this feed must stop future connections and imports" name="consent" type="checkbox" /></Form>}
       <Details label={`Deliveries from ${feed.issuer}`}><ul>{data.deliveries.filter((d: D) => d.feed_id === feed.id).map((delivery: D) => <li key={delivery.id}>{delivery.name} · sequence {delivery.issuer_sequence} · {delivery.charges} charges · {delivery.received_at}</li>)}</ul></Details>
@@ -23,10 +23,11 @@ export function ProgramFeed({ state }: { state: D }) {
       if (!key?.size) throw new Error('Choose the private key authorized by your issuer');
       const mapping: D = { dateFormat: values.dateFormat, sign: values.sign };
       for (const [column] of columns) if (values[column]) mapping[column] = values[column];
-      await call('feeds/program', { consent: values.consent, host: values.host, port: Number(values.port), username: values.username, privateKey: await key.text(), hostKeyFingerprint: values.hostKeyFingerprint, directory: values.directory, issuer: values.issuer, category: values.category, intervalMinutes: Number(values.intervalMinutes), mapping });
+      await call('feeds/program', { consent: values.consent, host: values.host, port: Number(values.port), username: values.username, privateKey: await key.text(), hostKeyFingerprint: values.hostKeyFingerprint, directory: values.directory, issuer: values.issuer, liability: values.liability, category: values.category, intervalMinutes: Number(values.intervalMinutes), mapping });
       form.reset(); await load();
     }}>
       <Field label="Issuer name" name="issuer" />
+      <Field label="Card liability" name="liability" defaultValue="company" options={[{value: 'company', label: 'Company pays issuer'}, {value: 'individual', label: 'Employee pays issuer'}]} />
       <Field label="SFTP host IPv4 address" name="host" hint="Use the address supplied by your issuer; public IPv4 is required for hosted installations" />
       <Field label="SFTP port" name="port" type="number" defaultValue="22" min="1" max="65535" />
       <Field label="SFTP username" name="username" autoComplete="off" />

@@ -21,6 +21,10 @@ import { assertRestoredReceiptBytes, records, rejectInconsistentArchives, rows }
 
 // Every phase remains reachable through this public browser test entry point.
 const phases = {
+  'individual-liability': async () => {
+    await import('./browser-individual-liability.mjs')
+    await (await import('./individual-liability-archive.mjs')).individualArchive()
+  },
   matching: async () => (await import('./journeys/browser-matching.mjs')).runMatchingJourney(),
   capture: async () => {
     const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/receipt-custody-proof')

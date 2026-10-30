@@ -105,7 +105,8 @@ async function appendClaim(db: D1Database, layout: PdfLayout, detail: Awaited<Re
     layout.text(`${item.spent_on} | ${item.kind} | ${item.id}`);
     const expenseApproval=detail.revisions.at(-1)?.snapshot.expenseApprovals?.find((a:Data)=>a.item===item.id);
     if(expenseApproval)layout.text(`Approved at submission by ${expenseApproval.actor}${expenseApproval.onBehalfOf?` on behalf of ${expenseApproval.onBehalfOf}`:''}: ${expenseApproval.reason}`);
-    if (isCardExpense(item)) layout.text(`Company card ${item.card_issuer ?? ''} ····${item.card_last4 ?? ''} | paid by the company, not reimbursed`);
+    if (isCardExpense(item) && item.card_liability === 'individual') layout.text(`Individual liability ····${item.card_last4 ?? ''} | ${item.card_personal ? 'personal, excluded from reimbursement' : 'business, reimbursable to employee'}`);
+    else if (isCardExpense(item)) layout.text(`Company card ${item.card_issuer ?? ''} ····${item.card_last4 ?? ''} | paid by the company, not reimbursed`);
     if (item.original_minor != null && item.original_currency !== claim.currency) {
       layout.text(`Original amount: ${money(item.original_minor, item.original_currency)}`);
       layout.text(`Exchange rate: 1 ${item.original_currency} = ${item.fx_rate} ${claim.currency} | Rate date: ${item.fx_date} | Source: ${item.fx_source}`);
