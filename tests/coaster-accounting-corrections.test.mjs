@@ -28,6 +28,23 @@ test('Native account corrections preserve submitted facts, enforce role and revi
     let c = await create(), d = await evidence(h,c), original = preserved(d);
     const foreign = await create('Another submitted purchase');
     const foreignItem = (await evidence(h,foreign)).revisions.at(-1).snapshot.items[0].id;
+    let mileage=await h.post('claims',{title:'Mileage stays outside purchase corrections'},t.sam);
+    mileage=await h.post(`claims/${mileage.id}/items`,{version:mileage.version,kind:'mileage',date:'2026-03-10',merchant:'Client visit',distance:'10',category:t.c.car},t.sam);
+    mileage=await h.post(`claims/${mileage.id}/submit`,{version:mileage.version},t.sam);
+    await h.post(['statements','cards'].join('/'),{issuer:'Synthetic Card',last4:'1111',employee:address('sam')});
+    const statement={format:'csv',name:'synthetic-coaster-1.csv',issuer:'Synthetic Card',category:t.c.office,
+      content:'Date,Merchant,Amount,Card,Ref\n2026-03-10,Synthetic card purchase,12.34,1111,synthetic-coaster-1\n',
+      mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',card:'Card',transactionId:'Ref'}};
+    const preview=await h.post(['statements','preview'].join('/'),statement);
+    const imported=await h.post(['statements','commit'].join('/'),{...statement,fingerprint:preview.fingerprint});
+    const cardDetail=await h.get(`claims/${imported.claims[0]}`,t.sam),cardItem=cardDetail.items[0];
+    let card=await h.post(`claims/${cardDetail.claim.id}/items`,{version:cardDetail.claim.version,item:cardItem.id,kind:'receipt',date:cardItem.spent_on,merchant:cardItem.merchant,amount:'12.34',category:t.c.office,explanation:'Company card purchase'},t.sam);
+    card=await h.post(`claims/${card.id}/submit`,{version:card.version},t.sam);
+    for(const excluded of [mileage,card]) {
+      const excludedDetail=await evidence(h,excluded),before=await state(h);
+      await h.post(correctionPath(excluded),correctionBody(excludedDetail),h.owner,409);
+      assert.deepEqual(await state(h),before,'non-purchase and company-card expenses cannot acquire manual account corrections');
+    }
     const originalBytes = await rows(h,'c_revisions');
     for (const extra of [{ reason: '' }, { sequence: -1 }, { allocation: 3 }, { accountCode: '6500' }, { revision: c.revision - 1 }, { version: c.version - 1 }]) {
       const before = await state(h), r = await h.send('/api/coaster/' + correctionPath(c), correctionBody(d,extra), h.owner);
