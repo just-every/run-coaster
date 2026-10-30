@@ -64,16 +64,15 @@ export async function correctCoding(db: D1Database, actor: Actor, id: string, b:
   return loadClaim(db,id);
 }
 
-/** Selection and its fence are made before batching, then frozen with the batch. */
+/** Claim version fences selection before it is frozen with the batch. */
 export async function selectBatchCoding(db: D1Database, batch: string, claims: Claim[]) {
-  const writes: D1PreparedStatement[] = [], guards: Sql[] = [];
+  const writes: D1PreparedStatement[] = [];
   for (const claim of claims) {
     const rows = await correctionsFor(db,claim.id), snapshot = await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(claim.id,claim.revision).first<{snapshot:string}>();
-    guards.push({sql:'(SELECT COUNT(*) FROM c_coding_corrections WHERE claim_id=?)=?',params:[claim.id,rows.length]});
     for (const item of JSON.parse(snapshot!.snapshot).items) for (const [allocation,part] of item.allocations.entries()) {
       const correction = rows.filter(c=>c.revision===claim.revision&&c.item_id===item.id&&c.allocation===allocation).at(-1);
       writes.push(db.prepare('INSERT INTO c_batch_coding(batch_id,claim_id,revision,item_id,allocation,correction_id,account_code) VALUES(?,?,?,?,?,?,?)').bind(batch,claim.id,claim.revision,item.id,allocation,correction?.id??null,correction?.after_code??part.account_code));
     }
   }
-  return {writes,guards};
+  return writes;
 }

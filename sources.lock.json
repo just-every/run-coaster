@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7a7bafb4f619bb9870ecda33f34d3d7e82342e573876316f1f259330edfef42e",
+      "sha256": "6148446088317709a6d0e1420bbb473476d83ab219591bccb1bceb0988aeb120",
       "executable": false
     },
     "DEMO.md": {
@@ -412,7 +412,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "0802356e4455cc832311d2f449704d0710026f5ea93f108635814b866a5fd288",
+      "sha256": "d33f5c5789b8a90b69d7ba1af62c7288695f8a2cc98ae202986cf4c86275b079",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -1132,7 +1132,7 @@
       "executable": false
     },
     "scripts/installer/accounting-corrections-archive.mjs": {
-      "sha256": "69d79bff6ee82e16775125d74e285b7e377fb96d168a6b56c83b69eab6e6eb8e",
+      "sha256": "002e01211d8addaf94b124f2e9d44db4ce51db4cc716adc505509e90dbcaa261",
       "executable": false
     },
     "scripts/installer/automatic-coding-archive.mjs": {
@@ -1348,7 +1348,7 @@
       "executable": false
     },
     "src/coaster/accounting/coding-corrections.ts": {
-      "sha256": "2326b895fd3c3237f6bfa5e964229e337d97f77d20a9d14fc6ab0d3a8e60b33d",
+      "sha256": "197c1e9be250226e9fddeabc732231c01be3f76733082cd2e98de9f252cc79a0",
       "executable": false
     },
     "src/coaster/accounting/desktop/index.ts": {
@@ -1464,7 +1464,7 @@
       "executable": false
     },
     "src/coaster/batches.ts": {
-      "sha256": "e6bc2ed536773a9dacfcfbe33f4f284ed7447407e52c69876e760929e96759f5",
+      "sha256": "9d4411c9abf45ebcf533781d41e159effdd20cdcefd607cdb844d08d362f4076",
       "executable": false
     },
     "src/coaster/budgets.ts": {
@@ -1496,7 +1496,7 @@
       "executable": false
     },
     "src/coaster/cards/ledger.ts": {
-      "sha256": "7bf2e6a209f33f93b6fd8506cb5574cc6c0e7312c11c2642f672fbbb6d15ba05",
+      "sha256": "891afa90e8f837cc1f7c431a2ecbd36af1ab013740d32bb85b38bc8455667076",
       "executable": false
     },
     "src/coaster/cards/ofx.ts": {
@@ -1624,7 +1624,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "46718bbedb0e34af89eceef793d5f1c507fc153cf8916a4e91e2d111cf1d64da",
+      "sha256": "eceb5c41a4cb0e11c3a53c2641fc13f1a86030ac4c0374e0063dc8660aa543d5",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -2080,7 +2080,7 @@
       "executable": false
     },
     "src/coaster/retention.ts": {
-      "sha256": "89c9a153f753be2aea1e6f55fadbebe654e128053d24d425195c89135045d47e",
+      "sha256": "70cf877bebcbd84079386d55973cde2a74854aa9cd92aea35e27fa1853e5b482",
       "executable": false
     },
     "src/coaster/reversals.ts": {
@@ -4116,7 +4116,7 @@
       "executable": false
     },
     "src/ui/accounting-corrections.tsx": {
-      "sha256": "de4c339aaae92967851222985f2dc3fca17d6eb55744cadcf7b4d27ff4fe2e8e",
+      "sha256": "1a439d760087f650c0655d129596c13381fcd558b142f4c373ecdea3a2d2f8f8",
       "executable": false
     },
     "src/ui/advances.tsx": {
@@ -4376,7 +4376,7 @@
       "executable": false
     },
     "tests/accounting-corrections-archive.mjs": {
-      "sha256": "b80262f3a0ad5c56c82ea68079ca500b1a13f745f11e3f6ac5554dd706378e8e",
+      "sha256": "3da0aac88fe11d088e4a250d0f54a18659688d7f1c37a53e52e9ec371a73be83",
       "executable": false
     },
     "tests/archive-data.mjs": {
@@ -4440,7 +4440,7 @@
       "executable": false
     },
     "tests/coaster-accounting-corrections.test.mjs": {
-      "sha256": "7c97f93740fc9fe382670be2e151245f50cd86d12833835d5abf3a3acb3f7985",
+      "sha256": "dcb5bde00d8f0a52c83ba98d4510cf1d82af7304bfa6c210e0233f35c19ec46a",
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {
@@ -6620,7 +6620,7 @@
       "executable": false
     },
     "tests/journeys/browser-accounting-corrections.mjs": {
-      "sha256": "67a7c4a4a7416d2631e8996cf104bacb01b8bc216df28fb7a657c9081302a530",
+      "sha256": "40e3cbf267a416270db29de6e303be2b1ffd5a42cd3347ebd6c23d98380043fc",
       "executable": false
     },
     "tests/journeys/browser-cash-attachment.mjs": {

@@ -6,7 +6,7 @@ import {harness,agency,receipt} from './harness.mjs'
 
 let next=0
 const counts=async h=>{
- const tables=['c_claims','c_items','c_allocations','c_revisions','c_decisions','c_coding_corrections','c_batch_coding','c_events','c_batch_claims','c_reimbursement_keys','c_qbd_requests']
+ const tables=['c_claims','c_items','c_allocations','c_revisions','c_decisions','c_coding_corrections','c_batch_coding','c_events','c_batch_claims','c_reimbursement_keys','c_qbd_requests','c_batches','c_members','c_accounting_periods','c_card_ledger']
  return Promise.all(tables.map(async t=>[t,(await h.db.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all()).results]))
 }
 async function submitted(h,t,extra={}){
@@ -27,9 +27,9 @@ const stable=async(h,id)=>{
  return Promise.all(tables.map(async table=>[table,(await h.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results]))
 }
 const review=(h,b)=>h.post(`batches/${b.id}/approve`,{version:b.version,expectedTotal:b.total_minor})
-async function posting(h,c,status='succeeded',date='2026-06-10',expenses){
+async function posting(h,c,status='succeeded',date='2026-06-10',expenses,batchId){
  const d=await h.get(`claims/${c.id}`),id=`synthetic-coaster-${++next}`
- await h.db.prepare('INSERT INTO c_qbd_requests(id,source,kind,payload,status,created_at,completed_at,txn_id) VALUES(?,?,?,?,?,?,?,?)').bind(id,'bill:'+id,'BillAdd',JSON.stringify({date,employee:c.employee_email,batch:id,expenses:expenses??d.items.map(i=>({claim:c.id,item:i.id,revision:c.revision})),lines:[],total:c.total_minor}),status,'2026-06-10T12:00:00.000Z',status==='succeeded'?'2026-06-10T12:01:00.000Z':null,status==='succeeded'?id:null).run()
+ await h.db.prepare('INSERT INTO c_qbd_requests(id,source,kind,payload,status,created_at,completed_at,txn_id) VALUES(?,?,?,?,?,?,?,?)').bind(id,'bill:'+id,'BillAdd',JSON.stringify({date,employee:c.employee_email,batch:batchId??id,expenses:expenses??d.items.map(i=>({claim:c.id,item:i.id,revision:c.revision})),lines:[],total:c.total_minor}),status,'2026-06-10T12:00:00.000Z',status==='succeeded'?'2026-06-10T12:01:00.000Z':null,status==='succeeded'?id:null).run()
  return id
 }
 
@@ -100,6 +100,18 @@ test('ACCT-008 native correction preserves submitted evidence across every expen
    c=await h.post(`claims/${c.id}/decision`,{version:c.version,revision:c.revision,decision:'approved',acknowledge:true},t.priya)
    for(const cookie of [h.owner,finance,bookkeeper])c=await correct(h,c,cookie,{accountCode:`66${++next}`})
   }
+  // A correction to one real split preserves dimensions, tax and the other allocation.
+  await h.post('settings/business',{name:'Harbour & Finch Studio',currency:'AUD',timezone:'Australia/Sydney',perDiem:'75.00',receiptThreshold:'',salesTaxAccount:'2100',salesTaxCode:'GST'})
+  const dimension=(await h.post('coding/dimensions',{version:(await h.get('coding')).version,name:'synthetic-coaster-project',kind:'tag'})).saved
+  const value=(await h.post('coding/values',{version:(await h.get('coding')).version,dimension,name:'synthetic-coaster-project-1'})).saved
+  let split=await approved(h,t,{salesTax:'2.00',allocations:[{category:t.c.office,amount:'25.00',costCentre:'Delivery'},{category:t.c.travel,amount:'15.00',costCentre:'Studio'}],coding:{[dimension]:value},billable:true,customer:'synthetic-coaster-1',project:'synthetic-coaster-2'})
+  const splitBefore=await stable(h,split.id)
+  split=await correct(h,split,finance,{allocation:1,sequence:0,accountCode:'6955'})
+  assert.deepEqual(await stable(h,split.id),splitBefore)
+  let splitBatch=await h.post('batches',{claims:[split.id]});splitBatch=await review(h,splitBatch)
+  const splitLines=(await h.get(`batches/${splitBatch.id}`)).lines
+  assert.deepEqual(splitLines.map(l=>[l.account,l.amountMinor,l.tax,l.costCentre]),[['6500',2500,'GST','Delivery'],['6955',1500,'GST','Studio'],['2100',200,'GST','']])
+  assert.equal(splitLines.reduce((n,l)=>n+l.amountMinor,0),4200)
   // Removal from each supported batch state keeps original review and selections, reconciles totals and needs renewed review.
   for(const reviewed of [false,true]){
    let a=await approved(h,t),b=await approved(h,t),batch=await h.post('batches',{claims:[a.id,b.id]})
@@ -115,7 +127,9 @@ test('ACCT-008 native correction preserves submitted evidence across every expen
    a=await correct(h,a,finance,{accountCode:'6969'})
    batch=await review(h,batch)
    // A different bill in the former batch is not this expense's posting, even with retained coding selections.
-   await posting(h,b,'pending','2026-06-10')
+   await h.db.prepare("INSERT OR IGNORE INTO c_accounting_periods VALUES('desktop','2026-03-01','2026-03-31','2026-04-01T00:00:00.000Z')").run()
+   await posting(h,b,'succeeded','2026-03-10',undefined,batch.id)
+   await posting(h,a,'pending','2026-04-10')
    a=await correct(h,a,bookkeeper,{accountCode:'6970'})
    const frozen=await h.post('batches',{claims:[a.id]});let finalBatch=await review(h,frozen)
    const lines=(await h.get(`batches/${finalBatch.id}`)).lines
@@ -134,7 +148,9 @@ test('ACCT-008 native correction preserves submitted evidence across every expen
   let unrelated=await approved(h,t);await posting(h,unrelated,'pending','2026-06-10');unrelated=await correct(h,unrelated,finance)
   // An actual native card close also fences only its own purchase.
   const reconciliation=await h.post(`statements/${imported.file}/reconcile`,{last4:'2222',openingBalance:'0.00',statementBalance:'64.00'})
-  await h.post(`statements/reconciliations/${reconciliation.id}/close`,{})
+  const cardCode=(await h.get(`claims/${cardClaim.claim.id}`)).codingCorrections.at(-1).after_code
+  const nativeClose=await h.post(`statements/reconciliations/${reconciliation.id}/close`,{})
+  assert.equal(nativeClose.ledger.entries.find(l=>l.kind==='purchase').debit_account,`Expense · ${cardCode} Office supplies`)
   const closedCard=await h.get(`claims/${cardClaim.claim.id}`),cardBefore=await counts(h)
   await correct(h,closedCard.claim,finance,{accountCode:'6998'},409);assert.deepEqual(await counts(h),cardBefore)
   await assert.rejects(h.db.prepare("UPDATE c_coding_corrections SET after_code='1'").run(),/permanent/)
@@ -142,6 +158,15 @@ test('ACCT-008 native correction preserves submitted evidence across every expen
   await assert.rejects(h.db.prepare("UPDATE c_batch_coding SET account_code='1'").run(),/permanent/)
   const history=(await h.get('history?q=account-code-corrected')).lines
   assert.ok(history.length>20);assert.ok(history.every(e=>e.seq>0&&e.actor_email&&e.at))
+  // Erasing a correction actor removes their identity from rows and embedded reasons without reviving authority.
+  let erasureClaim=await approved(h,t)
+  erasureClaim=await correct(h,erasureClaim,finance,{reason:`Reviewed by synthetic-coaster-finance ${financeEmail}`})
+  await h.post('settings/members',{email:financeEmail,name:'synthetic-coaster-finance',finance:true,active:false})
+  await h.post('settings/members/erase',{email:financeEmail})
+  const erased=await h.get(`claims/${erasureClaim.id}`)
+  assert.equal(JSON.stringify(erased.codingCorrections).includes(financeEmail),false)
+  assert.equal(JSON.stringify(erased.events.filter(e=>e.action==='account-code-corrected')).includes(financeEmail),false)
+  assert.equal((await h.send(`/api/coaster/claims/${erasureClaim.id}/coding-corrections`,await body(h,erasureClaim),finance)).status,401)
   console.log('PROBE ACCT-008 1: native correction -> receipt with cap, mileage, per diem, stipend and card accepted for every allowed role; immutable submitted evidence')
   console.log('PROBE ACCT-008 2: draft and reviewed removal -> totals reconciled, original review retained, renewed review required, corrections accepted')
   console.log('PROBE ACCT-008 3: retained former-batch selections and unrelated posting -> correction accepted')

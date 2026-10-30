@@ -17,7 +17,7 @@ export function AccountingCorrections({claim, item, rows, actor, onDone}: {claim
             <Field label="Correction reason" name="reason" type="textarea" maxLength={1000}/>
           </Form>
         </Details>}
-        {history.length>0&&<Details label="Account correction history"><ol>{history.map(c=><li key={c.id}>#{c.sequence}: {c.before_code||'none'} → {c.after_code} · {c.reason} · {c.actor_email}{c.on_behalf_of?` for ${c.on_behalf_of}`:''} · {moment(c.at)}</li>)}</ol></Details>}
+        {history.length>0&&<Details label="Account correction history"><ol style={{overflowWrap:'anywhere'}}>{history.map(c=><li key={c.id}>#{c.sequence}: {c.before_code||'none'} → {c.after_code} · {c.reason} · {c.actor_email}{c.on_behalf_of?` for ${c.on_behalf_of}`:''} · {moment(c.at)}</li>)}</ol></Details>}
       </div>;
     })}
   </div>;

@@ -27,8 +27,8 @@ export async function accountingCorrectionsArchive(root,evidence,ownerEmail){
    await writeFile(join(restored,'exports/malformed.rer'),await tampered(archive,table,change),{mode:0o600})
    const refused=await command(restored,['import','--input','exports/malformed.rer','--yes'],{expected:4})
    assert.match(refused,/coaster_accounting_corrections/,name)
-   await command(restored,['export','--output','exports/after.rer'])
-   assert.deepEqual(rows(await records(join(restored,'exports/after.rer'))),empty,`${name} refused before any write`)
+   await command(restored,['export','--output',`exports/after-${name}.rer`])
+   assert.deepEqual(rows(await records(join(restored,`exports/after-${name}.rer`))),empty,`${name} refused before any write`)
   }
   await copyFile(archive,join(restored,'exports/valid.rer'))
   await command(restored,['import','--input','exports/valid.rer','--yes'])

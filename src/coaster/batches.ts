@@ -84,7 +84,7 @@ async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awai
       db.prepare("UPDATE c_claims SET status='batched',batch_id=?,version=version+1,updated_at=? WHERE id=?").bind(id, at, c.id),
       line('claim-batched', { claim: c.id, batch: id }, { claim: claimNumber(c.number), batch: batchNumber(number), ...(applied.has(c.id) ? { advance: advanceNumber(applied.get(c.id)!.number), advanceAppliedMinor: applied.get(c.id)!.appliedMinor, amountMinor: pays(c) } : {}) }),
     ]),
-    ...selection.writes,
+    ...selection,
     ...keys.map(k => db.prepare('INSERT INTO c_reimbursement_keys(key,batch_id,claim_id,item_id) VALUES(?,?,?,?)').bind(k.key, id, k.claim.id, k.item)),
     line('batch-created', { batch: id }, { claims: claims.length, totalMinor: total, ...detail }),
   ];
