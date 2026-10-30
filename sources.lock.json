@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "306993af161d8a690a4f0fb313d40321d1feffd7f900bd3fb63b1f11e86fcc80",
+      "sha256": "54cae695350614ee86456d64affeee16248c73f0f17993cd791b8ee504591d37",
       "executable": false
     },
     "DEMO.md": {
@@ -2104,7 +2104,7 @@
       "executable": false
     },
     "src/coaster/retention.ts": {
-      "sha256": "06fd9aec91c709418735bd602d102ba7a1b985b569540dbc05bcdbe535a4b4b2",
+      "sha256": "15672f4c7d33a7342b6572aa9c15881ae1faab6dc144e7c4c3bb1148a7b585b2",
       "executable": false
     },
     "src/coaster/reversals.ts": {
@@ -4468,7 +4468,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "89b9433f48adf814aa3a62e3e97f8c49d194681aef3f42b55059621d0e8cc7a0",
+      "sha256": "e31d264b49ab88ae353691840082fdb05ecd137737d19759186ac1fe096d4e6a",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
