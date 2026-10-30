@@ -113,6 +113,10 @@ jobs:
           retention-days: 1
 
   coaster_flows:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [core, signals, rest]
     needs: [plan, app]
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
@@ -121,6 +125,7 @@ jobs:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
       COASTER_ADMIN_EXTERNAL: '1'
+      COASTER_FLOW_SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
