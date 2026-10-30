@@ -25,6 +25,7 @@ const phases = {
     await import('./browser-individual-liability.mjs')
     await (await import('./individual-liability-archive.mjs')).individualArchive()
   },
+  'coding-archive': async () => { await import('./payroll-archive.mjs') },
   matching: async () => (await import('./journeys/browser-matching.mjs')).runMatchingJourney(),
   capture: async () => {
     const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/receipt-custody-proof')
@@ -35,7 +36,11 @@ const phases = {
   'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),
   signals: async () => (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney(),
-  desktop: async () => (await import('./journeys/browser-desktop-connection.mjs')).runDesktopConnectionJourney(),
+  desktop: async () => {
+    await (await import('./journeys/browser-desktop-connection.mjs')).runDesktopConnectionJourney()
+    // Keep archive recovery off core's long journey without changing Verify's shard matrix.
+    await phases['coding-archive']()
+  },
 }
 const selected = process.env.COASTER_BROWSER_JOURNEY
 assert.ok(!selected || selected === 'core' || Object.hasOwn(phases,selected),'unknown browser journey')
@@ -195,7 +200,6 @@ try {
   assert.deepEqual(rows(await records(join(evidence, 'restored.rer'))), rows(await records(archive)), 'every portable row, every history line included (AUDIT-001), survives export → restore → export')
   await command(second, ['reset', '--yes'])
   await writeFile(join(evidence, 'manifest.json'), JSON.stringify({ commit, business: 'Harbour & Finch Studio (synthetic)', scenario: 'Employee claim with receipts, mileage and an over-limit meal; manager return and approval; finance batch, export and payment; owner Expensify move-in and settings', screenshots: shots }, null, 2) + '\n')
-  await import('./payroll-archive.mjs');
   await report(evidence, { passed: true, commit, journeys, archive: 'export → employee erased → refused corrupt, inconsistent and pre-erasure archives → restore and setup upgrade → identical export; restored owner undid the move-in', screenshots: shots.length })
   console.log(`Browser and CLI proof passed at ${commit}; screenshots and files: ${evidence}`)
 } finally {

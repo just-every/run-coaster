@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c5ce97e12418780a7d6efcdc33cb3a257dcd92fcbef5e1ccd132dd577068331f",
+      "sha256": "59052813ae9a524831db740768231d6b43eee1b41a4dc4bef230fb89c3d80f70",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "fdc4dbc0b9149a73f391bb766a79ef81d125508e84ba4483113bd76dd5d43f73",
+      "sha256": "359f705dab964b81d7a190f926b550149384381f01ca1b4036344b7b639e0884",
       "executable": false
     },
     "DEMO.md": {
@@ -4440,7 +4440,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "27d663879fe185ef9450c6e4f47c15c9c4a2a817acb18592e993085561b6a4a5",
+      "sha256": "98deddc1a4ec61712d9b7cb3c613ec1d8406d4d0856dd6cd10c9fee65625a483",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
