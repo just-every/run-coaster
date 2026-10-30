@@ -40,7 +40,7 @@ export async function runFeedHealthJourney() {
     await page.goto(server.origin+'/app#/settings');await page.reload()
     const section=page.getByRole('region',{name:'Scheduled card program feed',exact:true})
     await section.getByText('Connect an SFTP program feed',{exact:true}).click()
-    const fields={issuer:n(2101),host:issuer.credentials.host,port:String(issuer.credentials.port),username:issuer.credentials.username,hostKeyFingerprint:issuer.credentials.hostKeyFingerprint,directory:issuer.credentials.directory,category,intervalMinutes:'60',deliveryTime:'09:00',deliveryTimezone:'UTC',graceMinutes:'60',expectedFrom:'2031-06-29',postedDate:'Date',transactionId:'Transaction',description:'Merchant',amount:'Amount',card:'Card',sequence:'Sequence',periodStart:'Period start',periodEnd:'Period end'}
+    const fields={issuer:n(2101),host:issuer.credentials.host,port:String(issuer.credentials.port),username:issuer.credentials.username,hostKeyFingerprint:issuer.credentials.hostKeyFingerprint,directory:issuer.credentials.directory,category,intervalMinutes:'1440',deliveryTime:'09:00',deliveryTimezone:'UTC',graceMinutes:'60',expectedFrom:'2031-06-29',postedDate:'Date',transactionId:'Transaction',description:'Merchant',amount:'Amount',card:'Card',sequence:'Sequence',periodStart:'Period start',periodEnd:'Period end'}
     for(const [name,value] of Object.entries(fields)) {const input=section.locator(`[name="${name}"]`);if(name==='category')await input.selectOption(value);else await input.fill(value)}
     await section.getByLabel('Issuer-authorized private key file',{exact:true}).setInputFiles({name:n(2102)+'.pem',mimeType:'application/x-pem-file',buffer:Buffer.from(issuer.credentials.privateKey)})
     await section.getByLabel('I authorize scheduled read-only connections and imports from this issuer directory',{exact:true}).check()
@@ -51,11 +51,13 @@ export async function runFeedHealthJourney() {
     console.log('Feed browser: calendar connected, polling empty directory')
     await server.scheduled(Date.parse('2031-06-29T09:17:00Z'))
     console.log('Feed browser: first poll complete')
+    const requestsAfterPoll=issuer.requests.length
     await server.scheduled(Date.parse('2031-06-29T10:17:00Z'))
+    assert.equal(issuer.requests.length,requestsAfterPoll,'the hourly health check preserves the daily SFTP polling cadence')
     console.log('Feed browser: miss recorded')
     await page.reload()
     await section.getByRole('heading',{name:n(2101),exact:true}).waitFor()
-    assert.match(await section.innerText(),/Last successful directory poll: 2031-06-29T10:17:00.000Z/)
+    assert.match(await section.innerText(),/Last successful directory poll: 2031-06-29T09:17:00.000Z/)
     assert.match(await section.innerText(),/Last accepted file: None/)
     assert.match(await section.innerText(),/Missed delivery dates: 2031-06-29/)
     await section.getByText('Health history for '+n(2101),{exact:true}).click()

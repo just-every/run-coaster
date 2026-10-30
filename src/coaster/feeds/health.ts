@@ -1,6 +1,6 @@
 import { all, commit, type Sql } from '../session';
 import { ruleEvent } from '../events';
-import { isoDate, requireThat, type Data } from '../types';
+import { Fault, isoDate, requireThat, type Data } from '../types';
 import { nextDay } from '../audit';
 import { deadline, deliveryPeriod, expectedAt, feedDate, hasCalendar } from './calendar.mjs';
 export { deliveryPeriod } from './calendar.mjs';
@@ -55,6 +55,12 @@ export async function recordMisses(db: D1Database, f: Feed, at: Date, guard: Sql
   const known = new Set((await db.prepare("SELECT delivery_date FROM c_program_health WHERE feed_id=? AND kind='missed'").bind(f.id).all<{delivery_date:string}>()).results.map(r => r.delivery_date));
   for (const row of dates.filter(row => row.status === 'uncovered' && !known.has(row.date))) {
     const absent: Sql = { sql: "NOT EXISTS(SELECT 1 FROM c_program_health WHERE feed_id=? AND delivery_date=? AND kind='missed') AND NOT EXISTS(SELECT 1 FROM c_program_deliveries WHERE feed_id=? AND coverage_date=?)", params: [f.id, row.date, f.id, row.date] };
-    await commit(db, all(guard, absent), [db.prepare("INSERT INTO c_program_health(feed_id,delivery_date,kind,delivery_id,at) VALUES(?,?,'missed',NULL,?)").bind(f.id, row.date, at.toISOString()), ruleEvent(db, 'automation: program feed', 'program-feed-date-missed', {}, { feed: f.id, date: row.date, deadline: row.deadline, channel: 'schedule' })]);
+    const condition = all(guard, absent);
+    try {
+      await commit(db, condition, [db.prepare("INSERT INTO c_program_health(feed_id,delivery_date,kind,delivery_id,at) VALUES(?,?,'missed',NULL,?)").bind(f.id, row.date, at.toISOString()), ruleEvent(db, 'automation: program feed', 'program-feed-date-missed', {}, { feed: f.id, date: row.date, deadline: row.deadline, channel: 'schedule' })]);
+    } catch (error) {
+      // Another tick or delivery may have recorded this date, or disconnect may have withdrawn authority.
+      if (!(error instanceof Fault && error.status === 409 && !await db.prepare(`SELECT 1 WHERE ${condition.sql}`).bind(...condition.params).first())) throw error;
+    }
   }
 }

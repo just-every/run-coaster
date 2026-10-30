@@ -251,6 +251,52 @@ exclude it (the exclusion is recorded).
 
 Synthetic fixtures for each format are in `tests/fixtures/statements/`.
 
+## Scheduled mapped CSV delivery
+
+Settings also supports read-only pickup from an explicitly authorized SFTP
+directory. This native mapped CSV adapter is separate from statement file
+uploads and does not qualify an issuer's GL1025, VCF or CDF3 commercial feed.
+Connect using your own recent native sign-in as owner, admin or finance, with
+the issuer's public IPv4 address, pinned SSH host-key fingerprint, authorized
+private key and directory. The key is sealed locally and excluded from export;
+restored connections retain evidence with execution disabled.
+
+Map `postedDate`, `transactionId`, `description`, `amount`, `card` and `sequence`
+to source columns, with an explicit `dateFormat` and
+`sign` convention. Each file must carry one issuer sequence on every row.
+For daily coverage, also map `periodStart` and `periodEnd` to two separate
+source delivery-period columns, independent of transaction and sequence
+columns. Both must contain the same valid ISO calendar date on every row:
+
+```csv
+Date,Merchant,Amount,Card,Transaction,Sequence,Period start,Period end
+2031-06-28,synthetic-coaster-2104,23.17,1111,synthetic-coaster-2105,synthetic-coaster-2106,2031-06-29,2031-06-29
+```
+
+Here `postedDate` maps to `Date`, `sequence` to `Sequence`, `periodStart` to
+`Period start` and `periodEnd` to `Period end`. The accepted file covers only
+29 June; its transaction date does not establish coverage for 28 June. Missing,
+invalid, future or conflicting source periods remain unverified. An empty
+directory, a date-shaped sequence or a statement file upload establishes no
+coverage and never establishes zero spend.
+
+Configure `deliveryTime` as local HH:MM, `deliveryTimezone` as an IANA time
+zone, `graceMinutes` as elapsed minutes from zero to 1440, and `expectedFrom`
+as the first expected delivery date, together. A repeated daylight-saving time
+uses its later occurrence; a skipped time moves forward by the clock gap.
+The hourly handler records each newly missed date after its deadline even
+when the next directory poll is not due. This preserves finance's chosen poll
+cadence and keeps the last successful poll distinct from the last accepted
+file. A late file covers only its evidenced date and retains the numbered miss
+and subsequent coverage history. Disconnect stops both checks and imports.
+
+The Feed coverage report uses these delivery dates and time zones. Read it on
+the Reports screen or through `GET /api/coaster/reports/feed-coverage` with
+`from` and `to` dates; add `format=csv` to download it. Its existing report
+schedule supports the same report name. Only the owner can opt a schedule in
+to attaching figures; recipients must retain report access. This adapter sends
+no stale-feed alert and establishes no actual mailbox delivery.
+
 # Moving in from SAP Concur
 
 On **Move in**, use **SAP Concur** to review configuration first, then the
