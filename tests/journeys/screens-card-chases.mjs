@@ -10,10 +10,12 @@ export async function cardChaseScreens(browser,root,server,owner,importRows,evid
     const employee=await session(browser,root,server.origin,'employee',width)
     const manager=await session(browser,root,server.origin,'manager',width)
     try {
-      const result=await importRows(`late-evidence-${width}.csv`,'12.00','Client supplies',1,'2026-06-01')
+      const posted=width===1440?'2026-06-01':'2026-06-15'
+      const result=await importRows(`late-evidence-${width}.csv`,'12.00','Client supplies',1,posted)
       const id=result.claims[0], detail=()=>api(employee.context,server.origin,`claims/${id}`)
       // The consolidated fixture uses Sydney: 02:17 UTC is outside its quiet hours.
-      for(const day of ['2026-06-02','2026-06-04','2026-06-08']) await server.scheduled(new Date(day+'T02:17:00Z').getTime())
+      const ticks=width===1440?['2026-06-02','2026-06-04','2026-06-08']:['2026-06-16','2026-06-18','2026-06-22']
+      for(const day of ticks) await server.scheduled(new Date(day+'T02:17:00Z').getTime())
       const reminders=d=>d.events.filter(e=>e.action==='reminder-sent'&&e.detail.item.startsWith('card-evidence:'))
       let before=await detail()
       for(const item of before.items) {
