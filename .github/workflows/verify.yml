@@ -140,6 +140,7 @@ jobs:
       matrix:
         include:
           - journey: core
+          - journey: coding-archive
           - journey: matching
             name: matching-0
             matching: 0/3
