@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "ec6282dcece18b59ac254d0d92cf84f79c28168be1dc4ee18173c5a13536c3fa",
+      "sha256": "6fca8a9ee9d565f9d17c049e8fa3f18a971331f06a0598a760f340571bbab97e",
       "executable": false
     },
     "base-copies.json": {
@@ -412,7 +412,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "dc44e0706c0d615c2ea537521be1944acc5735da367b6568b1eb762894920a6e",
+      "sha256": "d110dbbe1491a9b943953deb120d8fd002a39cd967440cfb29ee104beafdfb44",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -1364,7 +1364,7 @@
       "executable": false
     },
     "src/coaster/accounting/accounting-corrections.ts": {
-      "sha256": "ac8e7bad545d1ea9052e973b1c5b65849e99eb706e133f5eae6680888cb0c44e",
+      "sha256": "5c8b8b1530506c631fc81e4385f90fc22e58af370befbebe76e9502ecf9606d8",
       "executable": false
     },
     "src/coaster/accounting/coding-corrections.ts": {
@@ -1484,7 +1484,7 @@
       "executable": false
     },
     "src/coaster/batches.ts": {
-      "sha256": "c38574e0e10048f5b2d7452d52eb7a701d971774169cd7e1e76c16edbf57f03e",
+      "sha256": "031a82147d599e211b66c60aedfab832a0911ccfc2f637a113a0d120a384362c",
       "executable": false
     },
     "src/coaster/budgets.ts": {
@@ -4525,6 +4525,10 @@
     },
     "tests/coaster-close-statements.test.mjs": {
       "sha256": "d4885cd92a3156e455704d39d37ad56a4ad909fc94518ba9cdfd23aca2e66652",
+      "executable": false
+    },
+    "tests/coaster-coding-interop.test.mjs": {
+      "sha256": "25292e3da5fd4f1ef14f11784cb6d88396d9535e0033c4edba80c7a54a4cf1db",
       "executable": false
     },
     "tests/coaster-concur.test.mjs": {

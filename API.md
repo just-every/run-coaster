@@ -618,3 +618,7 @@ already-posted correction workflows are not supplied by this native door.
 Ordinary removal stays limited to draft batches. `POST /api/coaster/batches/:id/remove-for-coding` takes `version`, `claim` and `confirm: true`; finance or the owner can explicitly remove a claim for coding from a draft or reviewed unpaid batch before posting or release. It records the coding purpose and invalidates review. A correction to a queued, unexecuted bill preserves previous batch selections, appends a new selection generation and returns the batch to draft. Pending connector requests are invalidated, so a new review and sync are required. Only the latest selected generation supplies the accounting export. Removed selections alone never establish a posting.
 
 This native foundation does not complete ACCT-008. Executed or unresolved Desktop postings require reconciliation and are currently refused, including an open-period posting; period-aware updates and ACCT-006's dated reversal and new entry remain unimplemented. Released batches and payroll handoffs also require reconciliation. Category, dimension, split and tax recoding remain open. Provider-company authorization is still required for the closed-period and reversal acceptance journey.
+
+The two native correction doors retain separate append-only histories. When both
+are used on one allocation, the later numbered history event supplies its effective
+account code; each batch freezes both selections.

@@ -1,3 +1,4 @@
+import { correctionsFor as accountCorrectionsFor } from './coding-corrections';
 import { loadClaim, claimState, visible, type Claim } from '../claims';
 import { all, authority, commit, type Sql } from '../session';
 import { can, rowAuthority } from '../permissions';
@@ -18,6 +19,26 @@ export function correctedItems(items: Data[], corrections: Correction[]) {
     const codes = JSON.parse(correction.after_json) as Codes;
     return { ...item, accountingCorrection: correction.id, allocations: item.allocations.map((part: Data, i: number) => ({ ...part, account_code: codes.accounts[i] })) };
   });
+}
+
+/** Both native doors keep their own immutable chains; the later audit event wins per allocation. */
+export async function combinedCoding(db: D1Database, items: Data[], legacy: Data[], accounting: Data[]) {
+  const ids = new Set([...legacy, ...accounting].map(row => row.id));
+  const audit = (await db.prepare("SELECT seq,detail FROM c_events WHERE action IN ('account-code-corrected','accounting-coding-corrected') ORDER BY seq").all<Data>()).results;
+  const ordered = audit.map(e => ({ id: JSON.parse(e.detail).correction, seq: e.seq })).filter(e => ids.has(e.id));
+  let effective: Data[] = items.map(item => ({ ...item, allocations: item.allocations.map((part: Data) => ({ ...part })) }));
+  for (const entry of ordered) {
+    const old = legacy.find(row => row.id === entry.id);
+    if (old) {
+      const item = effective.find(item => item.id === old.item_id);
+      const part = item?.allocations.find((part: Data) => part.position === old.allocation_position);
+      if (part) part.account_code = old.after_account;
+    } else {
+      const row = accounting.find(row => row.id === entry.id);
+      if (row) effective = correctedItems(effective, [row as Correction]);
+    }
+  }
+  return effective;
 }
 
 /** Scope legacy Desktop bills by their actual batch membership, never by another bill's retained selections. */
@@ -48,7 +69,7 @@ export async function accountingCoding(db: D1Database, actor: Actor, id: string)
   const revision = await db.prepare('SELECT snapshot FROM c_revisions WHERE claim_id=? AND revision=?').bind(id, claim.revision).first<{ snapshot: string }>();
   const original = revision ? JSON.parse(revision.snapshot).items : [];
   const history = await correctionsFor(db, id, claim.revision);
-  return { claim, original, effective: correctedItems(original, history), corrections: history.map(({ before_json, after_json, ...row }) => ({ ...row, before: JSON.parse(before_json), after: JSON.parse(after_json) })) };
+  return { claim, original, effective: await combinedCoding(db, original, (await accountCorrectionsFor(db, id)).filter(row => row.revision === claim.revision), history), corrections: history.map(({ before_json, after_json, ...row }) => ({ ...row, before: JSON.parse(before_json), after: JSON.parse(after_json) })) };
 }
 
 export async function correctAccountingCoding(db: D1Database, actor: Actor, id: string, b: Data) {
