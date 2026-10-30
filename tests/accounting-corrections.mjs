@@ -80,7 +80,11 @@ export async function proveAccountingCorrections(options = {}) {
     const exported=await h.send(`/api/coaster/batches/${reviewed.id}/accounting.csv`,undefined,t.morgan);
     assert.equal(exported.status,200);assert.ok(exported.text.includes('synthetic-coaster-8520'),'accounting CSV uses the exact new selection');
     const xlsx=await h.mf.dispatchFetch(h.origin+`/api/coaster/batches/${reviewed.id}/accounting.xlsx`,{headers:{cookie:t.morgan}});assert.equal(xlsx.status,200);assert.ok((await xlsx.arrayBuffer()).byteLength>100);
-    await h.post(`batches/${reviewed.id}/remove`,{version:reviewed.version,claim:c.id},t.morgan);
+    await h.post(`batches/${reviewed.id}/remove`,{version:reviewed.version,claim:c.id,confirm:true},t.morgan,409);
+    await h.post(`batches/${reviewed.id}/remove-for-coding`,{version:reviewed.version,claim:c.id},t.morgan,400);
+    for(const who of [bookkeeper,t.sam,t.priya]) await h.post(`batches/${reviewed.id}/remove-for-coding`,{version:reviewed.version,claim:c.id,confirm:true},who,403);
+    assert.equal((await h.get(`batches/${reviewed.id}`)).batch.version,reviewed.version,'refused ordinary and unconfirmed coding removal changes nothing');
+    await h.post(`batches/${reviewed.id}/remove-for-coding`,{version:reviewed.version,claim:c.id,confirm:true},t.morgan);
     c=(await h.get(`claims/${c.id}`)).claim;c=(await correct(c,t.morgan,'synthetic-coaster-8521')).claim;
     assert.equal((await h.get(`batches/${reviewed.id}`)).batch.status,'draft','removal invalidates reviewed payment authority');
     // A different employee bill remains queued while former selections from this bill stay in the database.
