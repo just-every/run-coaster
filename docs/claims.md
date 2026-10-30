@@ -65,7 +65,7 @@ The owner can review optional AI costs in Settings before enabling receipt readi
 
 Generated from the Status table in [CONTRACT.md](https://github.com/just-every/run-coaster/blob/main/CONTRACT.md). That source retains the acceptance requirements, current evidence and remaining work for each clause.
 
-**104 clauses: 60 done, 23 partial, 21 missing.**
+**104 clauses: 60 done, 24 partial, 20 missing.**
 
 | Clause | Title | Kind | Status |
 | --- | --- | --- | --- |
@@ -92,7 +92,7 @@ Generated from the Status table in [CONTRACT.md](https://github.com/just-every/r
 | CAPTURE-007 | Merchant receipt feeds | target | missing |
 | FEED-001 | Card and bank connections through Plaid | target | partial |
 | FEED-002 | Commercial card program feeds and statement import | target | partial |
-| FEED-003 | Visible feed health and reconnection | target | missing |
+| FEED-003 | Visible feed health and reconnection | target | partial |
 | FEED-004 | Card transaction expenses and receipt matching | target | done |
 | FEED-005 | Card statement reconciliation and liability clearing | target | done |
 | FEED-006 | Individual-liability corporate cards | target | missing |

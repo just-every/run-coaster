@@ -39,10 +39,14 @@ export async function command(root,args,{expected=0,env={}}={}){
   console.log(`rer ${args[0]}: exit ${expected}`)
   return clean(result.stdout+result.stderr)
 }
-export async function start(root,port,{readingEdge,site=false}={}){
+export async function start(root,port,{readingEdge,site=false,clock}={}){
   const origin=`http://127.0.0.1:${port}`,messages=[]
   const plan=await productionPlan(root,origin,port),bank=bankFixture(),label=JSON.parse(await readFile('tests/fixtures/receipts/reader/synthetic-coaster-1001.json','utf8'))
-  plan.workers[0].bindings={...plan.workers[0].bindings,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-browser-mail',MAIL_FROM:'Coaster <coaster@harbourfinch.example>',AI_ENABLED:'true',AI_API_KEY:'synthetic-archive-reader'}
+  if(clock!==undefined) {
+    const entry=plan.workers[0].modules[0];
+    entry.contents=`const NativeDate=globalThis.Date; globalThis.Date=class extends NativeDate { constructor(...args) { if(args.length)super(...args); else super(${clock}); } static now() { return ${clock}; } };\n`+await readFile(entry.path,'utf8');
+  }
+  plan.workers[0].bindings={RER_DEV_ORIGIN:origin,...plan.workers[0].bindings,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-browser-mail',MAIL_FROM:'Coaster <coaster@harbourfinch.example>',AI_ENABLED:'true',AI_API_KEY:'synthetic-archive-reader'}
   plan.workers[0].outboundService=async request=>{
     if(readingEdge && (request.url.startsWith(readingEdge.url + '/') || new URL(request.url).hostname==='api.openai.com')){
       const path=new URL(request.url).pathname.replace(/^\/v1/,'')
@@ -66,7 +70,8 @@ export async function start(root,port,{readingEdge,site=false}={}){
   try {if(site)runSite=await sitePreview(join(root,'dist/site'),{ports:[0]})}
   catch(error){await runtime.dispose();throw error}
   const server={origin,messages,sessions:new Map(),siteOrigin:runSite?.url,providers:{bank,label},async scheduled(time=Date.now()){
-    await (await runtime.getWorker()).scheduled({scheduledTime:time,cron:'17 * * * *'})
+    const worker=await runtime.getWorker(plan.workers[0].name)
+    await worker.scheduled({scheduledTime:new Date(time),cron:'17 * * * *'})
     return Response.json({ok:true})
   },async close(){servers.delete(origin);await runSite?.close();await runtime.dispose()}}
   servers.set(origin,server)
