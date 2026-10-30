@@ -11,9 +11,9 @@ export async function personalSpendArchive(root, evidence) {
   assert.ok(source.some(r=>r.table==='c_receipts'&&r.row.size>0),'the archive contains the classified charge receipt original')
   assert.ok(source.some(r=>r.table==='c_allocations'),'the archive contains native coding')
   const personal=source.filter(r=>r.table==='c_card_personal_spend').map(r=>r.row)
-  assert.equal(personal.length,2)
-  assert.deepEqual(personal.map(p=>p.outstanding_minor).sort((a,b)=>a-b),[1234,2346])
-  assert.equal(source.filter(r=>r.table==='c_events'&&r.row.action==='card-charge-marked-personal').length,2)
+  assert.equal(personal.length,3)
+  assert.deepEqual(personal.map(p=>p.outstanding_minor).sort((a,b)=>a-b),[1234,2346,2346])
+  assert.equal(source.filter(r=>r.table==='c_events'&&r.row.action==='card-charge-marked-personal').length,3)
   const destination=await fresh()
   try {
     await command(destination,['setup','--owner-email',['owner','harbourfinch.example'].join('@'),'--port',String(await freePort())])

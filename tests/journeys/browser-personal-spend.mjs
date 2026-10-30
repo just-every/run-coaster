@@ -44,6 +44,41 @@ export async function runPersonalSpendJourney() {
     const detail=await api(employee.context,server.origin,`claims/${imported.claims[0]}`)
     assert.equal(detail.claim.total_minor,0)
     assert.deepEqual(detail.personalSpend.balances,[{currency:'AUD',outstandingMinor:3580}])
+    const beforeUndo=await api(employee.context,server.origin,'personal-spend')
+    const undone=await api(owner.context,server.origin,`statements/${imported.file}/undo`,{})
+    assert.equal(undone.removed,1,'the attached original protects its source charge from undo')
+    const input=personalInput(category),preview=await api(owner.context,server.origin,['statements','preview'].join('/'),input)
+    const reimported=await api(owner.context,server.origin,['statements','commit'].join('/'),{...input,fingerprint:preview.fingerprint})
+    const restoredDetail=await api(employee.context,server.origin,`claims/${reimported.claims[0]}`)
+    assert.deepEqual(await api(employee.context,server.origin,'personal-spend'),beforeUndo,'undo and reimport retain every original obligation and history identity')
+    assert.deepEqual(restoredDetail.items.map(i=>i.personal_spend.outstanding_minor),[1234,2346])
+    // Exercise personal classification after the scheduler moved the expense into its own private draft.
+    const movedImport=await importPersonalStatement((path,body)=>api(owner.context,server.origin,path,body),category,state.actor.email,{last4:'8841',key:'synthetic-coaster-9',merchant:'synthetic-coaster-9'})
+    await api(owner.context,server.origin,'settings/business',{name:'Harbour & Finch Studio',currency:'AUD',timezone:'Australia/Sydney',perDiem:'75.00',receiptThreshold:'20.00'})
+    await api(owner.context,server.origin,'settings/auto-submit',{schedule:'daily'})
+    await server.scheduled(Date.parse('2026-06-01T00:00:00Z'))
+    const submitted=await api(employee.context,server.origin,`claims/${movedImport.claims[0]}`)
+    assert.equal(submitted.claim.status,'submitted')
+    const heldId=submitted.events.find(e=>e.action==='auto-report-split').detail.heldClaim
+    const held=await api(employee.context,server.origin,`claims/${heldId}`)
+    assert.equal(held.claim.status,'draft')
+    assert.equal((await owner.context.request.get(server.origin+`/api/coaster/claims/${heldId}`)).status(),403)
+    await page.goto(server.origin+`/app#/claims/${heldId}`)
+    const moved=line('synthetic-coaster-9-2')
+    await moved.getByText('Mark personal spend',{exact:true}).click()
+    await moved.getByLabel('I owe the company this full posted amount',{exact:true}).check()
+    await moved.getByRole('button',{name:'Confirm personal spend',exact:true}).click()
+    await moved.getByRole('status').filter({hasText:'You owe AUD 23.46'}).waitFor()
+    await page.locator('.detail').getByRole('status').filter({hasText:'Your personal company-card balance: AUD 59.26 unpaid'}).waitFor()
+    const privateMarks=(await api(employee.context,server.origin,'personal-spend')).charges.filter(p=>p.amount_minor===2346)
+    const privateIds=new Set(privateMarks.map(p=>p.id))
+    const privateMark=e=>e.action==='card-charge-marked-personal'&&privateIds.has(e.detail.personalSpend)
+    assert.ok(!(await api(owner.context,server.origin,'history?q=card-charge-marked-personal')).lines.some(privateMark))
+    assert.ok(!(await api(owner.context,server.origin,`claims/${movedImport.claims[0]}`)).events.some(privateMark))
+    const pack=await owner.context.request.get(server.origin+'/api/coaster/audit-pack?from=2026-01-01&to=2026-12-31')
+    assert.equal(pack.status(),200)
+    const bytes=await pack.body()
+    for(const id of privateIds)assert.ok(!bytes.includes(Buffer.from(id)))
     // Assert the changed behavior once; capture the resulting screen at both required widths.
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:1100})
@@ -62,20 +97,12 @@ export async function runPersonalSpendJourney() {
         assert.equal(await close.getAttribute('data-tooltip'),'Back to claims')
       }
     }
-    const beforeUndo=await api(employee.context,server.origin,'personal-spend')
-    const undone=await api(owner.context,server.origin,`statements/${imported.file}/undo`,{})
-    assert.equal(undone.removed,1,'the attached original protects its source charge from undo')
-    const input=personalInput(category),preview=await api(owner.context,server.origin,['statements','preview'].join('/'),input)
-    const reimported=await api(owner.context,server.origin,['statements','commit'].join('/'),{...input,fingerprint:preview.fingerprint})
-    const restoredDetail=await api(employee.context,server.origin,`claims/${reimported.claims[0]}`)
-    assert.deepEqual(await api(employee.context,server.origin,'personal-spend'),beforeUndo,'undo and reimport retain every original obligation and history identity')
-    assert.deepEqual(restoredDetail.items.map(i=>i.personal_spend.outstanding_minor),[1234,2346])
     await employee.context.close();employee=null
     await owner.context.close();owner=null
     await browser.close();browser=null
     await server.close();server=null
     await personalSpendArchive(root,evidence)
-    await writeFile(join(evidence,'personal-spend-results.json'),JSON.stringify({head:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),widths:[1440,390],balances:[1234,2346],outstandingMinor:3580,reimbursableMinor:0,archive:'exact',malformedRefusals:6},null,2)+'\n')
+    await writeFile(join(evidence,'personal-spend-results.json'),JSON.stringify({head:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),widths:[1440,390],balances:[1234,2346,2346],outstandingMinor:5926,reimbursableMinor:0,archive:'exact',malformedRefusals:6},null,2)+'\n')
     console.log('PROBE CARD-002 screens: built native claim at 1440 and 390 -> explicit confirmation, exact unpaid balances, no overflow, readable text, tooltips and accessible controls')
   } finally {
     await employee?.context.close();await owner?.context.close();await browser?.close();await server?.close()

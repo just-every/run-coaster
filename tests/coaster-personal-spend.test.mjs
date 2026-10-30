@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { agency, harness, receipt } from './harness.mjs'
-import { personalInput, importPersonalStatement, personalPath } from './personal-spend-kit.mjs'
+import { personalInput, importPersonalStatement, personalPath, splitPersonalStatement } from './personal-spend-kit.mjs'
 
 test('CARD-002 cardholders record exact unpaid company-card obligations once, preserving native money and private authority through undo and reimport', async () => {
   const h=await harness()
@@ -93,6 +93,22 @@ test('CARD-002 cardholders record exact unpaid company-card obligations once, pr
     assert.equal(events.length,2);assert.ok(events[0].seq<events[1].seq)
     assert.ok(events.every(e=>e.actor_email===employee&&JSON.parse(e.detail).channel==='app'))
     console.log('PROBE CARD-002 native money: statement import and personal marking -> AUD 12.34 + 23.46 = 35.80 unpaid; reimbursement remains 7.89; repeated and foreign writes refused; undo and reimport preserve both obligations')
+    const {original,held,mark}=await splitPersonalStatement(h,t,{markBefore:true})
+    const privateMark=e=>e.action==='card-charge-marked-personal'&&e.detail.personalSpend===mark.id
+    for(const reader of [h.owner,t.morgan]) {
+      assert.ok(!(await h.get('history?q=card-charge-marked-personal',reader)).lines.some(privateMark),'a submitted sibling must not disclose the held charge through history')
+      assert.ok(!(await h.get(`history?q=CL-${String(original.claim.number).padStart(4,'0')}`,reader)).lines.some(privateMark))
+      assert.ok(!(await h.get(`claims/${original.claim.id}`,reader)).events.some(privateMark),'the original report must not disclose its private held charge')
+      const pack=await h.mf.dispatchFetch(h.origin+'/api/coaster/audit-pack?from=2026-01-01&to=2026-12-31',{headers:{cookie:reader}})
+      assert.equal(pack.status,200)
+      assert.ok(!Buffer.from(await pack.arrayBuffer()).includes(Buffer.from(mark.id)),'the audit pack must not disclose its private held charge')
+    }
+    assert.ok((await h.get('personal-spend',t.sam)).charges.some(p=>p.id===mark.id&&p.outstanding_minor===2346))
+    let ready=await h.post(`claims/${held.claim.id}/receipts`,{version:held.claim.version,item:held.items[0].id,...await receipt('officeworks')},t.sam)
+    ready=await h.get(`claims/${held.claim.id}`,t.sam)
+    await h.post(`claims/${held.claim.id}/submit`,{version:ready.claim.version},t.sam)
+    assert.ok((await h.get('history?q=card-charge-marked-personal',t.morgan)).lines.some(privateMark),'the actual charged expense becomes auditable on its own submission')
+    console.log('PROBE CARD-002 B: mark AUD 23.46, scheduled split -> held draft 403 to finance; mark absent from history, original report and audit pack; submitting that expense discloses its history')
   } finally {await h.close()}
 })
 
@@ -135,6 +151,19 @@ test('Personal spend fences concurrent classification, claim changes and authori
     await h.post(path,{version:d.claim.version,item:second.id,charge:second.card_charge_id,confirm:true},t.sam,409)
     assert.deepEqual(await snapshot(),before,'revoked native authority cannot finish marking or append history')
     await h.get('personal-spend',t.sam,401)
+    assert.equal((await h.send('/auth/magic-link',{email:employee})).status,202)
+    t.sam=await h.confirmMail(employee)
+    const {held,item:heldItem}=await splitPersonalStatement(h,t,{markBefore:false})
+    const marked=await h.post(personalPath(held.claim.id),{version:held.claim.version,item:heldItem.id,charge:heldItem.card_charge_id,confirm:true},t.sam)
+    const heldMark=marked.charges.find(p=>p.item_id===heldItem.id)
+    assert.equal(heldMark.outstanding_minor,2346)
+    assert.equal(heldMark.claim_id,held.claim.id)
+    const afterMark=await snapshot()
+    const latest=await h.get(`claims/${held.claim.id}`,t.sam)
+    await h.post(personalPath(held.claim.id),{version:latest.claim.version,item:heldItem.id,charge:heldItem.card_charge_id,confirm:true},t.sam,409)
+    await h.post(personalPath(held.claim.id),{version:latest.claim.version,item:heldItem.id,charge:heldItem.card_charge_id,confirm:true},t.morgan,403)
+    assert.deepEqual(await snapshot(),afterMark,'repeated and foreign classification of a moved charge writes nothing')
+    console.log('PROBE CARD-002 A: scheduled split, mark own held charge -> 200 and AUD 23.46 unpaid once; repeated 409 and foreign 403 write nothing')
     console.log('PROBE CARD-002 concurrency and authority: two simultaneous confirmations -> one record; stale claim and revoked session -> 409 with no classification or history write; second-guard mutations roll back')
   } finally {await h.close()}
 })

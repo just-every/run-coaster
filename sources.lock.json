@@ -1160,7 +1160,7 @@
       "executable": false
     },
     "scripts/installer/personal-spend-archive.mjs": {
-      "sha256": "fcc8f301c63ca8ad06cba69baa510c2d186c2c56c9a70fd5bd1449879bd099a3",
+      "sha256": "c84ddb689ce241780f28033a51e8526fbe3b730d591512ae08d448def798e991",
       "executable": false
     },
     "scripts/installer/portability.mjs": {
@@ -1428,7 +1428,7 @@
       "executable": false
     },
     "src/coaster/audit.ts": {
-      "sha256": "756f8100c98d6d99ed62db589db372803bc667c5e63a845bf87b274a102088bd",
+      "sha256": "5d4c815db3b9a15cf1c43c8aac404b218c0b3935e240c46caffd040a05536a8b",
       "executable": false
     },
     "src/coaster/auto-approval.ts": {
@@ -1500,7 +1500,7 @@
       "executable": false
     },
     "src/coaster/cards/personal-spend.ts": {
-      "sha256": "b677c6da2a6ae4540352dd20aaf46a67866a9b29e6af8b974882bc668933156b",
+      "sha256": "184c91d98be8751b1eed4102ecbb94362fa2c3596342f4371e61194ec35b8bd1",
       "executable": false
     },
     "src/coaster/cards/plan.ts": {
@@ -2112,7 +2112,7 @@
       "executable": false
     },
     "src/coaster/views.ts": {
-      "sha256": "0c6667f7d359fa88db993bc618634e2ca34d91380a1315bf4b89bc8df079dc1a",
+      "sha256": "0deafa30b5a88a81908a61bfda4e67a24df69856d633c79b5cdc07f24fd76c2a",
       "executable": false
     },
     "src/coaster/workflow-configuration.ts": {
@@ -4496,7 +4496,7 @@
       "executable": false
     },
     "tests/coaster-personal-spend.test.mjs": {
-      "sha256": "1fcd519f83c7f3bc33e282233671e3067267111ab81f6c703a6f6d8ae507e6c6",
+      "sha256": "9af9ab8b17aff1e6a29d5bb564464e5769d751354a2b3354814a4afa91d46683",
       "executable": false
     },
     "tests/coaster-plaid.test.mjs": {
@@ -6632,7 +6632,7 @@
       "executable": false
     },
     "tests/journeys/browser-personal-spend.mjs": {
-      "sha256": "ad387cb7f2aa544ca3b9508649b7aebc22eb808687e24b36a56eb54ae0715b4d",
+      "sha256": "31368192a56f38c89c4339db57a16a5076645c8dbe43caab508ef8d898bb9c35",
       "executable": false
     },
     "tests/journeys/browser-policy-agent.mjs": {
@@ -6840,11 +6840,11 @@
       "executable": false
     },
     "tests/personal-spend-archive.mjs": {
-      "sha256": "6ca04ad398e09b6e821b32f6e6d1264d8cc920ed2506aed37e7400d70323dc9e",
+      "sha256": "99aa10afc4e38ecf03518a387bb5e90775b13632600dffc66518840b2329caea",
       "executable": false
     },
     "tests/personal-spend-kit.mjs": {
-      "sha256": "f511ef2f0c78e1c5a7d60209b2a57622b1f8f96597db73b2175371cb0144787b",
+      "sha256": "4ae52692f3346c0bb76f47ea50dc6ff55320e1787adfc112ad4ebba8fb1cfb61",
       "executable": false
     },
     "tests/plaid-native.mjs": {
