@@ -119,7 +119,7 @@ try {
   assert.equal((await fetch(server.origin+'/api/coaster/state')).status,401)
   await server.close();server=undefined
   // Reserved fixture domains must never stand in for a verified production sender.
-  const refusedSender=await command(root,['deploy','--dry-run'],{expected:4,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <synthetic-coaster-1@coaster.example.test>'}})
+  const refusedSender=await command(root,['deploy'],{expected:4,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <synthetic-coaster-1@coaster.example.test>'}})
   assert.match(refusedSender,/MAIL_FROM is invalid or a placeholder sender/)
   assert.match(refusedSender,/Nothing was built or uploaded/)
   const dry=await command(root,['deploy','--dry-run'],{env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:''}})
