@@ -1,5 +1,6 @@
 import { classifyCharge } from './cards/liability';
 import { correctAccount } from './accounting/coding-corrections';
+import { accountingCoding, correctAccountingCoding } from './accounting/accounting-corrections';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
@@ -229,6 +230,9 @@ api.post('/api/coaster/settings/members/invite', as(async (a, c) => {
   await event(db(c), a, 'member-invited', {}, { email: member.email }).run();
   return sent;
 }));
+
+api.get('/api/coaster/claims/:id/accounting-coding', as(async (a,c) => accountingCoding(db(c),a,param(c,'id'))));
+api.post('/api/coaster/claims/:id/accounting-coding', as(async (a,c) => correctAccountingCoding(db(c),a,param(c,'id'),await body(c))));
 
 api.get('/api/coaster/batches/:id', as(async (a, c) => batchDetail(db(c), a, param(c, 'id'))));
 api.get('/api/coaster/batches/:id/pdf', as(async (a, c) => batchPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'), runtimeBindings(c.env).COASTER_RECEIPTS)));

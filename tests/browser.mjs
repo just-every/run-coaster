@@ -199,6 +199,7 @@ try {
   assert.deepEqual(rows(await records(join(evidence, 'restored.rer'))), rows(await records(archive)), 'every portable row, every history line included (AUDIT-001), survives export → restore → export')
   await command(second, ['reset', '--yes'])
   await writeFile(join(evidence, 'manifest.json'), JSON.stringify({ commit, business: 'Harbour & Finch Studio (synthetic)', scenario: 'Employee claim with receipts, mileage and an over-limit meal; manager return and approval; finance batch, export and payment; owner Expensify move-in and settings', screenshots: shots }, null, 2) + '\n')
+  await import('./payroll-archive.mjs');
   await report(evidence, { passed: true, commit, journeys, archive: 'export → employee erased → refused corrupt, inconsistent and pre-erasure archives → restore and setup upgrade → identical export; restored owner undid the move-in', screenshots: shots.length })
   console.log(`Browser and CLI proof passed at ${commit}; screenshots and files: ${evidence}`)
 } finally {

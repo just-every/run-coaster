@@ -1,4 +1,5 @@
 import { validateAccountCorrectionsArchive } from './account-corrections-archive.mjs';
+import { validateAccountingCorrectionsArchive } from './accounting-corrections-archive.mjs';
 import { createHash } from 'node:crypto';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 import { validateLiabilityArchive } from './liability-archive.mjs';
@@ -99,6 +100,7 @@ export async function validateCoasterArchive(read, manifest) {
   await validateLiabilityArchive(read);
   await validateCaptureArchive(read, manifest);
   await validateCodingArchive(read);
+  await validateAccountingCorrectionsArchive(read);
   await validateAutomaticCodingArchive(read);
   await validateReceiptReadingArchive(read);
   await validateProgramFeedArchive(read);

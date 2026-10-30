@@ -611,3 +611,10 @@ only the native export account code changes. A later batch freezes its selected
 correction sequence. Stale requests, an existing batch or any existing ledger
 posting are refused without a correction or history write. Closed-period and
 already-posted correction workflows are not supplied by this native door.
+`GET /api/coaster/claims/:id/accounting-coding` reads the original submitted expenses, effective native account codes and append-only correction history under the claim's current visibility rules.
+
+`POST /api/coaster/claims/:id/accounting-coding` accepts `version`, `revision`, `item`, the current correction `sequence` (zero initially), `accounts` (one code per existing allocation) and `reason`. The owner, finance and bookkeeper may confirm; a currently routed approver may confirm before deciding. Native Full delegation preserves its existing grant and attribution. Agent keys confer no authority. Each correction advances the claim version, records before and after codes and leaves the submitted snapshot, categories, dimensions, splits, tax, receipt and reimbursement identity intact. A capped purchase uses the same correction door.
+
+A draft or reviewed unpaid batch can have a claim removed before posting or release. A correction to a queued, unexecuted bill preserves previous batch selections, appends a new selection generation and returns the batch to draft. Pending connector requests are invalidated, so a new review and sync are required. Only the latest selected generation supplies the accounting export. Removed selections alone never establish a posting.
+
+This native foundation does not complete ACCT-008. Executed or unresolved Desktop postings require reconciliation and are currently refused, including an open-period posting; period-aware updates and ACCT-006's dated reversal and new entry remain unimplemented. Released batches and payroll handoffs also require reconciliation. Category, dimension, split and tax recoding remain open. Provider-company authorization is still required for the closed-period and reversal acceptance journey.
