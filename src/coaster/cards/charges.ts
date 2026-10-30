@@ -56,17 +56,17 @@ export async function placements(db: D1Database, held: Held[], issuer: string, p
 }
 
 /** The charge, its native card expense on the placed report and the history line for one statement purchase. */
-export async function chargeStatements(db: D1Database, actor: Actor | { system: string }, c: { file: string; issuer: string; category: Awaited<ReturnType<typeof categoryFor>>; costCentre: string; held: Held; claim: string; position: number; at: string; feed?: string }) {
+export async function chargeStatements(db: D1Database, actor: Actor | { system: string }, c: { file: string; issuer: string; category: Awaited<ReturnType<typeof categoryFor>>; costCentre: string; held: Held; claim: string; position: number; at: string; feed?: string; liability?: 'company' | 'individual' }) {
   const { held: h, issuer } = c, chargeId = uid(), itemId = uid(), r = h.row;
-  const item: ItemInput = { kind: 'receipt', spent_on: h.date, merchant: r.descriptor.slice(0, 200), description: r.memo, amount_minor: r.amountMinor!, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: c.category.id, cost_centre: c.costCentre, amount_minor: r.amountMinor! }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: '', project: '', card_charge_id: chargeId };
+  const item: ItemInput = { kind: 'receipt', spent_on: h.date, merchant: r.descriptor.slice(0, 200), description: r.memo, amount_minor: r.amountMinor!, distance_hundredths: null, days: null, rate_thousandths: null, explanation: '', allocations: [{ category_id: c.category.id, cost_centre: c.costCentre, amount_minor: r.amountMinor! }], sales_tax_minor: 0, sales_tax_account: '', sales_tax_code: '', attendees: [], fields: {}, billable: false, customer: '', project: '', card_charge_id: chargeId, card_liability: c.liability ?? 'company', card_personal: 0 };
   const automatic=await prepareTarget(db,{kind:'item',id:itemId,employee:h.employee,claim:c.claim,merchant:item.merchant,mcc:r.mcc},{},{memo:r.memo||undefined},[],true);
   const fields=automatic.values;
   if(fields.category)item.allocations[0].category_id=fields.category;
   item.coding=fields.dimensions??{};item.project=fields.project??'';item.customer=fields.customer??'';item.description=fields.memo??item.description;
   return { charge: chargeId, guard:automatic.guard, statements: [
-    db.prepare('INSERT INTO c_card_charges(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(chargeId, c.file, h.cardId, h.employee, `card:${issuer.toLowerCase()}|${r.last4}:${r.key}`, r.postedOn, r.transactionOn, item.merchant, r.memo, r.amountMinor, r.currency, r.originalMinor, r.originalCurrency, itemId, c.category.id, c.at, c.claim),
+    db.prepare('INSERT INTO c_card_charges(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id,liability,program_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(chargeId, c.file, h.cardId, h.employee, `card:${issuer.toLowerCase()}|${r.last4}:${r.key}`, r.postedOn, r.transactionOn, item.merchant, r.memo, r.amountMinor, r.currency, r.originalMinor, r.originalCurrency, itemId, c.category.id, c.at, c.claim, c.liability ?? 'company', c.feed ?? null),
     ...insertItem(db, c.claim, itemId, c.position, item, null),...automatic.writes,
-    ...('system' in actor ? [ruleEvent(db, actor.system, 'program-feed-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, feed: c.feed, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false, channel: 'feed' })] : [event(db, actor, 'import-card-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false })]),
+    ...('system' in actor ? [ruleEvent(db, actor.system, 'program-feed-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, feed: c.feed, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, liability: c.liability ?? 'company', reimbursable: c.liability === 'individual', channel: 'feed' })] : [event(db, actor, 'import-card-charge-created', { claim: c.claim }, { charge: chargeId, file: c.file, issuer, last4: r.last4, merchant: item.merchant, amountMinor: r.amountMinor, postedOn: r.postedOn, transactionOn: r.transactionOn, cardholder: h.employee, reimbursable: false })]),
   ] };
 }
 
@@ -107,12 +107,14 @@ export async function undoStatement(db: D1Database, actor: Actor, id: string) {
   requireThat(!file.undone_at, 'This import was already undone', 409);
   requireThat(!await db.prepare('SELECT 1 FROM c_card_statements WHERE file_id=? AND closed_at IS NOT NULL').bind(id).first(), 'A closed card statement was reconciled from this import, so it can no longer be undone', 409);
   const coding = JSON.parse(file.mapping).coding as { category: string; costCentre: string };
-  const rows = (await db.prepare(`SELECT ch.id AS charge,ch.item_id,ch.descriptor,ch.amount_minor,ch.memo,i.claim_id,c.status,c.version,i.receipt_id,i.explanation,i.description,i.attendees,i.fields,i.request_id,i.billable,i.customer,i.project,i.sales_tax_minor,i.allowance_id,cx.human_fields AS automatic_human_fields,
+  const rows = (await db.prepare(`SELECT ch.id AS charge,ch.item_id,ch.descriptor,ch.amount_minor,ch.memo,i.claim_id,c.status,c.version,i.receipt_id,i.card_personal,i.explanation,i.description,i.attendees,i.fields,i.request_id,i.billable,i.customer,i.project,i.sales_tax_minor,i.allowance_id,cx.human_fields AS automatic_human_fields,
+      (SELECT COUNT(*) FROM c_events e WHERE e.action='card-charge-classified' AND json_extract(e.detail,'$.charge')=ch.id) AS classified,
       (SELECT COUNT(*) FROM c_allocations a WHERE a.item_id=i.id) AS parts,(SELECT COUNT(*) FROM c_allocations a WHERE a.item_id=i.id AND a.category_id=? AND a.cost_centre=? AND a.amount_minor=i.amount_minor AND a.description='') AS as_imported
     FROM c_card_charges ch LEFT JOIN c_items i ON i.id=ch.item_id LEFT JOIN c_claims c ON c.id=i.claim_id LEFT JOIN c_auto_coding_contexts cx ON cx.target_kind='item' AND cx.target_id=i.id WHERE ch.file_id=? ORDER BY ch.created_at,ch.id`).bind(coding.category, coding.costCentre, id).all<Data>()).results;
   const reason = (r: Data) => {
     if (!r.claim_id) return 'its expense is gone';
     if (r.status !== 'draft') return `its report is ${r.status}`;
+    if (r.card_personal || r.classified) return 'it has a personal classification';
     if (r.receipt_id) return 'it has a receipt';
     if (r.explanation || r.attendees !== '[]' || r.fields !== '{}' || r.request_id || r.billable || r.sales_tax_minor || r.allowance_id || r.parts !== 1) return 'it was edited';
     if (r.automatic_human_fields) return JSON.parse(r.automatic_human_fields).length ? 'it was edited' : '';

@@ -23,6 +23,7 @@ export type ItemInput = Partial<FxConversion> & {
   coding?: Record<string,string>; codingSnapshot?: CodingSnapshot[]; codingVersion?: number;
   /** The statement charge a company-card expense carries (FEED-004); set only by the statement import. */
   card_charge_id?: string | null;
+  card_liability?: 'company' | 'individual'; card_personal?: number;
   receipt_resolution?: string | null;
 };
 

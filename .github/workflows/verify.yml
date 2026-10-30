@@ -161,6 +161,7 @@ jobs:
           - journey: signals
           - journey: desktop
           - journey: preparations
+          - journey: individual-liability
     needs: [plan, app]
     if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
