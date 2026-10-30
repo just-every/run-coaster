@@ -7288,7 +7288,7 @@
       "executable": false
     },
     "tests/journeys/screens-installation-concur.mjs": {
-      "sha256": "f65e9e3aab3cda8b0a10cef14b7636a4baee1ed4502ad2ff1efd80dc1815049a",
+      "sha256": "e36c579c516920cde4bd88003b5b94e44ee0d2f1ef32b535a7b8cdf66bacbf5c",
       "executable": false
     },
     "tests/journeys/screens-installation-cutover.mjs": {
