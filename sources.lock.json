@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ce885b178d0c478525c729c07af6a423322c789c10f86109ea9251a8ad1a8d16",
+      "sha256": "2dbfb53a62a41283a839cae710efd1bb3c5b14871e7681c416e145cb50c16bbc",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "059ab0386efdc89c68d8627350e5a6127bd8aedbb6ab42d7f7dc362e50d11fbe",
+      "sha256": "4d604640675053d5c9859276b394866f241b56890cfcaf77411e5c704df3823c",
       "executable": false
     },
     "base-copies.json": {
@@ -6732,7 +6732,7 @@
       "executable": false
     },
     "tests/journeys/screens-card-chases.mjs": {
-      "sha256": "d1a4d07ad4a05515ab6f75d42255a35c87a19e3452b274b02d50c09bc2fad5cf",
+      "sha256": "7cc4b2de74605e8d6303f0ef53018837f9253b4bb5eb8f5786a064c70d4708ba",
       "executable": false
     },
     "tests/journeys/screens-cash-attachment.mjs": {
