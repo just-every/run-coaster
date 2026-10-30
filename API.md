@@ -52,6 +52,19 @@ with `actingFor`.
 | `GET audit-pack?from=&to=` | owner, finance, auditor | A ZIP for the period: `manifest.json` (every claim submitted in it with revisions, exceptions, explanations, decisions and payment references), `history.csv` and each receipt's exact bytes under its SHA-256. |
 | `GET import`; `POST import/preview\|commit\|status\|resume\|undo` | owner | The Expensify move-in kit (IMPORTING.md). |
 
+## Company-agent door
+
+`POST /mcp` serves MCP 2026-07-28 and 2025-11-25. Read discovery and metadata
+before calling `coaster.workspace.get`, `coaster.proposals.get`,
+`coaster.claims.propose` or `coaster.batches.propose`. Scopes are
+`proposals:read` and `proposals:write`; arguments and outputs are described by
+`tools/list`. Mutations carry an `idempotency_key`. Stable refusal codes appear
+in `_meta["com.runeditrun/error"]`. Signed Business policy is adopted through
+`POST /api/rer/agent-policy`; person controls are at `/agents`.
+See [Agent instructions](docs/agents.md) for native authority and undeclared
+capability boundaries. The narrow legacy preparation API below keeps its own
+personal-key contract.
+
 ## Agents (agent key)
 
 An agent sends `Authorization: Bearer cst_…` and reaches only these routes. It

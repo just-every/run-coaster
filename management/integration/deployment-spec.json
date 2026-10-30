@@ -526,6 +526,24 @@
       "name": "0085_individual_liability.sql",
       "sha256": "8fa38a6338a5c29833725bcc6e970c233eb63ebf0fe391169148f540ad124540",
       "sql": "-- FEED-006: liability is immutable import provenance; personal classification freezes with each revision.\nALTER TABLE c_program_feeds ADD COLUMN liability TEXT NOT NULL DEFAULT 'company' CHECK(liability IN ('company','individual'));\nALTER TABLE c_card_charges ADD COLUMN liability TEXT NOT NULL DEFAULT 'company' CHECK(liability IN ('company','individual'));\nALTER TABLE c_card_charges ADD COLUMN program_id TEXT;\nALTER TABLE c_card_charge_undo_history ADD COLUMN liability TEXT NOT NULL DEFAULT 'company' CHECK(liability IN ('company','individual'));\nALTER TABLE c_card_charge_undo_history ADD COLUMN program_id TEXT;\nALTER TABLE c_items ADD COLUMN card_liability TEXT NOT NULL DEFAULT 'company' CHECK(card_liability IN ('company','individual'));\nALTER TABLE c_items ADD COLUMN card_personal INTEGER NOT NULL DEFAULT 0 CHECK(card_personal IN (0,1));\nCREATE TRIGGER c_program_liability_keep BEFORE UPDATE OF liability ON c_program_feeds\n WHEN NEW.liability IS NOT OLD.liability BEGIN SELECT RAISE(ABORT,'program liability is immutable'); END;\nCREATE TRIGGER c_charge_liability_keep BEFORE UPDATE OF liability,program_id ON c_card_charges\n WHEN NEW.liability IS NOT OLD.liability OR NEW.program_id IS NOT OLD.program_id BEGIN SELECT RAISE(ABORT,'charge liability is immutable'); END;\nCREATE TRIGGER c_individual_charge_owner_keep BEFORE UPDATE OF employee_email,claim_id ON c_card_charges\n WHEN OLD.liability='individual' AND NOT EXISTS(SELECT 1 FROM c_erasing)\n AND (NEW.employee_email IS NOT OLD.employee_email OR NEW.claim_id IS NOT OLD.claim_id)\n BEGIN SELECT RAISE(ABORT,'individual liability remains with its original cardholder'); END;\nCREATE TRIGGER c_item_liability_insert BEFORE INSERT ON c_items WHEN\n (NEW.card_charge_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM c_card_charges ch WHERE ch.id=NEW.card_charge_id AND ch.liability=NEW.card_liability))\n OR (NEW.card_personal=1 AND (NEW.card_charge_id IS NULL OR NEW.card_liability<>'individual'))\n BEGIN SELECT RAISE(ABORT,'card liability must match its immutable charge'); END;\nCREATE TRIGGER c_item_liability_update BEFORE UPDATE OF card_liability,card_personal ON c_items WHEN\n NEW.card_liability IS NOT OLD.card_liability OR\n (NEW.card_personal IS NOT OLD.card_personal AND (OLD.card_liability<>'individual' OR OLD.card_charge_id IS NULL OR NOT EXISTS(SELECT 1 FROM c_claims c WHERE c.id=OLD.claim_id AND c.status IN ('draft','returned'))))\n BEGIN SELECT RAISE(ABORT,'submitted card classification is frozen'); END;\nDROP TRIGGER c_card_charge_undo_capture;\nCREATE TRIGGER c_card_charge_undo_capture BEFORE DELETE ON c_card_charges\n BEGIN INSERT INTO c_card_charge_undo_history(id,file_id,card_id,employee_email,transaction_key,posted_on,transaction_on,descriptor,memo,amount_minor,currency,original_minor,original_currency,item_id,category_id,created_at,claim_id,liability,program_id) VALUES(OLD.id,OLD.file_id,OLD.card_id,OLD.employee_email,OLD.transaction_key,OLD.posted_on,OLD.transaction_on,OLD.descriptor,OLD.memo,OLD.amount_minor,OLD.currency,OLD.original_minor,OLD.original_currency,OLD.item_id,OLD.category_id,OLD.created_at,OLD.claim_id,OLD.liability,OLD.program_id); END;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0086_business_settings.sql",
+      "sha256": "a16f736a781aa3fe02a2e090c993f8c360c904f9fb6d86126acdab6e1f24e773",
+      "sql": "CREATE TABLE bs_settings (\n  singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n  rev INTEGER NOT NULL DEFAULT 0,\n  document TEXT,\n  applied_at TEXT,\n  stopped INTEGER NOT NULL DEFAULT 0 CHECK(stopped IN(0,1)),\n  token TEXT NOT NULL DEFAULT ''\n);\nCREATE TABLE bs_overrides (\n  field TEXT PRIMARY KEY CHECK(field IN('display_name','owner_name','brand_color','logo','timezone')),\n  value TEXT NOT NULL,\n  actor TEXT NOT NULL,\n  changed_at TEXT NOT NULL\n);\nCREATE TABLE bs_logo (\n  singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n  sha256 TEXT NOT NULL,\n  type TEXT NOT NULL,\n  bytes BLOB NOT NULL\n);\nCREATE TABLE bs_team (\n  email TEXT PRIMARY KEY,\n  operator_id TEXT,\n  invite INTEGER NOT NULL,\n  state TEXT NOT NULL CHECK(state IN('invited','active','inactive','conflict'))\n);\nCREATE TABLE bs_audit (\n  id INTEGER PRIMARY KEY,\n  actor TEXT NOT NULL,\n  action TEXT NOT NULL,\n  field TEXT,\n  changed_at TEXT NOT NULL\n);\n-- An INSERT of NULL fails the transaction if a concurrent write invalidated its fence.\nCREATE TABLE bs_assert (value INTEGER NOT NULL);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0087_business_people.sql",
+      "sha256": "51aa39622d866b987d71b6e37c9a8300e7f24c54a55611edaab669ed051b01cd",
+      "sql": "ALTER TABLE bs_settings ADD COLUMN owner_id TEXT CHECK(owner_id IS NULL OR owner_id <> '');\nALTER TABLE bs_team ADD COLUMN business_id TEXT CHECK(business_id IS NULL OR business_id <> '');\nALTER TABLE bs_team ADD COLUMN business_role TEXT CHECK(business_role IS NULL OR business_role IN('admin','member'));\nCREATE UNIQUE INDEX bs_team_business_id ON bs_team(business_id) WHERE business_id IS NOT NULL;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0088_agent_door.sql",
+      "sha256": "016d8a98b964385f5c4a13447361c3c783910a76aaf4606b0e0081482bc819cc",
+      "sql": "CREATE TABLE IF NOT EXISTS agent_door_state (\n  id INTEGER PRIMARY KEY CHECK(id=1), envelope TEXT, local_document TEXT,\n  local_revision INTEGER NOT NULL DEFAULT 0, local_paused INTEGER NOT NULL DEFAULT 0,\n  decision_lock TEXT, decision_until INTEGER\n);\nCREATE TABLE IF NOT EXISTS agent_door_agents (\n  id TEXT PRIMARY KEY, name TEXT NOT NULL, specialist TEXT, sponsor TEXT NOT NULL,\n  sponsor_name TEXT NOT NULL, revoked INTEGER NOT NULL DEFAULT 0,\n  window INTEGER NOT NULL DEFAULT 0, requests INTEGER NOT NULL DEFAULT 0\n);\nCREATE TABLE IF NOT EXISTS agent_door_audit (\n  sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, at TEXT NOT NULL,\n  agent TEXT NOT NULL, classes TEXT NOT NULL, row TEXT NOT NULL, evidence TEXT\n);\nCREATE INDEX IF NOT EXISTS agent_door_audit_agent ON agent_door_audit(agent,sequence);\nCREATE TABLE IF NOT EXISTS agent_door_calls (\n  agent TEXT NOT NULL, key TEXT NOT NULL, digest TEXT NOT NULL, decision_id TEXT NOT NULL,\n  created_at INTEGER NOT NULL, state TEXT NOT NULL, outcome TEXT, PRIMARY KEY(agent,key)\n);\nCREATE TABLE IF NOT EXISTS agent_door_approvals (\n  id TEXT PRIMARY KEY, state TEXT NOT NULL, saved TEXT NOT NULL, approvals TEXT NOT NULL DEFAULT '[]',\n  result TEXT, version INTEGER NOT NULL DEFAULT 0\n);\nCREATE TABLE IF NOT EXISTS agent_door_reviews (\n  id TEXT PRIMARY KEY, state TEXT NOT NULL, saved TEXT NOT NULL, marked_by TEXT, marked_at TEXT\n);\nCREATE TABLE IF NOT EXISTS agent_door_events (\n  sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, uri TEXT NOT NULL, event TEXT NOT NULL\n);\nCREATE INDEX IF NOT EXISTS agent_door_events_uri ON agent_door_events(uri,sequence);\nCREATE TABLE IF NOT EXISTS agent_door_usage (\n  decision_id TEXT PRIMARY KEY, at INTEGER NOT NULL, seed TEXT NOT NULL, specialist TEXT, agent TEXT NOT NULL,\n  classes TEXT NOT NULL\n);\nCREATE INDEX IF NOT EXISTS agent_door_usage_day ON agent_door_usage(at);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -544,8 +562,7 @@
     "QBO_ENVIRONMENT": "sandbox",
     "AI_ENABLED": "false",
     "AI_MODEL": "gpt-6.1-sol",
-    "AI_BASE_URL": "https://api.openai.com/v1",
-    "OWNER_EMAIL": ""
+    "AI_BASE_URL": "https://api.openai.com/v1"
   },
   "secretNames": [
     "SESSION_SECRET",
@@ -557,7 +574,8 @@
     "QBO_CLIENT_ID",
     "QBO_CLIENT_SECRET",
     "AI_API_KEY",
-    "INSTALLATION_KEY_PREVIOUS"
+    "INSTALLATION_KEY_PREVIOUS",
+    "RER_BUSINESS_TRUST"
   ],
   "schedules": [
     "17 * * * *"
