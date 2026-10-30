@@ -4380,7 +4380,7 @@
       "executable": false
     },
     "tests/accounting-corrections-archive.mjs": {
-      "sha256": "d03c20d0a3381b8fb9eefc2a8850167f7ddfe5cdc31c3a5e09f446da5bbb967d",
+      "sha256": "344ad7f93297763eb70dec149611db160edebedc0f1eec9b4bea8a97d08267a6",
       "executable": false
     },
     "tests/archive-data.mjs": {

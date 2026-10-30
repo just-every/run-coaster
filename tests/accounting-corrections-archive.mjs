@@ -45,14 +45,14 @@ try {
   await command(destination,['export','--output','exports/empty.rer']);
   const empty=rows(await records(join(destination,'exports/empty.rer')));
   let refusalIndex=0;
-  for(const [table,mutate] of [
+  for(const [table,mutate,pick] of [
     ['c_account_corrections',row=>{row.before_account='not-the-submitted-code';}],
     ['c_account_corrections',row=>{row.sequence+=4;}],
     ['c_account_corrections',row=>{row.revision+=2;}],
     ['c_account_corrections',row=>{row.reason=' ';}],
-    ['c_batch_coding',row=>{row.correction_sequence=0;}],
+    ['c_batch_coding',row=>{row.correction_sequence=0;},row=>row.batch_id===batch.id],
   ]) {
-    await writeFile(join(destination,'exports/invalid.rer'),await tampered(archive,table,mutate),{mode:0o600});
+    await writeFile(join(destination,'exports/invalid.rer'),await tampered(archive,table,mutate,pick),{mode:0o600});
     const log=await command(destination,['import','--input','exports/invalid.rer','--yes'],{expected:4});
     assert.match(log,/coaster_account_corrections/);
     const afterPath=`exports/after-refusal-${++refusalIndex}.rer`;
