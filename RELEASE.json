@@ -67,6 +67,9 @@
     "migrations/core/0074_last_signin.sql",
     "migrations/core/0075_scheduled_policy.sql",
     "migrations/core/0076_dependency_keys_sealed.sql",
-    "migrations/core/0086_account_corrections.sql"
+    "migrations/core/0086_account_corrections.sql",
+    "migrations/core/0087_business_settings.sql",
+    "migrations/core/0088_business_people.sql",
+    "migrations/core/0089_agent_door.sql"
   ]
 }
