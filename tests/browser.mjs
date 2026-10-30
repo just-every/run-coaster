@@ -31,7 +31,11 @@ const phases = {
   'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),
   signals: async () => (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney(),
-  desktop: async () => (await import('./journeys/browser-desktop-connection.mjs')).runDesktopConnectionJourney(),
+  desktop: async () => {
+    await (await import('./journeys/browser-desktop-connection.mjs')).runDesktopConnectionJourney()
+    await import('./browser-accounting-corrections.mjs')
+    await import('./accounting-corrections-archive.mjs')
+  },
 }
 const selected = process.env.COASTER_BROWSER_JOURNEY
 assert.ok(!selected || selected === 'core' || Object.hasOwn(phases,selected),'unknown browser journey')

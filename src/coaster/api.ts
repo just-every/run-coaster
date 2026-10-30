@@ -1,3 +1,4 @@
+import { correctAccount } from './accounting/coding-corrections';
 import { plaidSettings, savePlaidSettings, createPlaidLink, exchangePlaidLink, plaidConnections, disconnectPlaid } from './plaid/connections';
 import { conversation } from './agents/conversation';
 import { receiptEmailSettings, saveReceiptEmail, requestReceiptAlias, confirmReceiptAlias, removeReceiptAlias } from './receipts/mail-settings';
@@ -170,6 +171,7 @@ api.get('/api/coaster/claims/:id', as(async (a, c) => claimDetail(db(c), a, para
 api.get('/api/coaster/claims/:id/pdf', as(async (a, c) => claimPdf(db(c), a, param(c, 'id'), c.req.query('customer'), c.req.query('project'), runtimeBindings(c.env).COASTER_RECEIPTS)));
 api.post('/api/coaster/claims', as(async (a, c) => createClaim(db(c), a, await body(c))));
 api.post('/api/coaster/expenses', as(async (a, c) => addExpense(db(c), a, await body(c))));
+api.post('/api/coaster/claims/:id/account-corrections', as(async (a, c) => correctAccount(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/title', as(async (a, c) => renameClaim(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/items', as(async (a, c) => saveItem(db(c), a, param(c, 'id'), await body(c))));
 api.post('/api/coaster/claims/:id/items/remove', as(async (a, c) => removeItem(db(c), a, param(c, 'id'), await body(c))));
