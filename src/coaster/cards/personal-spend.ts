@@ -5,6 +5,17 @@ import { now, requireThat, uid, type Actor, type Data } from '../types';
 
 export const personalSourceKey = (transaction: string) => sha256Hex(transaction);
 
+// Disclosure follows the charged expense in a submitted snapshot, never a sibling report's status.
+// Undo and reimport retain the same transaction identity even when the expense and charge ids change.
+const sourceCharges = 'SELECT id,transaction_key FROM c_card_charges UNION ALL SELECT id,transaction_key FROM c_card_charge_undo_history';
+export const personalHistoryVisible = `(e.action<>'card-charge-marked-personal' OR e.actor_email=? OR EXISTS(
+  SELECT 1 FROM c_card_personal_spend p
+  JOIN (${sourceCharges}) original ON original.id=p.charge_id
+  JOIN (${sourceCharges}) shared ON shared.transaction_key=original.transaction_key
+  JOIN c_revisions r JOIN json_each(r.snapshot,'$.items') item
+  WHERE p.event_id=e.id AND json_extract(item.value,'$.card_charge_id')=shared.id
+))`;
+
 /** Undo removes an expense, never its obligation. Reimport must retain its original debtor and exact amount. */
 export async function personalReimportGuard(db: D1Database, transaction: string, card: string, employee: string, amount: number, currency: string): Promise<Sql> {
   const key = await personalSourceKey(transaction);
@@ -36,14 +47,14 @@ export async function markPersonalSpend(db: D1Database, actor: Actor, id: string
   requireThat(b.confirm === true, 'Confirm that you owe the company the full posted amount');
   requireThat(typeof b.item === 'string' && typeof b.charge === 'string', 'Select a posted company-card charge');
   const charge = await db.prepare('SELECT ch.* FROM c_card_charges ch JOIN c_items i ON i.id=ch.item_id AND i.card_charge_id=ch.id WHERE ch.id=? AND i.id=? AND i.claim_id=? AND ch.employee_email=?').bind(b.charge, b.item, id, actor.email).first<Data>();
-  requireThat(charge, 'This posted company-card charge is outside your draft', 409);
+  requireThat(charge && charge.liability === 'company', 'This posted company-card charge is outside your draft', 409);
   const source = await personalSourceKey(charge.transaction_key);
   requireThat(!await db.prepare('SELECT 1 FROM c_card_personal_spend WHERE source_key=?').bind(source).first(), 'This source charge is already personal; its unpaid balance is retained', 409);
   const record = uid(), at = now();
   const history = event(db, actor, 'card-charge-marked-personal', { claim: id }, { personalSpend: record, charge: charge.id, sourceKey: source, amountMinor: charge.amount_minor, outstandingMinor: charge.amount_minor, currency: charge.currency, liability: 'company', channel: 'app' });
   // Both guards recheck authority, ownership, exact source facts and claim version. The second expects only our own version increment.
   const auth = authority(actor, 'employee');
-  const state = (version: number): Sql => ({ sql: `(${auth.sql}) AND EXISTS(SELECT 1 FROM c_claims c JOIN c_items i ON i.claim_id=c.id JOIN c_card_charges ch ON ch.id=i.card_charge_id AND ch.item_id=i.id WHERE c.id=? AND c.employee_email=? AND c.status='draft' AND c.revision=0 AND c.version=? AND ch.claim_id=c.id AND NOT EXISTS(SELECT 1 FROM c_revisions WHERE claim_id=c.id) AND i.id=? AND ch.id=? AND ch.employee_email=? AND ch.transaction_key=? AND ch.card_id=? AND ch.amount_minor=? AND ch.currency=?)`, params: [...auth.params, id, actor.email, version, b.item, charge.id, actor.email, charge.transaction_key, charge.card_id, charge.amount_minor, charge.currency] });
+  const state = (version: number): Sql => ({ sql: `(${auth.sql}) AND EXISTS(SELECT 1 FROM c_claims c JOIN c_items i ON i.claim_id=c.id JOIN c_card_charges ch ON ch.id=i.card_charge_id AND ch.item_id=i.id WHERE c.id=? AND c.employee_email=? AND c.status='draft' AND c.revision=0 AND c.version=? AND NOT EXISTS(SELECT 1 FROM c_revisions WHERE claim_id=c.id) AND i.id=? AND ch.id=? AND ch.employee_email=? AND ch.transaction_key=? AND ch.card_id=? AND ch.amount_minor=? AND ch.currency=? AND ch.liability='company')`, params: [...auth.params, id, actor.email, version, b.item, charge.id, actor.email, charge.transaction_key, charge.card_id, charge.amount_minor, charge.currency] });
   const before = state(claim.version), after = state(claim.version + 1);
   before.sql += ' AND NOT EXISTS(SELECT 1 FROM c_card_personal_spend WHERE source_key=?)'; before.params.push(source);
   after.sql += ' AND EXISTS(SELECT 1 FROM c_card_personal_spend WHERE id=? AND source_key=? AND employee_email=? AND outstanding_minor=?)'; after.params.push(record, source, actor.email, charge.amount_minor);

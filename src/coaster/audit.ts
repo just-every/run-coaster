@@ -1,4 +1,5 @@
 import { authority, commit } from './session';
+import { personalHistoryVisible } from './cards/personal-spend';
 import { needRow, rowAuthority } from './permissions';
 import { event } from './events';
 import { business } from './settings';
@@ -37,8 +38,6 @@ export function channel(actor: string, action: string, detail: Data) {
 
 const LINE = `SELECT e.seq,e.at,e.actor_email,e.action,e.detail,e.claim_id,c.number AS claim_number,e.batch_id,b.number AS batch_number
   FROM c_events e LEFT JOIN c_claims c ON c.id=e.claim_id LEFT JOIN c_batches b ON b.id=e.batch_id`;
-// A never-submitted personal mark stays with its private claim; submitted or expired financial history remains auditable.
-const personalHistoryVisible = `(e.action<>'card-charge-marked-personal' OR e.actor_email=? OR (c.status IS NOT NULL AND c.status<>'draft') OR EXISTS(SELECT 1 FROM c_events expired WHERE expired.claim_id=e.claim_id AND expired.action='claim-expired'))`;
 const line = (row: Data) => {
   const detail = JSON.parse(row.detail);
   return { seq: row.seq, at: row.at, actor_email: row.actor_email, action: row.action, detail, channel: channel(row.actor_email, row.action, detail), agent: detail.agent ?? null,

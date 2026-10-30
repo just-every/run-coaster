@@ -51,6 +51,10 @@ test('Individual-liability SFTP charges reimburse only four approved business pu
       ['card:synthetic-coaster-1206|1111:id:synthetic-coaster-1224',5000],
       ['card:synthetic-coaster-1206|1111:id:synthetic-coaster-1225',6000],
     ]);
+    const beforePersonal=(await h.db.prepare('SELECT * FROM c_events ORDER BY seq').all()).results;
+    await h.post(`claims/${f.claim.id}/personal-spend`,{version:f.claim.version,item:f.items[0].id,charge:f.items[0].card_charge_id,confirm:true},f.employee,409);
+    assert.deepEqual((await h.get('personal-spend',f.employee)).charges,[],'individual liability creates no debt to the company');
+    assert.deepEqual((await h.db.prepare('SELECT * FROM c_events ORDER BY seq').all()).results,beforePersonal,'refusal writes no history');
     const path=`claims/${f.claim.id}/items/classify`,body={version:f.claim.version,item:f.items[0].id,personal:true};
     for(const who of [h.owner,f.manager,f.finance,f.other]) await h.post(path,body,who,403);
     assert.equal((await h.send('/api/coaster/'+path,body,f.employee,{origin:'https://unrelated.example'})).status,403);
