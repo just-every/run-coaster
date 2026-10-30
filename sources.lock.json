@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "42b875b2f67b2b6fd6890ef98757a34d87dfbdabb1fc58ceb70c7168a9b9b5af",
+      "sha256": "049c00cb52d5f75ec212be0aabee6055d00b2b71ac0bcd95ffc302415a96e415",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d1bbb9e4945868a1bf6a487f12e2f553f42da23f4919902e852549c2cfd42ad2",
+      "sha256": "84efed2488492a2d3ca622baa5cb3b9e5f2a75d6285438ba9593964a8164b19e",
       "executable": false
     },
     "DEMO.md": {
@@ -412,7 +412,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "0802356e4455cc832311d2f449704d0710026f5ea93f108635814b866a5fd288",
+      "sha256": "4495c8513ebf9f07f3deca8697f59ac3562257438934882557b9eeed4ea75b5b",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -4380,7 +4380,7 @@
       "executable": false
     },
     "tests/accounting-corrections-archive.mjs": {
-      "sha256": "cadce19e8d7ed6c4fab87221e7c1034f98e74241b534047946a898d7d1dfd822",
+      "sha256": "84541e40fafc0da29f9d864e8e573e4cdd792452be61fc879c4b27d184d4b838",
       "executable": false
     },
     "tests/archive-data.mjs": {
