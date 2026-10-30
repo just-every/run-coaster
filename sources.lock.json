@@ -296,11 +296,11 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "90e9d640d4f144a3e92ae758fc77f068f98e1da752d92abcded17dbe5ae917d7",
+      "sha256": "38f5bba0d1d2c500966465b056bc41985f0dcfbc338845b3ff04177e075e45c7",
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "97ef3099b659329864421ed4cd075ccba9c2e009e6a8905f3c2c0f911bcf5532",
+      "sha256": "745b39693040102e5f16378c51380b06b75ec075e1d654abb73dd60e3e803383",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "aa4da2bf8bbabfe2122276b6d22c3584e4da379d9c8e8d6bb32b7d0a934d7784",
+      "sha256": "1ad538c7ad1ab90aafb568cd70049fe9ec7323aa351c17b2fb4f9a1071461da5",
       "executable": false
     },
     "DEMO.md": {
@@ -344,7 +344,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "af663b26f374ed33fe4b55792696418eddc5b5ddcf403523f09c74465298ff55",
+      "sha256": "130e92f8a9008e034dbdfaee77338c51442d20738e0fe012d6fe4498e94810ae",
       "executable": false
     },
     "docs/approvals.md": {
@@ -1412,7 +1412,7 @@
       "executable": false
     },
     "src/coaster/agent-door/tools.ts": {
-      "sha256": "5095283f0586545a4912513877c0a629481c9b4d23eae395e0a8086876b2bb3e",
+      "sha256": "df60a2c592fcf1936b2cce57c330f5ab9dcaccd7bf3276d3fd474bfee8a324e6",
       "executable": false
     },
     "src/coaster/agents.ts": {
@@ -4851,12 +4851,20 @@
       "sha256": "7a1be424dd3091748fe062a1b8b20ff261150b185718c19730eb9c5190dc0d08",
       "executable": false
     },
+    "tests/agent-door/native.mjs": {
+      "sha256": "6cecc9bf588672706b563429e3d65ca5b041e33ebb77aaa134963b925e88f31f",
+      "executable": false
+    },
     "tests/agent-door/negative-sponsor.mjs": {
       "sha256": "728faec2e06db0b5bd4c5a36920c68065f41d98e500066d64f3637ced06f808f",
       "executable": false
     },
+    "tests/agent-door/network.mjs": {
+      "sha256": "a1959562ac3fbcde6cf169156e9727b3f25854e58aa298efd57e4c39d75a4eed",
+      "executable": false
+    },
     "tests/agent-door/owner.mjs": {
-      "sha256": "547c18389bd3b7ec3cf8fb036f8384dae5bba2c9ba70f7f8b5a85692ce8079ae",
+      "sha256": "8cba63e08f7aa8c3bdb83bcaacbba3af10115bab01d7a051545d4d4639bf1400",
       "executable": false
     },
     "tests/agent-door/state.mjs": {
