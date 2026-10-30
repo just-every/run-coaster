@@ -276,7 +276,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "f94c95a08651d094576e5030b98e54495e5ed757e0e63f650963f0827478822f",
+      "sha256": "6fa9da3625ec4c18c164ab4b21cbd9f77ae178d979f23bf2b1aaf601d8817344",
       "executable": false
     },
     ".gitignore": {
@@ -5020,7 +5020,7 @@
       "executable": false
     },
     "tests/coaster-suite.mjs": {
-      "sha256": "8ecd1e775741f14e3952cc818d46cd332512525d3e0f58b0507a0f4bfeb5b4bc",
+      "sha256": "f0ad8d7bdc518f9aca8e00fc8791243c41ea6b4b365df03ab6df682b7470b286",
       "executable": false
     },
     "tests/coaster-worker.ts": {
