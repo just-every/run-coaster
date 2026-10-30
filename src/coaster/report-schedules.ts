@@ -72,7 +72,7 @@ export async function deliverReports(env: Bindings, at: Date) {
     // as a CSV attachment only on a schedule the owner opted in.
     const title = REPORTS[schedule.report as keyof typeof REPORTS], link = `${env.AUTH_ORIGIN}/api/coaster/reports/${schedule.report}?from=${from}&to=${to}&format=csv`;
     const figures = schedule.include_figures === 1, words = `${title} for ${settings.name}, ${from} to ${to}, is ready. ${figures ? 'The figures are attached as CSV; s' : 'S'}ign in to Coaster to download it: ${link}`;
-    const attachments = figures ? [{ filename: `coaster-${schedule.report}-${from}-to-${to}.csv`, contentType: 'text/csv', content: new TextEncoder().encode(reportCsv(await runReport(db, settings, schedule.report, from, to, day))) }] : undefined;
+    const attachments = figures ? [{ filename: `coaster-${schedule.report}-${from}-to-${to}.csv`, contentType: 'text/csv', content: new TextEncoder().encode(reportCsv(await runReport(db, settings, schedule.report, from, to, day, at))) }] : undefined;
     const mail = operatorMail(env);
     const sent = recipients.length && mail ? await mail.send({ deliveryId: `${schedule.id}-${from}`, from: env.MAIL_FROM ?? '', to: recipients, subject: `${title}: ${from} to ${to}`, text: words, ...(attachments ? { attachments } : {}), html: `<p>${words.replace(link, '')}<a href="${link.replaceAll('&', '&amp;')}">${link.replaceAll('&', '&amp;')}</a></p>`, headers: {} }) : null;
     await ruleEvent(db, 'report schedule', 'report-delivered', {}, { schedule: schedule.id, report: schedule.report, from, to, recipients, figures, mail: !recipients.length ? 'no recipient can read reports' : sent?.status ?? 'mail not set up' }).run();
