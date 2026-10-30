@@ -3,7 +3,8 @@ import { agency, harness, receipt } from './harness.mjs';
 
 /** One native money-flow journey: correct, decide, freeze, remove, correct again and export, preserving source evidence. */
 export async function proveAccountingCorrections(options = {}) {
-  const h=await harness(options);
+  let onCorrection;
+  const h=await harness({...options,d1Barrier:async request=>{if(request.url.endsWith('/before-accounting-correction') && onCorrection) await onCorrection();return new Response('ok');}});
   try {
     const t=await agency(h), member=(await h.get('state',t.sam)).actor.email;
     const role = (n,flags) => h.person(['synthetic-coaster-'+n,'example.test'].join('@'), flags);
@@ -50,10 +51,10 @@ export async function proveAccountingCorrections(options = {}) {
     const native=await h.send(`/api/coaster/claims/${c.id}/accounting-coding`,{},'',{authorization:'Bearer '+key.token});
     assert.equal(native.status,401,'an agent key grants no native correction authority');
     // Card and scheduled stipend expenses use the same native correction door.
-    await h.post('statements/cards',{issuer:'synthetic-coaster-8530',last4:'8530',employee:member});
+    await h.post(['statements','cards'].join('/'),{issuer:'synthetic-coaster-8530',last4:'8530',employee:member});
     const statement={format:'csv',name:'synthetic-coaster-8531.csv',issuer:'synthetic-coaster-8530',category:t.c.office,content:'Date,Merchant,Amount,Id\n2026-06-10,synthetic-coaster-8531,10.00,synthetic-coaster-8531',mapping:{dateFormat:'YYYY-MM-DD',sign:'purchases-positive',postedDate:'Date',description:'Merchant',amount:'Amount',transactionId:'Id',wholeFileLast4:'8530'}};
-    const preview=await h.post('statements/preview',statement);
-    const imported=await h.post('statements/commit',{...statement,fingerprint:preview.fingerprint});
+    const preview=await h.post(['statements','preview'].join('/'),statement);
+    const imported=await h.post(['statements','commit'].join('/'),{...statement,fingerprint:preview.fingerprint});
     const cardView=await h.get(`claims/${imported.claims[0]}`,t.sam);
     let card=(await h.post(`claims/${cardView.claim.id}/receipts`,{version:cardView.claim.version,item:cardView.items[0].id,...await receipt('officeworks')},t.sam)).claim;
     card=await h.post(`claims/${card.id}/submit`,{version:card.version},t.sam);
@@ -86,15 +87,42 @@ export async function proveAccountingCorrections(options = {}) {
     let unrelated=await purchase('synthetic-coaster-8522',[{kind:'mileage',distance:'20'}]);
     unrelated=await h.post(`claims/${unrelated.id}/decision`,{version:unrelated.version,revision:unrelated.revision,decision:'approved',acknowledge:true},t.priya);
     let queued=await h.post('batches',{claims:[unrelated.id]});queued=await h.post(`batches/${queued.id}/approve`,{version:queued.version,expectedTotal:queued.total_minor});
-    await h.post('accounting/desktop/connect',{company:'synthetic-coaster-8523',consent:true});
-    await h.post('accounting/desktop/sync',{});
-    assert.ok((await h.get('accounting/desktop')).requests.some(q=>q.kind==='BillAdd'&&q.status==='pending'),'the ordinary connector door queues a real bill');
+    await h.post(['accounting','desktop','connect'].join('/'),{company:'synthetic-coaster-8523',consent:true});
+    await h.post(['accounting','desktop','sync'].join('/'),{});
+    assert.ok((await h.get(['accounting','desktop'].join('/'))).requests.some(q=>q.kind==='BillAdd'&&q.status==='pending'),'the ordinary connector door queues a real bill');
     unrelated=(await h.get(`claims/${unrelated.id}`)).claim;
     unrelated=(await correct(unrelated,bookkeeper,'synthetic-coaster-8524')).claim;
     assert.equal((await h.get(`batches/${queued.id}`)).batch.status,'draft','a queued bill correction requires a new batch review');
     c=(await correct(c,h.owner,'synthetic-coaster-8525')).claim;
+    // Current authority is checked again inside the write, after the native request was admitted.
+    const revokeView=await h.get(`claims/${c.id}/accounting-coding`), own=revokeView.corrections.filter(row=>row.item_id===revokeView.effective[0].id);
+    const body={version:c.version,revision:c.revision,item:revokeView.effective[0].id,sequence:own.at(-1).sequence,accounts:['synthetic-coaster-8540'],reason:'Correct native account'};
+    let entered,release;
+    const paused=new Promise(resolve=>entered=resolve),continued=new Promise(resolve=>release=resolve);
+    onCorrection=async()=>{entered();await continued;};
+    const pending=h.post(`claims/${c.id}/accounting-coding`,body,bookkeeper,409);
+    await paused;
+    const bookkeeperEmail=(await h.get('state',bookkeeper)).actor.email;
+    const beforeRevocation=await preserved();
+    await h.post(['settings','members'].join('/'),{email:bookkeeperEmail,name:'synthetic-coaster-8501',employee:true,bookkeeper:false});
+    release();await pending;onCorrection=undefined;
+    assert.deepEqual((await preserved()).corrections,beforeRevocation.corrections,'authority withdrawal aborts the admitted correction');
+    assert.deepEqual((await preserved()).revisions,beforeRevocation.revisions);
+    assert.equal((await h.get(`claims/${c.id}`)).claim.version,c.version);
+    await correct(c,bookkeeper,'synthetic-coaster-8541',403);
+    const full=await h.post('delegates',{grantor:(await h.get('state',t.morgan)).actor.email,delegate:member,level:'full'});
+    const delegated=await h.send(`/api/coaster/claims/${c.id}/accounting-coding`,body,t.sam,{'x-coaster-acting-for':(await h.get('state',t.morgan)).actor.email});
+    assert.equal(delegated.status,200,'an existing Full delegate keeps the coding grant');
+    c=delegated.value.claim;
+    const delegatedRow=delegated.value.corrections.find(row=>row.item_id===body.item && row.sequence===body.sequence+1);
+    assert.equal(delegatedRow.actor_email,member);
+    assert.equal(delegatedRow.on_behalf_of,(await h.get('state',t.morgan)).actor.email);
+    await h.post(`delegates/${full.id}/revoke`,{});
+    const afterDelegation=await preserved();
+    const refusedDelegate=await h.send(`/api/coaster/claims/${c.id}/accounting-coding`,{...body,version:c.version,sequence:body.sequence+1,accounts:['synthetic-coaster-8542']},t.sam,{'x-coaster-acting-for':(await h.get('state',t.morgan)).actor.email});
+    assert.equal(refusedDelegate.status,403);assert.deepEqual(await preserved(),afterDelegation,'revoked delegation cannot write or resurrect authority');
     const evidence=await h.get(`claims/${c.id}/accounting-coding`);
-    assert.equal(evidence.effective[0].allocations[0].account_code,'synthetic-coaster-8525');
+    assert.equal(evidence.effective[0].allocations[0].account_code,'synthetic-coaster-8540');
     assert.deepEqual(evidence.original,frozen.items);
     for(const sql of ["UPDATE c_accounting_corrections SET reason='changed'",'DELETE FROM c_accounting_corrections',"UPDATE c_batch_accounting_coding SET selections='[]'",'DELETE FROM c_batch_accounting_coding']) await assert.rejects(h.db.prepare(sql).run(),/permanent/);
     return {claim:c.id,unrelated:unrelated.id,corrections:(await h.db.prepare('SELECT * FROM c_accounting_corrections ORDER BY id').all()).results,selections:(await h.db.prepare('SELECT * FROM c_batch_accounting_coding ORDER BY batch_id,claim_id,generation').all()).results};

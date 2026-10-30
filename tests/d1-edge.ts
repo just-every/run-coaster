@@ -36,6 +36,8 @@ export function databaseAtEdge(env: any): D1Database {
         const statements = prepared.map(item => ({ sql: queries.get(item) ?? '' }));
         if (statements.some(item => /INSERT INTO c_(?:program_feeds|gusto_connection)\b/.test(item.sql)))
           await env.DB_GATE.fetch('https://d1-edge.test/before-provider-connection', { method: 'POST', body: JSON.stringify({ statements }) });
+        if (statements.some(item => /INSERT INTO c_accounting_corrections/.test(item.sql)))
+          await env.DB_GATE.fetch('https://d1-edge.test/before-accounting-correction');
         if (statements.some(item => /INSERT INTO c_proposals|UPDATE c_proposals SET status='accepted'/.test(item.sql)))
           await env.DB_GATE.fetch('https://d1-edge.test/before-close-review');
         if (statements.some(item => /INSERT INTO c_account_corrections\b/.test(item.sql)))

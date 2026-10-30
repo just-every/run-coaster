@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8a11a382eff41e89ae81b70ba09ae8734af871678e0a0497c4ea78412b3ebd47",
+      "sha256": "65123ab8cebe724f570b4bec46ef394e5c4d6aa5b1ed03fca34835010b299a22",
       "executable": false
     },
     "DEMO.md": {
@@ -1376,7 +1376,7 @@
       "executable": false
     },
     "src/coaster/accounting/desktop/posting.ts": {
-      "sha256": "217e440154cbf51f413973bb5a67dba28ddd6626a20076efa6be65a5c3b4e738",
+      "sha256": "b14369a09f8ed5c4d636293b09892109f289974a7bf9de253ea71286b1d20c5b",
       "executable": false
     },
     "src/coaster/accounting/desktop/xml.ts": {
@@ -4408,7 +4408,7 @@
       "executable": false
     },
     "tests/accounting-corrections.mjs": {
-      "sha256": "070faf5c0d8231a3e8e5fa4481fddce8c1666e8b3a9bc5044b596577a71f928b",
+      "sha256": "1fd204444d3dd39128ebdd0f8a05526de3cdc101bd1b799d3fdd30b18e8e1e0c",
       "executable": false
     },
     "tests/archive-data.mjs": {
@@ -4604,7 +4604,7 @@
       "executable": false
     },
     "tests/d1-edge.ts": {
-      "sha256": "65c5dddef5cd5216e3ac8e7c1fb585012c3dfa5b0c126c283c8e0308183c0082",
+      "sha256": "e335aef6a26256f052dc9b44760c39b337c331ee452063785a733463567cbdd8",
       "executable": false
     },
     "tests/fixtures/bank.mjs": {
