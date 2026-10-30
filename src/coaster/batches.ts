@@ -1,3 +1,4 @@
+import { batchCorrections } from './accounting/coding-corrections';
 import { all, authority, commit, need, sha256Hex, type Sql } from './session';
 import { finalApproval } from './approval-chain';
 import { event, ruleEvent } from './events';
@@ -78,6 +79,7 @@ async function openBatch(db: D1Database, id: string, claims: Claim[], keys: Awai
   return [
     db.prepare("INSERT INTO c_batches(id,number,status,currency,total_minor,created_by,created_at,prepared_by) VALUES(?,?,'draft',?,?,?,?,?)").bind(id, number, claims[0].currency, total, by, at, detail.preparedBy ?? null),
     ...claims.flatMap(c => [
+      db.prepare('INSERT INTO c_batch_coding(batch_id,claim_id,revision,correction_sequence) SELECT ?,?,?,COALESCE(MAX(sequence),0) FROM c_account_corrections WHERE claim_id=?').bind(id,c.id,c.revision,c.id),
       db.prepare('INSERT INTO c_batch_claims(batch_id,claim_id,revision,amount_minor) VALUES(?,?,?,?)').bind(id, c.id, c.revision, pays(c)),
       db.prepare("UPDATE c_claims SET status='batched',batch_id=?,version=version+1,updated_at=? WHERE id=?").bind(id, at, c.id),
       line('claim-batched', { claim: c.id, batch: id }, { claim: claimNumber(c.number), batch: batchNumber(number), ...(applied.has(c.id) ? { advance: advanceNumber(applied.get(c.id)!.number), advanceAppliedMinor: applied.get(c.id)!.appliedMinor, amountMinor: pays(c) } : {}) }),
@@ -220,7 +222,7 @@ export async function batchLines(db: D1Database, id: string) {
     db.prepare('SELECT email AS id FROM c_members WHERE is_contractor=1'),
   ]).then(r => r.map(x => new Set((x.results as { id: string }[]).map(y => y.id))));
   for (const row of results) {
-    const snapshot = JSON.parse(row.snapshot);
+    const snapshot = JSON.parse(row.snapshot), corrections = await batchCorrections(db, id, row.claim_id, row.revision);
     // The ledger memo names anyone who acted for someone else: a delegate who submitted, or approved on an approver's behalf.
     const memo = [row.submitted_by !== row.employee_email && `submitted by ${row.submitted_by} on behalf of ${row.employee_email}`, row.on_behalf_of && `approved by ${row.approver} on behalf of ${row.on_behalf_of}`,
       snapshot.exceptions.some((e: Data) => e.code === 'needs-pre-approval') && `approved without a spend request: ${row.approval_reason}`].filter(Boolean).join('; ');
@@ -235,7 +237,10 @@ export async function batchLines(db: D1Database, id: string) {
       const flags = snapshot.exceptions.filter((e: Data) => e.item === item.id).map((e: Data) => e.code).join(' ');
       // An itemized part's own description (room, tax, in-room dining) stands for the expense's on its accounting line.
       const line = (category: string, account: string, tax: string, costCentre: string, amountMinor: number, part = '', originalMinor: number | null = null) => lines.push({ claim: claimNumber(row.number), employee: row.employee_email, date: item.spent_on, merchant: item.merchant, description: part || item.description, kind: item.kind, billable: !!item.billable, customer: item.customer ?? '', project: item.project ?? '', category, account, tax, costCentre, amountMinor, originalMinor, originalCurrency: item.original_currency ?? '', exchangeRate: item.fx_rate ?? '', rateDate: item.fx_date ?? '', rateSource: item.fx_source ?? '', perDiem: item.per_diem ? JSON.stringify(item.per_diem) : '', receipt: item.receipt?.sha256 ?? '', receiptId: item.receipt?.id ?? '', employeeName: row.employee_name ?? row.employee_email, exceptions: flags, explanation: flags ? item.explanation : '', approver: expenseApproval?.actor??row.approver, approvedAt: expenseApproval?.at??row.approved_at, memo, taxable, form1099 });
-      for (const part of item.allocations) line(part.category_name, part.account_code, part.tax_code, part.cost_centre, part.amount_minor, part.description, part.original_minor ?? null);
+      for (const part of item.allocations) {
+        const selected = corrections.filter(c => c.item_id === item.id && c.allocation_position === part.position).at(-1);
+        line(part.category_name, selected?.after_account ?? part.account_code, part.tax_code, part.cost_centre, part.amount_minor, part.description, part.original_minor ?? null);
+      }
       // A receipt's sales tax posts on its own line to the sales tax account and code copied onto the expense.
       if (item.sales_tax_minor) line('Sales tax', item.sales_tax_account, item.sales_tax_code, '', item.sales_tax_minor, '', item.original_sales_tax_minor ?? null);
     }
