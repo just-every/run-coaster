@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d6c4bf448b53a45b8a74c6780212fa5924aa9e25670ee12e935bb1da06ee1b0c",
+      "sha256": "8d07accd7d6c2f0150437c5c8b269979c08840efca607e8ed220b9dea060bc7b",
       "executable": false
     },
     "DEMO.md": {
@@ -4484,7 +4484,7 @@
       "executable": false
     },
     "tests/coaster-feed-health.test.mjs": {
-      "sha256": "1b8f6b02b54ac01eb30f107b3eaf533c61c964e66aba451b647fee0e934c0dfb",
+      "sha256": "63f4be924e77809995d39285f8d9ec3e4008ed534d7727859f136c1e40f10bba",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {

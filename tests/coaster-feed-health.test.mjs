@@ -50,9 +50,11 @@ test('Mapped SFTP delivery health and authorized coverage reports preserve sourc
     issuer.files.set(n(2017)+'.csv',file(n(2018),'2031-06-29',n(2019),{end:'2031-06-30'}))
     issuer.files.set(n(2040)+'.csv',file(n(2041),'2031-07-01',n(2042)))
     issuer.files.set(n(2043)+'.csv',file(n(2044),'2031-02-30',n(2045)))
+    issuer.files.set(n(2049)+'.csv',file(n(2050),'2031-06-29',n(2051))+file(n(2050),'2031-06-30',n(2052)).split('\n').slice(1).join('\n'))
+    issuer.files.set(n(2053)+'.csv',file(n(2054),'2031-06-29',n(2055)).split('\n').map(line=>line.split(',').slice(0,6).join(',')).join('\n'))
     await tick('2031-06-30T13:17:00Z')
     assert.equal((await report()).rows[0][3],'uncovered','ambiguous period evidence stays unverified')
-    for(const seq of [n(2018),n(2041),n(2044)]) assert.equal((await h.get(endpoint)).deliveries.find(d=>d.issuer_sequence===seq).coverage_date,null,'ambiguous, future and invalid source dates stay unverified')
+    for(const seq of [n(2018),n(2041),n(2044),n(2050),n(2054)]) assert.equal((await h.get(endpoint)).deliveries.find(d=>d.issuer_sequence===seq).coverage_date,null,'ambiguous, future, invalid, mixed-row and missing source periods stay unverified')
     const upload={name:n(2020)+'.csv',format:'csv',issuer:n(2009),category:category.id,mapping:mapped,content:file(n(2021),'2031-06-29',n(2022))}
     const preview=await h.post('statements/preview',upload)
     await h.post('statements/commit',{...upload,fingerprint:preview.fingerprint})
@@ -134,7 +136,7 @@ test('Mapped SFTP delivery health and authorized coverage reports preserve sourc
     const pollsBeforeDeadline=issuer.requests.length
     await tick('2031-06-29T13:17:00Z')
     assert.deepEqual((await changes()).filter(r=>r.feed_id===daily.id),[],'a slow poll cadence does not shorten the grace period')
-    await tick('2031-06-29T14:17:00Z')
+    await Promise.all([tick('2031-06-29T14:17:00Z'),tick('2031-06-29T14:17:00Z')])
     const dailyMisses=(await changes()).filter(r=>r.feed_id===daily.id)
     assert.deepEqual(dailyMisses.map(r=>[r.delivery_date,r.kind]),[['2031-06-29','missed']],'hourly health history records a deadline even when the daily transport poll is not due')
     assert.equal(issuer.requests.length,pollsBeforeDeadline,'health checks do not accelerate the configured SFTP polling cadence')
@@ -148,7 +150,7 @@ test('Mapped SFTP delivery health and authorized coverage reports preserve sourc
     assert.deepEqual((await changes()).filter(r=>r.feed_id===daily.id),dailyMisses,'disconnect stops independent health checks as well as transport')
     console.log('PROBE FEED-003 calendar: real scheduled SFTP before grace -> no miss; after grace -> dated immutable miss')
     console.log('PROBE FEED-003 cadence: daily SFTP poll before grace, hourly handler after grace -> one numbered miss without an extra poll; replay and disconnect -> no new history')
-    console.log('PROBE FEED-003 evidence: wrong date, ambiguous period, invalid file, upload and empty poll -> gap retained; late evidenced file -> only its date covered')
+    console.log('PROBE FEED-003 evidence: wrong date, mixed rows, missing or ambiguous period, invalid file, upload and empty poll -> gap retained; late evidenced file -> only its date covered')
     console.log('PROBE FEED-003 reports: authorized JSON, CSV and scheduled attachment -> exact dates; replay -> one delivery')
     console.log('PROBE FEED-003 authority: forbidden roles and in-flight disconnect -> no charge or coverage commit; DST gap and fold -> expected deadlines')
   } finally {await h?.close();await issuer.close()}
