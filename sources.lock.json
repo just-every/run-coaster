@@ -6732,7 +6732,7 @@
       "executable": false
     },
     "tests/journeys/screens-card-chases.mjs": {
-      "sha256": "7cc4b2de74605e8d6303f0ef53018837f9253b4bb5eb8f5786a064c70d4708ba",
+      "sha256": "4e9b920926cf671fd403a57b66d06af354dfa82af27b597dbdb8d345d0fb834f",
       "executable": false
     },
     "tests/journeys/screens-cash-attachment.mjs": {
