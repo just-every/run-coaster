@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "53712d2373cee03d21f09c3c2bf408710fbe1fcebbcd91c71ce27d5c560e72e7",
+      "sha256": "d5642b65d1c5eed6f9be55066b08aac36c63867b3d2cd7354b8243cbacf8d527",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "8b9b4cd224b28350497710cadfe56a1e98daafd44af1aa89aea58c28f87c0ba4",
+      "sha256": "f23893bf129b8a00e0fd1384bb7c36b11ba621699a374c2bcc29e23288125cf4",
       "executable": false
     },
     "base-copies.json": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "55d10374dbf831665bb7a4b52c235e8e1b47ce117f054b4eb9920a60d0eac5c1",
+      "sha256": "155c532a306cb354f98602e53bacc3ce7f8cbd221517e46faba6ef6eab0a1f50",
       "executable": false
     },
     "DEMO.md": {
@@ -356,7 +356,7 @@
       "executable": false
     },
     "docs/claims.md": {
-      "sha256": "cec74787e237c8ae6db6dbfa66b39b25da06343878e2cf58dd43a38a931cf3f5",
+      "sha256": "c4a1e783acbad9e6c8cc9faa5773fa29dda1dee81481de5d84a72e0ab525c771",
       "executable": false
     },
     "docs/deploy.md": {
@@ -1136,7 +1136,7 @@
       "executable": false
     },
     "scripts/installer/account-corrections-archive.mjs": {
-      "sha256": "b8903c4abf80d63ac98de558d80856ae15b2e831cd6ae1259b683758e3f13b33",
+      "sha256": "bcfb79f45d52620a0ad9a769810e48c4458848fed2f4c7110e5626e07200d040",
       "executable": false
     },
     "scripts/installer/automatic-coding-archive.mjs": {
@@ -1356,7 +1356,7 @@
       "executable": false
     },
     "src/coaster/accounting/coding-corrections.ts": {
-      "sha256": "b416668a7c68bdc129e7c0a92ad25ce7e7346ddc5309350a0086ed0de09922ad",
+      "sha256": "26b4531ae48257c28dfe32560047b405713375a3d42bab44b0dac670f3d9bee2",
       "executable": false
     },
     "src/coaster/accounting/desktop/index.ts": {
@@ -4388,11 +4388,11 @@
       "executable": false
     },
     "tests/account-correction-kit.mjs": {
-      "sha256": "1f7726a836f0bdb1872c6e1d72d5ca9865d9b2300de52e1b9eddf759df52c6eb",
+      "sha256": "8585e92ac7361343fc586c9b5f095cafd9118b31c8a9f8fef93be69279176b7a",
       "executable": false
     },
     "tests/accounting-corrections-archive.mjs": {
-      "sha256": "b4c02bc85202352e0db38bf816979e0de8195c3936076d01fc1b58a9c07824dd",
+      "sha256": "846ac4adf8d8c6ef779a187602be41c05a517c339babf6ab390a2813ad67248e",
       "executable": false
     },
     "tests/archive-data.mjs": {
@@ -4468,7 +4468,7 @@
       "executable": false
     },
     "tests/coaster-accounting-corrections.test.mjs": {
-      "sha256": "59a3b22e6f9bc0236f037ef85edab63d366d60b2e6b7053f1c858f105e6370fc",
+      "sha256": "6f09bd2d0f4bee11811f5bd2c3a079f3a4d6a80726dd2bb366809918611d0dae",
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {
