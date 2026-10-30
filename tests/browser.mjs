@@ -30,7 +30,11 @@ const phases = {
     const evidence=resolve(process.env.COASTER_EVIDENCE??'.cache/receipt-custody-proof')
     await (await import('./journeys/browser-receipt-custody.mjs')).runReceiptCustodyJourney({evidence})
   },
-  cash: async () => (await import('./journeys/browser-cash-attachment.mjs')).runCashAttachmentJourney({evidence:resolve(process.env.COASTER_EVIDENCE??'.cache/cash-attachment-proof')}),
+  cash: async () => {
+    await (await import('./journeys/browser-cash-attachment.mjs')).runCashAttachmentJourney({evidence:resolve(process.env.COASTER_EVIDENCE??'.cache/cash-attachment-proof')})
+    await import('./browser-accounting-corrections.mjs')
+    await import('./accounting-corrections-archive.mjs')
+  },
   preparations: async () => (await import('./journeys/browser-preparations.mjs')).runPreparationJourney(),
   'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),

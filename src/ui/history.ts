@@ -5,6 +5,7 @@ export function describe(e: D, names: Record<string, string> = {}) {
   const who = names[e.actor_email] ?? e.actor_email, d = e.detail ?? {}, agent = d.agent && !e.action.startsWith('proposal-') ? ` (through ${d.agent})` : '';
   const words: Record<string, string> = {
     'native-work-proposed': `${who} requested a ${d.preparation} proposal`, 'trip-expenses-grouped': `${who} grouped expenses into a trip draft`,
+    'account-code-corrected': `${who} corrected account ${d.before || 'not set'} to ${d.after} on revision ${d.revision}: ${d.reason}`,
     'claim-created': `Started by ${who}`, 'claim-renamed': `Renamed by ${who} to “${d.title}”`,
     'expense-added': `${who} added ${d.merchant} · ${money(d.amountMinor ?? 0)}`, 'expense-changed': `${who} changed ${d.merchant}`, 'expense-removed': `${who} removed ${d.merchant}`,
     'receipt-signal-reviewed': `${who} reviewed receipt/spend signal (${d.code}) on revision ${d.revision} · ${d.note}`,
