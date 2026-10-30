@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { promisify } from 'node:util';
-import { execFile } from 'node:child_process';
 import { fresh, command } from './browser-runtime.mjs';
 import { records, rows, tampered } from './browser-archive.mjs';
 import { harness } from './harness.mjs';
@@ -14,8 +12,6 @@ const roots=[];let h;
 try {
   const source=await fresh(),destination=await fresh();roots.push(source,destination);
   for(const root of roots) {
-    await promisify(execFile)('git',['config','user.name','Run Edit Run fleet'],{cwd:root});
-    await promisify(execFile)('git',['config','user.email','fleet@runeditrun.com'],{cwd:root});
     await command(root,['install']);
   }
   h=await harness({persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only'});
@@ -33,6 +29,7 @@ try {
   const archive=join(source,'exports/corrections.rer'),original=rows(await records(archive));
   await command(destination,['export','--output','exports/empty.rer']);
   const empty=rows(await records(join(destination,'exports/empty.rer')));
+  let refusalIndex=0;
   for(const [table,mutate] of [
     ['c_account_corrections',row=>{row.before_account='not-the-submitted-code';}],
     ['c_account_corrections',row=>{row.sequence+=4;}],
@@ -43,8 +40,9 @@ try {
     await writeFile(join(destination,'exports/invalid.rer'),await tampered(archive,table,mutate),{mode:0o600});
     const log=await command(destination,['import','--input','exports/invalid.rer','--yes'],{expected:4});
     assert.match(log,/coaster_account_corrections/);
-    await command(destination,['export','--output','exports/after-refusal.rer']);
-    assert.deepEqual(rows(await records(join(destination,'exports/after-refusal.rer'))),empty,'malformed coding evidence writes no destination rows');
+    const afterPath=`exports/after-refusal-${++refusalIndex}.rer`;
+    await command(destination,['export','--output',afterPath]);
+    assert.deepEqual(rows(await records(join(destination,afterPath))),empty,'malformed coding evidence writes no destination rows');
   }
   await copyFile(archive,join(destination,'exports/corrections.rer'));
   await command(destination,['import','--input','exports/corrections.rer','--yes']);
