@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { promisify } from 'node:util';
-import { execFile } from 'node:child_process';
 import { fresh, command } from './browser-runtime.mjs';
 import { records, rows, tampered } from './browser-archive.mjs';
 import { harness } from './harness.mjs';
@@ -14,8 +12,6 @@ const roots=[];let h;
 try {
   const source=await fresh(),destination=await fresh();roots.push(source,destination);
   for(const root of roots) {
-    await promisify(execFile)('git',['config','user.name','Run Edit Run fleet'],{cwd:root});
-    await promisify(execFile)('git',['config','user.email','fleet@runeditrun.com'],{cwd:root});
     await command(root,['install']);
   }
   h=await harness({persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only'});
