@@ -38,7 +38,10 @@ const phases = {
   },
   'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),
-  signals: async () => (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney(),
+  signals: async () => {
+    await (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney();
+    await (await import('./journeys/browser-feed-repairs.mjs')).runFeedRepairJourney();
+  },
   desktop: async () => {
     await (await import('./journeys/browser-desktop-connection.mjs')).runDesktopConnectionJourney();
     await (await import('./journeys/browser-accounting-corrections.mjs')).runAccountingCorrectionJourney();
