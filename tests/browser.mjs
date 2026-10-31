@@ -53,7 +53,7 @@ await mkdir(evidence, { recursive: true })
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
 let root, second, server, browser
 const shots = [], journeys = []
-const launch = () => chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'] })
+const launch = () => chromium.launch({ headless: true, ...((process.env.CHROMIUM_PATH || process.env.COASTER_CHROMIUM) ? { executablePath: process.env.CHROMIUM_PATH || process.env.COASTER_CHROMIUM } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] })
 /** Everything the owner can see, with each claim's full history, for before/after restore comparison. */
 async function everything(context, origin) {
   const state = await api(context, origin, 'state')
@@ -122,7 +122,7 @@ try {
   assert.equal(before.batches.length, 6); assert.ok(before.claims.every(c => c.claim.status === 'reimbursed'))
   await owner.context.close(); await browser.close(); browser = undefined; await server.close(); server = undefined
 
-  // Repeated setup, the actual build/preview verbs and the credential-free dry-run refusal.
+  // Repeated setup, build/preview and local-only deploy planning retain sender validation.
   await command(root,['setup','--owner-email','owner@harbourfinch.example','--port',String(port)])
   await command(root,['build'])
   server=await startCli(root,port,'preview')
@@ -130,16 +130,23 @@ try {
   assert.equal((await fetch(server.origin+'/api/coaster/state')).status,401)
   await server.close();server=undefined
   // Reserved fixture domains must never stand in for a verified production sender.
-  const refusedSender=await command(root,['deploy','--dry-run'],{expected:4,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <synthetic-coaster-1@coaster.example.test>'}})
+  const refusedSender=await command(root,['deploy'],{expected:4,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <synthetic-coaster-1@coaster.example.test>'}})
   assert.match(refusedSender,/MAIL_FROM is invalid or a placeholder sender/)
   assert.match(refusedSender,/Nothing was built or uploaded/)
-  const dry=await command(root,['deploy','--dry-run'],{expected:3,env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:''}})
+  const dry=await command(root,['deploy','--dry-run'],{env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:''}})
   assert.match(dry,/Your application is built/)
-  assert.match(dry,/cannot read the target secret bindings without Cloudflare credentials/)
-  assert.match(dry,/Nothing was deployed/)
+  assert.match(dry,/no Cloudflare requests were made and nothing was changed remotely/)
+  assert.match(dry,/Target secrets and remote readiness were not checked/)
   const needed=dry.slice(dry.indexOf('Needed for a real deploy'))
   assert.match(needed,/production sign-in mail: MAIL_FROM/)
   assert.doesNotMatch(needed,/MAIL_API_KEY/)
+  // With a valid sender the local plan needs no sign-in mail input, but still proves no remote readiness.
+  const configuredDry=await command(root,['deploy','--dry-run'],{env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <coaster@harbourfinch.com>'}})
+  assert.match(configuredDry,/Your application is built/)
+  assert.match(configuredDry,/no Cloudflare requests were made and nothing was changed remotely/)
+  assert.match(configuredDry,/Target secrets and remote readiness were not checked/)
+  assert.match(configuredDry,/Needed for a real deploy/)
+  assert.doesNotMatch(configuredDry.slice(configuredDry.indexOf('Needed for a real deploy')),/sign-in mail|MAIL_API_KEY/)
   const archive = join(evidence, 'installation.rer')
   await rm(archive, { force: true })
   await command(root, ['export', '--output', 'exports/installation.rer'])
