@@ -5,11 +5,12 @@ import ssh2 from 'ssh2'
 export async function issuerServer(files = new Map()) {
   const makeKey = () => generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey.export({ type: 'sec1', format: 'pem' }).toString()
   const hostKey = makeKey(), privateKey = makeKey(), parsed = ssh2.utils.parseKey(privateKey)
-  const hostBlob = ssh2.utils.parseKey(hostKey).getPublicSSH(), requests = [], connections = new Set(), control = { beforeRead: null }
+  const hostBlob = ssh2.utils.parseKey(hostKey).getPublicSSH(), requests = [], connections = new Set(), control = { beforeRead: null, rejectAuthentication: false }
   const server = new ssh2.Server({ hostKeys: [hostKey] }, client => {
     connections.add(client); client.on('close', () => connections.delete(client)); client.on('error', () => {})
     client.on('authentication', ctx => {
       requests.push({ operation: 'authenticate', username: ctx.username })
+      if (control.rejectAuthentication) return ctx.reject()
       if (ctx.method !== 'publickey' || ctx.username !== 'synthetic-coaster-900' || !ctx.key.data.equals(parsed.getPublicSSH())) return ctx.reject()
       if (ctx.signature && !parsed.verify(ctx.blob, ctx.signature, ctx.hashAlgo)) return ctx.reject()
       ctx.accept()

@@ -1,4 +1,5 @@
 import { validateFeedHealthArchive } from './feed-health-archive.mjs';
+import { validateFeedRepairArchive } from './feed-repairs-archive.mjs';
 import { PortabilityError } from '@runeditrun/rer/modules/portability';
 
 /** A portable delivery history has no live transport authority or installation credentials. */
@@ -14,5 +15,6 @@ export async function validateProgramFeedArchive(read) {
   }
   for (const row of deliveries) check(feedIds.has(row.feed_id) && (!row.file_id || files.some(file => file.id === row.file_id && file.source === 'program-feed')) && /^[0-9a-f]{64}$/.test(row.sha256) && typeof row.issuer_sequence === 'string' && row.issuer_sequence.length > 0 && Number.isSafeInteger(row.charges) && row.charges >= 0);
   await validateFeedHealthArchive(read);
+  await validateFeedRepairArchive(read);
   for (const file of files.filter(row => row.source === 'program-feed')) check(deliveries.some(row => row.file_id === file.id));
 }

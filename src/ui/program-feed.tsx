@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { call, type D } from './api';
 import { Details, Field, Form, Section } from './parts';
+import { FeedRepairs } from './feed-repairs';
 
 const columns = [['postedDate', 'Posted date column'], ['transactionId', 'Transaction ID column'], ['description', 'Merchant column'], ['amount', 'Amount column'], ['card', 'Card last four column'], ['sequence', 'Issuer sequence column'], ['transactionDate', 'Purchase date column'], ['currency', 'Currency column'], ['status', 'Status column'], ['type', 'Transaction type column'], ['mcc', 'Merchant category code column'], ['periodStart', 'Delivery period start column'], ['periodEnd', 'Delivery period end column']];
 
 /** Explicit connection of a read-only issuer delivery channel. Credentials are never returned to the browser. */
 export function ProgramFeed({ state }: { state: D }) {
-  const [data, setData] = useState<D>(), [error, setError] = useState('');
-  async function load() { try { setData(await call('feeds/program')); setError(''); } catch (e) { setError((e as Error).message); } }
+  const [data, setData] = useState<D>(), [repairs, setRepairs] = useState<D>(), [error, setError] = useState('');
+  async function load() { try { const [feeds, tasks] = await Promise.all([call('feeds/program'), call('feeds/repairs')]); setData(feeds); setRepairs(tasks); setError(''); } catch (e) { setError((e as Error).message); } }
   useEffect(() => { load(); }, []);
   return <Section title="Scheduled card program feed" label="Scheduled card program feed">
     <p>Connect an issuer’s SFTP directory of CSV deliveries with an explicit column mapping. Coaster reads files on the hourly schedule, keeps masked originals and imports each delivery once. Assign each card to its employee before the feed arrives. This connection does not issue cards or post a ledger entry.</p>
@@ -18,6 +19,7 @@ export function ProgramFeed({ state }: { state: D }) {
       <p>{feed.health.nextExpected ? `Next expected file: ${feed.health.nextExpected.date} at ${feed.deliveryTime} ${feed.deliveryTimezone}; deadline with grace ${feed.health.nextExpected.deadline}.` : 'No active delivery expectation.'}</p>
       <p>Missed delivery dates: {feed.health.missedDates.length ? feed.health.missedDates.join(', ') : 'None'}. {feed.health.coverage === 'unverified' ? 'Coverage unverified: no delivery calendar is configured.' : 'Only validated source delivery periods establish coverage; missing files never mean zero spend.'}</p>
       {feed.error && <p role="alert">{feed.error}</p>}
+      {repairs && <FeedRepairs feed={feed} repairs={repairs} me={state.actor.email} reload={load} />}
       {feed.enabled && <Form label={`Disconnect ${feed.issuer}`} onSubmit={async values => { await call(`feeds/program/${feed.id}/disconnect`, { version: feed.version, consent: values.consent }); await load(); }}><Field label="I confirm this feed must stop future connections and imports" name="consent" type="checkbox" /></Form>}
       <Details label={`Health history for ${feed.issuer}`}><ul>{feed.health.history.map((line: D) => <li key={line.seq}>#{line.seq} · {line.delivery_date} · {line.kind} · {line.at}</li>)}</ul></Details>
       <Details label={`Deliveries from ${feed.issuer}`}><ul>{data.deliveries.filter((d: D) => d.feed_id === feed.id).map((delivery: D) => <li key={delivery.id}>{delivery.name} · sequence {delivery.issuer_sequence} · {delivery.charges} charges · {delivery.received_at} · {delivery.coverage_date ? `covers ${delivery.coverage_date}` : 'period unverified'}</li>)}</ul></Details>

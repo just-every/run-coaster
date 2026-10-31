@@ -4,6 +4,7 @@ import { person } from '../session';
 import { actingAs } from '../delegates';
 import { Fault, requireThat, type Data } from '../types';
 import { connectProgramFeed, disconnectProgramFeed, programFeeds } from './configuration';
+import { confirmFeedRepair, declineFeedRepair, feedRepairs, prepareFeedRepair, resolveFeedRepair } from '../agents/feed-repairs';
 
 export const programFeedApi=new Hono<{Bindings:Bindings}>();
 programFeedApi.onError((error,c)=>error instanceof Fault?c.json({error:error.message},error.status as 400):error instanceof SyntaxError?c.json({error:'The request body must be JSON'},400):c.json({error:'The program feed request could not be completed'},500));
@@ -19,3 +20,9 @@ programFeedApi.post('/program',async c=>{
   return c.json(await connectProgramFeed(runtimeBindings(c.env),actor,await object(c.req.raw)));
 });
 programFeedApi.post('/program/:id/disconnect',async c=>c.json(await disconnectProgramFeed(runtimeBindings(c.env),await feedActor(c.req.raw,c.env),c.req.param('id'),await object(c.req.raw))));
+// AGENT-004: the feed repair agent prepares on request; the person confirms, declines and resolves in their own session.
+programFeedApi.get('/repairs',async c=>c.json(await feedRepairs(runtimeBindings(c.env).DB,await feedActor(c.req.raw,c.env))));
+programFeedApi.post('/program/:id/repairs',async c=>c.json(await prepareFeedRepair(runtimeBindings(c.env).DB,await feedActor(c.req.raw,c.env),c.req.param('id'))));
+programFeedApi.post('/repairs/:id/confirm',async c=>c.json(await confirmFeedRepair(runtimeBindings(c.env).DB,await feedActor(c.req.raw,c.env),c.req.param('id'),await object(c.req.raw))));
+programFeedApi.post('/repairs/:id/decline',async c=>c.json(await declineFeedRepair(runtimeBindings(c.env).DB,await feedActor(c.req.raw,c.env),c.req.param('id'))));
+programFeedApi.post('/repair-tasks/:id/resolve',async c=>c.json(await resolveFeedRepair(runtimeBindings(c.env).DB,await feedActor(c.req.raw,c.env),c.req.param('id'))));

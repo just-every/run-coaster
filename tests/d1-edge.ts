@@ -44,6 +44,8 @@ export function databaseAtEdge(env: any): D1Database {
           await env.DB_GATE.fetch('https://d1-edge.test/before-close-review');
         if (statements.some(item => /INSERT INTO c_account_corrections\b/.test(item.sql)))
           await env.DB_GATE.fetch('https://d1-edge.test/before-account-correction');
+        if (statements.some(item => /INSERT INTO c_feed_repair_|UPDATE c_feed_repair_proposals/.test(item.sql)))
+          await env.DB_GATE.fetch('https://d1-edge.test/before-feed-repair');
         return target.batch(prepared);
       };
       const value = Reflect.get(target, key, target);
