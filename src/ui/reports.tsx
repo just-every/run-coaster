@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiHref, call, type D } from './api';
 import { Empty, Field, Form, Section } from './parts';
 
-const REPORTS = [['aging', 'Reimbursement aging'], ['cycle-time', 'Approval cycle time'], ['receipts', 'Receipt compliance'], ['unsubmitted', 'Unsubmitted spend for accruals'], ['exceptions', 'Policy exception trends']].map(([value, label]) => ({ value, label }));
+const REPORTS = [['aging', 'Reimbursement aging'], ['cycle-time', 'Approval cycle time'], ['receipts', 'Receipt compliance'], ['unsubmitted', 'Unsubmitted spend for accruals'], ['exceptions', 'Policy exception trends'], ['feed-coverage', 'Feed coverage']].map(([value, label]) => ({ value, label }));
 
 const CADENCES = [{ value: 'last-business-day', label: 'Last US business day of each month, month to date' }, { value: 'first-business-day', label: 'First US business day of each month, for the month before' }];
 const titleOf = (report: string) => REPORTS.find(r => r.value === report)?.label ?? report;
@@ -11,13 +11,14 @@ const titleOf = (report: string) => REPORTS.find(r => r.value === report)?.label
 export function Reports({ owner, schedules: canSchedule }: { owner: boolean; schedules: boolean }) {
   const [shown, setShown] = useState<D>(), [query, setQuery] = useState(''), [schedules, setSchedules] = useState<D[]>([]);
   useEffect(() => { call('report-schedules').then(setSchedules, () => setSchedules([])); }, []);
-  return <Section title="Reports">
+  return <Section title="Reports" label="Reports">
     <p className="muted">Aging of approved claims not yet paid, approval cycle time per approver, receipt compliance, unsubmitted spend for month-end accruals and policy exception trends. Dates are in the business time zone; both ends count.</p>
     <Form label="Run report" onSubmit={async v => { const q = new URLSearchParams({ ...(v.from ? { from: v.from } : {}), ...(v.to ? { to: v.to } : {}) }).toString(); setShown(await call(`reports/${v.report}${q ? `?${q}` : ''}`)); setQuery(q); }}>
       <Field label="Report" name="report" options={REPORTS} defaultValue="aging" />
       <Field label="From" name="from" type="date" required={false} hint="Defaults to the first of this month" />
       <Field label="Until" name="to" type="date" required={false} hint="Defaults to today" />
     </Form>
+    {shown?.report === 'feed-coverage' && <p>Coverage dates use each feed’s delivery time zone. Uncovered and unverified dates never establish zero spend; source files establish only their validated delivery periods.</p>}
     {shown && <div className="report">
       <h3>{shown.title} · {shown.period.from} to {shown.period.to}</h3>
       {shown.rows.length ? <table className="plain"><thead><tr>{shown.columns.map((c: string) => <th key={c}>{c}</th>)}</tr></thead><tbody>

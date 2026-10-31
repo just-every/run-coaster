@@ -70,6 +70,7 @@
     "migrations/core/0086_account_corrections.sql",
     "migrations/core/0087_accounting_corrections.sql",
     "migrations/core/0088_business_settings.sql",
+    "migrations/core/0088_program_feed_health.sql",
     "migrations/core/0089_business_people.sql",
     "migrations/core/0090_agent_door.sql"
   ]

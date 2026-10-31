@@ -547,6 +547,12 @@
     },
     {
       "binding": "DB",
+      "name": "0088_program_feed_health.sql",
+      "sha256": "ea1f46ad02a68ac901f9bcdb6973ac23203e57a470c077b8fe9872ac2c95365a",
+      "sql": "-- Daily expectations are explicit; legacy connections make no coverage claim.\nALTER TABLE c_program_feeds ADD COLUMN delivery_time TEXT;\nALTER TABLE c_program_feeds ADD COLUMN delivery_timezone TEXT;\nALTER TABLE c_program_feeds ADD COLUMN grace_minutes INTEGER;\nALTER TABLE c_program_feeds ADD COLUMN expected_from TEXT;\nALTER TABLE c_program_deliveries ADD COLUMN coverage_date TEXT;\nCREATE TABLE c_program_health (\n seq INTEGER PRIMARY KEY AUTOINCREMENT,\n feed_id TEXT NOT NULL REFERENCES c_program_feeds(id),\n delivery_date TEXT NOT NULL,\n kind TEXT NOT NULL CHECK(kind IN ('missed','covered')),\n delivery_id TEXT REFERENCES c_program_deliveries(id),\n at TEXT NOT NULL,\n UNIQUE(feed_id,delivery_date,kind),\n CHECK((kind='covered' AND delivery_id IS NOT NULL) OR (kind='missed' AND delivery_id IS NULL))\n);\nCREATE TRIGGER c_program_health_no_update BEFORE UPDATE ON c_program_health BEGIN SELECT RAISE(ABORT,'program health history is permanent'); END;\nCREATE TRIGGER c_program_health_no_delete BEFORE DELETE ON c_program_health BEGIN SELECT RAISE(ABORT,'program health history is permanent'); END;\n"
+    },
+    {
+      "binding": "DB",
       "name": "0089_business_people.sql",
       "sha256": "51aa39622d866b987d71b6e37c9a8300e7f24c54a55611edaab669ed051b01cd",
       "sql": "ALTER TABLE bs_settings ADD COLUMN owner_id TEXT CHECK(owner_id IS NULL OR owner_id <> '');\nALTER TABLE bs_team ADD COLUMN business_id TEXT CHECK(business_id IS NULL OR business_id <> '');\nALTER TABLE bs_team ADD COLUMN business_role TEXT CHECK(business_role IS NULL OR business_role IN('admin','member'));\nCREATE UNIQUE INDEX bs_team_business_id ON bs_team(business_id) WHERE business_id IS NOT NULL;\n"
