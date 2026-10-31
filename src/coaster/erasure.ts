@@ -20,6 +20,7 @@ const ADDRESS: [string, string[]][] = [
   ['c_receipt_mail_messages',['sender','owner_email']], ['c_receipt_mail_settings',['set_by']],
   ['c_payroll_handoffs', ['created_by']], ['c_gusto_connection', ['connected_by']], ['c_bank_providers', ['connected_by']], ['c_bank_settings', ['set_by']],
   ['c_program_feeds', ['connected_by']], ['c_receipt_reading_settings', ['set_by']], ['c_receipt_readings', ['actor_email', 'on_behalf_of']],
+  ['c_feed_repair_proposals', ['for_email', 'decided_by']], ['c_feed_repair_tasks', ['assignee']], ['c_feed_repair_resolutions', ['resolved_by']],
   ['c_auto_coding_rules',['owner_email','set_by']], ['c_auto_coding_contexts',['employee_email']], ['c_auto_coding_suggestions',['employee_email']], ['c_auto_coding_feedback',['actor_email']], ['c_auto_coding_observations',['employee_email']],
   ['c_workflow_tasks', ['email','on_behalf_of']], ['c_approval_workflows',['created_by']],
   ['c_claims', ['employee_email', 'approver_email', 'prepared_by', 'on_behalf_of', 'held_by']],

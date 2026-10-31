@@ -229,6 +229,13 @@ test('Feed repair confirmation and resolution fence role, membership, feed versi
     await s.resolve(secondTask.id,s.finance,409)
     assert.equal((await h.get(repairs,s.finance)).tasks.find(t=>t.id===secondTask.id).status,'open','a changed feed version cannot resolve its task')
     await s.prepare(s.finance,409)
+    const people=()=>h.db.prepare('SELECT json_array((SELECT json_group_array(json_array(for_email,decided_by)) FROM c_feed_repair_proposals),(SELECT json_group_array(assignee) FROM c_feed_repair_tasks),(SELECT json_group_array(resolved_by) FROM c_feed_repair_resolutions)) AS v').first().then(r=>r.v)
+    assert.ok((await people()).includes(financeAddress))
+    await h.post('settings/members',{email:financeAddress,name:n(3004),finance:true,active:false})
+    const {subject}=(await h.post('settings/members/erase',{email:financeAddress})).retained
+    assert.ok(!(await people()).includes(financeAddress)&&(await people()).includes(subject),'erasure replaces the address on every repair proposal, task and resolution')
+    assert.deepEqual((await h.get(repairs)).tasks.map(t=>[t.status,t.assignee]),[['resolved',subject],['open',subject]],'repair tasks stay as attributable history under the opaque subject')
+    console.log('PROBE AGENT-004 erasure: deactivated assignee erased -> opaque subject on every proposal, task and resolution; tasks retained')
     console.log('PROBE AGENT-004 authority: delegate 403, agent key and public credential 401, withdrawn role 403, in-flight role, membership and evidence changes 409 with full rollback')
     console.log('PROBE AGENT-004 concurrency: two confirmations -> one task; two analyses -> one pending proposal; feed disconnected during resolution -> 409 and task stays open')
   } finally {await h?.close();await issuer.close()}
