@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "441ed7fc0780437b8cd121f7dbbe1182260339629cfb274786c6157537d91177",
+      "sha256": "c8c6216c05c84bd40617db20fc0c091c1f8c656f3dca69786c0bf1b0bb0dec73",
       "executable": false
     },
     "DEMO.md": {
@@ -4920,7 +4920,7 @@
       "executable": false
     },
     "tests/agent-door/fixtures.mjs": {
-      "sha256": "31f8245dd37c1bfe5658897e05b4c32ffb9302f5410988c5a876e19705802421",
+      "sha256": "54e4d18342309b72b025412a3d09c7a951ef10c05a2f0e3a12b756c5c73bb3f5",
       "executable": false
     },
     "tests/agent-door/http.mjs": {
@@ -4928,7 +4928,7 @@
       "executable": false
     },
     "tests/agent-door/native.mjs": {
-      "sha256": "6cecc9bf588672706b563429e3d65ca5b041e33ebb77aaa134963b925e88f31f",
+      "sha256": "c2d03dee851d7d47ee5942bf55ebea292ea50cef8a14189f75ecceca389e2116",
       "executable": false
     },
     "tests/agent-door/negative-sponsor.mjs": {
@@ -5008,7 +5008,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "ba286802744b71b450bf468423271c99e50cbb2908704673ed0a02a6cbcf91e7",
+      "sha256": "c1e3ac25061451134abfd22c23f63fd67efa251bb07abea92727b47b0164a786",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -5032,7 +5032,7 @@
       "executable": false
     },
     "tests/coaster-agent-resources.test.mjs": {
-      "sha256": "db5875b711b8afd214a620c9a422c8a5da4a9ebefb57c9a515fa4d55157ef814",
+      "sha256": "46c6a3ae0410aef1062460fd7c8fd273a3f8aca1fcb978eb6a0083e91622b512",
       "executable": false
     },
     "tests/coaster-agents.test.mjs": {
@@ -7245,6 +7245,10 @@
     },
     "tests/journeys/browser-accounting-corrections.mjs": {
       "sha256": "0489426aab8d094c34e89ffba9d78bb4112216b449e94535ecda481f6e615cad",
+      "executable": false
+    },
+    "tests/journeys/browser-agent-resources.mjs": {
+      "sha256": "41e819f6350cb56631b7f7fd50e99b9ca7ada3f7113c75919ad5151e07fd50b9",
       "executable": false
     },
     "tests/journeys/browser-cash-attachment.mjs": {
