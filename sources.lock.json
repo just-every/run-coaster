@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "93cd2653fbc3098b5c7a3de67df9a95caca75951ef65ec8f6e197ecb067ca8ae",
+      "sha256": "a1db814b4efc3b1d549a7aebf37818fc1ab783985ab0bd14a16b1c439ae6abae",
       "executable": false
     },
     "DEMO.md": {
@@ -1192,7 +1192,7 @@
       "executable": false
     },
     "scripts/installer/feed-repairs-archive.mjs": {
-      "sha256": "778e97f1a706c7f99dc19dead688e21ff0e53f984a9b523e9acf9bab0397a1a8",
+      "sha256": "b08d91cec2bedf1f28ef2b3e6d42a09b2bb782f496de2bb928d5dd0f58348f7c",
       "executable": false
     },
     "scripts/installer/liability-archive.mjs": {
@@ -1476,7 +1476,7 @@
       "executable": false
     },
     "src/coaster/agents/feed-repairs.ts": {
-      "sha256": "07dcfa4a7bbff85ad27cbed1e3ee87ffdeeae7dd6f37a5456c862e7ca4bfa92e",
+      "sha256": "2ba78c598d565c86901df007d1faa90ceead3573cd5f7034a925025e69d66d94",
       "executable": false
     },
     "src/coaster/agents/preparations.ts": {
@@ -5088,7 +5088,7 @@
       "executable": false
     },
     "tests/coaster-feed-repairs.test.mjs": {
-      "sha256": "62067878f79dd9452e009ccf4b99818027e639cdb8bb4cd58420f8b30586b5b9",
+      "sha256": "4a89959901c6782ef6a9f6c65b863fa38b95d547ebb41cbc8e8445170e648b46",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
@@ -5176,7 +5176,7 @@
       "executable": false
     },
     "tests/feed-repairs-archive.mjs": {
-      "sha256": "720e85573f4184b07c7c1f07468ea70c1b296562690868f720028bab0e35997b",
+      "sha256": "1998cc490163a2ba77b6a9c1d577c7599d581eedb6802666ca4649453875b05d",
       "executable": false
     },
     "tests/fixtures/bank.mjs": {

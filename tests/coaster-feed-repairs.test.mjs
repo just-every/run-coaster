@@ -39,11 +39,15 @@ async function installation(h,issuer) {
 }
 
 test('Missed mapped SFTP deliveries become cited repair proposals and person-confirmed tasks once, resolving only on validated coverage of the exact date',async()=>{
-  const issuer=await issuerServer();let h
+  const issuer=await issuerServer();let h,pause
   try {
-    h=await harness({clock,bindings:origin=>({RER_DEV_ORIGIN:origin})})
+    h=await harness({clock,bindings:origin=>({RER_DEV_ORIGIN:origin}),d1Barrier:async request=>{
+      if(request.url.endsWith('/before-feed-repair')&&pause){const action=pause;pause=null;await action()}
+      return new Response('open')
+    }})
     const s=await installation(h,issuer),feed=s.feed.id
     const history=async()=>(await h.get('history',s.finance)).lines.filter(l=>l.action.startsWith('feed-repair-'))
+    const lastFailure=async()=>(await h.get('history',s.finance)).lines.findLast(l=>l.action==='program-feed-sync-failed')
     await s.tick('2031-06-29T13:17:00Z')
     let result=await s.inert(()=>s.prepare())
     assert.equal(result.proposal,null,'no task is proposed before the scheduled health check records a miss')
@@ -53,21 +57,36 @@ test('Missed mapped SFTP deliveries become cited repair proposals and person-con
     issuer.control.rejectAuthentication=true
     await s.tick('2031-06-29T14:17:00Z')
     issuer.control.rejectAuthentication=false
-    const failure=(await h.get('history',s.finance)).lines.findLast(l=>l.action==='program-feed-sync-failed')
+    const failure=await lastFailure()
     const recorded=(await s.inert(()=>s.prepare())).proposal
     assert.equal(recorded.evidence.cause,'recorded-failure','a recorded connection failure is reported as recorded, with its numbered history line')
     assert.deepEqual(recorded.evidence.failure,{seq:failure.seq,at:failure.at,reason:failure.detail.reason})
     assert.equal(recorded.evidence.error,failure.detail.reason)
     assert.deepEqual(recorded.evidence.action,{label:'Review connection settings',href:'/app#/settings',automatic:false},'connection settings stay a human action')
+    issuer.files.set(n(3011)+'.csv','not,the,configured,headers\n1,2,3,4\n')
     await s.tick('2031-06-29T15:17:00Z')
+    const mapping=await lastFailure()
+    assert.notEqual(mapping.detail.reason,failure.detail.reason,'the next scheduled run records a different failure on a new line')
     await s.confirm(recorded.id,s.finance,409)
+    assert.equal((await h.get(repairs,s.finance)).tasks.length,0,'a proposal citing an earlier failure line opens nothing')
+    const remapped=(await s.inert(()=>s.prepare())).proposal
+    assert.notEqual(remapped.id,recorded.id,'changed failure evidence supersedes the pending proposal')
+    assert.deepEqual([remapped.evidence.failure,remapped.evidence.error],[{seq:mapping.seq,at:mapping.at,reason:mapping.detail.reason},mapping.detail.reason])
+    pause=()=>s.tick('2031-06-29T16:17:00Z')
+    await s.confirm(remapped.id,s.finance,409)
+    assert.ok((await lastFailure()).seq>mapping.seq,'the same error recorded again on a newer line while confirming')
+    assert.equal((await h.get(repairs,s.finance)).tasks.length,0,'the commit guard refuses a failure line that is no longer the latest')
+    issuer.files.delete(n(3011)+'.csv')
+    await s.tick('2031-06-29T17:17:00Z')
+    await s.confirm(remapped.id,s.finance,409)
     assert.equal((await h.get(repairs,s.finance)).tasks.length,0,'a proposal whose connection evidence changed opens nothing')
 
     const miss=await h.db.prepare("SELECT seq,at FROM c_program_health WHERE kind='missed' AND delivery_date='2031-06-29'").first()
     const proposal=(await s.inert(()=>s.prepare())).proposal
     assert.equal((await h.get(repairs,s.finance)).proposals.find(p=>p.id===recorded.id).status,'superseded')
+    assert.equal((await h.get(repairs,s.finance)).proposals.find(p=>p.id===remapped.id).status,'superseded')
     assert.equal(proposal.evidence.cause,'missing-delivery','a successful poll with no file is a missing delivery, not a failed sign-in')
-    assert.equal(proposal.evidence.error,null);assert.equal(proposal.evidence.lastPollAt,'2031-06-29T15:17:00.000Z')
+    assert.equal(proposal.evidence.error,null);assert.equal(proposal.evidence.lastPollAt,'2031-06-29T17:17:00.000Z')
     assert.deepEqual(proposal.evidence.findings,[{date:'2031-06-29',deadline:'2031-06-29T14:00:00.000Z',health:{seq:miss.seq,at:miss.at},report:'/api/coaster/reports/feed-coverage?from=2031-06-29&to=2031-06-29'}])
     assert.deepEqual(proposal.evidence.awaiting.map(d=>d.date),['2031-06-30'])
     assert.deepEqual([proposal.agent,proposal.forEmail,proposal.status],['Feed repair agent',financeAddress,'proposed'])
@@ -131,11 +150,12 @@ test('Missed mapped SFTP deliveries become cited repair proposals and person-con
 
     const actions=await history()
     assert.deepEqual(actions.map(l=>[l.action,l.actor_email]),[
-      ['feed-repair-proposed',financeAddress],['feed-repair-proposed',financeAddress],['feed-repair-proposed',address(3006)],['feed-repair-task-opened',financeAddress],
+      ['feed-repair-proposed',financeAddress],['feed-repair-proposed',financeAddress],['feed-repair-proposed',financeAddress],['feed-repair-proposed',address(3006)],['feed-repair-task-opened',financeAddress],
       ['feed-repair-proposal-declined',address(3006)],['feed-repair-proposed',financeAddress],['feed-repair-proposal-superseded',financeAddress],['feed-repair-task-resolved',financeAddress]])
-    assert.deepEqual(actions.map(l=>l.channel),['agent','agent','agent','app','app','agent','agent','app'],'the agent prepares; people confirm, decline and resolve')
+    assert.deepEqual(actions.map(l=>l.channel),['agent','agent','agent','agent','app','app','agent','agent','app'],'the agent prepares; people confirm, decline and resolve')
     assert.ok(actions.every((l,i)=>(l.channel==='agent'?l.detail.agent:l.detail.preparedBy)==='Feed repair agent'&&(!i||l.seq>actions[i-1].seq)),'numbered, attributed history names the agent')
-    assert.deepEqual([actions[3].detail.task,actions[3].detail.health,actions[7].detail.delivery],[task.id,miss.seq,covered.delivery_id])
+    assert.deepEqual([actions[1].detail.supersedes,actions[2].detail.supersedes],[recorded.id,remapped.id],'each superseding proposal names the one it replaced')
+    assert.deepEqual([actions[4].detail.task,actions[4].detail.health,actions[8].detail.delivery],[task.id,miss.seq,covered.delivery_id])
     for(const [table,column] of [['c_feed_repair_tasks','assignee'],['c_feed_repair_resolutions','resolved_by'],['c_feed_repair_proposals','evidence']]) {
       await assert.rejects(h.db.prepare(`UPDATE ${table} SET ${column}='{}'`).run(),/permanent/)
       await assert.rejects(h.db.prepare(`DELETE FROM ${table}`).run(),/permanent/)
@@ -153,6 +173,7 @@ test('Missed mapped SFTP deliveries become cited repair proposals and person-con
     await h.post(`${feeds}/${legacy.id}/repairs`,{},s.finance,409)
     console.log('PROBE AGENT-004 identification: real SFTP miss after grace -> proposal cites date, deadline, numbered health line and coverage report; before the miss -> nothing proposed')
     console.log('PROBE AGENT-004 cause: rejected SFTP authentication -> recorded failure with history line and human settings action; successful empty poll -> missing delivery')
+    console.log('PROBE AGENT-004 failure evidence: authentication failure then CSV mapping failure -> stale confirmation 409, no task, superseding proposal cites the new line; same error on a newer line during confirmation -> guard 409')
     console.log('PROBE AGENT-004 tasks: explicit confirmation -> one assigned numbered task; replay, second person, repeated analysis and late delivery -> no duplicate')
     console.log('PROBE AGENT-004 resolution: other date, ambiguous period, sequence, empty poll and upload -> 409 open; validated exact-date delivery -> resolved once')
   } finally {await h?.close();await issuer.close()}

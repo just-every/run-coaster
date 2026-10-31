@@ -8,13 +8,18 @@ import { feedDate, hasCalendar } from '../feeds/calendar.mjs';
 const AGENT = 'Feed repair agent', LIMIT = 31;
 type Cause = 'missing-delivery' | 'recorded-failure';
 type Finding = { date: string; deadline: string; health: { seq: number; at: string }; report: string };
+/** What a proposal stands on: its cause, the feed's recorded error, the numbered failure line it cites and its misses. */
+type Evidence = { cause: Cause; error: string | null; failure: Data | null; findings: Finding[] };
 const and = (parts: Sql[]): Sql => ({ sql: parts.map(p => `(${p.sql})`).join(' AND '), params: parts.flatMap(p => p.params) });
+const LATEST_FAILURE = "SELECT MAX(seq) FROM c_events WHERE action='program-feed-sync-failed' AND json_extract(detail,'$.feed')=?";
 
-/** The exact source a repair stands on: the feed at its version and recorded error state, each cited missed line, and
- * still no validated delivery for its date. Both commit guards read it again; dates bind as one JSON value. */
-function source(id: string, version: number, cause: Cause, findings: Finding[]): Sql {
-  return and([feedState(id, version), { sql: `EXISTS(SELECT 1 FROM c_program_feeds WHERE id=? AND last_error IS ${cause === 'recorded-failure' ? 'NOT ' : ''}NULL)`, params: [id] },
-    { sql: "NOT EXISTS(SELECT 1 FROM json_each(?) j WHERE NOT EXISTS(SELECT 1 FROM c_program_health h WHERE h.seq=json_extract(j.value,'$[1]') AND h.feed_id=? AND h.delivery_date=json_extract(j.value,'$[0]') AND h.kind='missed') OR EXISTS(SELECT 1 FROM c_program_health h WHERE h.feed_id=? AND h.delivery_date=json_extract(j.value,'$[0]') AND h.kind='covered') OR EXISTS(SELECT 1 FROM c_program_deliveries d WHERE d.feed_id=? AND d.coverage_date=json_extract(j.value,'$[0]')))", params: [JSON.stringify(findings.map(x => [x.date, x.health.seq])), id, id, id] }]);
+/** The exact source a repair stands on: the feed at its version with exactly the recorded error, a recorded failure's
+ * cited line still its latest failure line, each cited missed line, and still no validated delivery for its date. Both
+ * commit guards read it again; dates bind as one JSON value. */
+function source(id: string, version: number, e: Evidence): Sql {
+  return and([feedState(id, version), { sql: 'EXISTS(SELECT 1 FROM c_program_feeds WHERE id=? AND last_error IS ?)', params: [id, e.error] },
+    ...(e.cause === 'recorded-failure' ? [{ sql: `(${LATEST_FAILURE}) IS ?`, params: [id, e.failure?.seq ?? null] }] : []),
+    { sql: "NOT EXISTS(SELECT 1 FROM json_each(?) j WHERE NOT EXISTS(SELECT 1 FROM c_program_health h WHERE h.seq=json_extract(j.value,'$[1]') AND h.feed_id=? AND h.delivery_date=json_extract(j.value,'$[0]') AND h.kind='missed') OR EXISTS(SELECT 1 FROM c_program_health h WHERE h.feed_id=? AND h.delivery_date=json_extract(j.value,'$[0]') AND h.kind='covered') OR EXISTS(SELECT 1 FROM c_program_deliveries d WHERE d.feed_id=? AND d.coverage_date=json_extract(j.value,'$[0]')))", params: [JSON.stringify(e.findings.map(x => [x.date, x.health.seq])), id, id, id] }]);
 }
 const open = (id: string): Sql => ({ sql: "EXISTS(SELECT 1 FROM c_feed_repair_proposals WHERE id=? AND status='proposed')", params: [id] });
 
@@ -28,7 +33,7 @@ export async function analyseFeed(db: D1Database, f: Feed, at = new Date()) {
   const missed = (await db.prepare("SELECT seq,delivery_date,at FROM c_program_health WHERE feed_id=? AND kind='missed'").bind(f.id).all<Data>()).results;
   const tasks = (await db.prepare('SELECT seq,id,delivery_date FROM c_feed_repair_tasks WHERE feed_id=?').bind(f.id).all<Data>()).results;
   const cause: Cause = f.last_error ? 'recorded-failure' : 'missing-delivery';
-  const failure = f.last_error ? await db.prepare("SELECT seq,at,json_extract(detail,'$.reason') AS reason FROM c_events WHERE action='program-feed-sync-failed' AND json_extract(detail,'$.feed')=? ORDER BY seq DESC LIMIT 1").bind(f.id).first<Data>() : null;
+  const failure = f.last_error ? await db.prepare(`SELECT seq,at,json_extract(detail,'$.reason') AS reason FROM c_events WHERE seq=(${LATEST_FAILURE})`).bind(f.id).first<Data>() : null;
   const findings: Finding[] = [], tracked: Data[] = [], awaiting: Data[] = [];
   for (const d of dates.filter(d => d.status === 'uncovered')) {
     const task = tasks.find(t => t.delivery_date === d.date), line = missed.find(m => m.delivery_date === d.date);
@@ -39,8 +44,9 @@ export async function analyseFeed(db: D1Database, f: Feed, at = new Date()) {
   // One proposal opens at most a month of dates; later dates are proposed once these are handled.
   const counts = Object.fromEntries(['covered', 'uncovered', 'pending', 'inactive'].map(status => [status, dates.filter(d => d.status === status).length])), deferred = Math.max(0, findings.length - LIMIT);
   findings.splice(LIMIT);
+  // The stamp covers everything a proposal cites: a different error or a newer failure line is changed evidence.
   return { ...common, coverage: 'source-period-only', cause, failure, findings, tracked, awaiting, counts, deferred,
-    stamp: await sha256Hex(JSON.stringify([f.id, f.version, cause, findings.map(x => [x.date, x.deadline, x.health.seq])])),
+    stamp: await sha256Hex(JSON.stringify([f.id, f.version, cause, f.last_error, failure?.seq ?? null, findings.map(x => [x.date, x.deadline, x.health.seq])])),
     note: cause === 'recorded-failure' ? 'The latest scheduled run recorded an error, so Coaster cannot tell whether the issuer delivered these dates. Review the connection settings yourself; nothing reconnects automatically.' : 'The last successful directory poll found no validated delivery for these dates. A missing file does not show that sign-in or authentication failed.' };
 }
 
@@ -76,7 +82,7 @@ export async function prepareFeedRepair(db: D1Database, actor: Actor, id: string
   const pending = await db.prepare("SELECT * FROM c_feed_repair_proposals WHERE feed_id=? AND for_email=? AND status='proposed'").bind(f.id, actor.email).first<Data>();
   if (!analysis.stamp || pending?.stamp === analysis.stamp) return { analysis, proposal: pending ? proposalView(pending) : null };
   if (!pending && !analysis.findings.length) return { analysis, proposal: null };
-  const at = now(), proposal = uid(), { stamp, ...evidence } = analysis, state = source(f.id, f.version, analysis.cause, analysis.findings);
+  const at = now(), proposal = uid(), { stamp, ...evidence } = analysis, state = source(f.id, f.version, analysis);
   const writes = pending ? [db.prepare("UPDATE c_feed_repair_proposals SET status='superseded',decided_by=?,decided_at=? WHERE id=?").bind(actor.email, at, pending.id)] : [];
   if (analysis.findings.length) writes.push(
     db.prepare("INSERT INTO c_feed_repair_proposals(id,feed_id,feed_version,for_email,agent_label,evidence,stamp,status,created_at) VALUES(?,?,?,?,?,?,?,'proposed',?)").bind(proposal, f.id, f.version, actor.email, AGENT, JSON.stringify(evidence), stamp, at),
@@ -96,14 +102,14 @@ export async function confirmFeedRepair(db: D1Database, actor: Actor, id: string
   const f = await feed(db, p.feed_id);
   requireThat(f?.enabled && f.version === p.feed_version, 'The program feed changed; prepare a new repair proposal', 409);
   requireThat((await analyseFeed(db, f)).stamp === p.stamp, 'Delivery evidence changed since this proposal was prepared; prepare a new repair proposal', 409);
-  const evidence = JSON.parse(p.evidence) as { cause: Cause; findings: Finding[] }, at = now();
+  const evidence = JSON.parse(p.evidence) as Evidence, at = now();
   const writes = [db.prepare("UPDATE c_feed_repair_proposals SET status='accepted',decided_by=?,decided_at=? WHERE id=?").bind(actor.email, at, p.id)];
   for (const x of evidence.findings) {
     const task = uid();
     writes.push(db.prepare('INSERT INTO c_feed_repair_tasks(id,feed_id,feed_version,delivery_date,deadline,missed_seq,cause,proposal_id,assignee,agent_label,opened_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(task, f.id, p.feed_version, x.date, x.deadline, x.health.seq, evidence.cause, p.id, actor.email, p.agent_label, at),
       event(db, actor, 'feed-repair-task-opened', {}, { task, proposal: p.id, preparedBy: p.agent_label, feed: f.id, date: x.date, deadline: x.deadline, health: x.health.seq, cause: evidence.cause }));
   }
-  const state = source(f.id, p.feed_version, evidence.cause, evidence.findings);
+  const state = source(f.id, p.feed_version, evidence);
   const condition = all(auth, open(p.id), state, { sql: "NOT EXISTS(SELECT 1 FROM c_feed_repair_tasks t JOIN json_each(?) j ON t.delivery_date=json_extract(j.value,'$[0]') WHERE t.feed_id=?)", params: [JSON.stringify(evidence.findings.map(x => [x.date])), f.id] });
   condition.after = all(auth, state);
   await commit(db, condition, writes);
