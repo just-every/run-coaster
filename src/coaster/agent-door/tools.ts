@@ -1,6 +1,7 @@
 import { ToolRefusal, type ToolDefinition, type JsonSchemaObject, type JsonSchema, type ToolContext } from '../../modules/agent-door/index.ts';
 import { agentContext, agentProposal, proposeBatch, proposeClaim } from '../agents';
 import { nativeAgent } from './people';
+import { proposalLink } from './resources';
 import { Fault, text } from '../types';
 import { business } from '../settings';
 import { categories, itemInput } from '../items';
@@ -51,7 +52,10 @@ export function coasterTools(): ToolDefinition[] {
       inputSchema: object({ title: string, note: { type: 'string', maxLength: 2000 }, items: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'object' } } }, ['title', 'items']),
       classify: claimFacts,
       summary: async (args, ctx) => ({ target: { id: ctx.person.id, name: ctx.person.name }, items: [String(args.title), `${Array.isArray(args.items) ? args.items.length : 0} proposed expenses; human acceptance required`] }),
-      run: async (args, ctx) => ({ result: await native(() => nativeAgent(ctx).then(a => proposeClaim(ctx.db, a, args))) }) },
+      run: async (args, ctx) => {
+        const result = await native(() => nativeAgent(ctx).then(a => proposeClaim(ctx.db, a, args)));
+        return { result, resources: [proposalLink(result.id)] };
+      } },
     { ...common, name: 'coaster.batches.propose', title: 'Prepare a batch proposal', description: 'Finance proposes approved claims for human review. This neither creates nor releases a reimbursement batch.',
       scope: 'proposals:write', readOnly: false,
       inputSchema: object({ claims: { type: 'array', minItems: 1, maxItems: 200, items: string }, note: { type: 'string', maxLength: 2000 } }, ['claims']),
@@ -61,6 +65,9 @@ export function coasterTools(): ToolDefinition[] {
         return [{ class: 'standard', facts: { measure: (args.claims as string[]).length } }];
       },
       summary: async (args, ctx) => ({ target: { id: ctx.person.id, name: ctx.person.name }, items: args.claims as string[] }),
-      run: async (args, ctx) => ({ result: await native(() => nativeAgent(ctx).then(a => proposeBatch(ctx.db, a, args))) }) },
+      run: async (args, ctx) => {
+        const result = await native(() => nativeAgent(ctx).then(a => proposeBatch(ctx.db, a, args)));
+        return { result, resources: [proposalLink(result.id)] };
+      } },
   ];
 }

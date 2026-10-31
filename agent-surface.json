@@ -4,6 +4,7 @@
   "specialist": "Expense controller",
   "capabilities": [
     "tools",
+    "resources",
     "policy",
     "pause",
     "audit",
@@ -101,7 +102,7 @@
       "reason": "device"
     }
   ],
-  "resources": [],
+  "resources": ["coaster://proposals/{id}"],
   "witness": {
     "tool": "coaster.workspace.get",
     "args": {}

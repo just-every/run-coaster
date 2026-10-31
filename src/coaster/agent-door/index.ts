@@ -3,9 +3,10 @@ import { operatorAuth, runtimeBindings, type Bindings } from '../../auth.server'
 import { coasterPeople } from './people';
 import { coasterBusiness } from './business';
 import { coasterTools } from './tools';
+import { coasterResources } from './resources';
 import { agent } from '../session';
 
-export const capabilities = ['tools', 'policy', 'pause', 'audit', 'idempotency'] as const;
+export const capabilities = ['tools', 'resources', 'policy', 'pause', 'audit', 'idempotency'] as const;
 function trust(env: Bindings): Trust | null {
   const { RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId, RER_OWNER_CLAIM_PUBLIC_KEYS: keys } = env;
   if (![issuer, installationId, keys].some(Boolean)) return null;
@@ -16,7 +17,7 @@ export async function coasterAgentDoor(original: Bindings) {
   const env = runtimeBindings(original);
   const name = String(await coasterBusiness(env).resolve('display_name', 'Coaster'));
   return createAgentDoor({ seed: 'coaster', name, specialist: 'Expense controller', db: env.DB, origin: env.AUTH_ORIGIN, trust: trust(env), capabilities,
-    people: coasterPeople(env), tools: coasterTools(), resources: [],
+    people: coasterPeople(env), tools: coasterTools(), resources: coasterResources(),
     notTools: [ { clauses: ['COA-010'], reason: 'screen' }, { clauses: ['COA-011'], reason: 'import-door' }, { clauses: ['COA-012', 'COA-013'], reason: 'installation' }, { clauses: ['CAPTURE-002', 'API-001'], reason: 'connector' }, { clauses: ['CAPTURE-001'], reason: 'device' } ],
     async localCredentials(request) {
       if (!request.headers.get('authorization')?.startsWith('Bearer cst_')) return null;

@@ -15,7 +15,7 @@ export function coasterPeople(env: Bindings): PeopleAdapter {
   return { ...native, person: async id => admitted(await native.person(id)), sponsor: async claims => admitted(await native.sponsor(claims)), session: async r => admitted(await native.session(r)) };
 }
 
-export async function nativeAgent(ctx: ToolContext): Promise<Actor> {
+export async function nativeAgent(ctx: Pick<ToolContext, 'db' | 'person' | 'agent' | 'clientId'>): Promise<Actor> {
   const member = await ctx.db.prepare(`SELECT m.*,o.id AS operatorId FROM c_members m JOIN oa_operators o ON lower(o.email)=m.email
     WHERE o.id=? AND m.email=? AND o.status='active' AND m.active=1`).bind(ctx.person.id, ctx.person.email.toLowerCase()).first<MemberFlags & { name: string; operatorId: string }>();
   if (!member) throw new ToolRefusal('native_authority_required');

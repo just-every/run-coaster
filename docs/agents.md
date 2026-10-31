@@ -11,7 +11,7 @@ A key acts only for you and only while you can sign in. It cannot submit, approv
 Coaster serves one shared agent door at `/mcp`, discovery and canonical metadata,
 `/api/rer/agent-policy`, and native person policy, approval, review and audit pages
 at `/agents`. The specialist is **Expense controller**. The declared capability
-families are tools, policy, pause, audit and idempotency. Resources, prompts,
+families are tools, resources, policy, pause, audit and idempotency. Prompts,
 events and subscriptions are undeclared and return typed refusals.
 
 | Tool | Scope | Classes | Clauses |
@@ -27,8 +27,16 @@ it does not replace the separate native human acceptance, submission, approval,
 batch review and payment controls. Proposal payloads are private, untrusted
 expense content and are conservatively classified sensitive. The context returns
 only the existing personal-agent projection. Hidden and missing proposals have
-the same refusal. No resource links, receipt-byte reader or financial-decision
-tool is advertised. Screen, device, connector, import and installation doors
+the same refusal. Claim and batch preparation return a resource link to the exact
+created proposal. The sole template, `coaster://proposals/{id}`, reads through
+`proposals:read` and the same native proposal service. It returns the existing
+own-proposal fields, with standard and sensitive classification and the
+`com.runeditrun/untrusted` marker on expense content. Company approval can
+withhold resource content; it grants no native acceptance or decision authority.
+Current active membership and key revocation still apply on every read. Native
+conversations and human preparations stay hidden. No receipt-byte reader or
+financial-decision tool is advertised. Byte-budget enforcement, resource refresh
+and other record families remain open. Screen, device, connector, import and installation doors
 retain their separate purposes. The existing narrow personal-key REST API below
 retains its native preparation contract; it is not a Business policy transport.
 

@@ -1,4 +1,5 @@
 import { receiveEmail } from '../src/coaster/receipts/mail-intake'
+import { agentDoorResponse } from '../src/coaster/agent-door'
 import { api } from '../src/coaster/api'
 import { authResponse } from '../src/auth.server'
 import { runHourly } from '../src/coaster/hourly'
@@ -12,6 +13,6 @@ export default {
       await receiveEmail({from:b.from,to:b.to,rawSize:raw.length,raw:new Blob([raw]).stream(),headers:new Headers(),setReject:reason=>{rejected=reason;}} as ForwardableEmailMessage,env);
       return Response.json({rejected});
     }
-    return await authResponse(request, env) ?? api.fetch(request, env, ctx) },
+    return await agentDoorResponse(request, env) ?? await authResponse(request, env) ?? api.fetch(request, env, ctx) },
   async scheduled(controller: ScheduledController, env: any) { await runHourly(env, new Date(controller.scheduledTime)) },
 }
