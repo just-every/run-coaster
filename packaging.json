@@ -24,7 +24,7 @@
     }
   },
   "managed": {
-    "workflowRef": "runeditrun/delivery/.github/workflows/trusted-build.yml@86c8b37399c901bffd9a240dbd1148a65ec83b34",
+    "workflowRef": "runeditrun/delivery/.github/workflows/trusted-build.yml@ff70d729948753ffdcceeca94aad063af2dcd979",
     "artifactFile": "rer-worker-artifact.json",
     "buildProfile": "project",
     "verificationProfiles": [
@@ -43,8 +43,7 @@
         "QBO_ENVIRONMENT",
         "AI_ENABLED",
         "AI_MODEL",
-        "AI_BASE_URL",
-        "OWNER_EMAIL"
+        "AI_BASE_URL"
       ],
       "secretNames": [
         "SESSION_SECRET",
@@ -56,7 +55,8 @@
         "QBO_CLIENT_ID",
         "QBO_CLIENT_SECRET",
         "AI_API_KEY",
-        "INSTALLATION_KEY_PREVIOUS"
+        "INSTALLATION_KEY_PREVIOUS",
+        "RER_BUSINESS_TRUST"
       ],
       "healthPath": "/health",
       "recovery": "Follow OPERATIONS.md: pause writes and scheduled work, retain exact source and private settings, export D1 and R2, restore into fresh empty resources, establish a fresh owner, re-export and compare supported records and receipt bytes before routing traffic. Preserve applied migration names and bytes.",
