@@ -7,14 +7,15 @@ import { categoryFor } from '../cards/plan';
 import { issuerLabel } from '../cards/statement';
 import { optionalText, requireThat, text, uid, now, type Actor, type Data } from '../types';
 import { connectionAuthority, feed, feedState, permittedHost, publicFeed, type Feed } from './model';
+import { calendarInput, feedHealth } from './health';
 import { seal } from './sealing';
 import type { SftpCredentials } from './transport';
 
 export async function programFeeds(env: Bindings, actor: Actor) {
   connectionAuthority(actor);
   const rows = (await env.DB.prepare('SELECT * FROM c_program_feeds ORDER BY connected_at,id').all<Feed>()).results;
-  const deliveries = (await env.DB.prepare('SELECT id,feed_id,name,issuer_sequence,sha256,file_id,charges,received_at FROM c_program_deliveries ORDER BY received_at DESC LIMIT 100').all()).results;
-  return { feeds: rows.map(publicFeed), deliveries };
+  const deliveries = (await env.DB.prepare('SELECT id,feed_id,name,issuer_sequence,sha256,file_id,charges,received_at,coverage_date FROM c_program_deliveries ORDER BY received_at DESC LIMIT 100').all()).results;
+  return { feeds: await Promise.all(rows.map(async f => ({...publicFeed(f), health: await feedHealth(env.DB,f)}))), deliveries };
 }
 export async function connectProgramFeed(env: Bindings, actor: Actor, body: Data) {
   const auth=all(connectionAuthority(actor),await recentProviderSignIn(env,actor,'connecting an SFTP program feed'));
@@ -31,19 +32,25 @@ export async function connectProgramFeed(env: Bindings, actor: Actor, body: Data
   const issuer=issuerLabel(body.issuer),category=text(body.category,'Initial category',100),costCentre=optionalText(body.costCentre,'Cost center',80),interval=body.intervalMinutes??60;
   requireThat(Number.isInteger(interval)&&interval>=60&&interval<=1440&&interval%60===0,'Choose a whole-hour feed cadence from 60 to 1440 minutes');
   requireThat(body.mapping&&typeof body.mapping==='object'&&!Array.isArray(body.mapping),'Provide the explicit program CSV mapping');
-  const allowed=['postedDate','transactionDate','transactionId','description','amount','card','currency','status','type','mcc','sequence','dateFormat','sign'];
+  const allowed=['postedDate','transactionDate','transactionId','description','amount','card','currency','status','type','mcc','sequence','dateFormat','sign','periodStart','periodEnd'];
   requireThat(Object.keys(body.mapping).every(k=>allowed.includes(k)),'This pull adapter supports only its documented mapped CSV fields');
   for(const key of ['postedDate','transactionId','description','amount','card','sequence','dateFormat','sign']) text(body.mapping[key],`CSV ${key}`,100);
   requireThat(['YYYY-MM-DD','MM/DD/YYYY','DD/MM/YYYY'].includes(body.mapping.dateFormat),'Choose the CSV date format');
   requireThat(['purchases-positive','purchases-negative'].includes(body.mapping.sign),'Choose the CSV amount sign convention');
   for(const value of Object.values(body.mapping)) requireThat(typeof value==='string'&&value.length<=100&&!/[\u0000-\u001f]|\d{13,19}/.test(value),'CSV mapping fields must be safe column names');
+  requireThat(Boolean(body.mapping.periodStart)===Boolean(body.mapping.periodEnd),'Map both delivery-period columns or neither');
+  if(body.mapping.periodStart) {
+    const transactionColumns=Object.entries(body.mapping).filter(([key])=>!['periodStart','periodEnd','dateFormat','sign'].includes(key)).map(([,value])=>value);
+    requireThat(body.mapping.periodStart!==body.mapping.periodEnd && !transactionColumns.includes(body.mapping.periodStart) && !transactionColumns.includes(body.mapping.periodEnd),'Delivery-period columns must be distinct from each other and from transaction and sequence columns');
+  }
+  const calendar=calendarInput(body);
   await categoryFor(env.DB,category);
   const liability=body.liability??'company';
   requireThat(['company','individual'].includes(liability),'Choose company or individual card liability');
   const id=uid(),at=now();
   await commit(env.DB,all(auth,{sql:'EXISTS(SELECT 1 FROM c_categories WHERE id=? AND active=1)',params:[category]}),[
-    env.DB.prepare('INSERT INTO c_program_feeds(id,issuer,credentials_sealed,mapping,category_id,cost_centre,interval_minutes,enabled,version,connected_by,connected_at,liability) VALUES(?,?,?,?,?,?,?,1,1,?,?,?)').bind(id,issuer,await seal(env,id,credentials),JSON.stringify(body.mapping),category,costCentre,interval,actor.email,at,liability),
-    event(env.DB,actor,'program-feed-connected',{}, {feed:id,issuer,format:'mapped-csv',transport:'sftp-pull',intervalMinutes:interval,channel:'app',consent:true,liability}),
+    env.DB.prepare('INSERT INTO c_program_feeds(id,issuer,credentials_sealed,mapping,category_id,cost_centre,interval_minutes,enabled,version,connected_by,connected_at,delivery_time,delivery_timezone,grace_minutes,expected_from,liability) VALUES(?,?,?,?,?,?,?,1,1,?,?,?,?,?,?,?)').bind(id,issuer,await seal(env,id,credentials),JSON.stringify(body.mapping),category,costCentre,interval,actor.email,at,calendar.time,calendar.zone,calendar.grace,calendar.from,liability),
+    event(env.DB,actor,'program-feed-connected',{}, {feed:id,issuer,format:'mapped-csv',transport:'sftp-pull',intervalMinutes:interval,channel:'app',consent:true,calendar,liability}),
   ]);
   return publicFeed((await feed(env.DB,id))!);
 }

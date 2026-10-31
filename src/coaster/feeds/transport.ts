@@ -6,7 +6,7 @@ export type SftpCredentials = { host: string; port: number; username: string; pr
 export type Delivery = { name: string; content: string; size: number };
 
 /** Real SSH public-key authentication and host-key verification over the Worker's outbound TCP socket. */
-export async function pullDeliveries(credentials: SftpCredentials, authorized: () => Promise<void>, receive: (file: Delivery) => Promise<void>, knownNames: ReadonlySet<string> = new Set()) {
+export async function pullDeliveries(credentials: SftpCredentials, authorized: () => Promise<void>, receive: (file: Delivery) => Promise<void>, knownNames: ReadonlySet<string> = new Set(), polled: () => Promise<void> = async () => {}) {
   await authorized();
   const client = await connect({ host: credentials.host, port: credentials.port, username: credentials.username, auth: { kind: 'privateKey', privateKey: credentials.privateKey }, hostKeyFingerprint: credentials.hostKeyFingerprint, timeoutMs: 15_000 });
   const deadline = setTimeout(() => { void client.close().catch(() => {}); }, 45_000);
@@ -18,6 +18,8 @@ export async function pullDeliveries(credentials: SftpCredentials, authorized: (
       requireThat(entries.length < 1000, 'The SFTP delivery directory has too many entries; use a dedicated drop', 409);
       entries.push(entry);
     }
+    await authorized();
+    await polled();
     // New names are read first, so rereading a retained old file never starves a later delivery.
     entries.sort((a,b)=>Number(knownNames.has(a.name))-Number(knownNames.has(b.name))||a.name.localeCompare(b.name));
     for (const entry of entries) {
