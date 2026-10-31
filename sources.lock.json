@@ -316,7 +316,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f3cd341db02994f1ae17d0d1ef7ff1d81d3d17022a50df7e03d033444ca1faab",
+      "sha256": "b9d80870d6470b8b42a81f5951eb13a1e0d416463fe8ed02a3176ea9adb44b54",
       "executable": false
     },
     "DEMO.md": {
@@ -772,7 +772,7 @@
       "executable": false
     },
     "migrations/core/0092_feed_repairs.sql": {
-      "sha256": "2aaf4681538aa49846249ff7664f1f061f1e0bc9d71de42e36c3606e92c3eb19",
+      "sha256": "4024c70076443c2c86a24796ab2a04ba0cc700b4ab6a1818bd6b0a20ea2e4b89",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1668,7 +1668,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "4889210d162b14c46ab4f97dc21e0e41977f76d993cbe30859a6cb799c81adb5",
+      "sha256": "590894a3e195ce79d61e86a2114724f0ef60d815113d5841943ee7b7c7354881",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -4576,7 +4576,7 @@
       "executable": false
     },
     "tests/coaster-feed-repairs.test.mjs": {
-      "sha256": "22a5075543bc1aaf34b32e0070c855d6d47eb82e36c2b9a8006077b87488f14b",
+      "sha256": "62067878f79dd9452e009ccf4b99818027e639cdb8bb4cd58420f8b30586b5b9",
       "executable": false
     },
     "tests/coaster-feed.test.mjs": {
