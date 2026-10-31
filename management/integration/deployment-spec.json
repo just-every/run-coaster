@@ -580,8 +580,7 @@
     "QBO_ENVIRONMENT": "sandbox",
     "AI_ENABLED": "false",
     "AI_MODEL": "gpt-6.1-sol",
-    "AI_BASE_URL": "https://api.openai.com/v1",
-    "OWNER_EMAIL": ""
+    "AI_BASE_URL": "https://api.openai.com/v1"
   },
   "secretNames": [
     "SESSION_SECRET",
