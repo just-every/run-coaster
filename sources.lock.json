@@ -416,7 +416,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "3fd2dcfa7111997c3fb234302d92b27ad8ed10482f398278089b5eb9d007f579",
+      "sha256": "6d83a0d62285e61cacca5c931ee26683b00c43f40564dd0b6758365b904e2d56",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -5000,7 +5000,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "a3ed6d98f422e937ada285206ec72a831cc23a9c3b1fbf4365931a5c6f5a1e6f",
+      "sha256": "9355be69d21db3ab8f591dac452697e7d8d1fccc52621c53529df2ee06dbc471",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
