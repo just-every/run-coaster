@@ -18,6 +18,10 @@ Settings shows the last successful directory poll separately from the last accep
 
 The Feed coverage report lists each delivery date as covered, uncovered, pending, inactive or unverified, with its deadline and source file. Dates before the first expectation or without a calendar are unverified; dates after a disconnected feed's last deadline are inactive. It carries no zero-spend assertion. The existing report permissions, CSV download and explicitly authorized report schedules apply. Scheduled adapter acceptance is native transport proof, not actual mailbox delivery. Archives retain source periods and health history, validate coverage against the source before any writes, and restore feeds with execution and credentials disabled.
 
+## Repair tasks
+
+In Settings, an owner, admin or finance member can ask the feed repair agent to check a connected calendar feed. It proposes only dates that have a recorded miss and still no validated delivery, citing each date's deadline with grace, its numbered health line and its coverage report. A recorded feed error is shown as recorded; a successful poll without a file is a missing delivery and is not evidence that sign-in failed. Connection settings stay a human action and nothing reconnects automatically. Confirming the proposal opens one numbered task per feed and date for the confirming person, and only that person can resolve it once a validated delivery covers that exact date. Tasks never treat a missing date as zero spend, change the connection, credentials or schedule, or reprocess anything. Archives restore proposals, tasks and resolutions exactly and refuse forged repair evidence before any writes.
+
 ## Commercial formats and infrastructure still required
 
 Mapped CSV is not an implementation of Amex GL1025, Visa VCF, Mastercard CDF3 or PGP. The following version-matched issuer documentation and sanitized samples are required before those formats can be implemented without guessing:
