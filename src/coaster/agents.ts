@@ -4,7 +4,7 @@ import { event } from './events';
 import { categories, pricedItem } from './items';
 import { insertClaim, insertItem, loadClaim, receiptBytes } from './claims';
 import { createBatch } from './batches';
-import { requireBusiness } from './settings';
+import { business, requireBusiness } from './settings';
 import { now, optionalText, requireThat, text, uid, type Actor, type Data } from './types';
 import { checkedCoding } from './coding/validation';
 
@@ -138,4 +138,21 @@ export async function declineProposal(db: D1Database, actor: Actor, id: string, 
     event(db, actor, 'proposal-declined', {}, { proposal: id, agent: p.agent_label, reason: optionalText(b.reason, 'Reason', 500) }),
   ]);
   return proposal(db, id);
+}
+
+/** The narrow projection already offered to personal preparation agents. */
+export async function agentContext(db: D1Database, actor: Actor) {
+  requireThat(actor.kind === 'agent', 'Agent required', 401);
+  return {
+    for: { email: actor.email, name: actor.name, roles: actor.roles }, agent: actor.agentLabel,
+    business: await business(db), categories: (await categories(db)).filter(x => x.active === 1),
+    approvedClaims: actor.roles.finance ? (await db.prepare("SELECT id,number,employee_email,title,total_minor,currency FROM c_claims WHERE status='approved' ORDER BY number").all()).results : [],
+    proposals: (await db.prepare('SELECT id,kind,status,created_at,decided_at,result_id FROM c_proposals WHERE for_email=? ORDER BY created_at DESC LIMIT 50').bind(actor.email).all()).results,
+  };
+}
+
+export async function agentProposal(db: D1Database, actor: Actor, id: string) {
+  const p = await proposal(db, id);
+  requireThat(p.for_email === actor.email && !p.payload.preparation && !p.payload.nativeConversation, 'Proposal not found', 404);
+  return p;
 }

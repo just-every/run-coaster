@@ -4,6 +4,7 @@ import { seedDemo } from './demo'
 import start from '@tanstack/react-start/server-entry'
 import { dispatch } from './base/dispatch'
 import { staticAssetResponse } from './base/static-assets'
+import { agentDoorResponse } from './coaster/agent-door';
 import { api } from './coaster/api'
 import { lobbyResponse } from './base/lobby'
 import { setupStateResponse } from './base/setup-state'
@@ -24,6 +25,8 @@ function noTransform(response: Response): Response {
 const worker = {
   async email(message, env) { await receiveEmail(message, env) },
   async fetch(request, env, execution) {
+    const door = await agentDoorResponse(request, env)
+    if (door) return door
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
     const auth = await authResponse(request, env)

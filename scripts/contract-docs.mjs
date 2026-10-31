@@ -19,7 +19,7 @@ for (const id of ids) {
   const clause=contract.clauses.find(c=>c.id===id);
   if(!clause) throw Error(`Unknown clause ${id}`);
   const row=source.split('\n')[clause.row-1].split('|').slice(1,-1).map(s=>s.trim());
-  const evidence=clause.text.split('**Acceptance evidence:**')[1]?.trim();
+  const evidence=(clause.text.split('**Acceptance evidence:**')[1] ?? (id.startsWith('BASE-AGENT-') ? clause.text.split('**Acceptance.**')[1] : undefined))?.trim().replace(/\s*\n\s*/g,' ');
   if(!evidence) throw Error(`${id} names no acceptance evidence`);
   const line=`- **${id} — ${clause.title}. Status: ${clause.status}.** ${evidence} Native slice evidence: ${row[4]}${row[4].endsWith('.')?'':'.'}${clause.gap ? ` Open scope: ${clause.gap}` : ''}`;
   const match=new RegExp(`^- \\*\\*${id} — .*?$`,'m');

@@ -39,7 +39,7 @@ export async function concurJourney(owner, origin, width, evidence, shots) {
  await shot('concur-imported')
  const jobs=page.getByRole('region',{name:'Imports',exact:true})
  await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/coaster/import/undo')&&r.status()===200),jobs.getByRole('button',{name:'Undo import',exact:true}).first().click()])
- await page.getByRole('status').filter({hasText:'Import undone'}).waitFor()
+ await page.getByRole('status').filter({hasText:/^Import undone\.$/}).waitFor()
  assert.equal((await api(context,origin,'import')).history.filter(h=>h.source==='concur').length,0)
  await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/coaster/import/undo')&&r.status()===200),jobs.getByRole('button',{name:'Undo import',exact:true}).first().click()])
  assert.ok(!(await api(context,origin,'state')).members.some(m=>m.email===person.email),'MOVE-002 undo removes untouched imported people')
@@ -82,7 +82,7 @@ export async function expensifyJourney(owner,origin,width,evidence,shots){
  const jobs=page.getByRole('region',{name:'Imports',exact:true});
  for(let i=0;i<2;i++){
   await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/coaster/import/undo')&&r.status()===200),jobs.getByRole('button',{name:'Undo import',exact:true}).first().click()]);
-  await page.getByRole('status').filter({hasText:'Import undone'}).waitFor();
+  await page.getByRole('status').filter({hasText:/^Import undone\.$/}).waitFor();
  }
  assert.ok(!(await api(context,origin,'state')).members.some(m=>m.email===data.members[0].email));
  assert.ok(!(await api(context,origin,'import')).history.some(h=>h.reportId===`synthetic-coaster-${width}`));await capture('expensify-undone',jobs);

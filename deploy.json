@@ -13,7 +13,8 @@
   "originVar": "AUTH_ORIGIN",
   "vars": {
     "AUTH_LOCAL": "false",
-    "MAIL_PROVIDER": "resend"
+    "MAIL_PROVIDER": "resend",
+    "MAIL_FROM": ""
   },
   "secrets": [
     {
@@ -33,16 +34,17 @@
       "environment": "MAIL_API_KEY"
     },
     {
-      "binding": "MAIL_FROM",
-      "environment": "MAIL_FROM"
-    },
-    {
       "binding": "INSTALLATION_KEY",
       "environment": "INSTALLATION_KEY"
     },
     {
       "binding": "INSTALLATION_KEY_PREVIOUS",
       "environment": "INSTALLATION_KEY_PREVIOUS",
+      "optional": true
+    },
+    {
+      "binding": "RER_BUSINESS_TRUST",
+      "environment": "RER_BUSINESS_TRUST",
       "optional": true
     }
   ],
