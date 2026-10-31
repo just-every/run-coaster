@@ -288,7 +288,7 @@
       "executable": false
     },
     ".publish-check/config.json": {
-      "sha256": "635a183defae043d92181a1cd5191321529bf49ec73b89ca388e831ed61ff539",
+      "sha256": "5e002d610931384287f5ae14a4190984f22cf5bf38dbe8dfb965920075fb6684",
       "executable": false
     },
     ".publish-check/reviewed.json": {
@@ -416,7 +416,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "3fd2dcfa7111997c3fb234302d92b27ad8ed10482f398278089b5eb9d007f579",
+      "sha256": "6d83a0d62285e61cacca5c931ee26683b00c43f40564dd0b6758365b904e2d56",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -5000,7 +5000,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "a3ed6d98f422e937ada285206ec72a831cc23a9c3b1fbf4365931a5c6f5a1e6f",
+      "sha256": "ba286802744b71b450bf468423271c99e50cbb2908704673ed0a02a6cbcf91e7",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {

@@ -141,8 +141,9 @@ try {
   const needed=dry.slice(dry.indexOf('Needed for a real deploy'))
   assert.match(needed,/production sign-in mail: MAIL_FROM/)
   assert.doesNotMatch(needed,/MAIL_API_KEY/)
-  // With a valid sender the local plan needs no sign-in mail input, but still proves no remote readiness.
-  const configuredDry=await command(root,['deploy','--dry-run'],{env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <coaster@harbourfinch.example>'}})
+  // RFC 9476 reserves .alt for non-DNS use; this valid sender needs no mail input in the local plan.
+  // The plan still proves no remote readiness and never sends mail.
+  const configuredDry=await command(root,['deploy','--dry-run'],{env:{MAIL_API_KEY:'synthetic-test-mail-api-key',MAIL_FROM:'Coaster <coaster@harbourfinch.alt>'}})
   assert.match(configuredDry,/Your application is built/)
   assert.match(configuredDry,/no Cloudflare requests were made and nothing was changed remotely/)
   assert.match(configuredDry,/Target secrets and remote readiness were not checked/)
