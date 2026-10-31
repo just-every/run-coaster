@@ -56,7 +56,7 @@ import { createRequest, decideRequest, reassignRequest } from './requests';
 import { advancesFor, decideAdvance, linkAdvance, payAdvance, recordReturn, requestAdvance } from './advances';
 import { approveBatch, createBatch, markReimbursed, releaseBatch, removeFromBatch } from './batches';
 import { batchFile, periodFile, saveExportTemplate } from './exports';
-import { acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
+import { agentContext, agentProposal, acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
 import { correctCoding } from './accounting/expense-corrections';
 import { auditPack, searchHistory } from './audit';
@@ -253,12 +253,8 @@ api.post('/api/coaster/preparations/expenses/:id', as(async (a, c) => prepareExp
 api.post('/api/coaster/proposals/:id/accept', as(async (a, c) => acceptProposal(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/proposals/:id/decline', as(async (a, c) => declineProposal(db(c), a, param(c, 'id'), await body(c))));
 
-api.get('/api/coaster/agent/context', asAgent(async (a, c) => ({
-  for: { email: a.email, name: a.name, roles: a.roles }, agent: a.agentLabel, business: await business(db(c)), categories: (await categories(db(c))).filter(x => x.active === 1),
-  approvedClaims: a.roles.finance ? (await db(c).prepare("SELECT id,number,employee_email,title,total_minor,currency FROM c_claims WHERE status='approved' ORDER BY number").all()).results : [],
-  proposals: (await db(c).prepare('SELECT id,kind,status,created_at,decided_at,result_id FROM c_proposals WHERE for_email=? ORDER BY created_at DESC LIMIT 50').bind(a.email).all()).results,
-})));
-api.get('/api/coaster/agent/proposals/:id', asAgent(async (a, c) => { const p = await proposal(db(c), param(c, 'id')); requireThat(p.for_email === a.email && !p.payload.preparation && !p.payload.nativeConversation, 'Proposal not found', 404); return p; }));
+api.get('/api/coaster/agent/context', asAgent(async (a, c) => agentContext(db(c), a)));
+api.get('/api/coaster/agent/proposals/:id', asAgent(async (a, c) => agentProposal(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/agent/claims', asAgent(async (a, c) => proposeClaim(db(c), a, await body(c, 8_000_000))));
 api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c), a, await body(c))));
 
