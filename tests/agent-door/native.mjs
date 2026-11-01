@@ -27,10 +27,10 @@ export async function beforeStep(context) {
   if (step.id === 'context') {
     const db = await database('DB');
     const before = await financialState(database);
-    const proposals = await db.prepare('SELECT * FROM c_proposals ORDER BY id').all();
+    const proposals = (await db.prepare('SELECT * FROM c_proposals ORDER BY id').all()).results;
     jobs.set(phase, await nativeClient(context, client => verifyPrompts(client)));
     assert.deepEqual(await financialState(database), before, 'Retrieving static job instructions performs no native financial action');
-    assert.deepEqual(await db.prepare('SELECT * FROM c_proposals ORDER BY id').all(), proposals, 'Static job retrieval creates no proposal and changes no existing proposal');
+    assert.deepEqual((await db.prepare('SELECT * FROM c_proposals ORDER BY id').all()).results, proposals, 'Static job retrieval creates no proposal and changes no existing proposal');
   }
   if (!['claim', 'batch'].includes(step.id)) return;
   const name = step.id === 'claim' ? 'coaster.claims.prepare' : 'coaster.batches.prepare';
