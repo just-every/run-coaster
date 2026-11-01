@@ -7268,7 +7268,7 @@
       "executable": false
     },
     "tests/journeys/browser-agent-discovery.mjs": {
-      "sha256": "4c53bfe40203e21211e20f7233e3fb11afa6878c44e2fd3ae400cf6d9cea6301",
+      "sha256": "a1828cdbea8e104b3d5c467093ff0359515f3e9388f7aa2656ca71883295f800",
       "executable": false
     },
     "tests/journeys/browser-agent-resources.mjs": {

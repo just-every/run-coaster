@@ -15,7 +15,7 @@ export async function runAgentDiscoveryJourney({ browser, server, client, eviden
     const page = await context.newPage()
     const response = await page.goto(server.siteOrigin + '/docs/agents')
     assert.equal(response.status(), 200)
-    const tableAfter = name => page.getByRole('heading', { name, exact: true }).locator('xpath=following-sibling::table[1]')
+    const tableAfter = name => page.getByRole('heading', { name, exact: true }).locator('xpath=following-sibling::div[contains(@class,"docs-table")][1]')
     const cells = async table => table.locator('tbody tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('td')].map(cell => cell.textContent.trim())))
     const listedTools = await cells(tableAfter('Tools by job'))
     assert.deepEqual(listedTools.map(row => row[1]), tools.map(tool => tool.name), 'published docs offer exactly the live tools')
