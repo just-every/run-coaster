@@ -65,7 +65,7 @@ The owner can review optional AI costs in Settings before enabling receipt readi
 
 Generated from the Status table in [CONTRACT.md](https://github.com/just-every/run-coaster/blob/main/CONTRACT.md). That source retains the acceptance requirements, current evidence and remaining work for each clause.
 
-**117 clauses: 60 done, 36 partial, 21 missing.**
+**117 clauses: 60 done, 41 partial, 16 missing.**
 
 | Clause | Title | Kind | Status |
 | --- | --- | --- | --- |
@@ -92,10 +92,10 @@ Generated from the Status table in [CONTRACT.md](https://github.com/just-every/r
 | CAPTURE-007 | Merchant receipt feeds | target | missing |
 | FEED-001 | Card and bank connections through Plaid | target | partial |
 | FEED-002 | Commercial card program feeds and statement import | target | partial |
-| FEED-003 | Visible feed health and reconnection | target | missing |
+| FEED-003 | Visible feed health and reconnection | target | partial |
 | FEED-004 | Card transaction expenses and receipt matching | target | done |
 | FEED-005 | Card statement reconciliation and liability clearing | target | done |
-| FEED-006 | Individual-liability corporate cards | target | missing |
+| FEED-006 | Individual-liability corporate cards | target | partial |
 | CARD-001 | Company cards through an issuing partner | target | missing |
 | CARD-002 | Personal spend on company cards | target | missing |
 | CLAIM-001 | US mileage | target | partial |
@@ -129,14 +129,14 @@ Generated from the Status table in [CONTRACT.md](https://github.com/just-every/r
 | PAY-003 | Payroll reimbursement route | target | partial |
 | PAY-004 | Payment controls and schedules | target | done |
 | PAY-005 | Reimbursing employees outside the US | target | missing |
-| ACCT-001 | QuickBooks Online two-way sync | target | missing |
+| ACCT-001 | QuickBooks Online two-way sync | target | partial |
 | ACCT-002 | Xero two-way sync | target | missing |
 | ACCT-003 | Pantry sync | target | missing |
 | ACCT-004 | NetSuite and Sage Intacct | target | missing |
 | ACCT-005 | Exports alongside live sync | target | done |
-| ACCT-006 | Posting integrity and close | target | missing |
+| ACCT-006 | Posting integrity and close | target | partial |
 | ACCT-007 | QuickBooks Desktop connection | target | done |
-| ACCT-008 | A coding correction is refused only for the expense's own closed posting | target | missing |
+| ACCT-008 | A coding correction is refused only for the expense's own closed posting | target | partial |
 | REPORT-001 | Spend analytics | target | done |
 | REPORT-002 | Operational and compliance reports | target | done |
 | REPORT-003 | Searchable audit history and auditor access | target | done |
