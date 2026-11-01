@@ -16,10 +16,21 @@ try {
   }
   h=await harness({persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only'});
   const {t,create,approve}=await correctionClaims(h);
-  let c=await create(),d=await h.get(`claims/${c.id}`);
+  const cap=(await h.post('allowances',{name:'synthetic-coaster-1',type:'cap',period:'yearly',amount:'500.00',startsOn:'2026-01-01'},t.morgan)).all[0];
+  let c=await create('Client materials',t.sam,{allowance:cap.id}),d=await h.get(`claims/${c.id}`);
   c=await h.post(correctionPath(c),correctionBody(d),t.priya);
   c=await approve(c);d=await h.get(`claims/${c.id}`);
   c=await h.post(correctionPath(c),correctionBody(d,{accountCode:'6800'}));
+  let peer=await h.post('claims',{title:'Retained purchase'},t.sam);
+  peer=await h.post(`claims/${peer.id}/items`,{version:peer.version,kind:'receipt',date:'2026-03-11',merchant:'synthetic-coaster-2',amount:'20.00',category:t.c.office,explanation:'Retained purchase'},t.sam);
+  peer=await approve(await h.post(`claims/${peer.id}/submit`,{version:peer.version},t.sam));
+  let former=await h.post('batches',{claims:[c.id,peer.id]},t.morgan);
+  former=await h.post(`batches/${former.id}/remove`,{version:former.version,claim:c.id},t.morgan);
+  await h.post(`batches/${former.id}/approve`,{version:former.version,expectedTotal:2000},t.morgan);
+  await h.post(['accounting','desktop','connect'].join('/'),{consent:true,company:'synthetic-coaster-1.QBW'});
+  await h.post(['accounting','desktop','sync'].join('/'),{},t.morgan);
+  d=await h.get(`claims/${c.id}`);
+  c=await h.post(correctionPath(c),correctionBody(d,{allocation:1,accountCode:'6805',reason:'Correct the second split after its former batch posted without this claim'}));
   let batch=await h.post('batches',{claims:[c.id]},t.morgan);
   const originalBatch=batch,selection=(await h.db.prepare('SELECT * FROM c_batch_coding ORDER BY batch_id').all()).results;
   await h.post(`batches/${batch.id}/remove`,{version:batch.version,claim:c.id},t.morgan);
@@ -62,7 +73,7 @@ try {
   h=await harness({existingDatabase:true,persistencePath:join(destination,'.wrangler/state/v3'),databaseId:'local-foundation-only'});
   const actual=await h.get(`batches/${batch.id}`);
   assert.deepEqual(actual.lines,expected.lines);assert.deepEqual(actual.people,expected.people);
-  assert.deepEqual((await h.db.prepare('SELECT * FROM c_batch_coding WHERE batch_id=?').bind(originalBatch.id).all()).results,selection,'real CLI restore retains the removed batch selection exactly');
+  assert.deepEqual((await h.db.prepare('SELECT * FROM c_batch_coding WHERE batch_id=?').bind(originalBatch.id).all()).results,selection.filter(r=>r.batch_id===originalBatch.id),'real CLI restore retains the removed batch selection exactly');
   const csv=await h.send(`/api/coaster/batches/${batch.id}/accounting.csv`,undefined,h.owner);
   assert.equal(csv.status,200);assert.match(csv.text,/"6800"/);assert.match(csv.text,/"6810"/);
   assert.match(csv.text,/"60\.00"/);assert.match(csv.text,/"40\.00"/);assert.match(csv.text,/"10\.00"/);
