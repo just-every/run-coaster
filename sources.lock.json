@@ -1164,7 +1164,7 @@
       "executable": false
     },
     "scripts/installer/account-corrections-archive.mjs": {
-      "sha256": "bcfb79f45d52620a0ad9a769810e48c4458848fed2f4c7110e5626e07200d040",
+      "sha256": "75bb611fb6e2d0c1af97203b669dc694c4b0c1e2576d2532ed282c7fca9323d3",
       "executable": false
     },
     "scripts/installer/accounting-corrections-archive.mjs": {
@@ -1392,7 +1392,7 @@
       "executable": false
     },
     "src/coaster/accounting/coding-corrections.ts": {
-      "sha256": "26b4531ae48257c28dfe32560047b405713375a3d42bab44b0dac670f3d9bee2",
+      "sha256": "e1ed296022ddaff22ac86814996b4121517ac64a623e72f0ac02552dfa32f9a4",
       "executable": false
     },
     "src/coaster/accounting/desktop/index.ts": {
@@ -4656,7 +4656,7 @@
       "executable": false
     },
     "src/ui/accounting-corrections.tsx": {
-      "sha256": "8b16c73697ad0c6217b5290282e1a003f23277fd12936693891faf886fef6a81",
+      "sha256": "6a3ea503fc219ca2a191ac9c51d1175ab054f5aca734c5ce34841747cfed28c7",
       "executable": false
     },
     "src/ui/advances.tsx": {
@@ -4920,11 +4920,11 @@
       "executable": false
     },
     "tests/account-correction-kit.mjs": {
-      "sha256": "8585e92ac7361343fc586c9b5f095cafd9118b31c8a9f8fef93be69279176b7a",
+      "sha256": "2b6c25a702ce8e9f1ed0ab97bfd8b54256fd77a37634a5b0b93a95ee2f5e40f0",
       "executable": false
     },
     "tests/accounting-corrections-archive.mjs": {
-      "sha256": "84541e40fafc0da29f9d864e8e573e4cdd792452be61fc879c4b27d184d4b838",
+      "sha256": "b3756f9057f4983afb716425ba058f4fa4661627a5d4d02e0ea270ce67507241",
       "executable": false
     },
     "tests/agent-door/discovery.mjs": {
@@ -4984,7 +4984,7 @@
       "executable": false
     },
     "tests/browser-accounting-corrections.mjs": {
-      "sha256": "a24c6ba52413b8e0109bb269b21e88685360881487af3bee3e241c933fc2b3a3",
+      "sha256": "74db6f57f075ebb94166ef27ef24772bdf230082d3d13e20899ab0bbcf47d2b6",
       "executable": false
     },
     "tests/browser-archive.mjs": {
@@ -5040,7 +5040,7 @@
       "executable": false
     },
     "tests/coaster-accounting-corrections.test.mjs": {
-      "sha256": "3119cc5c668fa6f4d283fc9ad33bc144622c101c83b26f3ffbfaeb5fca6ef82d",
+      "sha256": "7c6e25574765dfd774eb10485cedb82493d1ec0ca845de20413cbe7f0e6e01fa",
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {
