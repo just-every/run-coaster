@@ -6,7 +6,7 @@ export function AccountingCorrections({ detail, done }: { detail: D; done: () =>
   const { claim, accountCoding } = detail, revision = detail.revisions.find((r: D) => r.revision === claim.revision);
   if (!revision) return null;
   const history: D[] = accountCoding.corrections, choices = revision.snapshot.items
-    .filter((i: D) => i.kind === 'receipt' && !i.card_charge_id && !i.allowance_id)
+    .filter((i: D) => i.kind === 'receipt' && !i.card_charge_id)
     .flatMap((i: D) => i.allocations.map((a: D) => ({ value: `${i.id}:${a.position}`, label: `${i.merchant} · ${a.category_name}${a.cost_centre ? ` · ${a.cost_centre}` : ''}`, item: i.id, allocation: a.position, original: a.account_code })));
   if (!choices.length) return null;
   return <section className="panel-block" aria-label="Account coding">

@@ -10,10 +10,10 @@ export async function correctionClaims(h) {
   const value=await h.post(['coding','values'].join('/'),{version:dimension.version,dimension:dimension.saved,name:'synthetic-coaster-1'});
   const coding={[dimension.saved]:value.saved};
   let number = 0;
-  const create = async (title = 'Client materials', cookie = t.sam) => {
+  const create = async (title = 'Client materials', cookie = t.sam, { allowance, fixture = 'bistro' } = {}) => {
     let c = await h.post('claims', { title }, cookie);
-    const uploaded = await h.post(`claims/${c.id}/receipts`, { version: c.version, ...await receipt('bistro') }, cookie);
-    c = await h.post(`claims/${c.id}/items`, { version: uploaded.claim.version, receipt: uploaded.receipt, coding, kind: 'receipt', date: '2026-03-10', merchant: `${title} ${++number}`, amount: '110.00', salesTax: '10.00', salesTaxAccount: 'GST paid', salesTaxCode: 'GST', allocations: [{ category: t.c.office, amount: '60.00', costCentre: 'Design' }, { category: t.c.travel, amount: '40.00', costCentre: 'Delivery' }], explanation: 'Client materials' }, cookie);
+    const uploaded = await h.post(`claims/${c.id}/receipts`, { version: c.version, ...await receipt(fixture) }, cookie);
+    c = await h.post(`claims/${c.id}/items`, { version: uploaded.claim.version, receipt: uploaded.receipt, allowance, coding, kind: 'receipt', date: '2026-03-10', merchant: `${title} ${++number}`, amount: '110.00', salesTax: '10.00', salesTaxAccount: 'GST paid', salesTaxCode: 'GST', allocations: [{ category: t.c.office, amount: '60.00', costCentre: 'Design' }, { category: t.c.travel, amount: '40.00', costCentre: 'Delivery' }], explanation: 'Client materials' }, cookie);
     return h.post(`claims/${c.id}/submit`, { version: c.version }, cookie);
   };
   const approve = c => h.post(`claims/${c.id}/decision`, { version: c.version, revision: c.revision, decision: 'approved', acknowledge: true }, t.priya);
