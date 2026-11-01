@@ -10,7 +10,7 @@ import { autonomousPolicy } from '../../src/modules/agent-door/conformance/crypt
 import { claimArguments, linkedProposal, proposalClient, readProposal } from '../agent-door/proposals.mjs'
 
 const ownerAddress = 'owner' + '@' + 'harbourfinch.example'
-export async function runAgentResourceJourney() {
+export async function runAgentResourceJourney({ discover } = {}) {
   const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/agent-resource-proof')
   await mkdir(evidence, { recursive: true })
   let root, restored, server, browser
@@ -18,7 +18,7 @@ export async function runAgentResourceJourney() {
   try {
     root = await fresh(); const port = await freePort()
     await command(root, ['setup', '--owner-email', ownerAddress, '--port', String(port)])
-    server = await start(root, port)
+    server = await start(root, port, { site: Boolean(discover) })
     browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] })
     const owner = await session(browser, root, server.origin, 'owner', 1440); contexts.push(owner.context)
     await setUp(owner, server.origin)
@@ -32,6 +32,7 @@ export async function runAgentResourceJourney() {
     const employeeKey = await api(employee.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3520' })
     const financeKey = await api(finance.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3521' })
     const employeeClient = proposalClient(fetch, server.origin, employeeKey.token), financeClient = proposalClient(fetch, server.origin, financeKey.token)
+    if (discover) await discover({ browser, server, client: employeeClient, evidence })
     const state = await api(employee.context, server.origin, 'state')
     const args = claimArguments(state.categories.find(c => c.account_code === '6500').id, 'synthetic-coaster-3522')
     args.items[0].receipt = { name: 'synthetic-coaster-3523.png', base64: (await readFile('tests/fixtures/receipts/bistro.png')).toString('base64') }

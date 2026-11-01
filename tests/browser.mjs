@@ -32,7 +32,7 @@ const phases = {
   },
   cash: async () => (await import('./journeys/browser-cash-attachment.mjs')).runCashAttachmentJourney({evidence:resolve(process.env.COASTER_EVIDENCE??'.cache/cash-attachment-proof')}),
   preparations: async () => {
-    await (await import('./journeys/browser-agent-resources.mjs')).runAgentResourceJourney();
+    await (await import('./journeys/browser-agent-resources.mjs')).runAgentResourceJourney({ discover: (await import('./journeys/browser-agent-discovery.mjs')).runAgentDiscoveryJourney });
     await (await import('./journeys/browser-preparations.mjs')).runPreparationJourney();
     await import('./browser-accounting-corrections.mjs');
     await import('./accounting-corrections-archive.mjs');

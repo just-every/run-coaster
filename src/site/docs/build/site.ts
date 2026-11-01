@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DocsBody, DocsSection } from '../types.ts';
 import { docsDirectory, manifestPath, readManifest } from './manifest.ts';
 import { renderMarkdown } from './render.ts';
+import { agentCatalogue, catalogueStart, catalogueEnd, renderAgentCatalogue, type AgentSurface } from '../../../coaster/agent-door/documentation.ts';
 
 // The whole docs site from the tree as it is: every page in docs/site.json rendered, every link to another docs page and
 // every anchor checked, and nothing that names a build machine's paths. Any problem fails the build with the full list.
@@ -15,11 +16,20 @@ const machinePath = /(?<![\w.@~-])\/(?:Users|home|private|tmp|var|Volumes|root)\
 export function buildDocs(root: string): DocsSite {
   const sections = readManifest(root);
   const pages = sections.flatMap(section => section.pages);
-  const files = [join(root, manifestPath)];
+  const surfaceFile = join(root, 'agent-surface.json');
+  const surface = JSON.parse(readFileSync(surfaceFile, 'utf8')) as AgentSurface;
+  const catalogue = agentCatalogue(surface);
+  const fixtures = catalogue.fixtureFiles.map(file => join(root, file));
+  for (const fixture of fixtures) {
+    if (!statSync(fixture).isFile()) throw new Error('Agent catalogue: verification reference is not a test module');
+  }
+  const files = [join(root, manifestPath), surfaceFile, ...fixtures,
+    ...['tools.ts', 'resources.ts', 'prompts.ts', 'documentation.ts'].map(file => join(root, 'src/coaster/agent-door', file))];
   const rendered = new Map(pages.map(page => {
     const file = join(root, docsDirectory, page.file);
     files.push(file);
-    return [page.slug, renderMarkdown(readFileSync(file, 'utf8'))] as const;
+    const markdown = readFileSync(file, 'utf8');
+    return [page.slug, renderMarkdown(page.slug === 'agents' ? renderAgentCatalogue(markdown, surface).replace(catalogueStart, '').replace(catalogueEnd, '') : markdown)] as const;
   }));
   const problems: string[] = [];
   for (const page of pages) {

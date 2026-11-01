@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 
 /** MCP over the installation's real HTTP door, also used by the browser proof. */
-export function proposalClient(request, origin, token) {
+export function proposalClient(request, origin, token, version = '2026-07-28') {
   return async (method, params = {}) => {
     const response = await request(origin + '/mcp', { method: 'POST', headers: {
       origin, 'content-type': 'application/json', authorization: `Bearer ${token}`,
-      'MCP-Protocol-Version': '2026-07-28', 'Mcp-Method': method,
-      ...(['tools/call', 'resources/read'].includes(method) ? { 'Mcp-Name': params.name ?? params.uri } : {}),
-    }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { ...params, _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' } } }) })
+      'MCP-Protocol-Version': version, 'Mcp-Method': method,
+      ...(['tools/call', 'resources/read', 'prompts/get'].includes(method) ? { 'Mcp-Name': params.name ?? params.uri } : {}),
+    }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { ...params, _meta: { 'io.modelcontextprotocol/protocolVersion': version } } }) })
     return { status: response.status, ...await response.json() }
   }
 }

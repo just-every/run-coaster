@@ -11,15 +11,67 @@ A key acts only for you and only while you can sign in. It cannot submit, approv
 Coaster serves one shared agent door at `/mcp`, discovery and canonical metadata,
 `/api/rer/agent-policy`, and native person policy, approval, review and audit pages
 at `/agents`. The specialist is **Expense controller**. The declared capability
-families are tools, resources, policy, pause, audit and idempotency. Prompts,
-events and subscriptions are undeclared and return typed refusals.
+families are tools, resources, prompts, policy, pause, audit and idempotency.
+Events and subscriptions are undeclared and return typed refusals.
 
-| Tool | Scope | Classes | Clauses |
+<!-- coaster-agent-catalogue:start -->
+
+## MCP catalogue
+
+Specialist: **Expense controller**. This section is generated from the native tool, resource and prompt registries and checked against `agent-surface.json` at docs build time.
+
+The names below are the complete declared catalogue. Current scopes, membership and company policy still govern discovery and every call.
+
+### Tools by job
+
+| Job | Tool | Scope | Classes | Clauses |
+| --- | --- | --- | --- | --- |
+| Prepare a batch proposal | `coaster.batches.propose` | `proposals:write` | `standard` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
+| Prepare a claim proposal | `coaster.claims.propose` | `proposals:write` | `standard`, `sensitive`, `external` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006`, `CLAIM-003` |
+| Read own proposal | `coaster.proposals.get` | `proposals:read` | `standard`, `sensitive` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
+| Preparation context | `coaster.workspace.get` | `proposals:read` | `standard` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
+
+### Class witnesses
+
+Each case below is an entry in the production-door conformance journey in `agent-surface.json`. The expectation records the computed class and facts; fixture inputs cannot grant a class or perform a person’s step.
+
+| Tool | Computed class | Proving journey cases |
+| --- | --- | --- |
+| `coaster.batches.propose` | `standard` | `batch` |
+| `coaster.claims.propose` | `standard` | `claim`, `foreign-claim`, `manual-foreign-claim` |
+| `coaster.claims.propose` | `sensitive` | `claim`, `foreign-claim`, `manual-foreign-claim` |
+| `coaster.claims.propose` | `external` | `foreign-claim` |
+| `coaster.proposals.get` | `standard` | `proposal` |
+| `coaster.proposals.get` | `sensitive` | `proposal` |
+| `coaster.workspace.get` | `standard` | `context` |
+
+| Journey case | Tool | Expected computed classes | Native condition |
 | --- | --- | --- | --- |
-| `coaster.workspace.get` | `proposals:read` | standard | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
-| `coaster.proposals.get` | `proposals:read` | standard, sensitive | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
-| `coaster.claims.propose` | `proposals:write` | standard, sensitive; external for automatic FX | COA-010, CLAIM-003, BASE-AGENT-002, BASE-AGENT-006 |
-| `coaster.batches.propose` | `proposals:write` | standard | COA-010, BASE-AGENT-002, BASE-AGENT-006 |
+| `context` | `coaster.workspace.get` | `standard` | Read the sponsoring person’s native preparation context. |
+| `claim` | `coaster.claims.propose` | `standard`, `sensitive` | Native expense preparation; private untrusted expense content. |
+| `foreign-claim` | `coaster.claims.propose` | `standard`, `sensitive`, `external` | Automatic foreign-currency FX; public ECB history request, without expense or person data. |
+| `manual-foreign-claim` | `coaster.claims.propose` | `standard`, `sensitive` | Explicit manual FX rate; no provider request and no external class. |
+| `proposal` | `coaster.proposals.get` | `standard`, `sensitive` | Read the sponsoring person’s own proposal; private untrusted expense content. |
+| `batch` | `coaster.batches.propose` | `standard` | Finance preparation from already-approved native claims; no batch release. |
+
+Verification modules: `tests/agent-door/owner.mjs`, `tests/agent-door/fixtures.mjs`, `tests/agent-door/native.mjs`, `tests/agent-door/network.mjs`, `tests/agent-door/employee.mjs`, `tests/agent-door/negative-sponsor.mjs`.
+
+### Resource templates
+
+| Name | Template | Scope | Classes |
+| --- | --- | --- | --- |
+| Own agent proposal | `coaster://proposals/{id}` | `proposals:read` | `standard`, `sensitive` |
+
+### Specialist prompt jobs
+
+| Job | Prompt | Instructions |
+| --- | --- | --- |
+| Prepare a finance batch proposal | `coaster.batches.prepare` | Help a finance sponsor prepare a proposal of approved claims for human acceptance. |
+| Prepare an employee claim proposal | `coaster.claims.prepare` | Help an employee sponsor prepare a claim proposal from their purchase receipts, mileage or per diem for human acceptance. |
+
+These static prompts accept no arguments, read no private records and perform no action. They grant no scope. Claim acceptance and submission, approval, batch review and payment remain separate native human controls.
+
+<!-- coaster-agent-catalogue:end -->
 
 These tools call the same native preparation services as the existing personal
 agent API. Company policy can require review or named approval before preparation;
