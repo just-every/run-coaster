@@ -10,7 +10,7 @@ import { autonomousPolicy } from '../../src/modules/agent-door/conformance/crypt
 import { claimArguments, linkedProposal, proposalClient, readProposal } from '../agent-door/proposals.mjs'
 
 const ownerAddress = 'owner' + '@' + 'harbourfinch.example'
-export async function runAgentResourceJourney({ discover } = {}) {
+export async function runAgentResourceJourney({ discover, classifyContext } = {}) {
   const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/agent-resource-proof')
   await mkdir(evidence, { recursive: true })
   let root, restored, server, browser
@@ -65,6 +65,7 @@ export async function runAgentResourceJourney({ discover } = {}) {
     c = await api(manager.context, server.origin, `claims/${c.id}/decision`, { version: c.version, revision: c.revision, decision: 'approved' })
     const batch = await linkedProposal(financeClient, 'coaster.batches.propose', { claims: [c.id], note: 'synthetic-coaster-3524' })
     assert.deepEqual(readProposal(await financeClient('resources/read', { uri: batch.uri })), batch.proposal)
+    if (classifyContext) await classifyContext({ owner, employee, finance, financeKey, server, evidence, batch })
     await finance.page.reload(); await finance.page.goto(server.origin + '/app#/batches')
     const batchPrepared = finance.page.getByRole('region', { name: 'Prepared for you', exact: true })
     await batchPrepared.getByRole('button', { name: 'Accept as draft batch', exact: true }).waitFor()
