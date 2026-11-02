@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from '../agent-door/proposals.mjs'
 // Original claim-spine assertion phases, composed into the surviving business journey.
 // Each phase keeps its isolated native-session/workerd/D1 harness and closes it.
 import assert from 'node:assert/strict'
@@ -253,9 +254,10 @@ async function requireIndependentReviewer(h, t) {
 
 // COA-010 an agent prepares claims and batches; only the person accepts them
 async function acceptAgentProposals(h, t) {
+  await configureAgentPolicy(h)
   const key = await h.post('agent-keys', { label: 'Receipt inbox agent' }, t.sam)
-  const bearer = { authorization: `Bearer ${key.token}` }
-  const asAgent = (path, body) => h.send('/api/coaster/agent/' + path, body, '', bearer)
+  const bearer = { authorization: `Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID() }
+  const asAgent = (path, body) => h.send('/api/coaster/agent/' + path, body, '', { ...bearer, 'idempotency-key': crypto.randomUUID() })
   const context = await asAgent('context')
   assert.equal(context.status, 200); assert.equal(context.value.for.email, 'sam@harbourfinch.example')
   const proposal = await asAgent('claims', { title: 'Receipts from email', note: 'Two receipts forwarded on Monday', items: [
@@ -264,7 +266,7 @@ async function acceptAgentProposals(h, t) {
   ] })
   assert.equal(proposal.status, 200, JSON.stringify(proposal.value)); assert.equal(proposal.value.status, 'proposed')
   for (const [path, body] of [['/api/coaster/claims', { title: 'x' }], ['/api/coaster/state', undefined], [`/api/coaster/proposals/${proposal.value.id}/accept`, {}]])
-    assert.equal((await h.send(path, body, '', bearer)).status, 401, `${path} needs a native session`)
+    assert.equal((await h.send(path, body, '', { ...bearer, 'idempotency-key': crypto.randomUUID() })).status, 401, `${path} needs a native session`)
   await h.post(`proposals/${proposal.value.id}/accept`, {}, t.alex, 403)
   const accepted = await h.post(`proposals/${proposal.value.id}/accept`, {}, t.sam)
   const d = await h.get(`claims/${accepted.claim.id}`, t.sam)
@@ -274,7 +276,7 @@ async function acceptAgentProposals(h, t) {
   await h.post(`proposals/${proposal.value.id}/accept`, {}, t.sam, 409)
   const c = await approve(h, t.priya, await submit(h, t.sam, d))
   const finance = await h.post('agent-keys', { label: 'Month-end agent' }, t.morgan)
-  const batchProposal = await h.send('/api/coaster/agent/batches', { claims: [c.id], note: 'Everything approved this week' }, '', { authorization: `Bearer ${finance.token}` })
+  const batchProposal = await h.send('/api/coaster/agent/batches', { claims: [c.id], note: 'Everything approved this week' }, '', { authorization: `Bearer ${finance.token}`, 'idempotency-key': crypto.randomUUID() })
   assert.equal(batchProposal.status, 200, JSON.stringify(batchProposal.value))
   assert.equal((await asAgent('batches', { claims: [c.id] })).status, 403, "an employee's agent cannot propose batches")
   const batch = (await h.post(`proposals/${batchProposal.value.id}/accept`, {}, t.morgan)).batch

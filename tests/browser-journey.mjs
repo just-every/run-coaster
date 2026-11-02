@@ -1,3 +1,4 @@
+import { autonomousPolicy } from '../src/modules/agent-door/conformance/crypto.mjs'
 // The human journey through Coaster's screens, one person per browser context.
 import assert from 'node:assert/strict'
 import { assertAccessible } from './browser-accessibility.mjs'
@@ -87,9 +88,11 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     const { employee, manager, finance } = people, title = `Sydney client workshop ${width}`, plan = PLAN[width]
     const total = minor(plan.bistro) + minor(plan.rockpool) + Math.floor((Number(plan.km) * 100 * 88 + 50) / 100)
     // An agent prepares a draft from an emailed receipt; the employee sees it waiting.
+    const policy = await owner.context.request.put(origin + '/agents/api/policy', { headers: { origin }, data: { document: autonomousPolicy() } })
+    assert.equal(policy.status(), 200)
     const key = await api(employee.context, origin, 'agent-keys', { label: 'Receipt inbox agent' })
     const categories = (await api(employee.context, origin, 'state')).categories, travel = categories.find(c => c.name === 'Travel').id
-    const proposal = await (await fetch(`${origin}/api/coaster/agent/claims`, { method: 'POST', headers: { authorization: `Bearer ${key.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ title: `Uber receipts ${width}`, note: 'Forwarded from the receipts inbox', items: [{ kind: 'receipt', date: '2026-04-28', merchant: 'Uber', amount: '38.60', allocations: [{ category: travel }], receipt: { name: 'uber.png', base64: (await readFile(await variant('uber', width))).toString('base64') } }] }) })).json()
+    const proposal = await (await fetch(`${origin}/api/coaster/agent/claims`, { method: 'POST', headers: { authorization: `Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID(), 'content-type': 'application/json' }, body: JSON.stringify({ title: `Uber receipts ${width}`, note: 'Forwarded from the receipts inbox', items: [{ kind: 'receipt', date: '2026-04-28', merchant: 'Uber', amount: '38.60', allocations: [{ category: travel }], receipt: { name: 'uber.png', base64: (await readFile(await variant('uber', width))).toString('base64') } }] }) })).json()
     assert.equal(proposal.status, 'proposed')
 
     const page = employee.page

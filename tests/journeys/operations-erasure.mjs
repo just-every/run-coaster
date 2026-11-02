@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from '../agent-door/proposals.mjs'
 // Original operations assertions, composed as named phases without test registrations.
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -23,8 +24,9 @@ async function eraseDepartedPersonalData(h, t) {
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 22928 }, t.jordan)
   await h.paid(batch.id, batch.version, { reference: 'ACH-0510', paidOn: '2026-05-10' }, t.jordan)
   // Sam's agent forwards a receipt, uploaded "Sam receipts agent for" Sam's address.
+  await configureAgentPolicy(h)
   const key = await h.post('agent-keys', { label: 'Sam receipts agent' }, t.sam)
-  assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Forwarded receipt', items: [{ kind: 'receipt', date: '2026-05-09', merchant: 'Officeworks', amount: '18.00', allocations: [{ category: t.c.office }], receipt: { name: 'officeworks.png', base64: (await readFile('tests/fixtures/receipts/officeworks.png')).toString('base64') } }] }, '', { authorization: `Bearer ${key.token}` })).status, 200)
+  assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Forwarded receipt', items: [{ kind: 'receipt', date: '2026-05-09', merchant: 'Officeworks', amount: '18.00', allocations: [{ category: t.c.office }], receipt: { name: 'officeworks.png', base64: (await readFile('tests/fixtures/receipts/officeworks.png')).toString('base64') } }] }, '', { authorization: `Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID() })).status, 200)
   await h.post('delegates', { delegate: 'alex@harbourfinch.example', level: 'submit' }, t.sam)
   const open = await submit(h, t.sam, await claim(h, t.sam, 'Taxi', [{ kind: 'receipt', date: '2026-05-06', merchant: 'Uber', amount: '20.10', allocations: [{ category: t.c.travel }], receiptFixture: 'uber' }]))
 

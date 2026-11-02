@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from './agent-door/proposals.mjs'
 import { preserveAdministration } from './journeys/specialized-admin.mjs'
 import { preserveSuccessorHandoff } from './journeys/specialized-handoff.mjs'
 // ADMIN-001 people, roles, departments and the permission matrix, through the public HTTP API with real native
@@ -171,14 +172,15 @@ test('ADMIN-001 the permission matrix: each role as a single-role person succeed
   }
   assert.equal(hasRoute.size + Object.keys(noDoor).length, rows.length)
   // Agent routes follow the same rows: a key acts inside its person's row, and a person who cannot submit cannot hold one.
+  await configureAgentPolicy(h)
   const approved = (await approvedBy(`Agent batch ${++n}`, t.priya)).id
   for (const role of ['Admin', 'Finance', 'Card admin', 'Approver', 'Employee', 'Auditor', 'Bookkeeper']) {
     const before = await snapshot(h), key = await send('agent-keys', { label: `${role} agent` }, cookie[role])
     if (['Auditor', 'Bookkeeper'].includes(role)) { assert.equal(key.status, 403, `${role} holds no agent key`); assert.deepEqual(await snapshot(h), before); continue }
     assert.equal(key.status, 200)
-    const bearer = { authorization: `Bearer ${key.value.token}` }
-    assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Agent draft', items: [{ kind: 'receipt', date: '2026-06-10', merchant: 'Agent', amount: '5.00', category: t.c.office }] }, '', bearer)).status, 200, `${role}'s agent prepares a draft (Submit row)`)
-    const mid = await snapshot(h), batch = await h.send('/api/coaster/agent/batches', { claims: [approved] }, '', bearer)
+    const bearer = { authorization: `Bearer ${key.value.token}`, 'idempotency-key': crypto.randomUUID() }
+    assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Agent draft', items: [{ kind: 'receipt', date: '2026-06-10', merchant: 'Agent', amount: '5.00', category: t.c.office }] }, '', { ...bearer, 'idempotency-key': crypto.randomUUID() })).status, 200, `${role}'s agent prepares a draft (Submit row)`)
+    const mid = await snapshot(h), batch = await h.send('/api/coaster/agent/batches', { claims: [approved] }, '', { ...bearer, 'idempotency-key': crypto.randomUUID() })
     if (role === 'Finance') assert.equal(batch.status, 200, 'finance\'s agent proposes a batch')
     else { assert.equal(batch.status, 403, `${role}'s agent cannot propose a batch`); assert.deepEqual(await snapshot(h), mid) }
   }

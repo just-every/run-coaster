@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9e89d2f4ba0d98eee6c7788cc0ec6d920c94f0fc498912d484739e36b77f7a7e",
+      "sha256": "6206e932414ada14ec06fab7ece941063d66931d9e6ac0d537417414bad05d9c",
       "executable": false
     },
     "DEMO.md": {
@@ -344,7 +344,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "fbe8d8fd5e6d614bca41561c35898d17dee08a8f6356527a3c659bcd9929ebb8",
+      "sha256": "06af275be83a794a0d170c94ef37089bece8d05fc00e828325f317b1f6cae59e",
       "executable": false
     },
     "docs/approvals.md": {
@@ -1452,7 +1452,7 @@
       "executable": false
     },
     "src/coaster/agent-door/index.ts": {
-      "sha256": "ccc9e6c62145fdf3c8321fbe4588152d7a3f528c03b0d7b75be55ba6800b1709",
+      "sha256": "dbacd168a1e0e009e963d8ffe1762300f7fb3aad0732d6b612b66d3c7b9fe9a4",
       "executable": false
     },
     "src/coaster/agent-door/people.ts": {
@@ -1465,6 +1465,10 @@
     },
     "src/coaster/agent-door/resources.ts": {
       "sha256": "7b0305cda8fca98baa5e0609cdd1739f96bb091571333eb787ec062ce4d65207",
+      "executable": false
+    },
+    "src/coaster/agent-door/rest.ts": {
+      "sha256": "7c45a5ef772752c77145a7a4983f0e9c30ce85f869c2c29d253fb987bd7e29ce",
       "executable": false
     },
     "src/coaster/agent-door/tools.ts": {
@@ -1492,7 +1496,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "96dc7d3645c102361d1a629ce7e8c7d19a489297a695a3a775beff1627490d67",
+      "sha256": "200e8ab005477ac449a8bdc63428992c6e7ba0778c156daa02aaaa67649b00d4",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -4960,7 +4964,7 @@
       "executable": false
     },
     "tests/agent-door/proposals.mjs": {
-      "sha256": "acdad28a7c3ee1340fcae31faad9a8507ddf24b9319cd9f41cb4afdb9c15f1f7",
+      "sha256": "e83ef9b640aad8c7dba3fc6e8cdd1d263137a6e801f20e30df26ab53967062af",
       "executable": false
     },
     "tests/agent-door/state.mjs": {
@@ -5000,7 +5004,7 @@
       "executable": false
     },
     "tests/browser-journey.mjs": {
-      "sha256": "696184c692ae4e6052e2cf1694eb400027bafde86774660fcf37e6afbaae24f1",
+      "sha256": "81b558c2106775a11644348985b14185b9578b78cf9fa3e722fcc58ff8c10ec5",
       "executable": false
     },
     "tests/browser-payroll.mjs": {
@@ -5044,7 +5048,7 @@
       "executable": false
     },
     "tests/coaster-admin.test.mjs": {
-      "sha256": "843b913bc98ac4dea6b80cbe2d6dbee22540b64295e8a926c2968509052dc777",
+      "sha256": "436ae65499739e3a60c28f354343d473092567b91a2db89c75300f518e307c63",
       "executable": false
     },
     "tests/coaster-agent-discovery.test.mjs": {
@@ -5052,11 +5056,15 @@
       "executable": false
     },
     "tests/coaster-agent-resources.test.mjs": {
-      "sha256": "46c6a3ae0410aef1062460fd7c8fd273a3f8aca1fcb978eb6a0083e91622b512",
+      "sha256": "fdfe9f05e1588e4f8388d0bbf41c4cfee53ec7f7cd347ff9162c9fed187b2426",
+      "executable": false
+    },
+    "tests/coaster-agent-rest.test.mjs": {
+      "sha256": "c6d88dcb131fe504475b979625cc99740337a47c29afa7f56c7cebe8cc9df146",
       "executable": false
     },
     "tests/coaster-agents.test.mjs": {
-      "sha256": "8062ed53dad9ee6b1bd1a464c05befd88bb8a4e1e59eb50faba060910c4f830a",
+      "sha256": "cecc25644e20db75b26b98d4fdd676d20f6f8177af3eb25c9b2cf3c590249d3a",
       "executable": false
     },
     "tests/coaster-api.test.mjs": {
@@ -5108,7 +5116,7 @@
       "executable": false
     },
     "tests/coaster-fx.test.mjs": {
-      "sha256": "f9d409949845ec9ae987598378663294b98d11f5ea5db69dbce5ae219a2d9d8a",
+      "sha256": "daa12b2a4363ff9f7aef4c4f660c59eb8431ab67ac9ac2b1a2f65d7bde44940a",
       "executable": false
     },
     "tests/coaster-individual-liability.test.mjs": {
@@ -5120,7 +5128,7 @@
       "executable": false
     },
     "tests/coaster-pdf.test.mjs": {
-      "sha256": "8e7af1d3fe8a4b39279568e5fa83fca869a9ffb3ad5964611c7f5679aec2246c",
+      "sha256": "9ad816069db57baf0dba7c42ffd0d515b2ccfb8751419fa8df16ecc9a8149c55",
       "executable": false
     },
     "tests/coaster-plaid.test.mjs": {
@@ -5168,7 +5176,7 @@
       "executable": false
     },
     "tests/coaster.test.mjs": {
-      "sha256": "82a925cf0e60e8aeaabb9bdf761a6f19a835d91ae0a7919bc49856a0e8e74872",
+      "sha256": "401de24cf15ca3061772e6118f6bc479c1e7142b481d48788e29114c4ede5841",
       "executable": false
     },
     "tests/coding-attachment-quality.mjs": {
@@ -7272,7 +7280,7 @@
       "executable": false
     },
     "tests/journeys/browser-agent-resources.mjs": {
-      "sha256": "2e33900b528b4cd5056c3011df34e0db0bb84ce39820a6d99bd84d3662b9e1a5",
+      "sha256": "ebfc4491e3a37d1a28949b2279e9d090b707954aef669613f5ef3a0db89917a1",
       "executable": false
     },
     "tests/journeys/browser-cash-attachment.mjs": {
@@ -7324,7 +7332,7 @@
       "executable": false
     },
     "tests/journeys/claim-spine.mjs": {
-      "sha256": "9cd4225c567eeb48fb1141eb2feb81a92257ec00b0e1b1fdf0293f7b76df78fd",
+      "sha256": "09686eff65019853dd11886333c648df00ac16d934a1d594a3fbf9009e555384",
       "executable": false
     },
     "tests/journeys/concur-custody-1.mjs": {
@@ -7336,7 +7344,7 @@
       "executable": false
     },
     "tests/journeys/operations-audit.mjs": {
-      "sha256": "147c41da0f689d37706d021c5ec03595e5aa30ee28b5a1050c753b094046ba02",
+      "sha256": "f541e05fb85a76151be001445c964365555b083978ae6e0142a6da96869689fc",
       "executable": false
     },
     "tests/journeys/operations-claims.mjs": {
@@ -7352,7 +7360,7 @@
       "executable": false
     },
     "tests/journeys/operations-erasure.mjs": {
-      "sha256": "89ff1be54bb506b9d4940ed54140d27ae4a19be2b8c8cd37f3cd6bc6d66b1e9f",
+      "sha256": "bb01b7ec362884cb7e87d369f76fcad06c419e1c835ff84a806ebfb1c8087527",
       "executable": false
     },
     "tests/journeys/operations-finance-analysis.mjs": {
@@ -7384,7 +7392,7 @@
       "executable": false
     },
     "tests/journeys/operations-reporting.mjs": {
-      "sha256": "f515464bf607fbb2060b98dbaafff7304a08fcbc02b1b0a6540ea2bed1f8ec92",
+      "sha256": "c837d90824cfede97fd69e0407cdeaf8c30b51ca6e88767196308806f9da522e",
       "executable": false
     },
     "tests/journeys/operations-support.mjs": {

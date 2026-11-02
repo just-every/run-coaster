@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from './agent-door/proposals.mjs'
 // CLAIM-003 / DATA-001: real production HTTP, sessions, D1, revisions and exports;
 // only the public ECB download is faked at the network edge.
 import { test } from 'node:test'
@@ -117,8 +118,9 @@ test('CLAIM-003 DATA-001 original Paris taxi, date-specific exact FX, frozen app
     await h.post(`claims/${half.id}/items`, { ...expense, version: half.version }, employee, 409)
     await h.post(`claims/${half.id}/items`, { ...expense, currency: 'USD', version: half.version }, employee)
     assert.equal(h.outbound.length, end, 'domestic saves still work with conversion off')
+    await configureAgentPolicy(h)
     const agent = await h.post('agent-keys', { label: 'Travel helper' }, employee)
-    const proposal = await h.send('/api/coaster/agent/claims', { title: 'Agent foreign draft', items: [{ ...expense, version: undefined, manualRate: '1.2' }] }, '', { authorization: `Bearer ${agent.token}` })
+    const proposal = await h.send('/api/coaster/agent/claims', { title: 'Agent foreign draft', items: [{ ...expense, version: undefined, manualRate: '1.2' }] }, '', { authorization: `Bearer ${agent.token}`, 'idempotency-key': crypto.randomUUID() })
     assert.equal(proposal.status, 200)
     const accepted = await h.post(`proposals/${proposal.value.id}/accept`, {}, employee)
     const prepared = (await h.get(`claims/${accepted.claim.id}`, employee)).items[0]

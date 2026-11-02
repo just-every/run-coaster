@@ -89,8 +89,10 @@ Current active membership and key revocation still apply on every read. Native
 conversations and human preparations stay hidden. No receipt-byte reader or
 financial-decision tool is advertised. Byte-budget enforcement, resource refresh
 and other record families remain open. Screen, device, connector, import and installation doors
-retain their separate purposes. The existing narrow personal-key REST API below
-retains its native preparation contract; it is not a Business policy transport.
+retain their separate purposes. The four personal-key REST routes below translate
+to these same registered tools through the shared door. They keep their personal
+key credential family and native success projections; company policy governs
+every read and preparation on both transports.
 
 Business tokens bind their subject to the existing native operator id through
 signed Business settings, never an email match. The current email must still
@@ -136,6 +138,46 @@ Your agent sends the key as `Authorization: Bearer` to these routes on your Coas
 | `GET /api/coaster/agent/proposals/:id` | Reads one of its proposals and whether you accepted it. |
 
 Amounts are decimal text such as `"64.50"`. A proposed claim takes the same expense fields as the screen: the type, date, merchant, amount or distance or days, category split, explanation, and a receipt as a file name and its bytes in base64.
+
+### Policy and retries on the personal REST routes
+
+Preparation requires a caller-chosen `Idempotency-Key` header or an
+`idempotency_key` JSON field, at most 200 characters. If both are supplied they
+must agree. Keep the same key and exact arguments when retrying a request,
+including after a lost response or company approval. The key belongs to the
+authenticated personal agent on both REST and MCP: a retry through the other
+transport returns the same proposal, while changed arguments return
+`idempotency_conflict` with HTTP 409. A new preparation needs a new key.
+
+Successful REST responses retain the native context or proposal JSON. The
+`X-Coaster-Agent-Decision` response header contains the server-computed classes,
+policy revision, rules and disposition as JSON. Review also supplies an
+`X-Coaster-Agent-Review` header and enters the ordinary company review feed.
+No expense text or caller-supplied classification can grant authority.
+
+An approval returns HTTP 202 with `code: "approval_required"`, an `approval`
+containing the URL and expiry, and an opaque `requestState`. Open that URL in the
+named person's signed-in browser. For a held GET, retry the identical route
+with `?requestState=<returned value>` after approval; keep that state when moving
+the same read to MCP. For a preparation, retry the identical JSON with its
+original key. The pending response contains no private context or proposal
+payload, and preparation has no native effect until approval. A state from a
+different person, agent, tool or input is refused. Rejection and expiry return
+`approval_rejected` and `approval_expired` with HTTP 409; they create nothing.
+
+Before complete company setup, HTTP 409 `policy_unset` includes `setup_url`.
+HTTP 403 `policy_blocked` names the blocking class, rule and revision. Pause
+returns HTTP 409 `agents_paused`. These responses include an actionable `error`;
+none falls back to native execution. Revocation or inactive membership returns
+HTTP 401. Native role withdrawal is rechecked, including inside the preparation
+transaction. A foreign Origin is refused, and native sessions, public API keys
+and Business bearer credentials cannot substitute for a personal key here.
+
+Claim JSON remains bounded to 8 MB, batch JSON to 3 MB, with the existing
+per-receipt bounds and supported native expense fields. Receipt bytes are
+accepted for preparation but are never included in proposal readback. Company
+approval authorizes only this tool call: native proposal acceptance, submission,
+claim approval, batch review and payment remain separate human decisions.
 
 ## Accept or decline
 

@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from './agent-door/proposals.mjs'
 import { preserveClaimSpine } from './journeys/claim-spine.mjs'
 import { preserveOperationsLifecycle } from './journeys/operations-lifecycle.mjs'
 import { preserveOperationsFinance } from './journeys/operations-finance.mjs'
@@ -523,7 +524,8 @@ test('A proposed receipt becomes a corrected, reviewed and paid claim exactly on
   await preserveOperationsLifecycle()
   await (() => withAgency(async (h,t) => {
   await h.post('settings/business',{name:'Taken over',timezone:'Australia/Sydney'},t.sam,403)
-  const key=await h.post('agent-keys',{label:'Receipt preparation'},t.sam),bearer={authorization:`Bearer ${key.token}`}
+  await configureAgentPolicy(h)
+  const key=await h.post('agent-keys',{label:'Receipt preparation'},t.sam),bearer={authorization:`Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID()}
   const proposal=await h.send('/api/coaster/agent/claims',{title:'Client workshop',items:[{kind:'receipt',date:'2026-06-10',merchant:'Workshop supplies',amount:'180.00',allocations:[{category:t.c.meals,amount:'100.00'},{category:t.c.travel,amount:'80.00'}],receipt:await receipt('bistro')}]},'',bearer)
   assert.equal(proposal.status,200)
   await h.post(`proposals/${proposal.value.id}/accept`,{},t.alex,403)
@@ -571,7 +573,7 @@ test('A proposed receipt becomes a corrected, reviewed and paid claim exactly on
   await h.post(`delegates/${grant.id}/revoke`,{},t.sam)
   assert.equal((await h.send('/api/coaster/claims',{title:'After revocation'},t.alex,headers)).status,403)
   const financeKey=await h.post('agent-keys',{label:'Month-end preparation'},t.morgan)
-  const bp=await h.send('/api/coaster/agent/batches',{claims:[c.id]},'',{authorization:'Bearer '+financeKey.token})
+  const bp=await h.send('/api/coaster/agent/batches',{claims:[c.id]},'',{authorization:'Bearer '+financeKey.token, 'idempotency-key': crypto.randomUUID()})
   assert.equal(bp.status,200)
   let batch=(await h.post(`proposals/${bp.value.id}/accept`,{},t.morgan)).batch
   await h.post(`batches/${batch.id}/approve`,{version:batch.version,expectedTotal:batch.total_minor+1},t.morgan,409)

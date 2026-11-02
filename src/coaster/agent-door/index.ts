@@ -19,6 +19,8 @@ export async function coasterAgentDoor(original: Bindings) {
   const name = String(await coasterBusiness(env).resolve('display_name', 'Coaster'));
   const tools = coasterTools();
   return createAgentDoor({ seed: 'coaster', name, specialist: 'Expense controller', db: env.DB, origin: env.AUTH_ORIGIN, trust: trust(env), capabilities,
+    // Native claim preparation supports an 8 MB JSON payload plus the transport envelope.
+    limits: { maxBodyBytes: 8_100_000 },
     people: coasterPeople(env), tools, resources: coasterResources(), prompts: coasterPrompts(tools),
     notTools: [ { clauses: ['COA-010'], reason: 'screen' }, { clauses: ['COA-011'], reason: 'import-door' }, { clauses: ['COA-012', 'COA-013'], reason: 'installation' }, { clauses: ['CAPTURE-002', 'API-001'], reason: 'connector' }, { clauses: ['CAPTURE-001'], reason: 'device' } ],
     async localCredentials(request) {
