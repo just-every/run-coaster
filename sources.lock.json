@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6d617ff7240b4ff9de05ee0d48621f0e968888fb977c20355b167301d2aac768",
+      "sha256": "0a989e4172a37790c8d8d730f912ee49dc0e7b443200e3a74543f1537201fbea",
       "executable": false
     },
     "DEMO.md": {
@@ -7292,7 +7292,7 @@
       "executable": false
     },
     "tests/journeys/browser-agent-resources.mjs": {
-      "sha256": "8e8874d265b00910038b18a35c9bb3917e34456fe91762746194ccf629cbe1a9",
+      "sha256": "e4ddb101ec6068c6044efe348af4ab76872d8f57d0292c93105d3ae7d71bc670",
       "executable": false
     },
     "tests/journeys/browser-cash-attachment.mjs": {
