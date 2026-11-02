@@ -172,6 +172,9 @@ none falls back to native execution. Revocation or inactive membership returns
 HTTP 401. Native role withdrawal is rechecked, including inside the preparation
 transaction. A foreign Origin is refused, and native sessions, public API keys
 and Business bearer credentials cannot substitute for a personal key here.
+Native member erasure also removes that sponsor's captured retry results,
+pending private inputs and review custody, revokes the retained agent identity,
+and redacts identity from runtime evidence while preserving its policy facts.
 
 Claim JSON remains bounded to 8 MB, batch JSON to 3 MB, with the existing
 per-receipt bounds and supported native expense fields. Receipt bytes are

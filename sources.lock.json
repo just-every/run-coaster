@@ -344,7 +344,7 @@
       "executable": false
     },
     "docs/agents.md": {
-      "sha256": "06af275be83a794a0d170c94ef37089bece8d05fc00e828325f317b1f6cae59e",
+      "sha256": "d43675c97ce70cf47b9dbb74eb0a6b736b3c23c978839a23b1203053c9b422ef",
       "executable": false
     },
     "docs/approvals.md": {
@@ -1451,6 +1451,10 @@
       "sha256": "c070961d76a041f942bdfcfa05b666503f7b2a9a7a5087f6349a0d1f27f78e9f",
       "executable": false
     },
+    "src/coaster/agent-door/erasure.ts": {
+      "sha256": "0fe95e404181adfb376d1512839424abe77ae3d227e42506b8f7194e7cdd50e3",
+      "executable": false
+    },
     "src/coaster/agent-door/index.ts": {
       "sha256": "dbacd168a1e0e009e963d8ffe1762300f7fb3aad0732d6b612b66d3c7b9fe9a4",
       "executable": false
@@ -1468,7 +1472,7 @@
       "executable": false
     },
     "src/coaster/agent-door/rest.ts": {
-      "sha256": "7c45a5ef772752c77145a7a4983f0e9c30ce85f869c2c29d253fb987bd7e29ce",
+      "sha256": "702a30e519cb39f0044d3ef6cde83aa379bef9ef00dc943ac7d18fd5ec2ebcc2",
       "executable": false
     },
     "src/coaster/agent-door/tools.ts": {
@@ -1708,7 +1712,7 @@
       "executable": false
     },
     "src/coaster/erasure.ts": {
-      "sha256": "4889210d162b14c46ab4f97dc21e0e41977f76d993cbe30859a6cb799c81adb5",
+      "sha256": "d832ff8274189c94295b1ef4741783470465a295472b1ce0460e7a87569f187f",
       "executable": false
     },
     "src/coaster/escalation-chains.ts": {
@@ -5004,7 +5008,7 @@
       "executable": false
     },
     "tests/browser-journey.mjs": {
-      "sha256": "81b558c2106775a11644348985b14185b9578b78cf9fa3e722fcc58ff8c10ec5",
+      "sha256": "bf2b27d91fa272e0079939e966beb8817f5d8a18f5a433c17ae1888945835a88",
       "executable": false
     },
     "tests/browser-payroll.mjs": {
@@ -5056,11 +5060,11 @@
       "executable": false
     },
     "tests/coaster-agent-resources.test.mjs": {
-      "sha256": "fdfe9f05e1588e4f8388d0bbf41c4cfee53ec7f7cd347ff9162c9fed187b2426",
+      "sha256": "2a2e2d0b91d024e9db3875e22e8d226260f41909080ee867428797dfcc6de6b9",
       "executable": false
     },
     "tests/coaster-agent-rest.test.mjs": {
-      "sha256": "c6d88dcb131fe504475b979625cc99740337a47c29afa7f56c7cebe8cc9df146",
+      "sha256": "0d684008b27798b992671ec461fd2b1e3406580a89a67846b5477f2eef77854e",
       "executable": false
     },
     "tests/coaster-agents.test.mjs": {

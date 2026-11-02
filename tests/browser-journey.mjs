@@ -50,6 +50,8 @@ export async function setUp(owner, origin) {
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Morgan Lee', employee: true, finance: true, release: true, approver: PEOPLE.manager })
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.employee, name: 'Sam Taylor', employee: true, approver: PEOPLE.manager })
   for (const email of Object.values(PEOPLE)) await api(owner.context, origin, 'settings/members/invite', { email })
+  const policy = await owner.context.request.put(origin + '/agents/api/policy', { headers: { origin }, data: { document: autonomousPolicy() } })
+  assert.equal(policy.status(), 200)
 }
 
 /** A fixture receipt made unique per run (a trailing note after the PNG end), so each width's receipts are distinct evidence. */
@@ -88,8 +90,6 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     const { employee, manager, finance } = people, title = `Sydney client workshop ${width}`, plan = PLAN[width]
     const total = minor(plan.bistro) + minor(plan.rockpool) + Math.floor((Number(plan.km) * 100 * 88 + 50) / 100)
     // An agent prepares a draft from an emailed receipt; the employee sees it waiting.
-    const policy = await owner.context.request.put(origin + '/agents/api/policy', { headers: { origin }, data: { document: autonomousPolicy() } })
-    assert.equal(policy.status(), 200)
     const key = await api(employee.context, origin, 'agent-keys', { label: 'Receipt inbox agent' })
     const categories = (await api(employee.context, origin, 'state')).categories, travel = categories.find(c => c.name === 'Travel').id
     const proposal = await (await fetch(`${origin}/api/coaster/agent/claims`, { method: 'POST', headers: { authorization: `Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID(), 'content-type': 'application/json' }, body: JSON.stringify({ title: `Uber receipts ${width}`, note: 'Forwarded from the receipts inbox', items: [{ kind: 'receipt', date: '2026-04-28', merchant: 'Uber', amount: '38.60', allocations: [{ category: travel }], receipt: { name: 'uber.png', base64: (await readFile(await variant('uber', width))).toString('base64') } }] }) })).json()

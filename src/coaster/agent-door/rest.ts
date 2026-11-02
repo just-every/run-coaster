@@ -18,7 +18,9 @@ async function boundedBody(request: Request, limit: number): Promise<Data> {
   }
   const bytes = new Uint8Array(size); let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-  const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+  let value;
+  try { value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
+  catch { requireThat(false, 'The request body must be valid UTF-8 JSON'); }
   requireThat(value && typeof value === 'object' && !Array.isArray(value), 'The request body must be a JSON object');
   return value;
 }
