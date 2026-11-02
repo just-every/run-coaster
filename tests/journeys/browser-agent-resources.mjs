@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { pathToFileURL } from 'node:url'
-import { chromium } from '@playwright/test'
+import { chromium, expect } from '@playwright/test'
 import { copyFile, mkdir, readFile, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { command, fresh, freePort, start } from '../browser-runtime.mjs'
@@ -66,7 +66,7 @@ export async function runAgentResourceJourney({ discover } = {}) {
         await locator.first().waitFor()
         await locator.first().evaluate(element => element.scrollIntoView({ block: 'center' }))
         if (width === 1440) {
-          assert.deepEqual((await locator.allInnerTexts()).map(t => t.trim()), expected, `${name} at ${width}`)
+          await expect.poll(async () => (await locator.allInnerTexts()).map(t => t.trim()), { message: `${name} at ${width}` }).toEqual(expected)
           assert.equal(await person.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits at ${width}`)
         }
         await person.page.screenshot({ path: join(evidence, `${name}-${width}.png`) })
