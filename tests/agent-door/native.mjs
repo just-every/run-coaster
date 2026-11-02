@@ -89,8 +89,10 @@ export async function afterStep(context) {
     const previousEvents = proposalEvents.get(`${phase}:${step.id}`);
     const events = (await db.prepare("SELECT id,event FROM agent_door_events WHERE json_extract(event,'$.type')='proposal.created' ORDER BY sequence").all()).results;
     const added = events.filter(event => !previousEvents.includes(event.id));
-    assert.equal(added.length, 1, 'Exactly one retained event after successful native preparation');
-    const event = JSON.parse(added[0].event);
+    // The conformance injection may also prepare a distinct proposal.
+    const matching = added.map(row => JSON.parse(row.event)).filter(event => event.uri === `coaster://proposals/${result.id}`);
+    assert.equal(matching.length, 1, 'Exactly one retained event for this successful native preparation');
+    const event = matching[0];
     assert.equal(event.uri, `coaster://proposals/${result.id}`);
     assert.equal(event.actor.kind, 'agent');
     assert.equal(event.actor.agent.name, row.agent_label);

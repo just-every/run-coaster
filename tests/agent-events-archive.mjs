@@ -24,6 +24,9 @@ export async function assertRestoredEvents(client, expected, oldClient) {
   if (expected.length) {
     const params = { name: 'coaster.events.list', arguments: { after: expected[0].id, limit: 1 } }
     const read = await client('tools/call', params)
-    assert.deepEqual(await client('tools/call', params), read, 'cursor identity survives real CLI restore')
+    const replay = await client('tools/call', params)
+    assert.equal(read.status, 200); assert.equal(replay.status, 200)
+    assert.equal(read.result.isError, false); assert.equal(replay.result.isError, false)
+    assert.deepEqual(replay.result.structuredContent, read.result.structuredContent, 'cursor identity survives real CLI restore')
   }
 }

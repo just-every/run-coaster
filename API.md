@@ -45,7 +45,7 @@ with `actingFor`.
 | `GET batches/:id/accounting.csv`, `GET batches/:id/reimbursements.csv` | finance, auditor | The export files. |
 | `POST batches/:id/paid` `{version, reference, paidOn}` | finance | Record the payment made outside Coaster. |
 | `POST settings/business`, `settings/categories`, `settings/members`, `settings/members/invite` | owner | Policy, categories, people and invitations. |
-| `POST agent-keys` `{label}` → `{token}`; `POST agent-keys/:id/revoke` | the person | Make (shown once) or revoke their agent's key. |
+| `POST agent-keys` `{label, eventsRead?: boolean}` → `{token, scopes}`; `POST agent-keys/:id/revoke` | the person | Make (shown once) or revoke their agent's key. Only their own native session can explicitly opt a new key into retained events; omitted or false `eventsRead` preserves preparation grants. |
 | `POST delegates` `{delegate, level: submit\|full, grantor?}`; `POST delegates/:id/revoke` | the person (the owner for anyone; the delegate may end their own) | Give or end delegate access; the granting person is emailed each grant. |
 | `POST proposals/:id/accept`, `POST proposals/:id/decline` `{reason}` | the person it was prepared for | Turn a proposal into their own draft claim or draft batch, or decline it. |
 | `GET history?q=&from=&to=` | owner, finance, auditor | Search every history line (who, what, when, app or agent): `CL-0001` gives a claim with its batch's review, export and payment lines, `RB-0001` a batch, anything else matches people and words; dates are business-time days. |
@@ -56,8 +56,10 @@ with `actingFor`.
 
 `POST /mcp` serves MCP 2026-07-28 and 2025-11-25. Read discovery and metadata
 before calling `coaster.workspace.get`, `coaster.proposals.get`,
-`coaster.claims.propose` or `coaster.batches.propose`. Scopes are
-`proposals:read` and `proposals:write`; arguments and outputs are described by
+`coaster.claims.propose`, `coaster.batches.propose` or the shared
+`coaster.events.list`. Preparation scopes are `proposals:read` and
+`proposals:write`; retained event reads require the separately opted-in
+`events:read` grant and current proposal visibility; arguments and outputs are described by
 `tools/list`. Mutations carry an `idempotency_key`. Stable refusal codes appear
 in `_meta["com.runeditrun/error"]`. Signed Business policy is adopted through
 `POST /api/rer/agent-policy`; person controls are at `/agents`.
