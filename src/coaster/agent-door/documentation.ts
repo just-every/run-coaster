@@ -1,6 +1,8 @@
 import { coasterTools } from './tools';
 import { coasterResources } from './resources';
 import { coasterPrompts } from './prompts';
+import { eventsTool } from '../../modules/agent-door/events';
+import type { Runtime } from '../../modules/agent-door/types';
 
 /** Only public conformance declarations enter the documentation projection. */
 export interface AgentSurface {
@@ -59,7 +61,8 @@ export function agentFixtureFiles(surface: AgentSurface): string[] {
 
 /** Compare declarations before projecting the actual native registry, never a second tool catalogue. */
 export function agentCatalogue(surface: AgentSurface) {
-  const tools = coasterTools().sort((a, b) => a.name.localeCompare(b.name));
+  // The shared door registers this tool; the docs project that same definition.
+  const tools = [...coasterTools(), eventsTool({ options: { seed: 'coaster' } } as Runtime)].sort((a, b) => a.name.localeCompare(b.name));
   const resources = coasterResources().sort((a, b) => a.uriTemplate.localeCompare(b.uriTemplate));
   const prompts = coasterPrompts(tools);
   sameMembers(surface.tools.map(tool => tool.name), tools.map(tool => tool.name), 'tool names');
@@ -113,6 +116,7 @@ function condition(args: Record<string, unknown>, classes: string[]): string {
   }
   if (classes.includes('external')) return 'Automatic foreign-currency FX; public ECB history request, without expense or person data.';
   if (items.length) return 'Native expense preparation; private untrusted expense content.';
+  if ('limit' in args) return 'Read retained changes under current resource visibility; event scope required.';
   if (Array.isArray(args.claims)) return 'Finance preparation from already-approved native claims; no batch release.';
   if ('id' in args) return 'Read the sponsoring person’s own proposal; private untrusted expense content.';
   return 'Read the sponsoring person’s native preparation context.';

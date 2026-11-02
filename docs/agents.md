@@ -4,6 +4,8 @@ Your own agent can prepare work for you: an employee's agent drafts claims from 
 
 In **Settings**, under **Agent keys**, enter an **Agent name** such as "Receipt inbox agent" and choose **Make agent key**. Coaster shows the key once: copy it into your agent's configuration. **Revoke** stops a key at once.
 
+Leave **Allow this key to read retained events for records I can access** unchecked for preparation only. Select it explicitly when making a new key to grant `events:read`; existing keys gain no scope. The key list shows the choice. To change it, revoke the old key and make a new one.
+
 A key acts only for you and only while you can sign in. It cannot submit, approve, batch, pay, change settings or read anyone else's claims.
 
 ## Company agents through MCP
@@ -11,8 +13,8 @@ A key acts only for you and only while you can sign in. It cannot submit, approv
 Coaster serves one shared agent door at `/mcp`, discovery and canonical metadata,
 `/api/rer/agent-policy`, and native person policy, approval, review and audit pages
 at `/agents`. The specialist is **Expense controller**. The declared capability
-families are tools, resources, prompts, policy, pause, audit and idempotency.
-Events and subscriptions are undeclared and return typed refusals.
+families are tools, resources, prompts, events, policy, pause, audit and idempotency.
+Retained events are declared. Subscriptions remain undeclared and return typed refusals.
 
 <!-- coaster-agent-catalogue:start -->
 
@@ -28,6 +30,7 @@ The names below are the complete declared catalogue. Current scopes, membership 
 | --- | --- | --- | --- | --- |
 | Prepare a batch proposal | `coaster.batches.propose` | `proposals:write` | `standard` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
 | Prepare a claim proposal | `coaster.claims.propose` | `proposals:write` | `standard`, `sensitive`, `external` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006`, `CLAIM-003` |
+| List events | `coaster.events.list` | `events:read` | `standard` | `BASE-AGENT-010` |
 | Read own proposal | `coaster.proposals.get` | `proposals:read` | `standard`, `sensitive` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
 | Preparation context | `coaster.workspace.get` | `proposals:read` | `standard` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
 
@@ -41,6 +44,7 @@ Each case below is an entry in the production-door conformance journey in `agent
 | `coaster.claims.propose` | `standard` | `claim`, `foreign-claim`, `manual-foreign-claim` |
 | `coaster.claims.propose` | `sensitive` | `claim`, `foreign-claim`, `manual-foreign-claim` |
 | `coaster.claims.propose` | `external` | `foreign-claim` |
+| `coaster.events.list` | `standard` | `events` |
 | `coaster.proposals.get` | `standard` | `proposal` |
 | `coaster.proposals.get` | `sensitive` | `proposal` |
 | `coaster.workspace.get` | `standard` | `context` |
@@ -53,6 +57,7 @@ Each case below is an entry in the production-door conformance journey in `agent
 | `manual-foreign-claim` | `coaster.claims.propose` | `standard`, `sensitive` | Explicit manual FX rate; no provider request and no external class. |
 | `proposal` | `coaster.proposals.get` | `standard`, `sensitive` | Read the sponsoring person’s own proposal; private untrusted expense content. |
 | `batch` | `coaster.batches.propose` | `standard` | Finance preparation from already-approved native claims; no batch release. |
+| `events` | `coaster.events.list` | `standard` | Read retained changes under current resource visibility; event scope required. |
 
 Verification modules: `tests/agent-door/owner.mjs`, `tests/agent-door/fixtures.mjs`, `tests/agent-door/native.mjs`, `tests/agent-door/network.mjs`, `tests/agent-door/employee.mjs`, `tests/agent-door/negative-sponsor.mjs`.
 
@@ -123,6 +128,26 @@ boundary still requires people to decide. Its many screen-native financial,
 access, security, provider and administrative jobs have not been added to MCP.
 No SURFACE ids are introduced from that unlanded draft. BASE-AGENT-001 through
 BASE-AGENT-013 retain partial judgments and their specific gaps in CONTRACT.md.
+
+## Retained proposal events
+
+An opted-in key can call the shared `coaster.events.list` tool with an optional
+`after` event id and `limit` from 1 to 200. Repeating a cursor preserves event ids
+and order. Reads recheck current key grants, active membership and the proposal
+resource's existing visibility; foreign proposals, native conversations and human
+preparations remain hidden. Revocation stops access immediately.
+
+Successful MCP claim and batch preparations emit `proposal.created` for the exact
+`coaster://proposals/{id}` URI. The shared door assigns the id, time and agent
+acting for the person. No expense text, amounts, receipt bytes or credentials are
+included. Company approval must complete before a held preparation creates its
+proposal or event. Neither reading nor approving a tool call accepts, submits,
+approves or pays a native claim or batch. Events retained in an archive are
+evidence only: restored installations need fresh native authentication, company
+policy and explicitly opted-in fresh keys. Subscriptions, signed Base webhooks,
+common channel ids, delivery failure and replay controls, complete decision
+payloads, crash-complete delivery, native human transitions and other record
+families remain open.
 
 ## What your agent can do
 

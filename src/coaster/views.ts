@@ -33,7 +33,7 @@ export async function workspace(db: D1Database, actor: Actor) {
     db.prepare("SELECT id,number,employee_email,approver_email,on_behalf_of,title,status,revision,version,total_minor,currency,prepared_by,batch_id,created_at,updated_at,EXISTS(SELECT 1 FROM c_revisions w WHERE w.claim_id=c_claims.id AND json_type(w.snapshot,'$.workflow')='object') AS workflow_history,(SELECT submitted_at FROM c_revisions r WHERE r.claim_id=c_claims.id AND r.revision=c_claims.revision) AS submitted_at FROM c_claims ORDER BY number DESC"),
     db.prepare('SELECT member_id,email,name,is_employee,is_manager,is_finance,is_auditor,is_admin,is_card_admin,is_bookkeeper,department_id,may_release,is_contractor,approver_email,active FROM c_members ORDER BY name'),
     db.prepare('SELECT id,kind,agent_label,payload,status,created_at,decided_at,result_id FROM c_proposals WHERE for_email=? ORDER BY created_at DESC').bind(actor.email),
-    db.prepare('SELECT id,label,created_at,revoked_at FROM c_agent_keys WHERE member_email=? ORDER BY created_at DESC').bind(actor.email),
+    db.prepare('SELECT id,label,created_at,revoked_at,scopes FROM c_agent_keys WHERE member_email=? ORDER BY created_at DESC').bind(actor.email),
     db.prepare('SELECT * FROM c_batches ORDER BY number DESC'),
   ]);
   const workflowTasks=(await db.prepare("SELECT t.* FROM c_workflow_tasks t JOIN c_claims c ON t.kind='claim' AND c.id=t.record_id AND c.revision=t.revision").all<import('./workflow-routing').Task>()).results;

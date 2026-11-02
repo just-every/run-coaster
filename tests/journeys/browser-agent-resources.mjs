@@ -6,11 +6,12 @@ import { join, resolve } from 'node:path'
 import { command, fresh, freePort, start } from '../browser-runtime.mjs'
 import { api, inviteRestoredPerson, session, setUp } from '../browser-journey.mjs'
 import { records, rows } from '../browser-archive.mjs'
+import { assertEventArchive, assertRestoredEvents, proposalEvents } from '../agent-events-archive.mjs'
 import { autonomousPolicy } from '../../src/modules/agent-door/conformance/crypto.mjs'
 import { claimArguments, linkedProposal, proposalClient, readProposal } from '../agent-door/proposals.mjs'
 
 const ownerAddress = 'owner' + '@' + 'harbourfinch.example'
-export async function runAgentResourceJourney({ discover } = {}) {
+export async function runAgentResourceJourney({ discover, events = false, issueKey } = {}) {
   const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/agent-resource-proof')
   await mkdir(evidence, { recursive: true })
   let root, restored, server, browser
@@ -29,8 +30,8 @@ export async function runAgentResourceJourney({ discover } = {}) {
       assert.equal(response.status(), 200)
     }
     await setPolicy(owner)
-    const employeeKey = await api(employee.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3520' })
-    const financeKey = await api(finance.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3521' })
+    const employeeKey = issueKey ? await issueKey(employee, server.origin, 'synthetic-coaster-4220', evidence) : await api(employee.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3520' })
+    const financeKey = issueKey ? await issueKey(finance, server.origin, 'synthetic-coaster-4221', evidence) : await api(finance.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3521' })
     const employeeClient = proposalClient(fetch, server.origin, employeeKey.token), financeClient = proposalClient(fetch, server.origin, financeKey.token)
     if (discover) await discover({ browser, server, client: employeeClient, evidence })
     const state = await api(employee.context, server.origin, 'state')
@@ -78,6 +79,13 @@ export async function runAgentResourceJourney({ discover } = {}) {
     assert.equal(nativeBatch.batch.status, 'draft')
     assert.equal(nativeBatch.batch.total_minor, 1234)
     const linkedBefore = [accepted, acceptedBatch]
+    const eventBefore = events ? [await proposalEvents(employeeClient), await proposalEvents(financeClient)] : []
+    if (events) for (const [index, seen] of eventBefore.entries()) {
+      assert.equal(seen.length, 1)
+      assert.equal(seen[0].uri, `coaster://proposals/${linkedBefore[index].id}`)
+      assert.deepEqual(Object.keys(seen[0]).sort(), ['actor', 'at', 'id', 'type', 'uri'])
+      assert.equal(seen[0].actor.agent.id, [employeeKey, financeKey][index].id)
+    }
     for (const context of contexts.splice(0)) await context.close()
     await browser.close(); browser = undefined; await server.close(); server = undefined
     await command(root, ['export', '--output', 'exports/agent-proposals.rer'])
@@ -86,6 +94,7 @@ export async function runAgentResourceJourney({ discover } = {}) {
     const before = rows(await records(archive))
     assert.equal(before.filter(r => r.table === 'c_proposals').length, 2)
     assert.equal(before.filter(r => r.table === 'c_agent_keys').length, 0, 'archives contain no personal agent credentials')
+    if (events) assertEventArchive(before, eventBefore.flat(), [employeeKey, financeKey])
     restored = await fresh(); const restoredPort = await freePort()
     await command(restored, ['setup', '--owner-email', ownerAddress, '--port', String(restoredPort)])
     await mkdir(join(restored, 'exports'), { recursive: true }); await copyFile(archive, join(restored, 'exports/source.rer'))
@@ -98,17 +107,19 @@ export async function runAgentResourceJourney({ discover } = {}) {
     const restoredOwner = await session(browser, restored, server.origin, 'owner', 1440); contexts.push(restoredOwner.context)
     await setPolicy(restoredOwner)
     // Restore brings evidence, never native sign-in or reusable agent authority.
-    for (const [as, oldKey, expected] of [['employee', employeeKey, linkedBefore[0]], ['finance', financeKey, linkedBefore[1]]]) {
+    for (const [index, [as, oldKey, expected]] of [['employee', employeeKey, linkedBefore[0]], ['finance', financeKey, linkedBefore[1]]].entries()) {
       const email = as + '@' + 'dev.localhost'
       await inviteRestoredPerson(restoredOwner.context, server.origin, email)
       const person = await session(browser, restored, server.origin, as, 1440); contexts.push(person.context)
       assert.equal((await proposalClient(fetch, server.origin, oldKey.token)('resources/read', { uri: `coaster://proposals/${expected.id}` })).status, 401)
-      const freshKey = await api(person.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3525' })
+      const freshKey = await api(person.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3525', eventsRead: events })
       const client = proposalClient(fetch, server.origin, freshKey.token)
+      if (events) await assertRestoredEvents(client, eventBefore[index], proposalClient(fetch, server.origin, oldKey.token))
       assert.deepEqual(readProposal(await client('resources/read', { uri: `coaster://proposals/${expected.id}` })), expected)
       const native = await person.context.request.get(`${server.origin}/api/coaster/agent/proposals/${expected.id}`, { headers: { authorization: `Bearer ${freshKey.token}` } })
       assert.equal(native.status(), 200); assert.deepEqual(await native.json(), expected)
     }
+    if (events) console.log('PROBE BASE-AGENT-010 native and restore: actual unchecked and opted-in key issuance and proposal screens at 1440 and 390, then real CLI export and import -> exact retained event ids and attribution, no archived keys, old credentials refused, fresh native authentication and opted-in keys required')
     console.log('PROBE BASE-AGENT-003 native and restore: linked claim and batch screens at 1440 and 390 -> matching proposal evidence; real CLI restore -> exact portable records, fresh native sign-in and keys required')
   } finally {
     for (const context of contexts) await context.close()

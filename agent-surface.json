@@ -6,6 +6,7 @@
     "tools",
     "resources",
     "prompts",
+    "events",
     "policy",
     "pause",
     "audit",
@@ -67,6 +68,17 @@
         "BASE-AGENT-002",
         "BASE-AGENT-006"
       ]
+    },
+    {
+      "name": "coaster.events.list",
+      "scope": "events:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BASE-AGENT-010"
+      ]
     }
   ],
   "notTools": [
@@ -103,8 +115,13 @@
       "reason": "device"
     }
   ],
-  "resources": ["coaster://proposals/{id}"],
-  "prompts": ["coaster.batches.prepare", "coaster.claims.prepare"],
+  "resources": [
+    "coaster://proposals/{id}"
+  ],
+  "prompts": [
+    "coaster.batches.prepare",
+    "coaster.claims.prepare"
+  ],
   "witness": {
     "tool": "coaster.workspace.get",
     "args": {}
@@ -388,6 +405,21 @@
           "money"
         ]
       }
+    },
+    {
+      "id": "events",
+      "tool": "coaster.events.list",
+      "args": {
+        "limit": 200
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
     }
   ]
 }

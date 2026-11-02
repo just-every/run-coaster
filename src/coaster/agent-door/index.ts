@@ -7,7 +7,16 @@ import { coasterResources } from './resources';
 import { coasterPrompts } from './prompts';
 import { agent } from '../session';
 
-export const capabilities = ['tools', 'resources', 'prompts', 'policy', 'pause', 'audit', 'idempotency'] as const;
+const preparationScopes = ['proposals:read', 'proposals:write'];
+const allowedKeyScopes = [...preparationScopes, 'events:read'];
+async function keyScopes(env: Bindings, id: string, email: string): Promise<string[]> {
+  const key = await env.DB.prepare('SELECT scopes FROM c_agent_keys WHERE id=? AND member_email=? AND revoked_at IS NULL').bind(id, email.toLowerCase()).first<{ scopes: string }>();
+  if (!key) return [];
+  const stored: unknown = JSON.parse(key.scopes);
+  return Array.isArray(stored) ? allowedKeyScopes.filter(scope => stored.includes(scope)) : [];
+}
+
+export const capabilities = ['tools', 'resources', 'prompts', 'events', 'policy', 'pause', 'audit', 'idempotency'] as const;
 function trust(env: Bindings): Trust | null {
   const { RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId, RER_OWNER_CLAIM_PUBLIC_KEYS: keys } = env;
   if (![issuer, installationId, keys].some(Boolean)) return null;
@@ -26,12 +35,13 @@ export async function coasterAgentDoor(original: Bindings) {
       try {
         const a = await agent(request, env);
         const p = await env.DB.prepare("SELECT id FROM oa_operators WHERE lower(email)=? AND status='active'").bind(a.email).first<{id: string}>();
-        return p ? { sponsor: { id: p.id }, agent: { id: a.keyId!, name: a.agentLabel! }, clientId: `coaster-key:${a.keyId}`, scopes: ['proposals:read', 'proposals:write'] } : null;
+        return p ? { sponsor: { id: p.id }, agent: { id: a.keyId!, name: a.agentLabel! }, clientId: `coaster-key:${a.keyId}`, scopes: await keyScopes(env, a.keyId!, a.email) } : null;
       } catch { return null; }
     },
     async currentScopes(p: Principal) {
       if (!p.clientId?.startsWith('coaster-key:')) return p.scopes;
-      return await env.DB.prepare('SELECT 1 FROM c_agent_keys WHERE id=? AND member_email=? AND revoked_at IS NULL').bind(p.clientId.slice(12), p.person.email.toLowerCase()).first() ? p.scopes : [];
+      const granted = await keyScopes(env, p.clientId.slice(12), p.person.email);
+      return p.scopes.filter(scope => granted.includes(scope));
     },
   });
 }
