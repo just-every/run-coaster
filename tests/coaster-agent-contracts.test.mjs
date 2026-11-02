@@ -216,6 +216,25 @@ test('Preparation contracts describe real context, proposals and native business
       typedProposal(value, 'batch', 'accepted'); assert.equal(value.result_id, acceptedBatch.batch.id)
     }
 
+    // Retained expense inputs stay native: numeric amounts, category shorthand,
+    // nullable optional text and unused fields are not normalized by the tool.
+    for (const [item, amountMinor] of [
+      [{ kind: 'receipt', date: '2026-05-10', merchant: 'synthetic-coaster-3620', amount: 12.34, category: t.c.office, description: null, fields: null }, 1234],
+      [{ kind: 'mileage', date: '2026-05-10', distance: 2, category: t.c.car, merchant: null, amount: { unused: true } }, 176],
+      [{ kind: 'per_diem', date: '2026-05-10', days: '2', category: t.c.travel, perDiem: null }, 15000],
+    ]) {
+      const input = { title: 'synthetic-coaster-3621', items: [item] };
+      const direct = await native('claims', employeeKey.token, input);
+      assert.equal(direct.status, 200);
+      for (const client of clients) {
+        conforms(client.tools.get(claimTool).outputSchema, direct.value, 'Native accepted inputs satisfy the advertised output');
+        const prepared = await call(client, 'employee', claimTool, { ...input, idempotency_key: crypto.randomUUID() });
+        assert.deepEqual(prepared.payload.items, direct.value.payload.items);
+        assert.equal(prepared.payload.items[0].amountMinor, amountMinor);
+        assert.equal(prepared.payload.items[0].receiptId, null);
+      }
+    }
+
     await policy(heldPolicy())
     const client = clients[0], heldArgs = claimArguments(t.c.office, 'synthetic-coaster-3612')
     const params = { name: claimTool, arguments: { ...heldArgs, idempotency_key: 'synthetic-coaster-3613' } }

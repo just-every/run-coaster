@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9e89d2f4ba0d98eee6c7788cc0ec6d920c94f0fc498912d484739e36b77f7a7e",
+      "sha256": "b733179db6fe0016cbf1b3337f20fcff8cf563eca7ea180951c16535deb3d0aa",
       "executable": false
     },
     "DEMO.md": {
@@ -5056,7 +5056,7 @@
       "executable": false
     },
     "tests/coaster-agent-contracts.test.mjs": {
-      "sha256": "bf87e1e6887f6b3c66ebb635fe046e5b65f0072d421463a323606c57d4885c25",
+      "sha256": "1b1727bfeb488579e5381634f31b80b1525aaf5cb71fa218788476c944b0df8d",
       "executable": false
     },
     "tests/coaster-agent-discovery.test.mjs": {
