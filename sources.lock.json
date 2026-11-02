@@ -5056,7 +5056,7 @@
       "executable": false
     },
     "tests/coaster-agent-contracts.test.mjs": {
-      "sha256": "1b1727bfeb488579e5381634f31b80b1525aaf5cb71fa218788476c944b0df8d",
+      "sha256": "bb9ced4fcc89afc83674c2657bf5397814638da8839f3d77d8e70a04c125b99f",
       "executable": false
     },
     "tests/coaster-agent-discovery.test.mjs": {

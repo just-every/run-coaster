@@ -238,6 +238,19 @@ test('Preparation contracts describe real context, proposals and native business
     await policy(heldPolicy())
     const client = clients[0], heldArgs = claimArguments(t.c.office, 'synthetic-coaster-3612')
     const params = { name: claimTool, arguments: { ...heldArgs, idempotency_key: 'synthetic-coaster-3613' } }
+    const beforeLegacyHeld = await snapshot();
+    for (const legacyParams of [
+      { ...params, arguments: { ...params.arguments, idempotency_key: 'synthetic-coaster-3622' } },
+      { name: readTool, arguments: { id: claim.id } },
+    ]) {
+      const held = await clients[1].employee('tools/call', legacyParams);
+      assert.equal(held.status, 200); assert.equal(held.result.isError, true);
+      assert.equal(refusalCode(held), 'approval_required');
+      assert.equal(held.result.structuredContent, undefined);
+      assert.ok(!held.result.content.some(content => content.type === 'resource_link'));
+      for (const secret of [heldArgs.title, args.title, args.items[0].receipt.base64]) assert.ok(!JSON.stringify(held).includes(secret));
+    }
+    assert.deepEqual(await snapshot(), beforeLegacyHeld, 'Legacy protocol approval challenges also withhold content and perform no native writes');
     const approveHeld = async (params, before, secret) => {
       const held = await client.employee('tools/call', params)
       assert.equal(held.status, 200); assert.equal(held.result?.resultType, 'input_required')
