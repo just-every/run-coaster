@@ -6,6 +6,7 @@ import { verifyPrompts } from '../agent-door/discovery.mjs'
 
 /** The built public documentation and the authenticated MCP registry agree. */
 export async function runAgentDiscoveryJourney({ browser, server, client, evidence }) {
+  const discovery = (await client('server/discover')).result
   const prompts = await verifyPrompts(client)
   const tools = (await client('tools/list')).result.tools
   const resources = (await client('resources/templates/list')).result.resourceTemplates
@@ -17,6 +18,12 @@ export async function runAgentDiscoveryJourney({ browser, server, client, eviden
     assert.equal(response.status(), 200)
     const tableAfter = name => page.getByRole('heading', { name, exact: true }).locator('xpath=following-sibling::div[contains(@class,"docs-table")][1]')
     const cells = async table => table.locator('tbody tr').evaluateAll(rows => rows.map(row => [...row.querySelectorAll('td')].map(cell => cell.textContent.trim())))
+    const capacity = tableAfter('Installation capacity')
+    const limits = discovery._meta['com.runeditrun/limits']
+    assert.deepEqual(await cells(capacity), [
+      ['Admitted authenticated MCP requests per agent per minute', String(limits.requestsPerMinute)],
+      ['Maximum MCP request body in bytes', String(limits.maxBodyBytes)],
+    ], 'built capacity documentation agrees with the live production discovery')
     const listedTools = await cells(tableAfter('Tools by job'))
     assert.deepEqual(listedTools.map(row => row[1]), tools.map(tool => tool.name), 'published docs offer exactly the live tools')
     for (const [index, row] of listedTools.entries()) {
@@ -57,6 +64,7 @@ export async function runAgentDiscoveryJourney({ browser, server, client, eviden
     }
     console.log('PROBE BASE-AGENT-013 1: built /docs/agents and authenticated MCP lists -> exact tool, resource template and prompt catalogue equality at 1440 and 390')
     console.log('PROBE BASE-AGENT-013 2: published class witnesses -> every native class has a checked journey reference; automatic FX external, explicit manual rate has no provider class')
+    console.log(`PROBE BASE-AGENT-011 documentation: built /docs/agents at 1440 and 390 -> live discovery equality: ${limits.requestsPerMinute} admitted requests per agent per minute, ${limits.maxBodyBytes} body bytes`)
   } finally { await context.close() }
 }
 

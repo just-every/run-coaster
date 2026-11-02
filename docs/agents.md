@@ -22,6 +22,17 @@ Specialist: **Expense controller**. This section is generated from the native to
 
 The names below are the complete declared catalogue. Current scopes, membership and company policy still govern discovery and every call.
 
+### Installation capacity
+
+| Capacity | Limit in force |
+| --- | --- |
+| Admitted authenticated MCP requests per agent per minute | 600 |
+| Maximum MCP request body in bytes | 1048576 |
+
+The request allowance is shared by authenticated catalogue reads and tool calls for the same agent, across supported protocol versions and JSON-RPC ids. It resets at the next UTC minute boundary. An overrun returns HTTP 429 with code `rate_limited` and a positive `Retry-After` in seconds until that boundary, before preparation or provider access. Other agents and native browser sessions retain access.
+
+The body limit counts the complete UTF-8 request body; an oversized body returns HTTP 413 before tool execution. These rate and size capacities protect the installation. They are not daily business-volume limits, recipient thresholds or provider-spend caps. Spend and grant byte budgets, per-day recipient thresholds and complete per-agent money and provider-spend usage remain unqualified.
+
 ### Tools by job
 
 | Job | Tool | Scope | Classes | Clauses |

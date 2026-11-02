@@ -24,7 +24,7 @@ export function buildDocs(root: string): DocsSite {
     if (!statSync(fixture).isFile()) throw new Error('Agent catalogue: verification reference is not a test module');
   }
   const files = [join(root, manifestPath), surfaceFile, ...fixtures,
-    ...['tools.ts', 'resources.ts', 'prompts.ts', 'documentation.ts'].map(file => join(root, 'src/coaster/agent-door', file))];
+    ...['tools.ts', 'resources.ts', 'prompts.ts', 'documentation.ts', 'limits.ts'].map(file => join(root, 'src/coaster/agent-door', file))];
   const rendered = new Map(pages.map(page => {
     const file = join(root, docsDirectory, page.file);
     files.push(file);
