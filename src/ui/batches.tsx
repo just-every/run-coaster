@@ -93,7 +93,7 @@ function BatchPanel({ id, reload, names, templates, owner }: { id: string; reloa
   const flagged = lines.filter((l: D) => l.exceptions);
   return <Side className="side detail batch-detail" label={`Batch ${batchNumber(batch.number)}`}>
     <div className="panel-head"><h2>{batchNumber(batch.number)} · {money(batch.total_minor, c)}</h2>{close}</div>
-    <p className="panel-amount">{plural(claims.length, 'claim')} · {plural(people.length, 'person', 'people')}{batch.prepared_by ? ` · prepared by ${batch.prepared_by}` : ''}</p>
+    <p className="panel-amount">{plural(claims.length, 'claim')} · {plural(people.length, 'person', 'people')}{detail.attribution ? ` · prepared by ${detail.attribution.label}, accepted by ${detail.attribution.decidedBy.name}${detail.attribution.decidedBy.onBehalfOf ? ` on behalf of ${detail.attribution.decidedBy.onBehalfOf.name}` : ''}` : batch.prepared_by ? ` · prepared by ${batch.prepared_by}` : ''}</p>
     <p className="panel-date">Created {day(batch.created_at)}</p>
     <div className="metadata panel-block"><Badge status={batchStatus(batch)} tone={tone(batch)} words={batchWords[batchStage(batch)]} /></div>
     {reconciled

@@ -26,6 +26,7 @@ import { departments } from './departments';
 import { escalationChains } from './escalation-chains';
 import { codingCatalog } from './coding/catalog';
 import { correctionsFor } from './accounting/expense-corrections';
+import { annotateLines, recordAttributions, type Line } from './agents/attribution';
 
 /** Everything one person's workspace shows, already narrowed to what they may see. */
 export async function workspace(db: D1Database, actor: Actor) {
@@ -81,7 +82,7 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   const [revisions, decisions, events, receipts] = await db.batch([
     db.prepare('SELECT revision,submitted_by,submitted_at,total_minor,snapshot FROM c_revisions WHERE claim_id=? ORDER BY revision').bind(claim.id),
     db.prepare('SELECT revision,decision_step,workflow_final,decision,reason,actor_email,on_behalf_of,at,exceptions FROM c_decisions WHERE claim_id=? ORDER BY revision,at,rowid').bind(claim.id),
-    db.prepare('SELECT at,actor_email,action,detail FROM c_events WHERE claim_id=? ORDER BY seq').bind(claim.id),
+    db.prepare('SELECT at,actor_email,action,claim_id,detail FROM c_events WHERE claim_id=? ORDER BY seq').bind(claim.id),
     db.prepare('SELECT id,name,media_type,size,sha256,source,uploaded_by,uploaded_at,capture_receipt_id FROM c_receipts WHERE claim_id=? ORDER BY uploaded_at, id').bind(claim.id),
   ]);
   const history = (revisions.results as Data[]).map(r => ({ ...r, snapshot: JSON.parse(r.snapshot) }));
@@ -105,7 +106,8 @@ export async function claimDetail(db: D1Database, actor: Actor, id: string) {
   return {
     claim, requests, codingCorrections: await correctionsFor(db,id), accountCoding: await accountCoding(db, actor, claim), advance: await claimAdvance(db, claim.id), comments: await claimComments(db, claim.id), items: shownItems.map(({ receipt_sha256, ...item }) => ({ ...item, receipt_sha256, per_person: perPersonShares(item, byId) })), exceptions, receipts: shownReceipts,
     revisions: history, decisions: (decisions.results as Data[]).map(d => ({ ...d, exceptions: JSON.parse(d.exceptions) })),
-    events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })),
+    events: await annotateLines(db, (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) }) as Line)),
+    attribution: (await recordAttributions(db, 'claim', [claim.id])).get(claim.id) ?? null,
   };
 }
 
@@ -137,8 +139,8 @@ export async function batchDetail(db: D1Database, actor: Actor, id: string) {
   const batch = await loadBatch(db, id);
   const [claims, events] = await db.batch([
     db.prepare('SELECT bc.claim_id,bc.revision,bc.amount_minor,c.number,c.title,c.employee_email,c.status FROM c_batch_claims bc JOIN c_claims c ON c.id=bc.claim_id WHERE bc.batch_id=? ORDER BY c.number').bind(id),
-    db.prepare('SELECT at,actor_email,action,detail FROM c_events WHERE batch_id=? ORDER BY seq').bind(id),
+    db.prepare('SELECT at,actor_email,action,batch_id,detail FROM c_events WHERE batch_id=? ORDER BY seq').bind(id),
   ]);
   const { lines, people } = await batchLines(db, id);
-  return { batch, claims: claims.results, lines, people, events: (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) })) };
+  return { batch, claims: claims.results, lines, people, events: await annotateLines(db, (events.results as Data[]).map(e => ({ ...e, detail: JSON.parse(e.detail) }) as Line)), attribution: (await recordAttributions(db, 'batch', [id])).get(id) ?? null };
 }
