@@ -77,6 +77,7 @@ import { cardMatchQuestion, chooseCardMatch, matchRule, rejectMatchQuestion, sav
 import { planStatement } from './cards/plan';
 import { closeReconciliation, openReconciliation, reconciliation, reconciliations, resolveDifference } from './cards/reconcile';
 import { Fault, requireThat, type Actor, type Data } from './types';
+import { faultCodes } from './fault-codes';
 import { can, needRow } from './permissions';
 import { saveDepartment } from './departments';
 import { saveEscalationChain } from './escalation-chains';
@@ -90,8 +91,8 @@ export const api = new Hono<{ Bindings: Bindings }>();
 api.get('/health', c => c.json({ status: 'ok', ...deploymentHealth(c.env) }));
 api.use('/api/coaster/*', async (c, next) => { await next(); c.header('cache-control', 'no-store'); c.header('x-content-type-options', 'nosniff'); });
 api.onError((error, c) => {
-  if (error instanceof Fault) return c.json({ error: error.message }, error.status as 400);
-  if (error instanceof SyntaxError) return c.json({ error: 'The request body must be JSON' }, 400);
+  if (error instanceof Fault) return c.json({ error: error.message, code: error.code }, error.status as 400);
+  if (error instanceof SyntaxError) return c.json({ error: 'The request body must be JSON', code: faultCodes.invalidArguments }, 400);
   console.error(error);
   return c.json({ error: 'Something went wrong; nothing was changed' }, 500);
 });

@@ -312,7 +312,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "3c741f78d34a49928c59582202f1b68a1ea8ffa1d0e2d29221a9073c2c6b5cd7",
+      "sha256": "276b912d45491e2e6843ea28ee5412452c577152afa0d1d2e36b29f559b7121f",
       "executable": false
     },
     "base-copies.json": {
@@ -1467,12 +1467,16 @@
       "sha256": "7b0305cda8fca98baa5e0609cdd1739f96bb091571333eb787ec062ce4d65207",
       "executable": false
     },
+    "src/coaster/agent-door/schemas.ts": {
+      "sha256": "2bfdef2b8e1d8a49229c5a30e954a7966c5233b3184f4082fe69b0c69c3ca953",
+      "executable": false
+    },
     "src/coaster/agent-door/tools.ts": {
-      "sha256": "73db1320acca8ec8bf934d49971f65884ec71170abe855a3aa2ba4b006609313",
+      "sha256": "d2ed4630ce9e513cff285fd22ccd224ff63f59e7b2fce0d5d7eeb4c62d324bf0",
       "executable": false
     },
     "src/coaster/agents.ts": {
-      "sha256": "38080190d7a25d2225a32ddb52b09127d1e1498cdc25afa27222b88c328fd1be",
+      "sha256": "15be2d47e5a9c375ac75008d77dccd6920b60edf9db5eff27261f76b7e7df4eb",
       "executable": false
     },
     "src/coaster/agents/close-statements.ts": {
@@ -1492,7 +1496,7 @@
       "executable": false
     },
     "src/coaster/api.ts": {
-      "sha256": "96dc7d3645c102361d1a629ce7e8c7d19a489297a695a3a775beff1627490d67",
+      "sha256": "ffdd4e765c8be7882c3ae5370a516d4ff750463e8c3920856e0de6fa3260b448",
       "executable": false
     },
     "src/coaster/approval-chain.ts": {
@@ -1729,6 +1733,10 @@
     },
     "src/coaster/exports.ts": {
       "sha256": "22208068765bf516ff17f19d8d2fd1f1b232ed5ab99c9d628528412f923a39dc",
+      "executable": false
+    },
+    "src/coaster/fault-codes.ts": {
+      "sha256": "ec7c2f447463c51b9aedfa669efb33b85c5a39b87899e81a81c99b2e6d4a663e",
       "executable": false
     },
     "src/coaster/feeds/calendar.d.mts": {
@@ -2200,7 +2208,7 @@
       "executable": false
     },
     "src/coaster/types.ts": {
-      "sha256": "fecfb7686f5dddf9d998edc56cb9f04cede82b87131d933d75669b45bb0511c5",
+      "sha256": "927dedb6eed04c178aac3f0267ca33d25cce2a0d6bdb9c73c1c793f7d1ea6970",
       "executable": false
     },
     "src/coaster/views.ts": {
@@ -4944,7 +4952,7 @@
       "executable": false
     },
     "tests/agent-door/native.mjs": {
-      "sha256": "ecb3a56b99382217fa56e19e22999aa6c10e5b47ea5cb1b503d8b39e4fa7f3b3",
+      "sha256": "190f1d1685a5a04c88495211a05401f6957ebbea879e08e3a7aadd50f3d069c0",
       "executable": false
     },
     "tests/agent-door/negative-sponsor.mjs": {
@@ -5045,6 +5053,10 @@
     },
     "tests/coaster-admin.test.mjs": {
       "sha256": "843b913bc98ac4dea6b80cbe2d6dbee22540b64295e8a926c2968509052dc777",
+      "executable": false
+    },
+    "tests/coaster-agent-contracts.test.mjs": {
+      "sha256": "bf87e1e6887f6b3c66ebb635fe046e5b65f0072d421463a323606c57d4885c25",
       "executable": false
     },
     "tests/coaster-agent-discovery.test.mjs": {

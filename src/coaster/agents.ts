@@ -72,16 +72,21 @@ async function prepareClaim(db: D1Database, actor: Actor, b: Data) {
 
 /** An agent proposes which approved claims finance should batch. */
 export async function proposeBatch(db: D1Database, actor: Actor, b: Data) {
-  requireThat(actor.kind === 'agent', 'Use an agent key', 401);
-  need(actor, 'finance');
-  requireThat(Array.isArray(b.claims) && b.claims.length > 0 && b.claims.length <= 200, 'Propose between 1 and 200 claims');
-  for (const claim of b.claims) requireThat(await db.prepare("SELECT 1 FROM c_claims WHERE id=? AND status='approved'").bind(claim).first(), 'Only approved claims can be proposed for a batch', 409);
+  await checkBatchProposal(db, actor, b);
   const id = uid(), payload = { claims: b.claims, note: optionalText(b.note, 'Note', 2000) };
   await commit(db, authority(actor, 'finance'), [
     db.prepare("INSERT INTO c_proposals(id,kind,agent_label,for_email,payload,status,created_at) VALUES(?,'batch',?,?,?,'proposed',?)").bind(id, actor.agentLabel, actor.email, JSON.stringify(payload), now()),
     event(db, actor, 'batch-proposed', {}, { proposal: id, claims: b.claims.length }),
   ]);
   return proposal(db, id);
+}
+
+/** Classification and preparation share the native batch-selection refusals. */
+export async function checkBatchProposal(db: D1Database, actor: Actor, b: Data) {
+  requireThat(actor.kind === 'agent', 'Use an agent key', 401);
+  need(actor, 'finance');
+  requireThat(Array.isArray(b.claims) && b.claims.length > 0 && b.claims.length <= 200, 'Propose between 1 and 200 claims');
+  for (const claim of b.claims) requireThat(await db.prepare("SELECT 1 FROM c_claims WHERE id=? AND status='approved'").bind(claim).first(), 'Only approved claims can be proposed for a batch', 409);
 }
 
 export async function proposal(db: D1Database, id: string): Promise<Data> {

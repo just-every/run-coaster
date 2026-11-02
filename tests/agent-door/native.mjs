@@ -3,9 +3,15 @@ import { api } from './http.mjs';
 import { hiddenProposals } from './fixtures.mjs';
 import { proposalClient } from './proposals.mjs';
 import { discoveryClient, verifyPrompts } from './discovery.mjs';
+import { schemaErrors } from '../../src/modules/agent-door/conformance/schema.mjs';
 
 const preparations = ['coaster.claims.propose', 'coaster.batches.propose'];
-const jobs = new Map(), financialStates = new Map();
+const jobs = new Map(), financialStates = new Map(), outputSchemas = new Map();
+function validateOutput(phase, name, value) {
+  const schema = outputSchemas.get(phase)?.get(name);
+  assert.ok(schema, `Discovered output contract for ${name}`);
+  assert.deepEqual(schemaErrors(schema, value), [], `Production output satisfies ${name}`);
+}
 async function financialState(database) {
   const db = await database('DB');
   return {
@@ -17,7 +23,7 @@ async function nativeClient({ request, origin, cookie }, run) {
   const owner = api(request, origin, cookie);
   const key = await (await owner('/api/coaster/agent-keys', { label: 'synthetic-coaster-3535' })).json();
   const client = discoveryClient(request, origin, key.token);
-  try { return await run(client, owner); }
+  try { return await run(client, owner, key.token); }
   finally { await owner(`/api/coaster/agent-keys/${key.id}/revoke`, {}); }
 }
 export async function beforeStep(context) {
@@ -28,7 +34,18 @@ export async function beforeStep(context) {
     const db = await database('DB');
     const before = await financialState(database);
     const proposals = (await db.prepare('SELECT * FROM c_proposals ORDER BY id').all()).results;
-    jobs.set(phase, await nativeClient(context, client => verifyPrompts(client)));
+    jobs.set(phase, await nativeClient(context, async (client, _owner, token) => {
+      let listed;
+      for (const version of ['2025-11-25', '2026-07-28']) {
+        const answer = await proposalClient(context.request, context.origin, token, version)('tools/list');
+        assert.equal(answer.status, 200);
+        assert.ok(answer.result.tools.length);
+        if (listed) assert.deepEqual(answer.result.tools, listed, 'Both protocols advertise the same native contracts');
+        listed = answer.result.tools;
+      }
+      outputSchemas.set(phase, new Map(listed.map(tool => [tool.name, tool.outputSchema])));
+      return verifyPrompts(client);
+    }));
     assert.deepEqual(await financialState(database), before, 'Retrieving static job instructions performs no native financial action');
     assert.deepEqual((await db.prepare('SELECT * FROM c_proposals ORDER BY id').all()).results, proposals, 'Static job retrieval creates no proposal and changes no existing proposal');
   }
@@ -66,6 +83,7 @@ async function readPrepared(context) {
       assert.equal(answer.status, 200);
     }
     assert.equal(answer.result.isError, false);
+    validateOutput(phase, 'coaster.proposals.get', answer.result.structuredContent);
     assert.deepEqual(answer.result.structuredContent, result, 'The discovered job reads the same native proposal it prepared');
     assert.equal(answer.result._meta['com.runeditrun/untrusted'], true);
     const db = await database('DB');
@@ -79,6 +97,7 @@ async function readPrepared(context) {
 }
 export async function afterStep(context) {
   const { phase, step, result, database } = context;
+  if (outputSchemas.has(phase)) validateOutput(phase, step.tool, result);
   if (['coaster.claims.propose', 'coaster.batches.propose'].includes(step.tool)) {
     const db = await database('DB');
     const row = await db.prepare('SELECT * FROM c_proposals WHERE id=?').bind(result.id).first();

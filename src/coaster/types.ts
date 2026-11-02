@@ -1,8 +1,10 @@
+import { faultCode, type FaultCode } from './fault-codes';
+
 export type Data = Record<string, any>;
 
-/** A refusal with the HTTP status the API answers. */
+/** A native refusal with an HTTP status, actionable text and a stable public code. */
 export class Fault extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public code: FaultCode = faultCode(status)) { super(message); }
 }
 export function requireThat(value: unknown, message: string, status = 400): asserts value {
   if (!value) throw new Fault(status, message);

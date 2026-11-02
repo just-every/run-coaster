@@ -1,9 +1,19 @@
 # Coaster API
 
 All routes are under `/api/coaster/` on the installation's own origin and
-answer JSON (`{"error": "…"}` with a 4xx status when refused). Money is integer
+answer JSON (`{"error": "…", "code": "…"}` with a 4xx status when refused). Money is integer
 minor units in responses; requests take amounts as decimal text such as
 `"64.50"`.
+
+Native business refusals keep their HTTP status and actionable `error` text.
+Their additive `code` is owned by the native `Fault`: `invalid_arguments` for
+invalid values or unavailable categories, `native_authority_required` for
+missing business authority, `resource_unavailable` for missing or inaccessible
+records, and `native_conflict` for incompatible current state. Oversized native
+requests use `request_too_large`. The corresponding MCP tool returns `isError`
+and carries that same code in `_meta["com.runeditrun/error"]`; it does not
+translate HTTP statuses independently. Authentication challenges and company
+policy refusals remain the shared agent door's responsibility.
 
 ## People (native session)
 
@@ -76,6 +86,16 @@ acts for the person who made the key and can only prepare work for them.
 | `POST agent/claims` `{title, note, items: [{…same item fields…, receipt?: {name, base64}}]}` | Prepare a draft claim (employees). |
 | `POST agent/batches` `{claims: [id], note}` | Propose a batch of approved claims (finance). |
 | `GET agent/proposals/:id` | Read one of its proposals and whether the person accepted it. |
+
+The four matching MCP tools advertise their native projections in `outputSchema`:
+`coaster.workspace.get` returns the person and roles, nullable business policy,
+typed categories, finance-visible approved claims and proposal summaries.
+`coaster.proposals.get`, `coaster.claims.propose` and `coaster.batches.propose`
+return proposal identifiers, custody, creation time, typed claim or batch payload,
+and `proposed`, `accepted` or `declined` state with nullable decision and result
+fields. Claim payloads retain the accepted expense inputs and computed integer
+`amountMinor`, plus a nullable `receiptId`; they never return uploaded original
+receipt bytes. Preparation remains separate from native human acceptance.
 
 The person accepts or declines in Coaster; the resulting claim or batch records
 that the agent prepared it and who accepted it. An agent key cannot submit,
