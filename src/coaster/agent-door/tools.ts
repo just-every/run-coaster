@@ -59,8 +59,11 @@ export function coasterTools(): ToolDefinition[] {
     { ...common, name: 'coaster.batches.propose', title: 'Prepare a batch proposal', description: 'Finance proposes approved claims for human review. This neither creates nor releases a reimbursement batch.',
       scope: 'proposals:write', readOnly: false,
       inputSchema: object({ claims: { type: 'array', minItems: 1, maxItems: 200, items: string }, note: { type: 'string', maxLength: 2000 } }, ['claims']),
-      classify: async (args, ctx) => {
+      classify: async (args, ctx, completed) => {
         const a = await nativeAgent(ctx); if (!a.roles.finance) throw new ToolRefusal('native_authority_required');
+        // Acceptance consumes approved claims. Only the shared door can supply
+        // recorded effect facts; current membership and finance authority still apply.
+        if (completed) return [...completed];
         for (const claim of args.claims as string[]) if (!await ctx.db.prepare("SELECT 1 FROM c_claims WHERE id=? AND status='approved'").bind(claim).first()) throw new ToolRefusal('native_conflict');
         return [{ class: 'standard', facts: { measure: (args.claims as string[]).length } }];
       },

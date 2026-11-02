@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 
 /** MCP over the installation's real HTTP door, also used by the browser proof. */
 export function proposalClient(request, origin, token, version = '2026-07-28') {
-  return async (method, params = {}) => {
+  return async (method, params = {}, rpcId = 1) => {
     const response = await request(origin + '/mcp', { method: 'POST', headers: {
       origin, 'content-type': 'application/json', authorization: `Bearer ${token}`,
       'MCP-Protocol-Version': version, 'Mcp-Method': method,
       ...(['tools/call', 'resources/read', 'prompts/get'].includes(method) ? { 'Mcp-Name': params.name ?? params.uri } : {}),
-    }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { ...params, _meta: { 'io.modelcontextprotocol/protocolVersion': version } } }) })
+    }, body: JSON.stringify({ jsonrpc: '2.0', id: rpcId, method, params: { ...params, _meta: { 'io.modelcontextprotocol/protocolVersion': version } } }) })
     return { status: response.status, ...await response.json() }
   }
 }
@@ -24,7 +24,7 @@ export async function linkedProposal(client, name, args, key = crypto.randomUUID
   const replayed = await client('tools/call', params)
   assert.deepEqual(replayed.result.structuredContent, proposal)
   assert.deepEqual(replayed.result.content.filter(c => c.type === 'resource_link'), links, 'replay retains the original proposal link')
-  return { proposal, uri: links[0].uri }
+  return { proposal, uri: links[0].uri, params, result: created.result }
 }
 export function readProposal(answer) {
   assert.equal(answer.status, 200)
