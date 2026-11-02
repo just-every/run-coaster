@@ -77,6 +77,22 @@ export async function runAgentResourceJourney({ discover } = {}) {
     const nativeBatch = await api(finance.context, server.origin, `batches/${acceptedBatch.result_id}`)
     assert.equal(nativeBatch.batch.status, 'draft')
     assert.equal(nativeBatch.batch.total_minor, 1234)
+    const acceptedState = await api(finance.context, server.origin, 'state')
+    for (const rpcId of [3808, 3809]) {
+      const replay = await financeClient('tools/call', batch.params, rpcId)
+      assert.equal(replay.id, rpcId)
+      assert.equal(replay.result?.isError, false, JSON.stringify(replay))
+      assert.deepEqual(replay.result.structuredContent, batch.proposal, 'accepted batch retry retains the original proposed outcome')
+      assert.deepEqual(replay.result.content, batch.result.content, 'accepted batch retry retains the original resource link')
+      assert.deepEqual(readProposal(await financeClient('resources/read', { uri: batch.uri })), acceptedBatch, 'resource read returns current accepted state')
+      assert.deepEqual(await api(finance.context, server.origin, `batches/${acceptedBatch.result_id}`), nativeBatch, 'retry appends no native batch history or reservations')
+      assert.deepEqual(await api(finance.context, server.origin, 'state'), acceptedState, 'retry creates no second proposal or batch and changes no claim')
+    }
+    const batchPanel = finance.page.locator('.batch-detail')
+    await batchPanel.getByRole('heading', { name: /RB-.*12\.34/ }).waitFor()
+    assert.match(await batchPanel.innerText(), /Draft/)
+    assert.match(await batchPanel.innerText(), /synthetic-coaster-3522/)
+    await shot(finance, batchPanel, 'accepted-batch-replay')
     const linkedBefore = [accepted, acceptedBatch]
     for (const context of contexts.splice(0)) await context.close()
     await browser.close(); browser = undefined; await server.close(); server = undefined
@@ -85,6 +101,9 @@ export async function runAgentResourceJourney({ discover } = {}) {
     await copyFile(join(root, 'exports/agent-proposals.rer'), archive)
     const before = rows(await records(archive))
     assert.equal(before.filter(r => r.table === 'c_proposals').length, 2)
+    assert.deepEqual(before.filter(r => r.table === 'c_proposals').map(r => r.row.status), ['accepted', 'accepted'])
+    assert.equal(before.filter(r => r.table === 'c_batches').length, 1)
+    assert.equal(before.find(r => r.table === 'c_batches').row.status, 'draft')
     assert.equal(before.filter(r => r.table === 'c_agent_keys').length, 0, 'archives contain no personal agent credentials')
     restored = await fresh(); const restoredPort = await freePort()
     await command(restored, ['setup', '--owner-email', ownerAddress, '--port', String(restoredPort)])
@@ -108,8 +127,12 @@ export async function runAgentResourceJourney({ discover } = {}) {
       assert.deepEqual(readProposal(await client('resources/read', { uri: `coaster://proposals/${expected.id}` })), expected)
       const native = await person.context.request.get(`${server.origin}/api/coaster/agent/proposals/${expected.id}`, { headers: { authorization: `Bearer ${freshKey.token}` } })
       assert.equal(native.status(), 200); assert.deepEqual(await native.json(), expected)
+      if (as === 'finance') {
+        assert.deepEqual(await api(person.context, server.origin, `batches/${expected.result_id}`), nativeBatch, 'freshly authenticated restore retains exact accepted draft-batch evidence and history')
+      }
     }
     console.log('PROBE BASE-AGENT-003 native and restore: linked claim and batch screens at 1440 and 390 -> matching proposal evidence; real CLI restore -> exact portable records, fresh native sign-in and keys required')
+    console.log('PROBE BASE-AGENT-012 browser and restore: native batch acceptance and new-id MCP retries -> original outcome and link, one unchanged draft batch at 1440 and 390; real CLI restore -> exact accepted proposal and financial evidence with fresh authentication and keys')
   } finally {
     for (const context of contexts) await context.close()
     await browser?.close(); await server?.close()
