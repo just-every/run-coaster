@@ -99,7 +99,9 @@ export function ClaimPanel({ id, state, reload, back, closable = true }: { id: s
         <li><Icon name="users" /><span className="approver">Approver: {claim.approver_email ? names[claim.approver_email] ?? claim.approver_email : 'set at submission'}{claim.on_behalf_of ? ` on behalf of ${names[claim.on_behalf_of] ?? claim.on_behalf_of}` : ''}{claim.assigned_emails?.length > 1 ? ` · Also waiting for ${claim.assigned_emails.filter((e: string) => e !== claim.approver_email).map((e: string) => names[e] ?? e).join(', ')}` : ''}</span></li>
         {categories.length > 0 && <li><Icon name="tag" /><span>{categories.join(', ')}</span></li>}
         {lastDecision && <li><Icon name="send" /><span>{lastDecision.decision === 'approved' ? (lastDecision.workflow_final === 0 ? 'Review approved' : 'Approved') : lastDecision.decision === 'returned' ? 'Returned' : 'Rejected'} by {names[lastDecision.actor_email] ?? lastDecision.actor_email}{lastDecision.on_behalf_of ? ` on behalf of ${names[lastDecision.on_behalf_of] ?? lastDecision.on_behalf_of}` : ''} {day(lastDecision.at)}</span></li>}
-        {claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}
+        {detail.attribution
+          ? <li><Icon name="spark" /><span>Prepared by {detail.attribution.label}, accepted by {detail.attribution.decidedBy.name}{detail.attribution.decidedBy.onBehalfOf ? ` on behalf of ${detail.attribution.decidedBy.onBehalfOf.name}` : ''}</span></li>
+          : claim.prepared_by && <li><Icon name="spark" /><span>Prepared by {claim.prepared_by}, accepted by the employee</span></li>}
       </ul>
     </section>
     <PolicyReview revision={detail.revisions.at(-1)} claim={claim} agreement={state.reviewerAgreement} feedback={detail.events.filter((e:D)=>e.action==='policy-review-feedback'&&e.actor_email===(state.actor.delegate?.email??me))} mayRecord={deciding} onDone={done} />

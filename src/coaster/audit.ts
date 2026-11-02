@@ -6,6 +6,7 @@ import { claimNumber } from './claims';
 import { batchNumber, csv } from './batches';
 import { zip } from './zip';
 import { claimReceiptBytes } from './receipts/claim-storage';
+import { annotateLines, recordAttributions, type Attribution, type Line } from './agents/attribution';
 import { isoDate, optionalText, requireThat, type Actor, type Data } from './types';
 
 /** The owner, finance and auditors read the full history and export audit packs (ADMIN-001 matrix). */
@@ -37,9 +38,11 @@ export function channel(actor: string, action: string, detail: Data) {
 
 const LINE = `SELECT e.seq,e.at,e.actor_email,e.action,e.detail,e.claim_id,c.number AS claim_number,e.batch_id,b.number AS batch_number
   FROM c_events e LEFT JOIN c_claims c ON c.id=e.claim_id LEFT JOIN c_batches b ON b.id=e.batch_id`;
+/** Lines with each personal-agent proposal's preparer, person and decider read back from the retained proposal. */
+const read = (db: D1Database, rows: Data[]) => annotateLines(db, rows.map(r => ({ ...r, detail: JSON.parse(r.detail) }) as Line & Data));
 const line = (row: Data) => {
-  const detail = JSON.parse(row.detail);
-  return { seq: row.seq, at: row.at, actor_email: row.actor_email, action: row.action, detail, channel: channel(row.actor_email, row.action, detail), agent: detail.agent ?? null,
+  const detail = row.detail;
+  return { seq: row.seq, at: row.at, actor_email: row.actor_email, action: row.action, detail, channel: channel(row.actor_email, row.action, detail), agent: detail.agent ?? null, attribution: row.attribution as Attribution | null,
     claim: row.claim_id ? { id: row.claim_id, number: row.claim_number } : null, batch: row.batch_id ? { id: row.batch_id, number: row.batch_number } : null };
 };
 
@@ -63,7 +66,7 @@ export async function searchHistory(db: D1Database, actor: Actor, query: Record<
   if (query.from) { where.push('e.at>=?'); params.push(startOf(isoDate(query.from, 'From'), timezone)); }
   if (query.to) { where.push('e.at<?'); params.push(startOf(nextDay(isoDate(query.to, 'Until')), timezone)); }
   const rows = await db.prepare(`${LINE}${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY e.seq DESC LIMIT 501`).bind(...params).all<Data>();
-  return { lines: rows.results.slice(0, 500).reverse().map(line), more: rows.results.length > 500 };
+  return { lines: (await read(db, rows.results.slice(0, 500).reverse())).map(line), more: rows.results.length > 500 };
 }
 
 const PACK_LIMIT = 60_000_000;
@@ -91,12 +94,14 @@ export async function auditPack(db: D1Database, actor: Actor, from?: string, to?
     db.prepare(`${LINE} WHERE e.at>=? AND e.at<? ORDER BY e.seq`).bind(start, end),
   ]);
   const numbers = new Map((claims.results as Data[]).map(c => [c.id, claimNumber(c.number)]));
+  const prepared = await recordAttributions(db, 'claim', (claims.results as Data[]).map(c => c.id)), preparedBatches = await recordAttributions(db, 'batch', [...new Set((claims.results as Data[]).map(c => c.batch_id).filter(Boolean))]);
+  const lines = (await read(db, events.results as Data[])).map(line);
   const files = await Promise.all((receipts.results as Data[]).map(async r => ({ receipt: r, name: `receipts/${numbers.get(r.claim_id)}/${r.sha256}-${safe(String(r.name))}`, bytes: await claimReceiptBytes(db, r, bucket) })));
   const fileOf = (sha: string | undefined) => files.find(f => f.receipt.sha256 === sha)?.name ?? null;
   const manifest = {
     business: settings.name, currency: settings.currency, timezone: settings.timezone, period: { from: first, to: last }, generatedAt: new Date().toISOString(), generatedBy: actor.email,
     claims: (claims.results as Data[]).map(c => ({
-      number: claimNumber(c.number), id: c.id, employee: c.employee_email, employeeName: c.employee_name ?? c.employee_email, title: c.title, status: c.status, currency: c.currency, totalMinor: c.total_minor,
+      number: claimNumber(c.number), id: c.id, employee: c.employee_email, employeeName: c.employee_name ?? c.employee_email, title: c.title, status: c.status, currency: c.currency, totalMinor: c.total_minor, preparedBy: prepared.get(c.id) ?? null,
       revisions: (revisions.results as Data[]).filter(r => r.claim_id === c.id).map(r => {
         const s = JSON.parse(r.snapshot);
         return { revision: r.revision, submittedBy: r.submitted_by, submittedAt: r.submitted_at, totalMinor: r.total_minor, approver: s.approver, onBehalfOf: s.onBehalfOf ?? null, exceptions: s.exceptions,
@@ -106,12 +111,12 @@ export async function auditPack(db: D1Database, actor: Actor, from?: string, to?
             receipt: i.receipt ? { sha256: i.receipt.sha256, file: fileOf(i.receipt.sha256) } : null })) };
       }),
       decisions: (decisions.results as Data[]).filter(d => d.claim_id === c.id).map(d => ({ revision: d.revision, decision: d.decision, reason: d.reason, by: d.actor_email, onBehalfOf: d.on_behalf_of, at: d.at, exceptionsAcknowledged: JSON.parse(d.exceptions) })),
-      payment: c.batch_number ? { batch: batchNumber(c.batch_number), status: c.batch_status, reviewedBy: c.reviewed_by, reviewedAt: c.reviewed_at, reference: c.paid_reference, paidOn: c.paid_on, paidBy: c.paid_by } : null,
+      payment: c.batch_number ? { batch: batchNumber(c.batch_number), status: c.batch_status, reviewedBy: c.reviewed_by, reviewedAt: c.reviewed_at, reference: c.paid_reference, paidOn: c.paid_on, paidBy: c.paid_by, preparedBy: preparedBatches.get(c.batch_id) ?? null } : null,
     })),
     receipts: files.map(({ receipt: r, name }) => ({ id: r.id, claim: numbers.get(r.claim_id), name: r.name, mediaType: r.media_type, size: r.size, sha256: r.sha256, source: r.source, uploadedBy: r.uploaded_by, uploadedAt: r.uploaded_at, file: name })),
     history: { file: 'history.csv', lines: events.results.length },
   };
-  const history = csv([['seq', 'at', 'actor', 'channel', 'agent', 'action', 'claim', 'batch', 'detail'], ...(events.results as Data[]).map(line).map(l => [l.seq, l.at, l.actor_email, l.channel, l.agent ?? '', l.action, l.claim?.number ? claimNumber(l.claim.number) : '', l.batch?.number ? batchNumber(l.batch.number) : '', JSON.stringify(l.detail)])]);
+  const history = csv([['seq', 'at', 'actor', 'channel', 'agent', 'action', 'claim', 'batch', 'detail', 'prepared_by', 'decided_by'], ...lines.map(l => [l.seq, l.at, l.actor_email, l.channel, l.agent ?? '', l.action, l.claim?.number ? claimNumber(l.claim.number) : '', l.batch?.number ? batchNumber(l.batch.number) : '', JSON.stringify(l.detail), l.attribution?.label ?? '', l.attribution?.decidedBy ? `${l.attribution.decidedBy.name}${l.attribution.decidedBy.onBehalfOf ? ` on behalf of ${l.attribution.decidedBy.onBehalfOf.name}` : ''}` : ''])]);
   const text = (s: string) => new TextEncoder().encode(s);
   const archive = zip([{ name: 'manifest.json', bytes: text(JSON.stringify(manifest, null, 2)) }, { name: 'history.csv', bytes: text(history) }, ...files], new Date(manifest.generatedAt));
   await commit(db, rowAuthority(actor, 'auditPack'), [event(db, actor, 'audit-pack-exported', {}, { from: first, to: last, claims: manifest.claims.length, receipts: files.length, historyLines: events.results.length })]);

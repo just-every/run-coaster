@@ -2,7 +2,10 @@ import { day, money, plural, type D } from './api';
 
 /** One history line in plain words; exact values stay in the event detail. */
 export function describe(e: D, names: Record<string, string> = {}) {
-  const who = names[e.actor_email] ?? e.actor_email, d = e.detail ?? {}, agent = d.agent && !e.action.startsWith('proposal-') ? ` (through ${d.agent})` : '';
+  const a = e.attribution, d = e.detail ?? {}, person = names[e.actor_email] ?? e.actor_email, agentFor = a && a.outcome === 'proposed' ? a.label : null;
+  const who = agentFor ?? person, agent = d.agent && !e.action.startsWith('proposal-') && !a ? ` (through ${d.agent})` : '';
+  // A personal agent's preparation reads "<agent> for <person>"; the person who decided it is named separately, with whom a delegate acted for.
+  const decider = a?.decidedBy ? `${a.decidedBy.name}${a.decidedBy.onBehalfOf ? ` on behalf of ${a.decidedBy.onBehalfOf.name}` : ''}` : '';
   const words: Record<string, string> = {
     'native-work-proposed': `${who} requested a ${d.preparation} proposal`, 'trip-expenses-grouped': `${who} grouped expenses into a trip draft`,
     'account-code-corrected': `${who} corrected account ${d.before || 'not set'} to ${d.after} on revision ${d.revision}: ${d.reason}`,
@@ -23,7 +26,9 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'workflow-review-reassigned': `Moved ${d.role} review from ${names[d.from] ?? d.from} to ${names[d.to] ?? d.to} by ${who} · ${d.reason}`,
     'claim-reassigned': `Moved from ${names[d.from] ?? d.from} to ${names[d.to] ?? d.to} by ${who}${d.reason ? ` · ${d.reason}` : ''}`,
     'claim-batched': d.claim && d.batch ? `${d.claim} added to ${d.batch} by ${who}` : `Added to a reimbursement batch by ${who}`, 'claim-unbatched': `Taken out of a ${d.previousStatus === 'approved' ? 'reviewed' : 'draft'} batch by ${who}${d.renewedReviewRequired ? '; renewed review required' : ''}${d.unapproved ? ' when it was unapproved' : ''}`,
-    'proposal-accepted': `Prepared by ${d.agent} and accepted by ${who}`,
+    'claim-proposed': `Claim proposed by ${who}`, 'batch-proposed': `Batch proposed by ${who} · ${plural(d.claims, 'claim')}`,
+    'proposal-accepted': a ? `Prepared by ${a.label} and accepted by ${decider}` : `Prepared by ${d.agent} and accepted by ${who}`,
+    'proposal-declined': a ? `Prepared by ${a.label} and declined by ${decider}` : `Proposal declined by ${who}`,
     'batch-created': `Batch created by ${who}${d.preparedBy ? ` from ${d.preparedBy}’s proposal` : ''} · ${plural(d.claims, 'claim')} · ${money(d.totalMinor ?? 0)}`,
     'batch-approved': `Reviewed and approved by ${who} · ${money(d.totalMinor ?? 0)}`, 'batch-exported': `${d.file === 'accounting' ? 'Accounting' : 'Reimbursement'} file downloaded by ${who} · ${d.rows} rows`,
     'delegate-granted': `${who} gave ${names[d.delegate] ?? d.delegate} ${d.level === 'full' ? 'Full' : 'Submit only'} delegate access for ${names[d.grantor] ?? d.grantor}`,
@@ -51,6 +56,6 @@ export function describe(e: D, names: Record<string, string> = {}) {
     'audit-pack-exported': `Audit pack for ${day(d.from)} to ${day(d.to)} downloaded by ${who} · ${plural(d.claims, 'claim')}, ${plural(d.receipts, 'receipt')}`,
   };
   // A delegate's line is theirs, on behalf of the person they acted for (approvals already say so).
-  const forWhom = d.actingFor && d.actingFor !== d.onBehalfOf ? ` on behalf of ${names[d.actingFor] ?? d.actingFor}` : '';
+  const forWhom = !a?.decidedBy && d.actingFor && d.actingFor !== d.onBehalfOf ? ` on behalf of ${names[d.actingFor] ?? d.actingFor}` : '';
   return (words[e.action] ?? `${e.action.replace(/-/g, ' ')} by ${who}`) + forWhom + agent + (d.channel === 'bulk' ? ` · bulk approval · revision ${d.revision}` : '');
 }

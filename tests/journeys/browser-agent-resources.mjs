@@ -8,8 +8,12 @@ import { api, inviteRestoredPerson, session, setUp } from '../browser-journey.mj
 import { records, rows } from '../browser-archive.mjs'
 import { autonomousPolicy } from '../../src/modules/agent-door/conformance/crypto.mjs'
 import { claimArguments, linkedProposal, proposalClient, readProposal } from '../agent-door/proposals.mjs'
+import { unzip } from './operations-support.mjs'
 
 const ownerAddress = 'owner' + '@' + 'harbourfinch.example'
+// Misleading agent names are plain text everywhere they are shown.
+const employeeLabel = 'synthetic-coaster-3520 <i>approved by Priya Nair</i>', financeLabel = 'synthetic-coaster-3521'
+const day = offset => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10), period = `from=${day(-2)}&to=${day(2)}`
 export async function runAgentResourceJourney({ discover } = {}) {
   const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/agent-resource-proof')
   await mkdir(evidence, { recursive: true })
@@ -29,8 +33,8 @@ export async function runAgentResourceJourney({ discover } = {}) {
       assert.equal(response.status(), 200)
     }
     await setPolicy(owner)
-    const employeeKey = await api(employee.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3520' })
-    const financeKey = await api(finance.context, server.origin, 'agent-keys', { label: 'synthetic-coaster-3521' })
+    const employeeKey = await api(employee.context, server.origin, 'agent-keys', { label: employeeLabel })
+    const financeKey = await api(finance.context, server.origin, 'agent-keys', { label: financeLabel })
     const employeeClient = proposalClient(fetch, server.origin, employeeKey.token), financeClient = proposalClient(fetch, server.origin, financeKey.token)
     if (discover) await discover({ browser, server, client: employeeClient, evidence })
     const state = await api(employee.context, server.origin, 'state')
@@ -54,9 +58,23 @@ export async function runAgentResourceJourney({ discover } = {}) {
       }
       await person.page.setViewportSize({ width: 1440, height: 1000 })
     }
+    // Each text is read exactly as a person sees it at both widths, with no sideways scrolling.
+    const reads = async (person, locator, expected, name, before = async () => {}) => {
+      for (const width of [1440, 390]) {
+        await person.page.setViewportSize({ width, height: 1000 })
+        await before()
+        await locator.first().waitFor()
+        await locator.first().evaluate(element => element.scrollIntoView({ block: 'center' }))
+        assert.deepEqual((await locator.allInnerTexts()).map(t => t.trim()), expected, `${name} at ${width}`)
+        assert.equal(await person.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits at ${width}`)
+        await person.page.screenshot({ path: join(evidence, `${name}-${width}.png`) })
+      }
+      await person.page.setViewportSize({ width: 1440, height: 1000 })
+    }
     await shot(employee, prepared, 'linked-claim-proposal')
     await prepared.getByRole('button', { name: 'Accept as draft', exact: true }).click()
     await employee.page.getByRole('heading', { name: args.title, exact: true }).waitFor()
+    await reads(employee, employee.page.getByRole('region', { name: 'Details', exact: true }).locator('li', { hasText: 'Prepared by' }), [`Prepared by ${employeeLabel} for Sam Taylor, accepted by Sam Taylor`], 'record-claim-attribution')
     const accepted = readProposal(await employeeClient('resources/read', { uri: claim.uri }))
     assert.equal(accepted.status, 'accepted')
     let c = (await api(employee.context, server.origin, `claims/${accepted.result_id}`)).claim
@@ -77,6 +95,29 @@ export async function runAgentResourceJourney({ discover } = {}) {
     const nativeBatch = await api(finance.context, server.origin, `batches/${acceptedBatch.result_id}`)
     assert.equal(nativeBatch.batch.status, 'draft')
     assert.equal(nativeBatch.batch.total_minor, 1234)
+    await finance.page.goto(server.origin + `/app#/batches/${acceptedBatch.result_id}`)
+    await reads(finance, finance.page.locator('.panel-amount'), [`1 claim · 1 person · prepared by ${financeLabel} for Morgan Lee, accepted by Morgan Lee`], 'record-batch-attribution')
+    // Activity and the audit pack carry the same attribution; company policy never appears as the accepter.
+    await finance.page.goto(server.origin + '/app#/settings')
+    const activity = (query, expected, name) => reads(finance, finance.page.locator('.audit-lines li > span'), expected, name, async () => {
+      await finance.page.getByLabel('Claim, batch, person or words', { exact: true }).fill(query)
+      await finance.page.getByRole('button', { name: 'Search history', exact: true }).click()
+    })
+    await (activity('claim-proposed', [`Claim proposed by ${employeeLabel} for Sam Taylor`], 'activity-claim-proposed'))
+    await (activity('proposal-accepted', [`Prepared by ${employeeLabel} for Sam Taylor and accepted by Sam Taylor`, `Prepared by ${financeLabel} for Morgan Lee and accepted by Morgan Lee`], 'activity-proposal-accepted'))
+    const download = async person => {
+      const response = await person.context.request.get(`${server.origin}/api/coaster/audit-pack?${period}`)
+      assert.equal(response.status(), 200)
+      const files = unzip(Buffer.from(await response.body()))
+      const manifest = JSON.parse(files['manifest.json'])
+      const history = files['history.csv'].toString().trim().split('\r\n').filter(r => /,"(claim-proposed|batch-proposed|proposal-accepted)",/.test(r)).map(r => r.match(/,"((?:[^"]|"")*)","((?:[^"]|"")*)"$/).slice(1)).sort()
+      return { manifest: manifest.claims.map(c => [c.id, c.preparedBy, c.payment?.preparedBy ?? null]), history }
+    }
+    const packBefore = await download(finance)
+    assert.equal(packBefore.manifest[0][1].label, `${employeeLabel} for Sam Taylor`)
+    assert.deepEqual(packBefore.manifest[0][1].decidedBy, { email: 'employee@dev.localhost', name: 'Sam Taylor' })
+    assert.equal(packBefore.manifest[0][2].label, `${financeLabel} for Morgan Lee`)
+    assert.equal(packBefore.history.length, 4)
     const linkedBefore = [accepted, acceptedBatch]
     for (const context of contexts.splice(0)) await context.close()
     await browser.close(); browser = undefined; await server.close(); server = undefined
@@ -97,6 +138,7 @@ export async function runAgentResourceJourney({ discover } = {}) {
     browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] })
     const restoredOwner = await session(browser, restored, server.origin, 'owner', 1440); contexts.push(restoredOwner.context)
     await setPolicy(restoredOwner)
+    assert.deepEqual(await download(restoredOwner), packBefore, 'the regenerated audit pack carries the same attribution after real CLI restore')
     // Restore brings evidence, never native sign-in or reusable agent authority.
     for (const [as, oldKey, expected] of [['employee', employeeKey, linkedBefore[0]], ['finance', financeKey, linkedBefore[1]]]) {
       const email = as + '@' + 'dev.localhost'
@@ -109,6 +151,7 @@ export async function runAgentResourceJourney({ discover } = {}) {
       const native = await person.context.request.get(`${server.origin}/api/coaster/agent/proposals/${expected.id}`, { headers: { authorization: `Bearer ${freshKey.token}` } })
       assert.equal(native.status(), 200); assert.deepEqual(await native.json(), expected)
     }
+    console.log('PROBE BASE-AGENT-008 5-6: employee and finance preparations -> record, activity and audit pack read agent for person with the native accepter named separately at 1440 and 390, identical after real CLI restore')
     console.log('PROBE BASE-AGENT-003 native and restore: linked claim and batch screens at 1440 and 390 -> matching proposal evidence; real CLI restore -> exact portable records, fresh native sign-in and keys required')
   } finally {
     for (const context of contexts) await context.close()
