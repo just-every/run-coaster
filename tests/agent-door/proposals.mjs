@@ -24,7 +24,7 @@ export async function linkedProposal(client, name, args, key = crypto.randomUUID
   const replayed = await client('tools/call', params)
   assert.deepEqual(replayed.result.structuredContent, proposal)
   assert.deepEqual(replayed.result.content.filter(c => c.type === 'resource_link'), links, 'replay retains the original proposal link')
-  return { proposal, uri: links[0].uri }
+  return { proposal, uri: links[0].uri, params, result: created.result }
 }
 export function readProposal(answer) {
   assert.equal(answer.status, 200)
