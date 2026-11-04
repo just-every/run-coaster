@@ -14,7 +14,7 @@ const ownerAddress = 'owner' + '@' + 'harbourfinch.example'
 // Misleading agent names are plain text everywhere they are shown.
 const employeeLabel = 'synthetic-coaster-3520 <i>approved by Priya Nair</i>', financeLabel = 'synthetic-coaster-3521'
 const day = offset => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10), period = `from=${day(-2)}&to=${day(2)}`
-export async function runAgentResourceJourney({ discover } = {}) {
+export async function runAgentResourceJourney({ discover, classifyContext } = {}) {
   const evidence = resolve(process.env.COASTER_EVIDENCE ?? '.cache/agent-resource-proof')
   await mkdir(evidence, { recursive: true })
   let root, restored, server, browser
@@ -85,6 +85,7 @@ export async function runAgentResourceJourney({ discover } = {}) {
     c = await api(manager.context, server.origin, `claims/${c.id}/decision`, { version: c.version, revision: c.revision, decision: 'approved' })
     const batch = await linkedProposal(financeClient, 'coaster.batches.propose', { claims: [c.id], note: 'synthetic-coaster-3524' })
     assert.deepEqual(readProposal(await financeClient('resources/read', { uri: batch.uri })), batch.proposal)
+    if (classifyContext) await classifyContext({ owner, employee, finance, financeKey, server, evidence, batch })
     await finance.page.reload(); await finance.page.goto(server.origin + '/app#/batches')
     const batchPrepared = finance.page.getByRole('region', { name: 'Prepared for you', exact: true })
     await batchPrepared.getByRole('button', { name: 'Accept as draft batch', exact: true }).waitFor()
