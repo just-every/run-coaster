@@ -72,6 +72,7 @@
     "migrations/core/0088_program_feed_health.sql",
     "migrations/core/0089_business_settings.sql",
     "migrations/core/0090_business_people.sql",
-    "migrations/core/0091_agent_door.sql"
+    "migrations/core/0091_agent_door.sql",
+    "migrations/core/0092_agent_door_refresh.sql"
   ]
 }
