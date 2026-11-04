@@ -5068,7 +5068,7 @@
       "executable": false
     },
     "tests/coaster-agent-replay.test.mjs": {
-      "sha256": "acd865504d2c2ed1884a1ae6f3b39b335c3c962d1c7a83d7cd930e370f790d09",
+      "sha256": "e61e0fe73047fa72ee70ec8b1ca71f2a63189c9fc5a1433c02a13c89a6e268f6",
       "executable": false
     },
     "tests/coaster-agent-resources.test.mjs": {

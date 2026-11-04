@@ -25,10 +25,13 @@ test('Accepted batch preparation replays the lost outcome under current authorit
       'c_proposals', 'c_claims', 'c_items', 'c_revisions', 'c_decisions',
       'c_batches', 'c_batch_claims', 'c_reimbursement_keys', 'c_events', 'c_receipts', 'c_history',
     ].map(async table => [table, (await h.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results])))
-    const refused = (answer, code) => {
-      assert.equal(answer.result?._meta?.['com.runeditrun/error']?.code ?? answer.error?.data?.code, code, JSON.stringify(answer))
+    const undisclosed = answer => {
       assert.equal(answer.result?.structuredContent, undefined, 'refused retries disclose no cached proposal')
       assert.ok(!JSON.stringify(answer).includes('coaster://proposals/'), 'refused retries disclose no cached link')
+    }
+    const refused = (answer, code) => {
+      assert.equal(answer.result?._meta?.['com.runeditrun/error']?.code ?? answer.error?.data?.code, code, JSON.stringify(answer))
+      undisclosed(answer)
     }
     for (const [phase, document] of [['autonomous', autonomousPolicy()], ['held', heldPolicy()]]) {
       await policy(document)
@@ -127,14 +130,16 @@ test('Accepted batch preparation replays the lost outcome under current authorit
       assert.deepEqual(await financial(), afterWithdrawal)
       await h.post('settings/members', { ...member, finance: true, active: false })
       const afterInactive = await financial()
-      assert.equal((await client('tools/call', params)).status, 401)
+      const inactive = await client('tools/call', params)
+      assert.equal(inactive.status, 401)
+      undisclosed(inactive)
       assert.deepEqual(await financial(), afterInactive)
       await h.post('settings/members', { ...member, finance: true, active: true })
       await h.post(`agent-keys/${key.id}/revoke`, {}, t.morgan)
       const afterRevocation = await financial()
       const revoked = await client('tools/call', params)
       assert.equal(revoked.status, 401)
-      assert.equal(revoked.result?.structuredContent, undefined)
+      undisclosed(revoked)
       assert.deepEqual(await financial(), afterRevocation)
       console.log(`PROBE BASE-AGENT-012 controls ${phase}: Pause, blocking or newly held policy, finance withdrawal, inactive membership and revoked key -> refusal without cached content or native writes`)
     }
