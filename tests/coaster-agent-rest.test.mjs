@@ -172,18 +172,22 @@ test('Personal REST and MCP share policy decisions, private approval state and o
     await h.post('settings/members', { email: (await h.get('state')).actor.email, name: 'synthetic-coaster-4113', employee: true })
     const publicKey = await h.post('public-api/keys', { label: 'synthetic-coaster-4107', scopes: ['claims:write'], expiresInDays: 1 })
     assert.equal((await restClient(h, publicKey.token)('context')).status, 401, 'public API credentials gain no personal-agent REST authority')
-    // Receipt-bearing JSON larger than the old MCP default still uses the same bounded service.
+    // Retain native receipt support near the route's complete JSON bound.
     const large = structuredClone(claimArgs)
-    const bytes = Buffer.concat([Buffer.from(large.items[0].receipt.base64, 'base64'), Buffer.alloc(800_000, 32)])
+    const original = Buffer.from(large.items[0].receipt.base64, 'base64')
+    const bytes = Buffer.concat([original, Buffer.alloc(1_490_000 - original.length, 32)])
     large.items[0].receipt.base64 = bytes.toString('base64')
+    large.items = Array.from({ length: 4 }, () => structuredClone(large.items[0]))
     const bounded = await rest('claims', large, undefined, { 'idempotency-key': 'synthetic-coaster-4108' })
     assert.equal(bounded.status, 200, bounded.text)
-    assert.equal((await h.db.prepare('SELECT size FROM c_receipts WHERE proposal_id=?').bind(bounded.value.id).first()).size, bytes.length)
+    assert.deepEqual((await h.db.prepare('SELECT size FROM c_receipts WHERE proposal_id=?').bind(bounded.value.id).all()).results.map(row => row.size), [bytes.length, bytes.length, bytes.length, bytes.length])
+    const repeated = await mcp('tools/call', { name: 'coaster.claims.propose', arguments: { ...large, idempotency_key: 'synthetic-coaster-4108' } })
+    assert.deepEqual(repeated.result.structuredContent, bounded.value, 'the near-limit receipt payload replays across transports without new originals')
     const before = await effects(h)
     assert.equal((await rest('claims', { ...claimArgs, padding: 'x'.repeat(8_000_000) }, undefined, { 'idempotency-key': 'synthetic-coaster-4109' })).status, 413)
     assert.equal((await rest('batches', { claims: [c.id], padding: 'x'.repeat(3_000_000) })).status, 413)
     assert.deepEqual(await effects(h), before)
-    console.log('PROBE BASE-AGENT-007 custody: rejected, expired, changed-input and foreign-state retries -> typed refusal without effects; required keys, Origin and native credential boundary preserved; receipt payload above 1 MB succeeds and original request bounds refuse oversize')
+    console.log('PROBE BASE-AGENT-007 custody: rejected, expired, changed-input and foreign-state retries -> typed refusal without effects; required keys, Origin and native credential boundary preserved; four large receipts within the native JSON bound succeed and original request bounds refuse oversize')
   } finally { await h.close() }
 })
 
@@ -197,42 +201,49 @@ test('Personal REST immediately fences Pause, revoked keys and withdrawn native 
   } })
   try {
     const t = await agency(h)
-    for (const scenario of ['pause', 'policy', 'key', 'membership', 'role', 'pause-after', 'policy-after', 'key-after', 'membership-after', 'role-after']) {
+    let approved = await h.post('claims', { title: 'synthetic-coaster-4115' }, t.sam)
+    approved = await h.post(`claims/${approved.id}/items`, { version: approved.version, ...claimArguments(t.c.office).items[0], explanation: 'synthetic-coaster-4116' }, t.sam)
+    approved = await h.post(`claims/${approved.id}/submit`, { version: approved.version }, t.sam)
+    approved = await h.post(`claims/${approved.id}/decision`, { version: approved.version, revision: approved.revision, decision: 'approved', acknowledge: true }, t.priya)
+    for (const path of ['claims', 'batches']) for (const scenario of ['pause', 'policy', 'key', 'membership', 'role', 'pause-after', 'policy-after', 'key-after', 'membership-after', 'role-after']) {
+      const batch = path === 'batches', cookie = batch ? t.morgan : t.sam
+      const email = (batch ? 'morgan' : 'sam') + '@' + 'harbourfinch.example'
+      const name = batch ? 'Morgan' : 'Sam', tool = batch ? 'coaster.batches.propose' : 'coaster.claims.propose'
       await configureAgentPolicy(h)
-      await h.post('settings/members', { email: 'sam' + '@' + 'harbourfinch.example', name: 'Sam', employee: true, active: true })
-      const key = await h.post('agent-keys', { label: 'synthetic-coaster-4110' }, t.sam)
+      await h.post('settings/members', { email, name, employee: true, finance: batch, active: true })
+      const key = await h.post('agent-keys', { label: 'synthetic-coaster-4110' }, cookie)
       const rest = restClient(h, key.token), mcp = proposalClient((...args) => h.mf.dispatchFetch(...args), h.origin, key.token)
-      const args = { ...claimArguments(t.c.office), idempotency_key: crypto.randomUUID() }
+      const args = { ...(batch ? { claims: [approved.id] } : claimArguments(t.c.office)), idempotency_key: crypto.randomUUID() }
       const statements = {
         pause: 'UPDATE agent_door_state SET local_paused=1 WHERE id=1;',
         policy: 'UPDATE agent_door_state SET local_revision=local_revision+1 WHERE id=1;',
         key: `UPDATE c_agent_keys SET revoked_at='2026-01-01' WHERE id='${key.id}';`,
         membership: "UPDATE c_members SET active=0 WHERE email=NEW.for_email;",
-        role: "UPDATE c_members SET is_employee=0 WHERE email=NEW.for_email;",
+        role: `UPDATE c_members SET ${batch ? 'is_finance' : 'is_employee'}=0 WHERE email=NEW.for_email;`,
       }
       if (scenario.endsWith('-after')) await h.db.prepare(`CREATE TRIGGER synthetic_agent_fence AFTER INSERT ON c_proposals BEGIN ${statements[scenario.slice(0, -6)]} END`).run()
       const reached = new Promise(resolve => { arrived = resolve }); armed = true
-      const pending = rest('claims', args)
+      const pending = rest(path, args)
       await reached
       if (scenario === 'pause') assert.equal((await h.send('/agents/api/pause', { paused: true }, h.owner)).status, 200)
       if (scenario === 'policy') await configureAgentPolicy(h, { ...autonomousPolicy(), rules: [{ id: 'stop', class: '*', do: 'blocked' }] })
-      if (scenario === 'key') await h.post(`agent-keys/${key.id}/revoke`, {}, t.sam)
-      if (scenario === 'membership') await h.post('settings/members', { email: 'sam' + '@' + 'harbourfinch.example', name: 'Sam', employee: true, active: false })
-      if (scenario === 'role') await h.post('settings/members', { email: 'sam' + '@' + 'harbourfinch.example', name: 'Sam', employee: false, auditor: true })
+      if (scenario === 'key') await h.post(`agent-keys/${key.id}/revoke`, {}, cookie)
+      if (scenario === 'membership') await h.post('settings/members', { email, name, employee: true, finance: batch, active: false })
+      if (scenario === 'role') await h.post('settings/members', { email, name, employee: false, auditor: true })
       const before = await effects(h); release()
       const refused = await pending
       assert.equal(refused.value.code, 'native_conflict', refused.text)
-      assert.deepEqual(await effects(h), before, scenario + ' rolls back every preparation write')
+      assert.deepEqual(await effects(h), before, path + ' ' + scenario + ' rolls back every preparation write')
       if (scenario.endsWith('-after')) await h.db.prepare('DROP TRIGGER synthetic_agent_fence').run()
       else {
-        const again = await rest('claims', args)
-        const other = await mcp('tools/call', { name: 'coaster.claims.propose', arguments: args })
+        const again = await rest(path, args)
+        const other = await mcp('tools/call', { name: tool, arguments: args })
         assert.equal(again.status, scenario === 'pause' ? 409 : ['policy', 'role'].includes(scenario) ? 403 : 401)
         assert.equal(['pause', 'policy', 'role'].includes(scenario) ? toolCode(other) : other.status, scenario === 'pause' ? 'agents_paused' : scenario === 'policy' ? 'policy_blocked' : scenario === 'role' ? 'native_authority_required' : 401)
         assert.deepEqual(await effects(h), before)
       }
       assert.equal((await h.send('/agents/api/pause', { paused: false }, h.owner)).status, 200)
     }
-    console.log('PROBE BASE-AGENT-007 authority: pause, key revocation, membership and role withdrawal before and inside commit -> no proposals, receipts, claims, batches or financial effects; both transports refuse further execution')
+    console.log('PROBE BASE-AGENT-007 authority: pause, key revocation, membership and role withdrawal before and inside claim and batch commits -> no proposals, receipts, claims, batches or financial effects; both transports refuse further execution')
   } finally { release?.(); await h.close() }
 })

@@ -5080,7 +5080,7 @@
       "executable": false
     },
     "tests/coaster-agent-rest.test.mjs": {
-      "sha256": "0d684008b27798b992671ec461fd2b1e3406580a89a67846b5477f2eef77854e",
+      "sha256": "7287fa78994e414210150522d1af76520d3572e96bf326226b4a1e6ba24d133e",
       "executable": false
     },
     "tests/coaster-agents.test.mjs": {
