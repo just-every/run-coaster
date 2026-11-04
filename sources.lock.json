@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0a989e4172a37790c8d8d730f912ee49dc0e7b443200e3a74543f1537201fbea",
+      "sha256": "13a72298687d8ef555d8ee4c06148f49a5f810c1186bc8b83bb438e014644257",
       "executable": false
     },
     "DEMO.md": {
@@ -5032,7 +5032,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "f7dd67e32f9149f17f52d1aeee6984f6113273ed5d3b736fcb76f706a726b7f7",
+      "sha256": "ac6387863445a73ce94f7230861092d1b17cc54a71055af2911ffb8f02a3ef0a",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -5073,6 +5073,10 @@
     },
     "tests/coaster-agent-resources.test.mjs": {
       "sha256": "46c6a3ae0410aef1062460fd7c8fd273a3f8aca1fcb978eb6a0083e91622b512",
+      "executable": false
+    },
+    "tests/coaster-agent-role-parity.test.mjs": {
+      "sha256": "3fc08f8e405faf660cce992fcfce9dcc859af8a5bfbc071ccf713d736ad8fd23",
       "executable": false
     },
     "tests/coaster-agents.test.mjs": {
@@ -7293,6 +7297,10 @@
     },
     "tests/journeys/browser-agent-resources.mjs": {
       "sha256": "e4ddb101ec6068c6044efe348af4ab76872d8f57d0292c93105d3ae7d71bc670",
+      "executable": false
+    },
+    "tests/journeys/browser-agent-role-parity.mjs": {
+      "sha256": "6cc3e05bfce9e96a6730d00aac3caee0b71b21c193060b075a07cfa0daa907ab",
       "executable": false
     },
     "tests/journeys/browser-cash-attachment.mjs": {
