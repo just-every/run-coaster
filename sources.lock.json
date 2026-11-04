@@ -296,7 +296,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "2f6f479521a9ab59dbf815d62473d02c96c8241ca7ac4522c53dbd205b0d6d42",
+      "sha256": "36a454ceb1baf79d2c2e5dfd3fb489218d636491a81f6e676984bd723d2d4030",
       "executable": false
     },
     "agent-surface.json": {
@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7787bc2250050814a7cb2267a97ca2d1092bddbeaa901edd022e1873c1224033",
+      "sha256": "fed4d2002977ee2392802426862c2501b783b9fa71bcc4e0f160ec7934ca69b3",
       "executable": false
     },
     "DEMO.md": {
@@ -1472,7 +1472,7 @@
       "executable": false
     },
     "src/coaster/agent-door/tools.ts": {
-      "sha256": "73db1320acca8ec8bf934d49971f65884ec71170abe855a3aa2ba4b006609313",
+      "sha256": "a5b3827a292b022bcf62c69d995fa4099c6a6d07e0453fed459718cd60ec4f14",
       "executable": false
     },
     "src/coaster/agents.ts": {
@@ -4968,7 +4968,7 @@
       "executable": false
     },
     "tests/agent-door/proposals.mjs": {
-      "sha256": "287dbf95404d4ca4dc81f35cbb0febb288eb469122f5911f2c5e8fe6138cca59",
+      "sha256": "b055eebeb71a1088eb93ddeac998ef1f784ba5370767f3d1baa0ef038e89214b",
       "executable": false
     },
     "tests/agent-door/state.mjs": {
@@ -5069,6 +5069,10 @@
     },
     "tests/coaster-agent-discovery.test.mjs": {
       "sha256": "4447b2370c779effad08eb7924fb2a44a04270470fddd279cb3646b1284dcd29",
+      "executable": false
+    },
+    "tests/coaster-agent-replay.test.mjs": {
+      "sha256": "e61e0fe73047fa72ee70ec8b1ca71f2a63189c9fc5a1433c02a13c89a6e268f6",
       "executable": false
     },
     "tests/coaster-agent-resources.test.mjs": {
@@ -7292,7 +7296,7 @@
       "executable": false
     },
     "tests/journeys/browser-agent-resources.mjs": {
-      "sha256": "8e8874d265b00910038b18a35c9bb3917e34456fe91762746194ccf629cbe1a9",
+      "sha256": "e4ddb101ec6068c6044efe348af4ab76872d8f57d0292c93105d3ae7d71bc670",
       "executable": false
     },
     "tests/journeys/browser-cash-attachment.mjs": {
