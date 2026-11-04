@@ -4,7 +4,8 @@ import assert from 'node:assert/strict'
 export function assertEventArchive(records, expected, keys) {
   assert.equal(records.filter(r => r.table === 'c_agent_keys').length, 0)
   const retained = records.filter(r => r.table === 'agent_door_events').map(r => JSON.parse(r.row.event))
-  for (const event of expected) assert.deepEqual(retained.find(e => e.id === event.id), event)
+  const byId = events => [...events].sort((a, b) => a.id.localeCompare(b.id))
+  assert.deepEqual(byId(retained.filter(event => event.type === 'proposal.created')), byId(expected), 'the archive retains exactly the proposal-created evidence, with no extra event or changed metadata')
   for (const key of keys) assert.ok(!JSON.stringify(records).includes(key.token), 'no executable personal key in archive')
   return retained
 }

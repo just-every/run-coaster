@@ -44,7 +44,8 @@ test('Retained proposal events preserve cursor identity, explicit grants and cur
     const args = claimArguments(t.c.office, 'synthetic-coaster-4205')
     args.items[0].receipt = await receipt('bistro')
     args.actor = { name: 'synthetic-coaster-4206' }; args.classes = ['money']; args.at = 'synthetic-coaster-4207'
-    const p = await linkedProposal(client, 'coaster.claims.propose', args)
+    const captured = { name: 'coaster.claims.propose', arguments: { ...args, idempotency_key: 'synthetic-coaster-4230' } }
+    const p = await linkedProposal(client, captured.name, args, captured.arguments.idempotency_key)
     const second = await linkedProposal(client, 'coaster.claims.propose', claimArguments(t.c.office, 'synthetic-coaster-4208'))
     const events = created((await list(client)).events)
     assert.deepEqual(events.map(e => e.uri), [p.uri, second.uri])
@@ -147,7 +148,10 @@ test('Retained proposal events preserve cursor identity, explicit grants and cur
     assert.equal(narrowed.status, 403)
     assert.equal(narrowed.error.data.code, 'insufficient_scope')
     await h.post(`agent-keys/${key.id}/revoke`, {}, t.sam)
-    assert.equal((await client('tools/call', { name: 'coaster.events.list', arguments: {} })).status, 401)
+    const revokedState = await snapshot()
+    assert.equal((await client('tools/call', { name: 'coaster.events.list', arguments: { after: page.cursor } })).status, 401)
+    assert.equal((await client('tools/call', captured)).status, 401)
+    assert.deepEqual(await snapshot(), revokedState, 'a revoked captured mutation cannot create a proposal or a retained event')
     await h.post('settings/members', { email: batch.proposal.for_email, name: 'synthetic-coaster-4215', active: false, employee: true, finance: true })
     const inactive = await finance('tools/call', { name: 'coaster.events.list', arguments: {} })
     assert.equal(inactive.status, 401); assert.equal(inactive.result, undefined)

@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "cbd183f88c9c7fc925349f5603c606e03f8d42bbfa0deb25d80b00beadc21e1f",
+      "sha256": "cfde8b2f8785053ed2dcff558eb26fe733859972958b98c7c662382ed6bee722",
       "executable": false
     },
     "DEMO.md": {
@@ -4980,7 +4980,7 @@
       "executable": false
     },
     "tests/agent-events-archive.mjs": {
-      "sha256": "c02fdaf3f578e70cf72215c524902fab6cb761b83d50c206340cd0525930123e",
+      "sha256": "c25d7d9bf72d5c4a73fc6605d49cc6576e7887d31f4e1bde3c72f06f0c1f6e12",
       "executable": false
     },
     "tests/archive-data.mjs": {
@@ -5076,7 +5076,7 @@
       "executable": false
     },
     "tests/coaster-agent-events.test.mjs": {
-      "sha256": "3f549c4b75b3d5a10ce2be5cad549d1612f6facedb314de3fdd313748889277d",
+      "sha256": "df7e91c6e3734ef873798a0de280b8dd492a9cfdfcbe2ee4ee09791f052ba23e",
       "executable": false
     },
     "tests/coaster-agent-resources.test.mjs": {
