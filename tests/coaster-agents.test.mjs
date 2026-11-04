@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from './agent-door/proposals.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { agency, harness, receipt } from './harness.mjs'
@@ -21,9 +22,10 @@ test('Expense preparation cites coding receipt and submission issues while keepi
   assert.equal(p.payload.checklist[0].proposedCoding.evidence[0].source,'merchant-rule')
   assert.ok(p.payload.checklist[0].receipt.sha256)
   assert.equal(p.payload.checklist[0].citation,`/app#/claims/${c.id}`)
+  await configureAgentPolicy(h)
   const key=await h.post('agent-keys',{label:'synthetic-coaster-8002'},t.sam)
-  assert.equal((await h.send(`/api/coaster/preparations/expenses/${c.id}`,{},'',{authorization:`Bearer ${key.token}`})).status,401)
-  assert.equal((await h.send(`/api/coaster/agent/proposals/${p.id}`,undefined,'',{authorization:`Bearer ${key.token}`})).status,404)
+  assert.equal((await h.send(`/api/coaster/preparations/expenses/${c.id}`,{},'',{authorization:`Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID()})).status,401)
+  assert.equal((await h.send(`/api/coaster/agent/proposals/${p.id}`,undefined,'',{authorization:`Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID()})).status,404)
   const accepted=await h.post(`proposals/${p.id}/accept`,{},t.sam)
   assert.equal(accepted.claim.status,'draft')
   assert.equal((await h.get(`claims/${c.id}`,t.sam)).claim.version,c.version)

@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from '../agent-door/proposals.mjs'
 // Original operations assertions, composed as named phases without test registrations.
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -14,8 +15,9 @@ async function retainEveryHistoryLine(h, t) {
   let batch = await h.post('batches', { claims: [lunch.id, ride.id] }, t.morgan)
   batch = await h.post(`batches/${batch.id}/approve`, { version: batch.version, expectedTotal: 6450 + 3860 }, t.jordan)
   await h.paid(batch.id, batch.version, { reference: 'ACH-2026-0520', paidOn: '2026-05-20' }, t.jordan)
+  await configureAgentPolicy(h)
   const key = await h.post('agent-keys', { label: 'Receipt inbox agent' }, t.sam)
-  assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Parking', items: [{ kind: 'receipt', date: '2026-05-10', merchant: 'Wilson Parking', amount: '18.00', allocations: [{ category: t.c.travel }], receipt: await receipt('uber') }] }, '', { authorization: `Bearer ${key.token}` })).status, 200)
+  assert.equal((await h.send('/api/coaster/agent/claims', { title: 'Parking', items: [{ kind: 'receipt', date: '2026-05-10', merchant: 'Wilson Parking', amount: '18.00', allocations: [{ category: t.c.travel }], receipt: await receipt('uber') }] }, '', { authorization: `Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID() })).status, 200)
   const csv = await readFile('tests/fixtures/expensify-report-template.csv', 'utf8'), mapping = { date: 'YYYY-MM-DD', statuses: { Reimbursed: 'reimbursed', Approved: 'approved', Open: 'open' } }
   const preview = await h.post('import/preview', { csv, filename: 'expensify.csv', mapping })
   const imported = await h.post('import/commit', { csv, filename: 'expensify.csv', mapping, fingerprint: preview.fingerprint })

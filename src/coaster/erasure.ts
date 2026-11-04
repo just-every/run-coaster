@@ -1,4 +1,5 @@
 import { replaceDiscardIdentity } from './receipts/reasons.mjs';
+import { eraseAgentCustody } from './agent-door/erasure';
 import { advancesFor } from './advances';
 import { redactionStatements, invalidateTransfersStatements } from '@runeditrun/rer/modules/portability/journal';
 import { retireD1ImportCustody, type D1Sql } from '../modules/import-kit/src/d1/index';
@@ -110,7 +111,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
   const { subject, label } = opaque(), at = now(), id = uid(), quoted = JSON.stringify(address), quotedLabel = JSON.stringify(subject);
   const receipts = (await db.prepare('SELECT r.sha256 FROM c_items i JOIN c_receipts r ON r.id=i.receipt_id JOIN c_claims c ON c.id=i.claim_id WHERE c.employee_email=? UNION SELECT sha256 FROM c_capture_receipts WHERE owner_email=? ORDER BY sha256').bind(address, address).all<{ sha256: string }>()).results.map(r => r.sha256);
   const count = async (query: string, ...params: unknown[]) => (await db.prepare(`SELECT COUNT(*) AS n FROM ${query}`).bind(...params).first<{ n: number }>())!.n;
-  const operator = await db.prepare('SELECT id FROM oa_operators WHERE lower(email)=?').bind(address).first<{ id: string }>();
+  const operator = await db.prepare('SELECT id,display_name FROM oa_operators WHERE lower(email)=?').bind(address).first<{ id: string; display_name: string }>();
   // Matching rows and old values are guarded before the erasure batch writes.
   const matchReasons = 'instr(lower(reason),?)>0 OR instr(reason,?)>0';
   const discardReasons = (await db.prepare(`SELECT receipt_id,sequence,reason FROM c_capture_lifecycle WHERE ${matchReasons}`).bind(address, member.name).all<{ receipt_id: string; sequence: number; reason: string }>()).results;
@@ -155,6 +156,7 @@ export async function eraseMember(db: D1Database, actor: Actor, b: Data) {
     sql("DELETE FROM c_auto_coding_contexts WHERE target_kind='receipt' AND employee_email=?",address),
     sql("DELETE FROM c_auto_coding_observations WHERE target_kind='receipt' AND employee_email=?",address),
     sql("DELETE FROM c_auto_coding_rules WHERE scope='personal' AND owner_email=?",address),
+    ...await eraseAgentCustody(db, { address, name: member.name, operator, subject, label, members }),
     sql('DELETE FROM c_agent_keys WHERE member_email=?', address),
     sql('DELETE FROM c_public_keys WHERE member_email=?', address),
     sql('UPDATE c_capture_receipts SET uploaded_by=? WHERE uploaded_by IN (SELECT email FROM c_receipt_mail_aliases WHERE owner_email=?)',subject,address),

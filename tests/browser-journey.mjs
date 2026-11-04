@@ -1,3 +1,4 @@
+import { autonomousPolicy } from '../src/modules/agent-door/conformance/crypto.mjs'
 // The human journey through Coaster's screens, one person per browser context.
 import assert from 'node:assert/strict'
 import { assertAccessible } from './browser-accessibility.mjs'
@@ -49,6 +50,8 @@ export async function setUp(owner, origin) {
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.finance, name: 'Morgan Lee', employee: true, finance: true, release: true, approver: PEOPLE.manager })
   await api(owner.context, origin, 'settings/members', { email: PEOPLE.employee, name: 'Sam Taylor', employee: true, approver: PEOPLE.manager })
   for (const email of Object.values(PEOPLE)) await api(owner.context, origin, 'settings/members/invite', { email })
+  const policy = await owner.context.request.put(origin + '/agents/api/policy', { headers: { origin }, data: { document: autonomousPolicy() } })
+  assert.equal(policy.status(), 200)
 }
 
 /** A fixture receipt made unique per run (a trailing note after the PNG end), so each width's receipts are distinct evidence. */
@@ -89,7 +92,7 @@ export async function journey(browser, root, origin, width, evidence, shots) {
     // An agent prepares a draft from an emailed receipt; the employee sees it waiting.
     const key = await api(employee.context, origin, 'agent-keys', { label: 'Receipt inbox agent' })
     const categories = (await api(employee.context, origin, 'state')).categories, travel = categories.find(c => c.name === 'Travel').id
-    const proposal = await (await fetch(`${origin}/api/coaster/agent/claims`, { method: 'POST', headers: { authorization: `Bearer ${key.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ title: `Uber receipts ${width}`, note: 'Forwarded from the receipts inbox', items: [{ kind: 'receipt', date: '2026-04-28', merchant: 'Uber', amount: '38.60', allocations: [{ category: travel }], receipt: { name: 'uber.png', base64: (await readFile(await variant('uber', width))).toString('base64') } }] }) })).json()
+    const proposal = await (await fetch(`${origin}/api/coaster/agent/claims`, { method: 'POST', headers: { authorization: `Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID(), 'content-type': 'application/json' }, body: JSON.stringify({ title: `Uber receipts ${width}`, note: 'Forwarded from the receipts inbox', items: [{ kind: 'receipt', date: '2026-04-28', merchant: 'Uber', amount: '38.60', allocations: [{ category: travel }], receipt: { name: 'uber.png', base64: (await readFile(await variant('uber', width))).toString('base64') } }] }) })).json()
     assert.equal(proposal.status, 'proposed')
 
     const page = employee.page

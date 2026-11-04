@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from './agent-door/proposals.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -64,8 +65,9 @@ test('REPORT-005 / CLAIM-006 paid claim and batch PDFs reconcile, preserve order
     assert.equal(revised.items[0].project, 'Delivery')
     assert.deepEqual(revised.revisions.map(r => r.snapshot.items[0].project), ['Discovery', 'Delivery'], 'correcting a project preserves the earlier submitted coding')
     claim = await h.post(`claims/${claim.id}/decision`, { revision: claim.revision, version: claim.version, decision: 'approved', acknowledge: true, reason: 'Client work checked' }, team.priya)
+    await configureAgentPolicy(h)
     const key = await h.post('agent-keys', { label: 'Project coding agent' }, team.sam)
-    const proposal = await h.send('/api/coaster/agent/claims', { title: 'Nonbillable Acme mileage', items: [{ kind: 'mileage', date: '2026-05-04', merchant: 'Office trip', distance: '10', customer: 'Acme', project: 'Delivery', billable: true, category: team.c.car }] }, '', { authorization: `Bearer ${key.token}` })
+    const proposal = await h.send('/api/coaster/agent/claims', { title: 'Nonbillable Acme mileage', items: [{ kind: 'mileage', date: '2026-05-04', merchant: 'Office trip', distance: '10', customer: 'Acme', project: 'Delivery', billable: true, category: team.c.car }] }, '', { authorization: `Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID() })
     assert.equal(proposal.status, 200)
     assert.equal(proposal.value.payload.items[0].project, 'Delivery')
     let second = (await h.post(`proposals/${proposal.value.id}/accept`, {}, team.sam)).claim

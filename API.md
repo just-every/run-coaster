@@ -62,8 +62,8 @@ before calling `coaster.workspace.get`, `coaster.proposals.get`,
 in `_meta["com.runeditrun/error"]`. Signed Business policy is adopted through
 `POST /api/rer/agent-policy`; person controls are at `/agents`.
 See [Agent instructions](docs/agents.md) for native authority and undeclared
-capability boundaries. The narrow legacy preparation API below keeps its own
-personal-key contract.
+capability boundaries. The four personal-key REST routes below call the same
+registered tools under the same company policy and retain native success JSON.
 
 ## Agents (agent key)
 
@@ -76,6 +76,14 @@ acts for the person who made the key and can only prepare work for them.
 | `POST agent/claims` `{title, note, items: [{…same item fields…, receipt?: {name, base64}}]}` | Prepare a draft claim (employees). |
 | `POST agent/batches` `{claims: [id], note}` | Propose a batch of approved claims (finance). |
 | `GET agent/proposals/:id` | Read one of its proposals and whether the person accepted it. |
+
+Preparation requires a caller-chosen `Idempotency-Key` header or matching
+`idempotency_key` field. Keep that key and the exact inputs across REST and MCP
+retries. Pending company approval returns HTTP 202, an approval URL and opaque
+`requestState`; a held read retries its route with that query parameter. Policy
+setup, blocked, paused, rejected and expired outcomes never execute a native
+fallback. See [policy and retry responses](docs/agents.md#policy-and-retries-on-the-personal-rest-routes)
+for actionable refusal codes and supported payload bounds.
 
 The person accepts or declines in Coaster; the resulting claim or batch records
 that the agent prepared it and who accepted it. An agent key cannot submit,

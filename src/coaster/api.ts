@@ -24,7 +24,8 @@ import { changeAttachment } from './receipts/attachments';
 import { Hono, type Context } from 'hono';
 import { deploymentHealth } from '../base/deployment-health';
 import { operatorAuth, runtimeBindings, type Bindings } from '../auth.server';
-import { agent, need, person } from './session';
+import { need, person } from './session';
+import { personalAgentRest } from './agent-door/rest';
 import { saveBusiness, saveCategory, saveMember, savePaymentControls } from './settings';
 import { accountablePlan, markNonAccountable } from './accountable-plan';
 import { saveMileageRate } from './mileage';
@@ -56,7 +57,7 @@ import { createRequest, decideRequest, reassignRequest } from './requests';
 import { advancesFor, decideAdvance, linkAdvance, payAdvance, recordReturn, requestAdvance } from './advances';
 import { approveBatch, createBatch, markReimbursed, releaseBatch, removeFromBatch } from './batches';
 import { batchFile, periodFile, saveExportTemplate } from './exports';
-import { agentContext, agentProposal, acceptProposal, createAgentKey, declineProposal, proposal, proposeBatch, proposeClaim, revokeAgentKey } from './agents';
+import { acceptProposal, createAgentKey, declineProposal, proposal, revokeAgentKey } from './agents';
 import { batchDetail, claimDetail, receiptFile, workspace } from './views';
 import { correctCoding } from './accounting/expense-corrections';
 import { auditPack, searchHistory } from './audit';
@@ -111,7 +112,6 @@ const as = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) =
   const result = await handler(actingFor && actingFor !== signedIn.email ? await actingAs(db(c), signedIn, actingFor) : signedIn, c);
   return result instanceof Response ? result : c.json(result);
 };
-const asAgent = (handler: (actor: Actor, c: C) => Promise<unknown>) => async (c: C) => c.json(await handler(await agent(c.req.raw, c.env), c));
 
 api.post('/api/coaster/accounting/desktop/soap', c => desktopSoap(runtimeBindings(c.env),c.req.raw));
 api.get('/api/coaster/accounting/desktop', as(async(a,c)=>desktopStatus(db(c),a)));
@@ -253,10 +253,10 @@ api.post('/api/coaster/preparations/expenses/:id', as(async (a, c) => prepareExp
 api.post('/api/coaster/proposals/:id/accept', as(async (a, c) => acceptProposal(db(c), a, param(c, 'id'))));
 api.post('/api/coaster/proposals/:id/decline', as(async (a, c) => declineProposal(db(c), a, param(c, 'id'), await body(c))));
 
-api.get('/api/coaster/agent/context', asAgent(async (a, c) => agentContext(db(c), a)));
-api.get('/api/coaster/agent/proposals/:id', asAgent(async (a, c) => agentProposal(db(c), a, param(c, 'id'))));
-api.post('/api/coaster/agent/claims', asAgent(async (a, c) => proposeClaim(db(c), a, await body(c, 8_000_000))));
-api.post('/api/coaster/agent/batches', asAgent(async (a, c) => proposeBatch(db(c), a, await body(c))));
+api.get('/api/coaster/agent/context', c => personalAgentRest(c.req.raw, c.env, 'coaster.workspace.get'));
+api.get('/api/coaster/agent/proposals/:id', c => personalAgentRest(c.req.raw, c.env, 'coaster.proposals.get', param(c, 'id')));
+api.post('/api/coaster/agent/claims', c => personalAgentRest(c.req.raw, c.env, 'coaster.claims.propose'));
+api.post('/api/coaster/agent/batches', c => personalAgentRest(c.req.raw, c.env, 'coaster.batches.propose'));
 
 api.get('/api/coaster/accountable-plan', as(async (a, c) => accountablePlan(db(c), a)));
 api.post('/api/coaster/claims/:id/items/:item/accountable-plan', as(async (a, c) => markNonAccountable(db(c), a, param(c, 'id'), param(c, 'item'), await body(c))));

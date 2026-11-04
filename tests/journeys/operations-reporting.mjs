@@ -1,3 +1,4 @@
+import { configureAgentPolicy } from '../agent-door/proposals.mjs'
 // Original operations assertions, composed as named phases without test registrations.
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -116,8 +117,9 @@ async function excludeInactiveReportRecipients(h, t) {
 // REPORT-003 history is searchable across a claim's capture, approval and payment; an auditor reads everything, changes nothing and exports a period's audit pack
 async function exportSearchableAuditHistory(h, t) {
   const audrey = await h.person('audrey@harbourfinch.example', { auditor: true })
+  await configureAgentPolicy(h)
   const key = await h.post('agent-keys', { label: 'Receipt inbox agent' }, t.sam)
-  const proposal = await h.send('/api/coaster/agent/claims', { title: 'Sydney client visit', items: [{ kind: 'receipt', date: '2026-05-09', merchant: 'Uber', amount: '38.60', allocations: [{ category: t.c.travel }], receipt: await receipt('uber') }] }, '', { authorization: `Bearer ${key.token}` })
+  const proposal = await h.send('/api/coaster/agent/claims', { title: 'Sydney client visit', items: [{ kind: 'receipt', date: '2026-05-09', merchant: 'Uber', amount: '38.60', allocations: [{ category: t.c.travel }], receipt: await receipt('uber') }] }, '', { authorization: `Bearer ${key.token}`, 'idempotency-key': crypto.randomUUID() })
   let c = (await h.post(`proposals/${proposal.value.id}/accept`, {}, t.sam)).claim
   const lunch = await h.post(`claims/${c.id}/receipts`, { version: c.version, ...(await receipt('bistro')) }, t.sam)
   c = await h.post(`claims/${c.id}/items`, { version: lunch.claim.version, kind: 'receipt', date: '2026-05-09', merchant: 'Harbour View Bistro', amount: '150.00', receipt: lunch.receipt, allocations: [{ category: t.c.meals }], explanation: 'Client lunch for three' }, t.sam)

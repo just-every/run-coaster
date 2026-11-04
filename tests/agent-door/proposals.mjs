@@ -1,4 +1,16 @@
 import assert from 'node:assert/strict'
+import { autonomousPolicy } from '../../src/modules/agent-door/conformance/crypto.mjs'
+
+export async function configureAgentPolicy(h, document = autonomousPolicy()) {
+  const response = await h.mf.dispatchFetch(h.origin + '/agents/api/policy', {
+    method: 'PUT', headers: { origin: h.origin, cookie: h.owner, 'content-type': 'application/json' },
+    body: JSON.stringify({ document }),
+  })
+  const value = await response.json()
+  assert.equal(response.status, 200, JSON.stringify(value))
+  return value.revision
+}
+
 
 /** MCP over the installation's real HTTP door, also used by the browser proof. */
 export function proposalClient(request, origin, token, version = '2026-07-28') {
