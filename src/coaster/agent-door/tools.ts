@@ -54,6 +54,7 @@ export function coasterTools(): ToolDefinition[] {
       summary: async (args, ctx) => ({ target: { id: ctx.person.id, name: ctx.person.name }, items: [String(args.title), `${Array.isArray(args.items) ? args.items.length : 0} proposed expenses; human acceptance required`] }),
       run: async (args, ctx) => {
         const result = await native(() => nativeAgent(ctx).then(a => proposeClaim(ctx.db, a, args)));
+        ctx.emit('proposal.created', proposalLink(result.id).uri);
         return { result, resources: [proposalLink(result.id)] };
       } },
     { ...common, name: 'coaster.batches.propose', title: 'Prepare a batch proposal', description: 'Finance proposes approved claims for human review. This neither creates nor releases a reimbursement batch.',
@@ -67,6 +68,7 @@ export function coasterTools(): ToolDefinition[] {
       summary: async (args, ctx) => ({ target: { id: ctx.person.id, name: ctx.person.name }, items: args.claims as string[] }),
       run: async (args, ctx) => {
         const result = await native(() => nativeAgent(ctx).then(a => proposeBatch(ctx.db, a, args)));
+        ctx.emit('proposal.created', proposalLink(result.id).uri);
         return { result, resources: [proposalLink(result.id)] };
       } },
   ];

@@ -60,12 +60,13 @@ export function Settings({ state, reload }: ViewProps) {
         <Field label="Sales tax code" name="salesTaxCode" required={false} defaultValue={b?.sales_tax_code ?? ''} hint="For example TAX" />
       </Form>
     </Section>}
-    {!auditorOnly && <Section title="Agent keys">
+    {!auditorOnly && <Section title="Agent keys" label="Agent keys">
       <p className="muted">An agent with your key can prepare draft claims{state.actor.roles.finance ? ' and batch proposals' : ''} for you to accept. It cannot submit, approve, batch or pay anything.</p>
       {token && <div className="notice key-once" role="status"><label htmlFor="new-agent-key">Copy this key now; Coaster shows it only once.</label><input id="new-agent-key" className="key-field" readOnly value={token.token} onFocus={e => e.currentTarget.select()} /></div>}
-      {state.agentKeys.length ? <ul className="ruled-list">{state.agentKeys.map((k: D) => <li key={k.id} className="job"><span>{k.label} · made {moment(k.created_at)}</span>{k.revoked_at ? <Badge status="declined" words="Revoked" /> : <button className="button small" onClick={async () => { await call(`agent-keys/${k.id}/revoke`, {}); await saved('Key revoked.'); }}>Revoke</button>}</li>)}</ul> : <Empty title="No agent keys" />}
+      {state.agentKeys.length ? <ul className="ruled-list">{state.agentKeys.map((k: D) => <li key={k.id} className="job"><span>{k.label} · made {moment(k.created_at)}{JSON.parse(k.scopes).includes('events:read') ? ' · Event reading allowed' : ' · Preparation only'}</span>{k.revoked_at ? <Badge status="declined" words="Revoked" /> : <button className="button small" onClick={async () => { await call(`agent-keys/${k.id}/revoke`, {}); await saved('Key revoked.'); }}>Revoke</button>}</li>)}</ul> : <Empty title="No agent keys" />}
       <div className="sub-form"><Form label="Make agent key" onSubmit={async (v, form) => { setToken(await call('agent-keys', v)); form.reset(); await reload(); }}>
         <Field label="Agent name" name="label" placeholder="Receipt inbox agent" />
+        <Field label="Allow this key to read retained events for records I can access" name="eventsRead" type="checkbox" defaultValue={false} />
       </Form></div>
     </Section>}
     </div>

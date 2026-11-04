@@ -15,13 +15,15 @@ export async function createAgentKey(db: D1Database, actor: Actor, b: Data) {
   const member = await db.prepare('SELECT 1 FROM c_members WHERE email=? AND active=1').bind(actor.email).first();
   requireThat(member, 'Ask the owner to add you as a member first', 409);
   const label = text(b.label, 'Agent name', 80), id = uid();
+  requireThat(b.eventsRead === undefined || typeof b.eventsRead === 'boolean', 'Choose whether this key may read events');
+  const scopes = ['proposals:read', 'proposals:write', ...(b.eventsRead === true ? ['events:read'] : [])];
   const random = crypto.getRandomValues(new Uint8Array(32));
   const token = 'cst_' + btoa(String.fromCharCode(...random)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   await commit(db, authority(actor), [
-    db.prepare('INSERT INTO c_agent_keys(id,member_email,label,token_hash,created_at) VALUES(?,?,?,?,?)').bind(id, actor.email, label, await sha256Hex(token), now()),
-    event(db, actor, 'agent-key-created', {}, { key: id, label }),
+    db.prepare('INSERT INTO c_agent_keys(id,member_email,label,token_hash,created_at,scopes) VALUES(?,?,?,?,?,?)').bind(id, actor.email, label, await sha256Hex(token), now(), JSON.stringify(scopes)),
+    event(db, actor, 'agent-key-created', {}, { key: id, label, scopes }),
   ]);
-  return { id, label, token };
+  return { id, label, token, scopes };
 }
 
 export async function revokeAgentKey(db: D1Database, actor: Actor, id: string) {
