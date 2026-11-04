@@ -12,6 +12,8 @@ const roots=[];let h;
 try {
   const source=await fresh(),destination=await fresh();roots.push(source,destination);
   for(const root of roots) {
+    // Install into this copy, without rewriting the checkout's shared dependency links.
+    await rm(join(root,'node_modules'));
     await command(root,['install']);
   }
   h=await harness({persistencePath:join(source,'.wrangler/state/v3'),databaseId:'local-foundation-only'});

@@ -4932,7 +4932,7 @@
       "executable": false
     },
     "tests/accounting-corrections-archive.mjs": {
-      "sha256": "b3756f9057f4983afb716425ba058f4fa4661627a5d4d02e0ea270ce67507241",
+      "sha256": "6083e0b25bd11f94ec98aed9ea5957faf63fc6d40164d1e3007ef97d278c6cfc",
       "executable": false
     },
     "tests/agent-door/discovery.mjs": {
