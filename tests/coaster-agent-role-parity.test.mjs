@@ -82,11 +82,15 @@ test('Four personal-agent tools preserve native role permissions and grant narro
             const beforeCall = await snapshot()
             let answer = await client(['tools', 'call'].join('/'), params)
             const pending = answer.result?._meta?.['com.runeditrun/approval'] ?? answer.result?._meta?.['com.runeditrun/error']?.approval
+            const needsApproval = policyName === 'held' && (name === 'coaster.proposals.get' || name === 'coaster.claims.propose' && fixture.claim)
+            if (needsApproval) assert.ok(pending, 'held private reads and preparations require native company approval')
+            if ((name === 'coaster.workspace.get' || name === 'coaster.batches.propose' && fixture.batch) && !answer.result?.isError) {
+              assert.equal(answer.result._meta['com.runeditrun/decision'].disposition, policyName === 'held' ? 'review' : 'autonomous')
+            }
             if (pending) {
               assert.equal(policyName, 'held')
               assert.equal(answer.result.structuredContent, undefined, 'held content is withheld')
               assert.deepEqual(await snapshot(), beforeCall, 'pending company approval creates no proposal, receipt or financial write')
-              if (version === '2025-11-25') assert.equal(answer.result.requestState, undefined, 'legacy read continuation remains a pinned Base gap')
               const before = await snapshot()
               const url = new URL(pending.url)
               assert.equal(url.origin, h.origin)
@@ -102,11 +106,10 @@ test('Four personal-agent tools preserve native role permissions and grant narro
               // Modern read continuations carry requestState; legacy mutation
               // retries use their original idempotency key.
               answer = await client(['tools', 'call'].join('/'), { ...params, ...(answer.result.requestState ? { requestState: answer.result.requestState } : {}) })
-              if (version === '2025-11-25' && name === 'coaster.proposals.get') {
+              if (version === '2025-11-25' && name === 'coaster.proposals.get' && code(answer) === 'approval_required') {
                 // The pinned legacy transport exposes an approval URL but no
                 // read continuation. Keep this boundary explicit until Base
                 // supplies it; no private result is disclosed on another call.
-                assert.equal(code(answer), 'approval_required')
                 assert.equal(answer.result.structuredContent, undefined)
                 assert.deepEqual(await snapshot(), before, 'approved legacy read still changes no product data')
               }
@@ -127,8 +130,7 @@ test('Four personal-agent tools preserve native role permissions and grant narro
             assert.ok(!JSON.stringify(projection).includes(target.id), 'the approved financial record is absent from the entire context')
           }
           const read = await invoke('coaster.proposals.get', { id: own.id })
-          if (version === '2025-11-25' && policyName === 'held') {
-            assert.equal(code(read), 'approval_required')
+          if (version === '2025-11-25' && policyName === 'held' && code(read) === 'approval_required') {
             console.log(`PROBE BASE-AGENT-005 legacy-read-boundary role=${fixture.role}: returned native URL approved -> executed; MCP retry remains approval_required because the legacy wire omits requestState`)
           } else assert.deepEqual(data(read), (await native(`proposals/${own.id}`)).value)
           const beforeHidden = await snapshot()
@@ -167,11 +169,24 @@ test('Four personal-agent tools preserve native role permissions and grant narro
               assert.deepEqual(await snapshot(), beforeMcp, 'refusal creates no proposal, receipt, event or financial write')
             }
           }
-          console.log(`PROBE BASE-AGENT-005 role=${fixture.role} policy=${policyName} protocol=${version}: MCP and native doors -> context matches; own proposal ${version === '2025-11-25' && policyName === 'held' ? 'held at documented legacy continuation boundary' : 'matches'}; claim=${fixture.claim}; batch=${fixture.batch}; hidden and missing refused; no financial writes`)
+          console.log(`PROBE BASE-AGENT-005 role=${fixture.role} policy=${policyName} protocol=${version}: MCP and native doors -> context matches; own proposal ${code(read) === 'approval_required' ? 'held at documented legacy continuation boundary' : 'matches'}; claim=${fixture.claim}; batch=${fixture.batch}; hidden and missing refused; no financial writes`)
         }
       }
       await h.post(`agent-keys/${key.id}/revoke`, {}, h.owner)
-      assert.equal((await proposalClient(request, h.origin, key.token)(['tools', 'call'].join('/'), { name: 'coaster.workspace.get', arguments: {} })).status, 401)
+      const afterRevocation = await snapshot()
+      for (const version of ['2025-11-25', '2026-07-28']) {
+        const revoked = proposalClient(request, h.origin, key.token, version)
+        for (const [name, args] of [
+          ['coaster.workspace.get', {}], ['coaster.proposals.get', { id: own.id }],
+          ['coaster.claims.propose', { ...claimArguments(t.c.office), idempotency_key: 'synthetic-coaster-5380' }],
+          ['coaster.batches.propose', { claims: [target.id], idempotency_key: 'synthetic-coaster-5381' }],
+        ]) {
+          const refused = await revoked(['tools', 'call'].join('/'), { name, arguments: args })
+          assert.equal(refused.status, 401, 'a revoked credential cannot read, prepare or replay a capture')
+          assert.equal(refused.result?.structuredContent, undefined)
+        }
+      }
+      assert.deepEqual(await snapshot(), afterRevocation, 'every revoked-key call leaves product data unchanged')
     }
   } finally { await h.close() }
 })

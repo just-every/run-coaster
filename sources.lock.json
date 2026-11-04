@@ -5076,7 +5076,7 @@
       "executable": false
     },
     "tests/coaster-agent-role-parity.test.mjs": {
-      "sha256": "3fc08f8e405faf660cce992fcfce9dcc859af8a5bfbc071ccf713d736ad8fd23",
+      "sha256": "e89c2d87aa7ffe54a32d7ee535dc4fa97b3354ebbc594de737d4ffd70dab987d",
       "executable": false
     },
     "tests/coaster-agents.test.mjs": {
