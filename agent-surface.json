@@ -211,6 +211,27 @@
       }
     },
     {
+      "id": "witness",
+      "tool": "coaster.workspace.witness",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ],
+      "inject": {
+        "classes": [
+          "standard"
+        ],
+        "internal": true,
+        "confirmExternal": true,
+        "confirmed": true
+      }
+    },
+    {
       "id": "claim",
       "tool": "coaster.claims.propose",
       "args": {
