@@ -2,7 +2,7 @@
 // and AI transports are fixtures; sign-in uses ordinary invitations and email links.
 import { promisify } from 'node:util'
 import { execFile, spawn } from 'node:child_process'
-import { mkdtemp, cp, readFile, mkdir, readdir, symlink } from 'node:fs/promises'
+import { mkdtemp, cp, readFile, mkdir, readdir, stat, symlink } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createServer } from 'node:net'
@@ -25,7 +25,14 @@ export async function fresh({clone=false}={}){
     if(excluded.has(name)||name.startsWith('.dev.vars')||name.startsWith('.env')||name.endsWith('.tsbuildinfo'))continue
     await cp(join(source,name),join(root,name),{recursive:true})
   }
-  await symlink(join(source,'node_modules'),join(root,'node_modules'),'dir')
+  // Share immutable installed packages, while each installation's Vite
+  // optimizer and temporary configuration files stay in its own directory.
+  await mkdir(join(root,'node_modules'))
+  for(const name of await readdir(join(source,'node_modules'))){
+    if(['.vite','.vite-temp','.cache'].includes(name))continue
+    const target=join(source,'node_modules',name)
+    await symlink(target,join(root,'node_modules',name),(await stat(target)).isDirectory()?'dir':'file')
+  }
   return root
 }
 export async function freePort(){const socket=createServer();await new Promise(r=>socket.listen(0,'127.0.0.1',r));const {port}=socket.address();await new Promise(r=>socket.close(r));return port}

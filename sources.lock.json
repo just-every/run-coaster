@@ -5028,11 +5028,11 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "5300c6d23060fcc3c1446cceec7306baba8e3d47c6301c06a6ed5c8d1da74a69",
+      "sha256": "724c7107ce83653b43ff3afc457807e1d4597684ba3070b2dc5b91616165e9f8",
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "ac6387863445a73ce94f7230861092d1b17cc54a71055af2911ffb8f02a3ef0a",
+      "sha256": "c8fd34186a46475f1611d046c34bb3de74fc005bca03647ce6c41617fd14472f",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {

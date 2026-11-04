@@ -42,9 +42,20 @@ const phases = {
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),
   signals: async () => (await import('./journeys/browser-signal-investigation.mjs')).runSignalJourney(),
   desktop: async () => {
-    await (await import('./journeys/browser-desktop-connection.mjs')).runDesktopConnectionJourney();
-    await (await import('./journeys/browser-accounting-corrections.mjs')).runAccountingCorrectionJourney();
-    await (await import('./journeys/browser-feed-health.mjs')).runFeedHealthJourney();
+    // Each journey owns its installation, provider fixture and evidence files.
+    // Run them together and retain every result within the shard's deadline.
+    const journeys = await Promise.all([
+      import('./journeys/browser-desktop-connection.mjs'),
+      import('./journeys/browser-accounting-corrections.mjs'),
+      import('./journeys/browser-feed-health.mjs'),
+    ]);
+    const results = await Promise.allSettled([
+      journeys[0].runDesktopConnectionJourney(),
+      journeys[1].runAccountingCorrectionJourney(),
+      journeys[2].runFeedHealthJourney(),
+    ]);
+    const failures = results.filter(result => result.status === 'rejected').map(result => result.reason);
+    if (failures.length) throw new AggregateError(failures, 'Desktop browser journeys failed');
   },
 }
 const selected = process.env.COASTER_BROWSER_JOURNEY
