@@ -79,6 +79,16 @@ async function readPrepared(context) {
 }
 export async function afterStep(context) {
   const { phase, step, result, database } = context;
+  if (['autonomous', 'held'].includes(phase) && step.id === 'context') {
+    await nativeClient(context, async (_client, owner) => {
+      const key = await (await owner('/api/coaster/agent-keys', { label: 'Agent door conformance' })).json();
+      try {
+        const response = await context.request(context.origin + '/api/coaster/agent/context', { headers: { authorization: `Bearer ${key.token}` } });
+        assert.equal(response.status, 200);
+        assert.deepEqual(result, await response.json(), 'Policy-protected context matches the exact native projection');
+      } finally { await owner(`/api/coaster/agent-keys/${key.id}/revoke`, {}); }
+    });
+  }
   if (['coaster.claims.propose', 'coaster.batches.propose'].includes(step.tool)) {
     const db = await database('DB');
     const row = await db.prepare('SELECT * FROM c_proposals WHERE id=?').bind(result.id).first();
