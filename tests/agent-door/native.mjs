@@ -5,7 +5,7 @@ import { proposalClient } from './proposals.mjs';
 import { discoveryClient, verifyPrompts } from './discovery.mjs';
 
 const preparations = ['coaster.claims.propose', 'coaster.batches.propose'];
-const jobs = new Map(), financialStates = new Map();
+const jobs = new Map(), financialStates = new Map(), proposalEvents = new Map();
 async function financialState(database) {
   const db = await database('DB');
   return {
@@ -22,7 +22,11 @@ async function nativeClient({ request, origin, cookie }, run) {
 }
 export async function beforeStep(context) {
   const { phase, step, database } = context;
-  if (preparations.includes(step.tool)) financialStates.set(`${phase}:${step.id}`, await financialState(database));
+  if (preparations.includes(step.tool)) {
+    financialStates.set(`${phase}:${step.id}`, await financialState(database));
+    const db = await database('DB');
+    proposalEvents.set(`${phase}:${step.id}`, (await db.prepare("SELECT id FROM agent_door_events WHERE json_extract(event,'$.type')='proposal.created'").all()).results.map(e => e.id));
+  }
   if (!['autonomous', 'held'].includes(phase)) return;
   if (step.id === 'context') {
     const db = await database('DB');
@@ -82,11 +86,28 @@ export async function afterStep(context) {
   if (['coaster.claims.propose', 'coaster.batches.propose'].includes(step.tool)) {
     const db = await database('DB');
     const row = await db.prepare('SELECT * FROM c_proposals WHERE id=?').bind(result.id).first();
+    const previousEvents = proposalEvents.get(`${phase}:${step.id}`);
+    const events = (await db.prepare("SELECT id,event FROM agent_door_events WHERE json_extract(event,'$.type')='proposal.created' ORDER BY sequence").all()).results;
+    const added = events.filter(event => !previousEvents.includes(event.id));
+    // The conformance injection may also prepare a distinct proposal.
+    const matching = added.map(row => JSON.parse(row.event)).filter(event => event.uri === `coaster://proposals/${result.id}`);
+    assert.equal(matching.length, 1, 'Exactly one retained event for this successful native preparation');
+    const event = matching[0];
+    assert.equal(event.uri, `coaster://proposals/${result.id}`);
+    assert.equal(event.actor.kind, 'agent');
+    assert.equal(event.actor.agent.name, row.agent_label);
+    assert.ok(Number.isFinite(Date.parse(event.at)));
+    assert.deepEqual(Object.keys(event).sort(), ['actor', 'at', 'id', 'type', 'uri']);
+    proposalEvents.delete(`${phase}:${step.id}`);
     assert.deepEqual({ ...row, payload: JSON.parse(row.payload) }, result, 'Linked preparation returns the unchanged native record');
     assert.equal(row.status, 'proposed');
     assert.equal(row.decided_by, null, 'Company policy grants no native acceptance');
     assert.deepEqual(await financialState(database), financialStates.get(`${phase}:${step.id}`), 'Preparation creates only a proposal, never a native claim or batch');
     financialStates.delete(`${phase}:${step.id}`);
+  }
+  if (step.id === 'events') {
+    assert.ok(result.events.some(event => event.type === 'proposal.created'), 'Retained feed contains actual prepared proposal evidence');
+    assert.equal(new Set(result.events.map(event => event.id)).size, result.events.length);
   }
   if (['autonomous', 'held'].includes(phase) && ['claim', 'batch'].includes(step.id)) await readPrepared(context);
   if (!['foreign-claim', 'manual-foreign-claim'].includes(step.id)) return;
