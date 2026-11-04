@@ -36,6 +36,7 @@ const phases = {
     await (await import('./journeys/browser-preparations.mjs')).runPreparationJourney();
     await import('./browser-accounting-corrections.mjs');
     await import('./accounting-corrections-archive.mjs');
+    await (await import('./agent-query-custody-archive.mjs')).agentQueryCustodyArchive();
   },
   'receipt-agents': async () => (await import('./journeys/browser-receipt-agents.mjs')).runReceiptAgentJourney(),
   'policy-agent': async () => (await import('./journeys/browser-policy-agent.mjs')).runPolicyAgentJourney(),

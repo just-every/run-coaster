@@ -4971,8 +4971,16 @@
       "sha256": "b055eebeb71a1088eb93ddeac998ef1f784ba5370767f3d1baa0ef038e89214b",
       "executable": false
     },
+    "tests/agent-door/query-custody.mjs": {
+      "sha256": "d09eb79b4f072bbac694b92b015f571820d00a15b0234e3d495180076ac4c7fa",
+      "executable": false
+    },
     "tests/agent-door/state.mjs": {
       "sha256": "2629521eef69c2c3e100411f68269c4f7bad24c8a58a632cd5d5a2e03590eec5",
+      "executable": false
+    },
+    "tests/agent-query-custody-archive.mjs": {
+      "sha256": "d7bb3d6fd39511b9297710c129e18f4f94654b9b1c6d92e6204c3ee45cbe2423",
       "executable": false
     },
     "tests/archive-data.mjs": {
@@ -5032,7 +5040,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "f7dd67e32f9149f17f52d1aeee6984f6113273ed5d3b736fcb76f706a726b7f7",
+      "sha256": "ed445a8c20ee03e15357cc2aff2351cf913ee7867e6630fcb4f276b1dfc47b27",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {
@@ -5065,6 +5073,10 @@
     },
     "tests/coaster-agent-discovery.test.mjs": {
       "sha256": "4447b2370c779effad08eb7924fb2a44a04270470fddd279cb3646b1284dcd29",
+      "executable": false
+    },
+    "tests/coaster-agent-query-custody.test.mjs": {
+      "sha256": "d15b7a0299be93eeec2acdf21f575b62c175e503200486cc7ff38586bf361d7a",
       "executable": false
     },
     "tests/coaster-agent-replay.test.mjs": {
@@ -5180,7 +5192,7 @@
       "executable": false
     },
     "tests/coaster-worker.ts": {
-      "sha256": "7bc5cd19975abce7e71b44bf5d066df3a0ac18c91e2b82d8dc1231ac74ec7db6",
+      "sha256": "c095b8e16e3a48d32c71e6428f8515df57158c9ad738b185dc1e11f2458791c3",
       "executable": false
     },
     "tests/coaster-workflow.test.mjs": {
@@ -7256,7 +7268,7 @@
       "executable": false
     },
     "tests/harness.mjs": {
-      "sha256": "51ffc4c282c661a27c47caabbf91104473d6f9eeca69f9d036ccccbee0fd1491",
+      "sha256": "74a4f614e09363db68158a53593116619a5c4c7562bb7c9d4c71b59367f438d0",
       "executable": false
     },
     "tests/identity-provider.mjs": {
