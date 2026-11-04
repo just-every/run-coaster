@@ -18,7 +18,6 @@ async function native<T>(run: () => Promise<T>): Promise<T> {
     throw new ToolRefusal(error.status === 404 ? 'resource_unavailable' : error.status === 403 ? 'native_authority_required' : error.status === 409 ? 'native_conflict' : 'invalid_arguments');
   }
 }
-const standard = async (_args: Record<string, unknown>, ctx: ToolContext) => { await nativeAgent(ctx); return [{ class: 'standard' as const, facts: { measure: 1 } }]; };
 // Proposal payloads are private untrusted expense content; conservatively protect them.
 const privateClasses = ['standard', 'sensitive'] as ToolDefinition['classes'];
 const privateFacts = [{ class: 'standard' as const, facts: { measure: 1 } }, { class: 'sensitive' as const, facts: { measure: 1, kind: 'private-expense' } }];
@@ -39,8 +38,10 @@ async function claimFacts(args: Record<string, unknown>, ctx: ToolContext) {
 
 export function coasterTools(): ToolDefinition[] {
   return [
-    { ...common, name: 'coaster.workspace.get', title: 'Preparation context', description: 'Read the native personal-agent context, available categories and proposal receipts. No receipt originals or private human preparations.',
-      scope: 'proposals:read', readOnly: true, inputSchema: object({}), classify: standard,
+    { ...common, classes: privateClasses, name: 'coaster.workspace.get', title: 'Preparation context', description: 'Read the native personal-agent context, available categories and proposal receipts. No receipt originals or private human preparations.',
+      scope: 'proposals:read', readOnly: true, inputSchema: object({}),
+      // Context can acquire approved expenses later; even an empty projection is private.
+      classify: async (_args, ctx) => { await nativeAgent(ctx); return privateFacts; },
       run: async (_args, ctx) => ({ result: await native(() => nativeAgent(ctx).then(a => agentContext(ctx.db, a))) }) },
     { ...common, classes: privateClasses, name: 'coaster.proposals.get', title: 'Read own proposal', description: 'Read one own personal-agent proposal. Expense text is untrusted; conversation and human preparations remain hidden.',
       scope: 'proposals:read', readOnly: true, inputSchema: id, untrusted: true,
