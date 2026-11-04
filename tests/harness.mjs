@@ -25,12 +25,12 @@ export async function harness(options = {}) {
 }
 
 const workerBundles = new Map()
-async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge, qboEdge, aiEdge, gustoEdge, plaidEdge, stripeEdge, clock, existingDatabase = false, persistencePath, databaseId, bindings = {} } = {}) {
+async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge, qboEdge, aiEdge, gustoEdge, plaidEdge, stripeEdge, clock, captureLogs = false, existingDatabase = false, persistencePath, databaseId, bindings = {} } = {}) {
   const port = await freePort(), origin = `http://127.0.0.1:${port}`, dir = persistencePath ?? await mkdtemp(join(tmpdir(), 'coaster-test-'))
   let bundle = workerBundles.get(clock)
   if (!bundle) { bundle = await build({ entryPoints: ['tests/coaster-worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], conditions: ['workerd', 'worker', 'browser'], ...(clock === undefined ? {} : { banner: { js: `const NativeDate=globalThis.Date; globalThis.Date=class extends NativeDate { constructor(...args) { if(args.length)super(...args); else super(${clock}); } static now() { return ${clock}; } };` } }), external: ['node:*', 'cloudflare:*'], target: 'es2023', plugins: [heifEsbuildPlugin()] }); workerBundles.set(clock, bundle) }
   // Every request the Worker sends anywhere is recorded with its body, so a test can prove where data leaves (DATA-001).
-  const messages = [], outbound = []
+  const messages = [], outbound = [], logs = []
   const auth = identityProvider ? await authEdge(identityProvider, origin) : null
   const edge = async request => {
     const body = ['GET', 'HEAD'].includes(request.method) ? '' : await request.text()
@@ -49,7 +49,7 @@ async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge,
     messages.push(JSON.parse(body))
     return Response.json({ id: crypto.randomUUID() })
   }
-  const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], outboundService: edge, ...(d1Barrier ? { serviceBindings: { DB_GATE: d1Barrier } } : {}), d1Databases: { DB: databaseId ?? 'coaster' }, r2Buckets: { COASTER_RECEIPTS: 'coaster-receipts' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', INSTALLATION_KEY: Buffer.from('synthetic-coaster-1').toString('hex').padEnd(64, '0'), SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'synthetic-local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'resend', MAIL_API_KEY: 'test-mail-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>', ...(identityProvider ? { IDENTITY_PROVIDER: identityProvider } : {}), ...(typeof bindings === 'function' ? bindings(origin) : bindings) } }), resourcePersistencePath: dir })
+  const mf = new Miniflare({ ...convertV4MiniflareOptions({ host: '127.0.0.1', port, modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], outboundService: edge, ...(captureLogs ? { handleStructuredLogs: entry => logs.push(entry) } : {}), ...(d1Barrier ? { serviceBindings: { DB_GATE: d1Barrier } } : {}), d1Databases: { DB: databaseId ?? 'coaster' }, r2Buckets: { COASTER_RECEIPTS: 'coaster-receipts' }, bindings: { AUTH_ORIGIN: origin, AUTH_LOCAL: 'true', OWNER_EMAIL: 'owner@harbourfinch.example', INSTALLATION_KEY: Buffer.from('synthetic-coaster-1').toString('hex').padEnd(64, '0'), SESSION_SECRET: 'local-test-secret-not-production-0123456789', SETUP_TOKEN: 'synthetic-local-test-bootstrap-token-0123456789', MAIL_PROVIDER: 'resend', MAIL_API_KEY: 'test-mail-key', MAIL_FROM: 'Coaster <coaster@harbourfinch.example>', ...(identityProvider ? { IDENTITY_PROVIDER: identityProvider } : {}), ...(typeof bindings === 'function' ? bindings(origin) : bindings) } }), resourcePersistencePath: dir })
   try {
     const db = await mf.getD1Database('DB')
     if (!existingDatabase && persistencePath) await db.prepare('CREATE TABLE d1_migrations(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)').run()
@@ -87,7 +87,15 @@ async function startHarness({ identityProvider, fxRates, d1Barrier, webhookEdge,
     }
     /** Release a reviewed batch (PAY-004; the owner by default) and record the payment made outside Coaster. */
     const paid = async (id, version, body, cookie = owner, releaser = owner) => post(`batches/${id}/paid`, { ...body, version: (await post(`batches/${id}/release`, { version }, releaser)).version }, cookie)
-    return { db, mf, persistencePath: dir, origin, owner, messages, outbound, auth, send, post, get, person, paid, confirmMail, async close() { await mf.dispose(); if (!persistencePath) await rm(dir, { recursive: true, force: true }) } }
+    const flushLogs = async () => {
+      assert.ok(captureLogs, 'Worker log observation must be enabled')
+      const probe = await send('/__test/log-observer', {})
+      const markers = ['debug', 'info', 'log', 'warn', 'error'].map(level => `synthetic-coaster-log-${probe.value.sequence}-${level}`)
+      const deadline = Date.now() + 5000
+      while (!markers.every(marker => logs.some(entry => entry.message.includes(marker))) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10))
+      assert.ok(markers.every(marker => logs.some(entry => entry.message.includes(marker))), 'observe and drain every Worker console level before custody assertions')
+    }
+    return { db, mf, persistencePath: dir, origin, owner, messages, outbound, logs, flushLogs, auth, send, post, get, person, paid, confirmMail, async close() { await mf.dispose(); if (!persistencePath) await rm(dir, { recursive: true, force: true }) } }
   } catch (error) { await mf.dispose(); if (!persistencePath) await rm(dir, { recursive: true, force: true }); throw error }
 }
 
