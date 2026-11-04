@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { copyFile, mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fresh, command, report } from './browser-runtime.mjs'
@@ -29,7 +30,11 @@ export async function agentQueryCustodyArchive() {
   try {
     const source = await fresh(), destination = await fresh()
     roots.push(source, destination)
-    for (const root of roots) await command(root, ['install'])
+    // fresh shares dependencies by symlink; give each CLI installation its own links before setup.
+    for (const root of roots) {
+      await rm(join(root, 'node_modules'))
+      await command(root, ['install'])
+    }
     const sourceHarness = await queryHarness({ persistencePath: join(source, '.wrangler/state/v3'), databaseId: 'local-foundation-only' })
     h = sourceHarness.h
     const result = await queryCustodyJourney(h, sourceHarness.signer), oldSession = h.owner
@@ -66,7 +71,7 @@ export async function agentQueryCustodyArchive() {
     await h.close(); h = undefined
     await copyFile(archive, join(evidence, 'query-custody.rer'))
     await copyFile(join(destination, 'exports/query-custody-restored.rer'), join(evidence, 'query-custody-restored.rer'))
-    await report(join(evidence, 'query-custody'), { passed: true, refusals: result.refused, controls: result.controls, sourceScan: result.scan, restoredScan, archive: 'decoded real CLI export and restored export; every portable row and original byte exact; fresh native authentication, old authority refused' })
+    await report(join(evidence, 'query-custody'), { passed: true, commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), refusals: result.refused, controls: result.controls, sourceScan: result.scan, restoredScan, archive: 'decoded real CLI export and restored export; every portable row and original byte exact; fresh native authentication, old authority refused' })
     console.log('PROBE BASE-AGENT-004 5 archive: decoded real CLI export and restored export -> no raw or encoded query credentials; exact nonempty proposals, claims, receipt originals, batch, reimbursement identities and numbered history; fresh native authentication, original session and credentials refused')
   } finally {
     await h?.close()
