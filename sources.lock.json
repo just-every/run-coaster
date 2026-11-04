@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7d037f961481aee2d2d4f5a9a625b9a64d56a50a7d917de0ce113c0a15d2e0a4",
+      "sha256": "2c41092f8c69e3bb32a4c6eacc36ef06728a530af8b2688035d85d819c42a4de",
       "executable": false
     },
     "DEMO.md": {
@@ -5068,7 +5068,7 @@
       "executable": false
     },
     "tests/coaster-agent-context-classification.test.mjs": {
-      "sha256": "5b33a907961880ff44dddeef7660dc72fb746ced447cc41c4812b0a323f35b03",
+      "sha256": "d044488d851eaa5adbc7d66f3b2d8ef1e79674521e3c131ca0e7e99464db81f9",
       "executable": false
     },
     "tests/coaster-agent-discovery.test.mjs": {

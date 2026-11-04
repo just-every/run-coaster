@@ -135,7 +135,7 @@ test('Private preparation context obeys company policy without granting native f
     assert.equal((await erasedClient('tools/call', contextParams())).status, 401)
     assert.equal((await erasedClient('tools/call', { name: 'coaster.claims.propose', arguments: { ...claimArguments(t.c.office), idempotency_key: 'synthetic-coaster-3909' } })).status, 401)
     assert.deepEqual(await financial(), before, 'erased credentials cannot resurrect a captured proposal')
-    console.log('PROBE BASE-AGENT-006 1: MCP tools/list under both versions -> standard and sensitive, proposals:read unchanged')
+    console.log('PROBE BASE-AGENT-006 1: MCP tool discovery under both versions -> standard and sensitive, proposals:read unchanged')
     console.log('PROBE BASE-AGENT-006 2: empty and seeded context MCP read -> exact native projections and fixed private-expense facts; held read withheld until sponsor approval; blocked and unanswered policies disclose nothing')
     console.log('PROBE BASE-AGENT-006 3: injected class and confirmation flags plus record instructions -> unchanged computed classes and facts')
     console.log('PROBE BASE-AGENT-006 6: actual D1 audit rows for autonomous, approval, blocked and unset -> exact computed facts, rules and decisions; read approval changes no financial records')
