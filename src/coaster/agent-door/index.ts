@@ -39,7 +39,7 @@ export async function coasterAgentDoor(original: Bindings) {
 export async function agentDoorResponse(request: Request, original: Bindings) {
   const path = new URL(request.url).pathname;
   const businessPath = ['/api/rer/business-settings', '/rer-business-logo', '/rer-business.css'].includes(path);
-  const doorPath = ['/mcp', '/api/rer/agent-policy', '/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp', '/agents'].includes(path) || path.startsWith('/agents/');
+  const doorPath = ['/mcp', '/api/rer/agent-policy', '/api/rer/agent-decisions', '/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp', '/agents'].includes(path) || path.startsWith('/agents/');
   if (!businessPath && !doorPath) return null;
   const env = runtimeBindings(original);
   if (!env.AUTH_ORIGIN) return Response.json({ code: 'door_unavailable' }, { status: 503, headers: { 'cache-control': 'no-store' } });

@@ -27,6 +27,19 @@
       ]
     },
     {
+      "name": "coaster.workspace.witness",
+      "scope": "proposals:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "COA-010",
+        "BASE-AGENT-002",
+        "BASE-AGENT-006"
+      ]
+    },
+    {
       "name": "coaster.proposals.get",
       "scope": "proposals:read",
       "readOnly": true,
@@ -112,7 +125,7 @@
     "coaster.claims.prepare"
   ],
   "witness": {
-    "tool": "coaster.workspace.get",
+    "tool": "coaster.workspace.witness",
     "args": {}
   },
   "escalations": [],

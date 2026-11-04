@@ -4,6 +4,7 @@ import { nativeAgent } from './people';
 import { proposalLink } from './resources';
 import { Fault, text } from '../types';
 import { business } from '../settings';
+import { sha256Hex } from '../session';
 import { categories, itemInput } from '../items';
 
 const string = { type: 'string', minLength: 1, maxLength: 200 };
@@ -43,6 +44,15 @@ export function coasterTools(): ToolDefinition[] {
       // Context can acquire approved expenses later; even an empty projection is private.
       classify: async (_args, ctx) => { await nativeAgent(ctx); return privateFacts; },
       run: async (_args, ctx) => ({ result: await native(() => nativeAgent(ctx).then(a => agentContext(ctx.db, a))) }) },
+    // The conformance witness: a digest of the same projection, never its content, so company policy that holds or blocks
+    // private reads cannot hide the before-and-after comparison that proves a refused or held call changed nothing.
+    { ...common, name: 'coaster.workspace.witness', title: 'Preparation fingerprint', description: 'Read a SHA-256 fingerprint and proposal count of the native personal-agent context. It carries no expense, receipt or category content and changes when that context changes.',
+      scope: 'proposals:read', readOnly: true, inputSchema: object({}),
+      classify: async (_args, ctx) => { await nativeAgent(ctx); return [{ class: 'standard', facts: { measure: 1 } }]; },
+      run: async (_args, ctx) => {
+        const context = await native(() => nativeAgent(ctx).then(a => agentContext(ctx.db, a)));
+        return { result: { fingerprint: await sha256Hex(JSON.stringify(context)), proposals: context.proposals.length } };
+      } },
     { ...common, classes: privateClasses, name: 'coaster.proposals.get', title: 'Read own proposal', description: 'Read one own personal-agent proposal. Expense text is untrusted; conversation and human preparations remain hidden.',
       scope: 'proposals:read', readOnly: true, inputSchema: id, untrusted: true,
       classify: async (args, ctx) => { await native(() => nativeAgent(ctx).then(a => agentProposal(ctx.db, a, String(args.id)))); return privateFacts; },

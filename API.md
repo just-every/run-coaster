@@ -55,12 +55,16 @@ with `actingFor`.
 ## Company-agent door
 
 `POST /mcp` serves MCP 2026-07-28 and 2025-11-25. Read discovery and metadata
-before calling `coaster.workspace.get`, `coaster.proposals.get`,
-`coaster.claims.propose` or `coaster.batches.propose`. Scopes are
+before calling `coaster.workspace.get`, `coaster.workspace.witness`,
+`coaster.proposals.get`, `coaster.claims.propose` or `coaster.batches.propose`.
+`coaster.workspace.witness` returns only a SHA-256 fingerprint and the proposal
+count of the workspace projection, so a company policy that holds or blocks the
+private reads still leaves a content-free before-and-after comparison. Scopes are
 `proposals:read` and `proposals:write`; arguments and outputs are described by
 `tools/list`. Mutations carry an `idempotency_key`. Stable refusal codes appear
 in `_meta["com.runeditrun/error"]`. Signed Business policy is adopted through
-`POST /api/rer/agent-policy`; person controls are at `/agents`.
+`POST /api/rer/agent-policy`; the Business pulls signed decision projections
+through `POST /api/rer/agent-decisions`; person controls are at `/agents`.
 See [Agent instructions](docs/agents.md) for native authority and undeclared
 capability boundaries. The narrow legacy preparation API below keeps its own
 personal-key contract.
