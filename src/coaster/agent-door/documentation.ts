@@ -116,6 +116,7 @@ function condition(args: Record<string, unknown>, classes: string[]): string {
   if (items.length) return 'Native expense preparation; private untrusted expense content.';
   if (Array.isArray(args.claims)) return 'Finance preparation from already-approved native claims; no batch release.';
   if ('id' in args) return 'Read the sponsoring person’s own proposal; private untrusted expense content.';
+  if (!classes.includes('sensitive')) return 'Read a content-free fingerprint of the sponsoring person’s native preparation context.';
   return 'Read the sponsoring person’s native preparation context.';
 }
 

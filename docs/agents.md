@@ -41,6 +41,7 @@ The body limit counts the complete UTF-8 request body; an oversized body returns
 | Prepare a claim proposal | `coaster.claims.propose` | `proposals:write` | `standard`, `sensitive`, `external` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006`, `CLAIM-003` |
 | Read own proposal | `coaster.proposals.get` | `proposals:read` | `standard`, `sensitive` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
 | Preparation context | `coaster.workspace.get` | `proposals:read` | `standard`, `sensitive` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
+| Preparation fingerprint | `coaster.workspace.witness` | `proposals:read` | `standard` | `COA-010`, `BASE-AGENT-002`, `BASE-AGENT-006` |
 
 ### Class witnesses
 
@@ -56,10 +57,12 @@ Each case below is an entry in the production-door conformance journey in `agent
 | `coaster.proposals.get` | `sensitive` | `proposal` |
 | `coaster.workspace.get` | `standard` | `context` |
 | `coaster.workspace.get` | `sensitive` | `context` |
+| `coaster.workspace.witness` | `standard` | `witness` |
 
 | Journey case | Tool | Expected computed classes | Native condition |
 | --- | --- | --- | --- |
 | `context` | `coaster.workspace.get` | `standard`, `sensitive` | Read the sponsoring person’s native preparation context. |
+| `witness` | `coaster.workspace.witness` | `standard` | Read a content-free fingerprint of the sponsoring person’s native preparation context. |
 | `claim` | `coaster.claims.propose` | `standard`, `sensitive` | Native expense preparation; private untrusted expense content. |
 | `foreign-claim` | `coaster.claims.propose` | `standard`, `sensitive`, `external` | Automatic foreign-currency FX; public ECB history request, without expense or person data. |
 | `manual-foreign-claim` | `coaster.claims.propose` | `standard`, `sensitive` | Explicit manual FX rate; no provider request and no external class. |
