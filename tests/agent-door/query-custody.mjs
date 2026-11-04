@@ -163,7 +163,7 @@ export async function queryCustodyJourney(h, signer) {
         for (const name of ['c_proposals', 'c_claims', 'c_receipts', 'c_batches', 'c_reimbursement_keys']) assert.ok(before[name].length, `${name} baseline is nonempty`)
         const rpc = { jsonrpc: '2.0', id: 4510, method: 'tools/call', params: { ...params, _meta: { 'io.modelcontextprotocol/protocolVersion': version } } }
         const headers = { origin: h.origin, 'content-type': 'application/json', 'MCP-Protocol-Version': version, 'Mcp-Method': 'tools/call', 'Mcp-Name': params.name }
-        for (const [encoding, headerToken] of [[token, null], [percentEncoded(token), token], [token, tokens.find(value => value !== token)]]) {
+        for (const [encoding, headerToken] of [[token, null], [percentEncoded(token), null], [percentEncoded(token), token], [token, tokens.find(value => value !== token)]]) {
           const response = await request(`${h.origin}/mcp?access_token=${encoding}`, { method: 'POST', headers: { ...headers, ...(headerToken ? { authorization: `Bearer ${headerToken}` } : {}) }, body: JSON.stringify(rpc) })
           assert.equal(response.status, 401, `${phase} ${kind} ${version} ${point}: query credentials are always refused`)
           assert.equal(response.headers.get('www-authenticate'), `Bearer resource_metadata="${h.origin}/.well-known/oauth-protected-resource/mcp"`)
@@ -188,7 +188,7 @@ export async function queryCustodyJourney(h, signer) {
         }
         controls++
       }
-      console.log(`PROBE BASE-AGENT-004 5 ${phase} ${kind} ${version}: valid read and preparation with query-only, encoded query plus header and mixed valid header -> 401 resource_metadata, no disclosure, pending approval, retained change or egress; header-only controls succeed`)
+      console.log(`PROBE BASE-AGENT-004 5 ${phase} ${kind} ${version}: valid read and preparation with raw or encoded query-only tokens, encoded query plus header and mixed valid header -> 401 resource_metadata, no disclosure, pending approval, retained change or egress; header-only controls succeed`)
     }
   }
   const scan = await custodyStorage(h, tokens)

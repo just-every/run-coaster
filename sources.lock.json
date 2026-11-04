@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "13a72298687d8ef555d8ee4c06148f49a5f810c1186bc8b83bb438e014644257",
+      "sha256": "8652d42c9afffdce1cb341a22adc9621d32bb5542485305c30600c9804b9e3d3",
       "executable": false
     },
     "DEMO.md": {
@@ -4972,7 +4972,7 @@
       "executable": false
     },
     "tests/agent-door/query-custody.mjs": {
-      "sha256": "d09eb79b4f072bbac694b92b015f571820d00a15b0234e3d495180076ac4c7fa",
+      "sha256": "9585a939701035ff4e5dc86459a9cc8428825ee0afbde576702d815fc8a0ed9e",
       "executable": false
     },
     "tests/agent-door/state.mjs": {
@@ -4980,7 +4980,7 @@
       "executable": false
     },
     "tests/agent-query-custody-archive.mjs": {
-      "sha256": "d7bb3d6fd39511b9297710c129e18f4f94654b9b1c6d92e6204c3ee45cbe2423",
+      "sha256": "6359fe4dadcdd30e180d2b19ef6653165798769c223a18184557c1e97e0eb8ec",
       "executable": false
     },
     "tests/archive-data.mjs": {
