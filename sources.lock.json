@@ -320,7 +320,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "2c41092f8c69e3bb32a4c6eacc36ef06728a530af8b2688035d85d819c42a4de",
+      "sha256": "ca77dfed4036763e528c36b818303da5573ecf37bde9df4d93a841f0137f92e0",
       "executable": false
     },
     "DEMO.md": {
@@ -800,7 +800,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "d7a42bf772281a94fdd3eb0f4c3dc8d25f55e03a04014e84ea7bd8da8e7e9825",
+      "sha256": "a6bd60091ca3d4d2b2c075038b337a908a012e00b3dde0dd24f1351ba4c2417c",
       "executable": false
     },
     "packaging.json": {
@@ -808,7 +808,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "6fa79625d5094e87caedb81e9c8b1f6a5652541359c4c1e4809b0b6efaed9a89",
+      "sha256": "9b954dc812b62fb0b759f2e4af1526c0e96484bccfc4207624fc8e895531a0b6",
       "executable": false
     },
     "PROGRAM-FEEDS.md": {
