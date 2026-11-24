@@ -72,7 +72,11 @@ export async function runReminders(env: Bindings, at: Date) {
   if (items.length) await db.batch(items.map(i => db.prepare('INSERT INTO c_reminder_items(key,person,claim_id,first_seen_at) VALUES(?,?,?,?) ON CONFLICT DO NOTHING').bind(i.key, i.person, i.claim, at.toISOString())));
   const today = localDate(at.toISOString(), settings.timezone);
   if (!isBusinessDay(today) || quiet(localHour(at, settings.timezone), settings.quiet_from, settings.quiet_until)) return;
-  const seen = new Map((await db.prepare('SELECT r.key,r.first_seen_at,(SELECT MAX(step) FROM c_reminders s WHERE s.key=r.key) AS sent FROM c_reminder_items r').all<Data>()).results.map(r => [r.key, r]));
+  // Only the items still open: the notes and sent steps of everything resolved stay behind as history.
+  const seen = new Map<unknown, Data>();
+  for (let i = 0; i < items.length; i += 200) {
+    for (const r of (await db.prepare('SELECT r.key,r.first_seen_at,(SELECT MAX(step) FROM c_reminders s WHERE s.key=r.key) AS sent FROM c_reminder_items r WHERE r.key IN (SELECT value FROM json_each(?))').bind(JSON.stringify(items.slice(i, i + 200).map(item => item.key))).all<Data>()).results) seen.set(r.key, r);
+  }
   const mail = operatorMail(env);
   for (const item of items) {
     const record = seen.get(item.key)!, age = businessDaysBetween(item.postedOn ?? localDate(record.first_seen_at, settings.timezone), today);

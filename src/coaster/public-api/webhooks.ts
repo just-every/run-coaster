@@ -50,7 +50,12 @@ export async function deliverWebhooks(env:Bindings,at:Date) {
     if(!await db.prepare(`SELECT 1 AS ok WHERE ${active.sql}`).bind(...active.params).first()) continue;
     const events=JSON.parse(sub.events) as string[],actions=Object.keys(WEBHOOK_EVENTS).filter(k=>events.includes(WEBHOOK_EVENTS[k as keyof typeof WEBHOOK_EVENTS]));
     try {
-      await commit(db,active,[db.prepare(`INSERT OR IGNORE INTO c_public_webhook_deliveries(subscription_id,event_id) SELECT ?,id FROM c_events WHERE seq>? AND action IN (${actions.map(()=>'?').join(',')})`).bind(sub.id,sub.start_seq,...actions)]);
+      // Each run scans only the events committed since the last one: the head is read first, so an event committed meanwhile waits for the next run.
+      const head=(await db.prepare('SELECT COALESCE(MAX(seq),0) AS n FROM c_events').first<{n:number}>())!.n;
+      await commit(db,active,[
+        db.prepare(`INSERT OR IGNORE INTO c_public_webhook_deliveries(subscription_id,event_id) SELECT ?,id FROM c_events WHERE seq>? AND seq<=? AND action IN (${actions.map(()=>'?').join(',')})`).bind(sub.id,Math.max(sub.start_seq,sub.scanned_seq),head,...actions),
+        db.prepare('UPDATE c_public_webhooks SET scanned_seq=MAX(scanned_seq,?) WHERE id=?').bind(head,sub.id),
+      ]);
     } catch(error) { if(error instanceof Fault && error.status===409) continue;throw error; }
     const due=(await db.prepare('SELECT d.*,e.at,e.action,e.claim_id,e.batch_id FROM c_public_webhook_deliveries d JOIN c_events e ON e.id=d.event_id WHERE d.subscription_id=? AND d.delivered_at IS NULL AND d.attempt<6 AND d.next_at<=? AND d.lease_until<=? ORDER BY e.seq LIMIT 50').bind(sub.id,clock,clock).all<Data>()).results;
     for(const delivery of due) {

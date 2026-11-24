@@ -63,15 +63,27 @@ export async function holdOn(db: D1Database, claims: { id: string; employee_emai
 
 /** Paid and rejected claims whose last change (when they were paid or rejected) is at least the retention period before
  * `day`: a rejected claim on its own, a paid claim with every claim of its reimbursement batch, which must all be past it.
- * Open, approved and unpaid claims never expire. */
+ * Open, approved and unpaid claims never expire. Only claims old enough to be past it are read, so the hourly run costs
+ * the same however much recent history the business keeps. */
 async function expiring(db: D1Database, years: number, day: string, timezone: string): Promise<Unit[]> {
   const cutoff = `${Number(day.slice(0, 4)) - years}${day.slice(4)}`;
-  const rows = (await db.prepare("SELECT id,number,employee_email,status,updated_at,batch_id FROM c_claims WHERE status IN ('reimbursed','rejected') ORDER BY number").all<Unit['claims'][number] & { batch_id: string | null }>()).results;
+  // A claim's date in the business time zone is within a day of its UTC date, so fetch everything up to two days after the
+  // cutoff in UTC and judge each claim exactly below.
+  const [y, m, d] = cutoff.split('-').map(Number), reach = new Date(Date.UTC(y, m - 1, d + 2)).toISOString().slice(0, 10);
   const past = (c: { updated_at: string }) => localDate(c.updated_at, timezone) <= cutoff;
-  const units: Unit[] = rows.filter(c => c.status === 'rejected' && past(c)).map(c => ({ claims: [c], batch: null }));
-  for (const batch of new Set(rows.filter(c => c.status === 'reimbursed').map(c => c.batch_id!))) {
-    const members = (await db.prepare('SELECT id,number,employee_email,status,updated_at FROM c_claims WHERE batch_id=? ORDER BY number').bind(batch).all<Unit['claims'][number]>()).results;
-    if (members.every(c => c.status === 'reimbursed' && past(c))) units.push({ claims: members, batch });
+  const old = (await db.prepare("SELECT id,number,employee_email,status,updated_at,batch_id FROM c_claims WHERE status IN ('reimbursed','rejected') AND updated_at<? ORDER BY number").bind(reach).all<Unit['claims'][number] & { batch_id: string | null }>()).results.filter(past);
+  const units: Unit[] = old.filter(c => c.status === 'rejected').map(c => ({ claims: [c], batch: null }));
+  const batches = [...new Set(old.filter(c => c.status === 'reimbursed' && c.batch_id).map(c => c.batch_id!))];
+  const members = new Map<string, Unit['claims']>();
+  for (let i = 0; i < batches.length; i += 200) {
+    for (const c of (await db.prepare('SELECT id,number,employee_email,status,updated_at,batch_id FROM c_claims WHERE batch_id IN (SELECT value FROM json_each(?)) ORDER BY number').bind(JSON.stringify(batches.slice(i, i + 200))).all<Unit['claims'][number] & { batch_id: string }>()).results) {
+      const { batch_id, ...claim } = c;
+      members.set(batch_id, [...members.get(batch_id) ?? [], claim]);
+    }
+  }
+  for (const batch of batches) {
+    const claims = members.get(batch) ?? [];
+    if (claims.every(c => c.status === 'reimbursed' && past(c))) units.push({ claims, batch });
   }
   return units;
 }
@@ -81,6 +93,8 @@ export async function runRetention(env: Bindings, at: Date) {
   const db = env.DB, settings = await business(db);
   if (!settings || await db.prepare("SELECT 1 FROM c_expiry_proposals WHERE status='proposed'").first()) return;
   const holds = await liveHolds(db), units: Unit[] = [];
+  // A hold on the whole business covers every claim, so nothing can be proposed.
+  if (holds.some(h => h.scope === 'business')) return;
   for (const unit of await expiring(db, settings.retention_years, localDate(at.toISOString(), settings.timezone), settings.timezone)) if (!await holdOn(db, unit.claims, holds)) units.push(unit);
   if (!units.length) return;
   const id = uid();

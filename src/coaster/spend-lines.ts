@@ -2,14 +2,15 @@ import { claimNumber } from './claims';
 import type { Data } from './types';
 
 /** Submitted out-of-pocket spend and every posted company-card charge, counted once. Draft card rows reveal only
- * statement facts and finance’s import coding, never their private receipt, entered matching details or lifecycle. */
+ * statement facts and finance’s import coding, never their private receipt, entered matching details or lifecycle.
+ * Only claims with an expense dated in the period, and charges dated in it or on such an expense, are read. */
 export async function spendLines(db: D1Database, from: string, to: string, scope: { sql: string; params: unknown[] } = { sql: '', params: [] }) {
   const [claims, charges] = await db.batch([
-    db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,r.snapshot,m.name AS employee_name FROM c_claims c JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_members m ON m.email=c.employee_email WHERE c.status IN ('submitted','approved','batched','reimbursed')${scope.sql} ORDER BY c.number`).bind(...scope.params),
+    db.prepare(`SELECT c.id,c.number,c.employee_email,c.status,r.snapshot,m.name AS employee_name FROM (SELECT DISTINCT claim_id FROM c_items WHERE spent_on BETWEEN ? AND ?) d CROSS JOIN c_claims c ON c.id=d.claim_id JOIN c_revisions r ON r.claim_id=c.id AND r.revision=c.revision LEFT JOIN c_members m ON m.email=c.employee_email WHERE c.status IN ('submitted','approved','batched','reimbursed')${scope.sql} ORDER BY c.number`).bind(from, to, ...scope.params),
     db.prepare(`SELECT ch.*,cd.issuer,cd.last4,cd.id AS card_id,c.id AS live_claim,c.number,c.status,m.name AS employee_name,cat.name AS category_name,f.mapping
       FROM c_card_charges ch JOIN c_cards cd ON cd.id=ch.card_id JOIN c_statement_files f ON f.id=ch.file_id JOIN c_categories cat ON cat.id=ch.category_id JOIN c_items i ON i.id=ch.item_id
       JOIN c_claims c ON c.id=i.claim_id LEFT JOIN c_members m ON m.email=ch.employee_email
-      WHERE 1=1${scope.sql} ORDER BY ch.id`).bind(...scope.params),
+      WHERE ch.id IN (SELECT id FROM c_card_charges WHERE COALESCE(transaction_on,posted_on) BETWEEN ? AND ? UNION SELECT card_charge_id FROM c_items WHERE spent_on BETWEEN ? AND ? AND card_charge_id IS NOT NULL)${scope.sql} ORDER BY ch.id`).bind(from, to, from, to, ...scope.params),
   ]);
   const cards = new Map((charges.results as Data[]).map(ch => [ch.id, ch]));
   const department = new Map((await db.prepare('SELECT m.email,d.id,d.name FROM c_members m JOIN c_departments d ON d.id=m.department_id').all<{ email: string; id: string; name: string }>()).results.map(m => [m.email, m]));

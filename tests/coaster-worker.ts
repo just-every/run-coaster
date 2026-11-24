@@ -4,6 +4,7 @@ import { api } from '../src/coaster/api'
 import { authResponse } from '../src/auth.server'
 import { runHourly } from '../src/coaster/hourly'
 import { databaseAtEdge } from './d1-edge'
+import { meteredDatabase, lastScheduledReads } from './d1-meter'
 
 // The production API and native auth handlers, without Start's document renderer.
 export default {
@@ -13,6 +14,7 @@ export default {
       await receiveEmail({from:b.from,to:b.to,rawSize:raw.length,raw:new Blob([raw]).stream(),headers:new Headers(),setReject:reason=>{rejected=reason;}} as ForwardableEmailMessage,env);
       return Response.json({rejected});
     }
+    if(new URL(request.url).pathname==='/__test/d1-meter') return Response.json(lastScheduledReads());
     return await agentDoorResponse(request, env) ?? await authResponse(request, env) ?? api.fetch(request, env, ctx) },
-  async scheduled(controller: ScheduledController, env: any) { await runHourly(env, new Date(controller.scheduledTime)) },
+  async scheduled(controller: ScheduledController, env: any) { await runHourly({ ...env, DB: meteredDatabase(env.DB) }, new Date(controller.scheduledTime)) },
 }
