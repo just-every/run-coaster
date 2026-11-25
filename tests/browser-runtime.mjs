@@ -76,7 +76,7 @@ async function previewSite(root) {
   return preview({
     root,
     configFile: false,
-    envFile: false,
+    envDir: false,
     // Serve extensionless document routes from their emitted .html files.
     appType: 'mpa',
     build: { outDir: 'dist/site' },

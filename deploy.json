@@ -41,7 +41,7 @@
       "binding": "MAIL_PROVIDER",
       "environment": "MAIL_PROVIDER",
       "optional": true,
-      "verifyStandIn": "none"
+      "verifyStandIn": "resend"
     },
     {
       "binding": "MAIL_FROM",

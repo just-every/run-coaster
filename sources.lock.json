@@ -336,7 +336,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "0211797c5fa647ec9040874be3ed0761812497ad8d6006151e2204dcf4ea9c0c",
+      "sha256": "ac1daf543fc1b532fef026b43ac41f9180a734ba31d8d3012164a42cc446d707",
       "executable": false
     },
     "DESKTOP.md": {
@@ -5028,7 +5028,7 @@
       "executable": false
     },
     "tests/browser-runtime.mjs": {
-      "sha256": "67765264993afbbb2346dd1dac1d9721855fd2daf92f277dba8c6e849a4a851e",
+      "sha256": "499735093eb8620a87817e8b0bdd433cd8a5741b5bb98ed6c4e5827696927cbd",
       "executable": false
     },
     "tests/browser.mjs": {
