@@ -3,7 +3,7 @@ When Coaster works the way you want on your computer, put it on your own Cloudfl
 ## Check first
 
 ```sh
-rer deploy --dry-run
+MAIL_PROVIDER=none rer deploy --dry-run
 ```
 
 The dry run checks the deployment and builds Coaster locally. It makes no request to Cloudflare.
@@ -11,19 +11,19 @@ The dry run checks the deployment and builds Coaster locally. It makes no reques
 ## What you need
 
 - A Cloudflare account, and an API token for it. Coaster reads `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` from your environment; never put them in a file in the repository.
-- A mail provider for real sign-in and invitation emails. Choose Resend, SendGrid or Cloudflare Email Sending and verify your sender address with that provider.
-- Choose `MAIL_PROVIDER` in `deploy.json` under `vars`. Supply `MAIL_FROM` through the deployment environment using the sender address verified by your provider; it is a required deployment input, with no fixed sender in the repository. Both names are declared in `packaging.json`. For Cloudflare Email Sending, also supply `MAIL_ACCOUNT_ID`.
-- Required private inputs: `SESSION_SECRET`, `SETUP_TOKEN` and `INSTALLATION_KEY`. The direct mail provider also needs `MAIL_API_KEY`; keep these in private setup inputs or the target secret store. Never commit them. Managed hosting supplies the RER mail relay URL and its private credential.
-- The owner's email address. Coaster keeps its session and setup secrets privately.
+- The owner's email address and the private setup values `SESSION_SECRET`, `SETUP_TOKEN` and `INSTALLATION_KEY`. Keep these in private setup inputs or the target secret store.
+- For email sign-in, invitations and notifications, set `MAIL_PROVIDER` to `resend`, `sendgrid` or `cloudflare` and supply your verified `MAIL_FROM` and private `MAIL_API_KEY`. Cloudflare Email Sending also needs `MAIL_ACCOUNT_ID`. RER managed mail uses its assigned relay URL and credential.
 
 ## Deploy
 
 ```sh
-rer deploy
+MAIL_PROVIDER=none rer deploy
 ```
+
+For a deployment with email, set the provider inputs above and run `rer deploy`.
 
 `rer deploy` creates Coaster's database and receipt-inbox R2 bucket on your account, applies its migrations, publishes it and checks that it answers. Run it again to publish a newer version; your data stays.
 
 ## After deploying
 
-Open your Coaster's address. Its home page is a small lobby with one button: **Finish setup** until the owner confirms setup, then **Sign in**. Then [set up your business](/docs/setup) and invite your team.
+With mail off, run `rer signin` from the checkout with the Cloudflare credentials used for deployment. Open the private, one-time owner link and [set up your business](/docs/setup). Email sign-in, invitations, reminders and receipt-alias verification need outbound mail.

@@ -573,7 +573,7 @@
   "publicVariables": {
     "AUTH_ORIGIN": "",
     "AUTH_LOCAL": "false",
-    "MAIL_PROVIDER": "",
+    "MAIL_PROVIDER": "resend",
     "MAIL_FROM": "",
     "MAIL_RELAY_URL": "",
     "MAIL_ACCOUNT_ID": "",

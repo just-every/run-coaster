@@ -34,7 +34,7 @@ export async function requestReceiptAlias(env:Bindings,a:Actor,b:Data) {
  await commit(db,all(authority(a,'employee'),{sql:'NOT EXISTS(SELECT 1 FROM c_receipt_mail_aliases WHERE email=? AND owner_email<>?)',params:[address,a.email]}),[db.prepare('INSERT INTO c_receipt_mail_aliases(email,owner_email,proof_hash,expires_at,confirmed_at,requested_at) VALUES(?,?,?,?,NULL,?) ON CONFLICT(email) DO UPDATE SET proof_hash=excluded.proof_hash,expires_at=excluded.expires_at,confirmed_at=NULL,requested_at=excluded.requested_at').bind(address,a.email,hash,expires,at)]);
  const words=`Confirm this address for your Coaster receipt inbox by entering this one-time code in Settings: ${code}\nThis expires in 15 minutes. If you did not request it, ignore this email.`;
  const sent=await mail.send({deliveryId:uid(),from:env.MAIL_FROM??'',to:[address],subject:'Confirm your Coaster receipt address',text:words,html:`<p>${words}</p>`,headers:{}});
- requireThat(sent.status==='accepted','Proof email was not sent; check installation mail settings',409);
+ requireThat(sent.status==='accepted',sent.code==='mail_off'?'Outbound email is turned off (mail_off).':'Proof email was not sent; check installation mail settings',409);
  return {sent:true};
 }
 export async function confirmReceiptAlias(db:D1Database,a:Actor,b:Data) {

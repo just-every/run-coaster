@@ -21,6 +21,7 @@ export const adapter = lifecycle;
 export const { install } = lifecycle;
 export const commandAdapter = createCommandAdapter(lifecycle, {
  dev: developmentTarget, preview: previewTarget, verify: ['pnpm', ['run', 'verify:app']], deploy: ownerDeploy('deploy.json', lifecycle),
+ mailOffSignIn: 'rer signin',
  portability: localPortability({ database: 'foundation', buckets: { COASTER_RECEIPTS: 'COASTER_RECEIPTS' }, policyModule: 'scripts/installer/portability.mjs', transient: ['local runtime caches and logs'] }),
  setup: { manifestFile: 'rer-setup.json' }, browserModule: 'scripts/installer/ui/seed.mjs',
  // Local dev identity: the local-only Worker entry, the build output rer build
