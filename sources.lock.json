@@ -5220,7 +5220,7 @@
       "executable": false
     },
     "tests/browser.mjs": {
-      "sha256": "c8fd34186a46475f1611d046c34bb3de74fc005bca03647ce6c41617fd14472f",
+      "sha256": "7e2b2a66d902a786ea28965a0dc13906e893b161b37b8933725f08bdd5409da5",
       "executable": false
     },
     "tests/card-chase-kit.mjs": {

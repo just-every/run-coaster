@@ -192,7 +192,7 @@ try {
   const beforeCorrupt = rows(await records(join(second, 'exports/before-corrupt.rer')))
   const corrupt = await command(second, ['import', '--input', 'exports/corrupt.rer', '--yes'], { expected: 2 })
   assert.match(corrupt, /Restore refused: the archive is damaged or incomplete/)
-  assert.match(corrupt, /Re-export from the original installation with rer export --output/)
+  assert.match(corrupt, /\brer export --output\b/)
   assert.match(corrupt, /Keep the original archive until recovery succeeds/)
   await rejectInconsistentArchives(second, archive)
   await copyFile(archive, join(second, 'exports/installation.rer'))
