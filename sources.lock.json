@@ -5248,7 +5248,7 @@
       "executable": false
     },
     "tests/coaster-agent-body-boundary.test.mjs": {
-      "sha256": "17a4940f6c8ddc56cea5b0208c709bc2ae376e78b31661778ef9280a09252ff8",
+      "sha256": "4cfab3eeb03b7ef19a12b53cde430eb842cf82bd1fd7bcda6f1de6dbf449bc58",
       "executable": false
     },
     "tests/coaster-agent-capacity.test.mjs": {

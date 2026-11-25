@@ -125,7 +125,8 @@ test('Oversized MCP preparations preserve financial evidence and leave their ret
       }
       const input = new Request(h.origin + '/mcp', { method: 'POST', headers, body, duplex: 'half' })
       assert.equal(input.headers.has('content-length'), transport === 'declared')
-      const response = await request(input.url, { method: input.method, headers: Object.fromEntries(input.headers), body: input.body, duplex: 'half' })
+      // Send both declared and streamed bodies over the Worker's HTTP listener.
+      const response = await fetch(input.url, { method: input.method, headers: Object.fromEntries(input.headers), body: input.body, duplex: 'half' })
       return { status: response.status, ...await response.json() }
     }
     let sequence = 4510
