@@ -1,6 +1,6 @@
 {
   "version": "0.1.1",
-  "publicReleaseNotes": "Prepare Coaster for hosted installation with a digest-bound setup manifest, deployment specification, dispatch-only Managed workflow and explicit mail provider setup. Claims, approvals and receipt evidence retain their existing guarantees.",
+  "publicReleaseNotes": "Coaster adds hosted setup through the signed Business agent door, owner sign-in with outbound mail off, and expanded expense approvals, budgets, receipt intake, card matching and accounting corrections.",
   "previousVersion": "0.1.0",
   "breaking": false,
   "agentUpdateInstructions": "Preserve private settings and receipt storage; build the pinned source and apply only the newly listed migrations. Reconnect provider accounts after restoring an archive.",
@@ -67,11 +67,22 @@
     "migrations/core/0074_last_signin.sql",
     "migrations/core/0075_scheduled_policy.sql",
     "migrations/core/0076_dependency_keys_sealed.sql",
+    "migrations/core/0077_desktop.sql",
+    "migrations/core/0078_desktop_identity.sql",
+    "migrations/core/0079_gusto_payroll.sql",
+    "migrations/core/0080_receipt_email.sql",
+    "migrations/core/0081_comment_email.sql",
+    "migrations/core/0082_receipt_mail_origins.sql",
+    "migrations/core/0083_plaid_connections.sql",
+    "migrations/core/0084_bank_details.sql",
+    "migrations/core/0085_individual_liability.sql",
     "migrations/core/0086_account_corrections.sql",
     "migrations/core/0087_accounting_corrections.sql",
     "migrations/core/0088_program_feed_health.sql",
     "migrations/core/0089_business_settings.sql",
     "migrations/core/0090_business_people.sql",
-    "migrations/core/0091_agent_door.sql"
+    "migrations/core/0091_agent_door.sql",
+    "migrations/core/0092_agent_door_relay_upgrade.sql",
+    "migrations/core/0093_business_retired.sql"
   ]
 }
